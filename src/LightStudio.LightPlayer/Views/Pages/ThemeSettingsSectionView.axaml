@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="360"
+             x:Class="LightStudio.LightPlayer.Views.Pages.ThemeSettingsSectionView"
+             x:DataType="vm:ThemeSettingsSectionViewModel">
+    <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
+        <StackPanel Spacing="4" Margin="0,0,0,4">
+            <TextBlock Text="Theme"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Text="Choose the app theme."
+                       FontSize="13"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <controls:SettingRow Header="Theme"
+                             Description="Use the system setting, light mode, or dark mode.">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="110"
+                          ItemsSource="{Binding ThemeOptions}"
+                          SelectedItem="{Binding SelectedTheme, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ThemeOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+    </StackPanel>
+</UserControl>

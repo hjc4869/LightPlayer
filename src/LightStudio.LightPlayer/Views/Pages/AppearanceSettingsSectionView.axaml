@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="560"
+             x:Class="LightStudio.LightPlayer.Views.Pages.AppearanceSettingsSectionView"
+             x:DataType="vm:AppearanceSettingsSectionViewModel">
+    <ScrollViewer>
+        <StackPanel Spacing="16">
+            <ContentControl Content="{Binding Theme}" />
+            <ContentControl Content="{Binding DefaultPage}" />
+            <ContentControl Content="{Binding Language}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

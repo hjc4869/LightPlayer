@@ -1,0 +1,128 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="860"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.PlaceholderPageView"
+             x:DataType="vm:PlaceholderPageViewModel">
+    <Panel>
+        <!-- Tiles (albums / artists) -->
+        <ScrollViewer IsVisible="{Binding IsTiles}" Margin="32">
+            <ItemsRepeater ItemsSource="{Binding Tiles}">
+                <ItemsRepeater.Layout>
+                    <UniformGridLayout MinItemWidth="120"
+                                       MinItemHeight="150"
+                                       MinColumnSpacing="6"
+                                       MinRowSpacing="2"
+                                       ItemsStretch="Uniform"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="models:LibraryTileModel">
+                        <controls:LibraryTile />
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+        </ScrollViewer>
+
+        <!-- Tracks (songs) -->
+        <Grid IsVisible="{Binding IsTracks}" RowDefinitions="Auto,*" Margin="12,0,12,12">
+            <Grid Grid.Row="0"
+                  Height="32"
+                  Margin="12,0"
+                  ColumnDefinitions="1.4*,1*,1*,70,90,60">
+                <TextBlock Grid.Column="0" Text="Title" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="1" Text="Artist" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="2" Text="Album" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="3" Text="Year" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="4" Text="Genre" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="5" Text="Length" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </Grid>
+            <ScrollViewer Grid.Row="1">
+                <ItemsControl ItemsSource="{Binding Tracks}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:TrackRowModel">
+                            <controls:TrackRow />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- Settings -->
+        <ScrollViewer IsVisible="{Binding IsSettings}" Padding="36,8,36,24">
+            <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+                <TextBlock Text="Library folders"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,10"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <controls:SettingRow Header="Add a folder"
+                                     Description="Choose folders to include in your music library.">
+                    <controls:SettingRow.ActionContent>
+                        <Button Content="Add folder" />
+                    </controls:SettingRow.ActionContent>
+                </controls:SettingRow>
+                <ItemsControl ItemsSource="{Binding Folders}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:LibraryFolderModel">
+                            <controls:SettingRow Header="{Binding Name}" Description="{Binding Path}">
+                                <controls:SettingRow.ActionContent>
+                                    <Button Classes="icon" ToolTip.Tip="Remove this folder">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="{StaticResource IconClose}"
+                                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        </Viewbox>
+                                    </Button>
+                                </controls:SettingRow.ActionContent>
+                            </controls:SettingRow>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="Appearance"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Margin="0,18,0,10"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <controls:SettingRow Header="Theme"
+                                     Description="Choose how the app looks.">
+                    <controls:SettingRow.ActionContent>
+                        <ComboBox SelectedIndex="0" MinWidth="140">
+                            <ComboBoxItem Content="Use system setting" />
+                            <ComboBoxItem Content="Light" />
+                            <ComboBoxItem Content="Dark" />
+                        </ComboBox>
+                    </controls:SettingRow.ActionContent>
+                </controls:SettingRow>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Empty state -->
+        <controls:EmptyState IsVisible="{Binding IsEmpty}"
+                             Header="{Binding EmptyHeader}"
+                             Description="{Binding EmptyDescription}" />
+
+        <!-- Generic placeholder -->
+        <Grid IsVisible="{Binding IsPlaceholder}" RowDefinitions="Auto,Auto,*" Margin="36" RowSpacing="18">
+            <StackPanel Spacing="8">
+                <TextBlock Text="{Binding Title}" FontSize="34" FontWeight="SemiBold" Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <TextBlock Text="{Binding Kind}" FontSize="14" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="10">
+                <Border Background="{DynamicResource AppSelectionBrush}" CornerRadius="6" Padding="10,6">
+                    <TextBlock Text="{Binding RouteId}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                </Border>
+            </StackPanel>
+
+            <Border Grid.Row="2" Background="{DynamicResource AppPanelBackgroundBrush}" BorderBrush="{DynamicResource AppDividerBrush}" BorderThickness="1" CornerRadius="8" Padding="28">
+                <TextBlock Text="Placeholder route" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AppSecondaryTextBrush}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+            </Border>
+        </Grid>
+    </Panel>
+</UserControl>

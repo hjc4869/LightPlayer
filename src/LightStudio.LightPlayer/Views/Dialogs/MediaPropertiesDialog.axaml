@@ -1,0 +1,43 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:LightStudio.LightPlayer.Models"
+        mc:Ignorable="d"
+        d:DesignWidth="460"
+        d:DesignHeight="520"
+        x:Class="LightStudio.LightPlayer.Views.Dialogs.MediaPropertiesDialog"
+        Width="460"
+        Height="520"
+        CanResize="True"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Properties">
+    <Grid RowDefinitions="Auto,*,Auto" Margin="20">
+        <TextBlock x:Name="HeaderText" Grid.Row="0" FontSize="16" FontWeight="SemiBold"
+                   TextTrimming="CharacterEllipsis" Margin="0,0,0,12" />
+        <Border Grid.Row="1" BorderBrush="{DynamicResource AppDividerBrush}" BorderThickness="1" CornerRadius="4">
+            <ScrollViewer>
+                <ItemsControl x:Name="PropertiesList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:MediaPropertyItem">
+                            <Grid ColumnDefinitions="160,*" Margin="10,5" Background="Transparent">
+                                <Grid.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuItem Header="Copy" Click="OnCopyValueClick" />
+                                    </MenuFlyout>
+                                </Grid.ContextFlyout>
+                                <TextBlock Grid.Column="0" Text="{Binding Key}" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap"
+                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+        <Button x:Name="OkButton" Grid.Row="2" Content="OK" IsDefault="True"
+                HorizontalAlignment="Right" Margin="0,12,0,0" />
+    </Grid>
+</Window>

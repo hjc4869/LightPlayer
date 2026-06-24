@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="860"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.PlaylistsPageView"
+             x:DataType="vm:PlaylistsPageViewModel">
+    <UserControl.Styles>
+        <Style Selector="ListBox.playlistList">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="ListBox.playlistList ListBoxItem">
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid x:Name="RootGrid" ColumnDefinitions="300,*">
+        <!-- Master: playlist list + create/import actions -->
+        <DockPanel x:Name="MasterPane" Grid.Column="0">
+            <StackPanel DockPanel.Dock="Bottom"
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        HorizontalAlignment="Center"
+                        Margin="14,10,14,16">
+                <Button Classes="icon"
+                        ToolTip.Tip="New playlist"
+                        Command="{Binding NewPlaylistCommand}">
+                    <Viewbox Width="16" Height="16">
+                        <Path Data="{StaticResource IconAdd}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+                <Button Classes="icon"
+                        ToolTip.Tip="Import playlist"
+                        Command="{Binding ImportPlaylistCommand}">
+                    <Viewbox Width="16" Height="16">
+                        <Path Data="{StaticResource IconImport}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+            </StackPanel>
+
+            <Panel Margin="14,32,14,0">
+                <ScrollViewer IsVisible="{Binding ShowList}">
+                    <ListBox x:Name="PlaylistsList"
+                             Classes="playlistList"
+                             ItemsSource="{Binding Playlists}"
+                             SelectedItem="{Binding SelectedPlaylist, Mode=TwoWay}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:PlaylistModel">
+                                <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                    <Border Grid.Column="0"
+                                            Width="44"
+                                            Height="44"
+                                            CornerRadius="4"
+                                            Background="{DynamicResource AppNavBackgroundBrush}">
+                                        <Viewbox Width="22" Height="22">
+                                            <Path Data="{StaticResource IconPlaylist}"
+                                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        </Viewbox>
+                                    </Border>
+                                    <StackPanel Grid.Column="1"
+                                                Margin="14,0,0,0"
+                                                VerticalAlignment="Center"
+                                                Spacing="2">
+                                        <TextBlock Text="{Binding Title}"
+                                                   FontSize="15"
+                                                   MaxLines="1"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                        <TextBlock Text="{Binding Subtitle}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </ScrollViewer>
+
+                <TextBlock Text="No playlists yet"
+                           IsVisible="{Binding ShowEmpty}"
+                           Margin="10,6,0,0"
+                           FontSize="13"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </Panel>
+        </DockPanel>
+
+        <!-- Detail: the selected playlist, or a placeholder -->
+        <DockPanel x:Name="DetailPane" Grid.Column="1" Margin="10,0,0,0">
+            <Panel>
+                <ContentControl Content="{Binding SelectedDetail}"
+                                IsVisible="{Binding ShowDetail}" />
+                <controls:EmptyState IsVisible="{Binding ShowDetailPlaceholder}"
+                                     Header="{Binding DetailPlaceholderHeader}"
+                                     Description="{Binding DetailPlaceholderDescription}" />
+            </Panel>
+        </DockPanel>
+    </Grid>
+</UserControl>

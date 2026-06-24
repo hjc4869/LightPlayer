@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>im.hjc.LightPlayer</id>
+
+  <!-- License of this metainfo file (not the application). -->
+  <metadata_license>CC0-1.0</metadata_license>
+  <!-- TODO: set to the application's actual SPDX license identifier. -->
+  <project_license>LicenseRef-proprietary</project_license>
+
+  <name>Light Player</name>
+  <summary>Play and organize your local music library</summary>
+
+  <description>
+    <p>
+      Light Player is a cross-platform desktop music player. Scan your local
+      folders into a browsable library of songs, albums, and artists, build
+      playlists, and enjoy gapless playback with lyrics and cover art.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Browse your library by song, album, and artist</li>
+      <li>Create and manage playlists</li>
+      <li>Search across your collection</li>
+      <li>Media-key and "now playing" integration (MPRIS)</li>
+      <li>Open audio files directly to replace the current queue</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">im.hjc.LightPlayer.desktop</launchable>
+
+  <developer id="im.hjc">
+    <name>LightStudio</name>
+  </developer>
+
+  <categories>
+    <category>AudioVideo</category>
+    <category>Audio</category>
+    <category>Player</category>
+  </categories>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="1.0.0" date="2026-07-03" />
+  </releases>
+</component>

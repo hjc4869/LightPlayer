@@ -1,0 +1,30 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/LightStudio.LightPlayer/LightStudio.LightPlayer.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.FfmpegShim/LightStudio.FfmpegShim.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.MediaLibraryCore/LightStudio.MediaLibraryCore.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/LightStudio.LightPlayer.Tools.AudioProbe/LightStudio.LightPlayer.Tools.AudioProbe.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="tools/LightStudio.LightPlayer.Tools.LibraryProbe/LightStudio.LightPlayer.Tools.LibraryProbe.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+  </Folder>
+</Solution>

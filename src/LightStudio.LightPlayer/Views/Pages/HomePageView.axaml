@@ -1,0 +1,156 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="980"
+             d:DesignHeight="680"
+             x:Class="LightStudio.LightPlayer.Views.Pages.HomePageView"
+             x:DataType="vm:HomePageViewModel">
+    <Panel>
+        <!-- Loading -->
+        <ProgressBar IsVisible="{Binding IsLoading}"
+                     IsIndeterminate="True"
+                     Width="140"
+                     Height="4"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center" />
+
+        <!-- Now playing hero -->
+        <ScrollViewer IsVisible="{Binding HasNowPlaying}">
+            <StackPanel Margin="32" Spacing="32">
+                <Grid ColumnDefinitions="Auto,*">
+                    <controls:MediaThumbnail Grid.Column="0"
+                                             Width="200"
+                                             Height="200"
+                                             CornerRadius="6"
+                                             Source="{Binding AlbumImage}"
+                                             PlaceholderKind="Album" />
+                    <StackPanel Grid.Column="1"
+                                Margin="24,0,0,0"
+                                VerticalAlignment="Bottom"
+                                Spacing="6">
+                        <TextBlock Text="NOW PLAYING"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Foreground="{DynamicResource AppAccentBrush}" />
+                        <TextBlock Text="{Binding NowPlayingTitle}"
+                                   FontSize="32"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   MaxLines="2"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                        <TextBlock Text="{Binding NowPlayingArtist}"
+                                   FontSize="16"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                        <TextBlock Text="{Binding NowPlayingAlbum}"
+                                   FontSize="14"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Upcoming -->
+                <StackPanel IsVisible="{Binding HasUpcoming}" Spacing="10">
+                    <TextBlock Text="Upcoming"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <ItemsControl ItemsSource="{Binding Upcoming}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="14" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:LibraryTileModel">
+                                <Button Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="0"
+                                        Width="130"
+                                        Command="{Binding OpenCommand}">
+                                    <StackPanel Spacing="6" Margin="5">
+                                        <controls:MediaThumbnail Width="120" Height="120" CornerRadius="4"
+                                                                 Source="{Binding Image}"
+                                                                 PlaceholderKind="{Binding ThumbnailKind}" />
+                                        <TextBlock Text="{Binding Title}" FontSize="13" MaxLines="1" TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                        <TextBlock Text="{Binding Subtitle}" FontSize="12" MaxLines="1" TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Recently played -->
+                <StackPanel IsVisible="{Binding HasRecently}" Spacing="10">
+                    <TextBlock Text="Recently played"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <ItemsControl ItemsSource="{Binding Recently}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="14" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:LibraryTileModel">
+                                <Button Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="0"
+                                        Width="130"
+                                        Command="{Binding OpenCommand}">
+                                    <StackPanel Spacing="6" Margin="5">
+                                        <controls:MediaThumbnail Width="120" Height="120" CornerRadius="4"
+                                                                    Source="{Binding Image}"
+                                                                    PlaceholderKind="{Binding ThumbnailKind}" />
+                                        <TextBlock Text="{Binding Title}" FontSize="13" MaxLines="1" TextTrimming="CharacterEllipsis"
+                                                    Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                        <TextBlock Text="{Binding Subtitle}" FontSize="12" MaxLines="1" TextTrimming="CharacterEllipsis"
+                                                    Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- All-music fallback -->
+        <Panel IsVisible="{Binding ShowFallback}">
+            <controls:EmptyState IsVisible="{Binding IsEmpty}"
+                                 Header="It's lonely here."
+                                 Description="Add a library folder and scan to get started." />
+            <ScrollViewer IsVisible="{Binding !IsEmpty}" Margin="14,0">
+                <StackPanel Margin="18,32" Spacing="8">
+                    <TextBlock Text="All Music"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Margin="4,8,0,0"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <ItemsRepeater ItemsSource="{Binding AllMusic}">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MinItemWidth="120"
+                                               MinItemHeight="150"
+                                               MinColumnSpacing="6"
+                                               MinRowSpacing="2"
+                                               ItemsStretch="Uniform"/>
+                        </ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate>
+                            <DataTemplate x:DataType="models:LibraryTileModel">
+                                <controls:LibraryTile />
+                            </DataTemplate>
+                        </ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                </StackPanel>
+            </ScrollViewer>
+        </Panel>
+    </Panel>
+</UserControl>

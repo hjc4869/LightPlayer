@@ -1,0 +1,191 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="1200"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.NowPlayingPageView"
+             x:DataType="vm:NowPlayingPageViewModel">
+    <UserControl.Styles>
+        <!-- Tappable metadata text (artist / album) styled as a flat link. -->
+        <Style Selector="Button.metaLink">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Button.metaLink /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.metaLink:pointerover">
+            <Setter Property="TextBlock.TextDecorations" Value="Underline" />
+        </Style>
+
+        <!-- Uppercase section header matching the original now-playing surface. -->
+        <Style Selector="TextBlock.sectionHeader">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- Three columns (metadata / lyrics / upcoming). The metadata and upcoming
+         columns are collapsed one at a time as the page narrows; see code-behind. -->
+    <Grid x:Name="RootGrid" Margin="32,32,32,16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="270" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="360" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Cover + metadata -->
+        <StackPanel Grid.Column="0"
+                    x:Name="MetadataPanel"
+                    Width="240"
+                    Margin="0,0,30,0"
+                    VerticalAlignment="Top"
+                    Spacing="14">
+            <controls:MediaThumbnail Width="240"
+                                     Height="240"
+                                     HorizontalAlignment="Left"
+                                     CornerRadius="8"
+                                     Source="{Binding AlbumImage}"
+                                     PlaceholderKind="Album" />
+            <SelectableTextBlock Text="{Binding TrackTitle}"
+                                 FontSize="24"
+                                 FontWeight="SemiBold"
+                                 TextWrapping="Wrap"
+                                 MaxLines="2"
+                                 TextTrimming="CharacterEllipsis"
+                                 Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <Button Classes="metaLink"
+                    Command="{Binding OpenArtistCommand}"
+                    ToolTip.Tip="Go to artist">
+                <TextBlock Text="{Binding Artist}"
+                           FontSize="15"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </Button>
+            <Button Classes="metaLink"
+                    Command="{Binding OpenAlbumCommand}"
+                    ToolTip.Tip="Go to album">
+                <TextBlock Text="{Binding Album}"
+                           FontSize="13"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </Button>
+        </StackPanel>
+
+        <!-- Lyrics -->
+        <Grid Grid.Column="1"
+              Margin="0,0,0,0"
+              RowDefinitions="Auto,*"
+              ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Row="0" Grid.Column="0"
+                       Classes="sectionHeader"
+                       Text="LYRICS"
+                       VerticalAlignment="Center" />
+
+            <!-- Timing offset + manual search, stacked vertically on the right -->
+            <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+                        Orientation="Vertical"
+                        Spacing="8"
+                        Margin="12,0,0,0"
+                        VerticalAlignment="Top"
+                        HorizontalAlignment="Right">
+                <Button Classes="icon"
+                        Command="{Binding OffsetEarlierCommand}"
+                        ToolTip.Tip="Lyrics earlier (+1s)">
+                    <Viewbox Width="18" Height="18">
+                        <Path Data="{StaticResource IconChevronUp}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+                <Button Classes="icon"
+                        Command="{Binding OffsetLaterCommand}"
+                        ToolTip.Tip="Lyrics later (-1s)">
+                    <Viewbox Width="18" Height="18">
+                        <Path Data="{StaticResource IconChevronDown}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+                <Button Classes="icon"
+                        Command="{Binding SearchLyricsCommand}"
+                        ToolTip.Tip="Search lyrics">
+                    <Viewbox Width="18" Height="18">
+                        <Path Data="{StaticResource IconSearch}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+            </StackPanel>
+
+            <!-- Lyrics body -->
+            <Panel Grid.Row="1" Grid.Column="0" Margin="0,16,0,0">
+                <ProgressBar IsVisible="{Binding LrcSearchBusy}"
+                             IsIndeterminate="True"
+                             Width="140"
+                             Height="4"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center" />
+                <TextBlock IsVisible="{Binding ShowNoLyricsMessage}"
+                           Text="{Binding NoLyricsMessage}"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           FontSize="14"
+                           MaxWidth="320"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <controls:LyricsPresenter IsVisible="{Binding HasLyrics}"
+                                          LinesSource="{Binding Lines}"
+                                          CurrentIndex="{Binding CurrentIndex}" />
+            </Panel>
+        </Grid>
+
+        <!-- Upcoming -->
+        <Grid Grid.Column="2"
+              x:Name="UpcomingPanel"
+              Margin="24,0,0,0"
+              RowDefinitions="Auto,*">
+            <TextBlock Grid.Row="0"
+                       Classes="sectionHeader"
+                       Text="UPCOMING" />
+            <ScrollViewer Grid.Row="1"
+                          Margin="0,16,0,0"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Upcoming}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:LibraryTileModel">
+                            <Button Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    Width="150"
+                                    Margin="0,0,12,16"
+                                    Command="{Binding OpenCommand}">
+                                <StackPanel Spacing="6">
+                                    <controls:MediaThumbnail Width="120" Height="120" CornerRadius="4"
+                                                             Source="{Binding Image}"
+                                                             PlaceholderKind="{Binding ThumbnailKind}" />
+                                    <TextBlock Text="{Binding Title}" FontSize="13" MaxLines="1" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                    <TextBlock Text="{Binding Subtitle}" FontSize="12" MaxLines="1" TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                </StackPanel>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

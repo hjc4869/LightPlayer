@@ -1,0 +1,56 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="840" d:DesignHeight="720"
+        x:Class="LightStudio.LightPlayer.Views.InitialSetupWindow"
+        x:DataType="vm:InitialSetupViewModel"
+        Icon="/Assets/light-logo.ico"
+        Title="Welcome to Light"
+        Width="840"
+        Height="720"
+        MinWidth="640"
+        MinHeight="520"
+        WindowStartupLocation="CenterScreen">
+    <Grid RowDefinitions="*,Auto" Background="{DynamicResource AppPageBackgroundBrush}">
+        <ScrollViewer Grid.Row="0">
+            <StackPanel Margin="32,28,32,16" MaxWidth="640" HorizontalAlignment="Center" Spacing="16">
+                <TextBlock Text="Welcome to Light"
+                           FontSize="26"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <TextBlock Text="Before we get started, please take a moment to review the initial settings."
+                           FontSize="14"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+
+                <ContentControl Content="{Binding Library}" />
+                <ContentControl Content="{Binding Language}" />
+                <ContentControl Content="{Binding SampleRate}" />
+                <ContentControl Content="{Binding Appearance}" />
+
+                <ToggleSwitch Margin="0,8,0,0"
+                              IsChecked="{Binding EnableThirdPartyLyrics, Mode=TwoWay}"
+                              OnContent="Enable third-party lyrics services"
+                              OffContent="Enable third-party lyrics services" />
+                <TextBlock Text="Terms of use from third-party services may apply."
+                           IsVisible="{Binding EnableThirdPartyLyrics}"
+                           FontSize="12"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="1"
+                Background="{DynamicResource AppPanelBackgroundBrush}"
+                BorderBrush="{DynamicResource AppDividerBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="32,14">
+            <Button Content="Continue"
+                    Classes="accent"
+                    HorizontalAlignment="Right"
+                    MinWidth="120"
+                    Command="{Binding ContinueCommand}" />
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="320"
+             x:Class="LightStudio.LightPlayer.Views.Pages.LanguageSettingsSectionView"
+             x:DataType="vm:LanguageSettingsSectionViewModel">
+    <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
+        <StackPanel Spacing="4" Margin="0,0,0,4">
+            <TextBlock Text="Language"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Text="Choose the interface language."
+                       FontSize="13"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <controls:SettingRow Header="Interface language"
+                             Description="Restart the app to apply a new language.">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="110"
+                          ItemsSource="{Binding LanguageOptions}"
+                          SelectedItem="{Binding SelectedLanguage, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LanguageOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <TextBlock Text="Restart Light to apply the new language."
+                   IsVisible="{Binding RestartPromptVisible}"
+                   FontSize="12"
+                   Margin="2,-2,2,2"
+                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+    </StackPanel>
+</UserControl>

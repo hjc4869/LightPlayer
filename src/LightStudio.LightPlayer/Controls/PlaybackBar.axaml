@@ -1,0 +1,187 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="1100"
+             d:DesignHeight="80"
+             x:Class="LightStudio.LightPlayer.Controls.PlaybackBar"
+             x:DataType="vm:PlaybackBarViewModel"
+             SizeChanged="OnSizeChanged">
+    <UserControl.Styles>
+        <!-- Flat now-playing button: no Fluent chrome, subtle hover only. -->
+        <Style Selector="Button.trackInfo /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="Button.trackInfo:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.trackInfo:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
+    <Border Background="{DynamicResource AppPlaybackBarBackgroundBrush}"
+            BorderBrush="{DynamicResource AppDividerBrush}"
+            BorderThickness="0,1,0,0"
+            Height="80">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="24,0" VerticalAlignment="Center">
+            <!-- Album art (left) -->
+            <Button Grid.Column="0"
+                    Classes="trackInfo"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Padding="4"
+                    VerticalAlignment="Center"
+                    ToolTip.Tip="Open now playing"
+                    Command="{Binding OpenNowPlayingCommand}">
+                <controls:MediaThumbnail Width="60"
+                                         Height="60"
+                                         CornerRadius="6"
+                                         Source="{Binding AlbumImage}"
+                                         PlaceholderKind="Album" />
+            </Button>
+
+            <!-- Track metadata (top) above the progress slider (bottom) -->
+            <Grid Grid.Column="1"
+                  RowDefinitions="*,*"
+                  Margin="14,0,8,0">
+                <Button Grid.Row="0"
+                        Classes="trackInfo"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="6,2,6,0"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        VerticalAlignment="Bottom"
+                        ToolTip.Tip="Open now playing"
+                        Command="{Binding OpenNowPlayingCommand}">
+                    <TextBlock Text="{Binding NowPlayingLine}"
+                               MaxLines="1"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                </Button>
+                <Grid.Resources>
+                    <x:Double x:Key="SliderHorizontalThumbWidth">10</x:Double> 
+                    <x:Double x:Key="SliderHorizontalThumbHeight">10</x:Double> 
+                    <x:Double x:Key="SliderVerticalThumbWidth">10</x:Double> 
+                    <x:Double x:Key="SliderVerticalThumbHeight">10</x:Double> 
+                </Grid.Resources>
+                <Slider Grid.Row="1"
+                        x:Name="ProgressSlider"
+                        VerticalAlignment="Top"
+                        Height="22"
+                        Margin="6,0"
+                        Minimum="0"
+                        Maximum="{Binding DurationMs}"
+                        Value="{Binding PositionMs, Mode=TwoWay}"
+                        IsEnabled="{Binding HasItem}" />
+            </Grid>
+
+            <!-- Remaining time -->
+            <TextBlock Grid.Column="2"
+                       Text="{Binding RemainingText}"
+                       VerticalAlignment="Center"
+                       MinWidth="52"
+                       TextAlignment="Center"
+                       Margin="0,0,8,0"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+
+            <!-- Controls (right) -->
+            <StackPanel Grid.Column="3"
+                        Orientation="Horizontal"
+                        Spacing="4"
+                        VerticalAlignment="Center">
+                    <Button Classes="icon"
+                            ToolTip.Tip="Add to playlist"
+                            IsVisible="{Binding ShowAllControls, RelativeSource={RelativeSource AncestorType=controls:PlaybackBar}}"
+                            IsEnabled="{Binding HasItem}"
+                            Command="{Binding AddToPlaylistCommand}">
+                        <Viewbox Width="22" Height="22">
+                            <Path Data="{StaticResource IconAdd}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+
+                    <Button Classes="icon"
+                            ToolTip.Tip="Like"
+                            IsVisible="{Binding ShowAllControls, RelativeSource={RelativeSource AncestorType=controls:PlaybackBar}}"
+                            IsEnabled="{Binding HasItem}"
+                            Command="{Binding ToggleFavoriteCommand}">
+                        <Panel>
+                            <Viewbox Width="22" Height="22" IsVisible="{Binding !IsFavorite}">
+                                <Path Data="{StaticResource IconHeartOutline}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                            <Viewbox Width="22" Height="22" IsVisible="{Binding IsFavorite}">
+                                <Path Data="{StaticResource IconHeartFilled}"
+                                      Fill="{DynamicResource AppFavoriteBrush}" />
+                            </Viewbox>
+                        </Panel>
+                    </Button>
+
+                    <Button Classes="icon"
+                            ToolTip.Tip="Volume"
+                            IsVisible="{Binding ShowAllControls, RelativeSource={RelativeSource AncestorType=controls:PlaybackBar}}">
+                        <Viewbox Width="22" Height="22">
+                            <Path Data="{Binding VolumeIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                        <Button.Flyout>
+                            <Flyout Placement="Top">
+                                <Slider Width="200"
+                                        Minimum="0"
+                                        Maximum="1"
+                                        Value="{Binding Volume, Mode=TwoWay}" />
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+
+                    <Button Classes="icon"
+                            ToolTip.Tip="Previous"
+                            IsEnabled="{Binding HasItem}"
+                            Command="{Binding PreviousCommand}">
+                        <Viewbox Width="24" Height="24">
+                            <Path Data="{StaticResource IconPrevious}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+
+                    <Button Classes="icon"
+                            ToolTip.Tip="Play / Pause"
+                            IsEnabled="{Binding HasItem}"
+                            Command="{Binding PlayPauseCommand}">
+                        <Viewbox Width="26" Height="26">
+                            <Path Data="{Binding PlayPauseIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+
+                    <Button Classes="icon"
+                            ToolTip.Tip="Next"
+                            IsEnabled="{Binding HasItem}"
+                            Command="{Binding NextCommand}">
+                        <Viewbox Width="24" Height="24">
+                            <Path Data="{StaticResource IconNext}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+
+                    <Button Classes="icon"
+                            ToolTip.Tip="{Binding ModeLabel}"
+                            IsVisible="{Binding ShowAllControls, RelativeSource={RelativeSource AncestorType=controls:PlaybackBar}}"
+                            IsEnabled="{Binding HasItem}"
+                            Command="{Binding CycleModeCommand}">
+                        <Viewbox Width="22" Height="22">
+                            <Path Data="{Binding ModeIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

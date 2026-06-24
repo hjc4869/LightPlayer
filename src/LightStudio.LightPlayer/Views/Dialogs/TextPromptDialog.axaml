@@ -1,0 +1,27 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DesignWidth="380"
+        d:DesignHeight="170"
+        x:Class="LightStudio.LightPlayer.Views.Dialogs.TextPromptDialog"
+        Width="380"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Playlist">
+    <StackPanel Margin="20" Spacing="14">
+        <TextBlock x:Name="HeaderText"
+                   FontSize="15"
+                   FontWeight="SemiBold" />
+        <TextBox x:Name="InputBox" />
+        <StackPanel Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+            <Button x:Name="CancelButton" Content="Cancel" />
+            <Button x:Name="ConfirmButton" Content="OK" IsDefault="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>

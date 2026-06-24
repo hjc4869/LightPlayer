@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.PlaybackSettingsSectionView"
+             x:DataType="vm:PlaybackSettingsSectionViewModel">
+    <ScrollViewer VerticalScrollBarVisibility="Hidden">
+        <StackPanel Spacing="16">
+            <ContentControl Content="{Binding SampleRate}" />
+            <ContentControl Content="{Binding Extensions}" />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

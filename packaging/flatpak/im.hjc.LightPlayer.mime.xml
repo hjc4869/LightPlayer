@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <!--
+    Ensure CUE sheets are recognized as application/x-cue on every host, even
+    those whose shared-mime-info database lacks the definition. Combined with the
+    MimeType entry in the desktop file, this makes ".cue" files open in the app.
+  -->
+  <mime-type type="application/x-cue">
+    <comment>CD image cuesheet</comment>
+    <glob pattern="*.cue"/>
+  </mime-type>
+</mime-info>

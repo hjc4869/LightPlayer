@@ -1,0 +1,198 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             mc:Ignorable="d"
+             d:DesignWidth="700"
+             d:DesignHeight="48"
+             x:Class="LightStudio.LightPlayer.Controls.TrackRow"
+             x:DataType="models:TrackRowModel">
+    <UserControl.Styles>
+        <!-- Greyed row + inline play/append actions revealed when the pointer is over the row. -->
+        <Style Selector="Border.rowHover">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="StackPanel.rowActions">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Border.rowHover:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+        </Style>
+        <Style Selector="Border.rowHover:pointerover StackPanel.rowActions">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="rowHover"
+            CornerRadius="4"
+            Padding="12,0"
+            Tapped="OnTapped"
+            DoubleTapped="OnDoubleTapped">
+        <Border.ContextFlyout>
+            <MenuFlyout>
+                <MenuItem Header="Play" Command="{Binding PlayCommand}" />
+                <MenuItem Header="Play next" Command="{Binding PlayNextCommand}" />
+                <MenuItem Header="Add to queue" Command="{Binding AddToQueueCommand}" />
+                <MenuItem Header="Add to playlist" Command="{Binding AddToPlaylistCommand}" />
+                <MenuItem Header="Remove from playlist"
+                          Command="{Binding RemoveFromPlaylistCommand}"
+                          IsVisible="{Binding IsPlaylistItem}" />
+                <Separator />
+                <MenuItem Header="Properties" Command="{Binding PropertiesCommand}" />
+                <MenuItem Header="Open containing folder" Command="{Binding OpenFolderCommand}" />
+            </MenuFlyout>
+        </Border.ContextFlyout>
+
+        <Panel>
+            <!-- Wide / medium layout: a single columnar row. The Album, Year and Genre
+                 columns collapse from right to left as the row narrows (see code-behind). -->
+            <Grid x:Name="WideRoot"
+                  Height="48"
+                  VerticalAlignment="Center"
+                  ColumnDefinitions="1.4*,1*,1*,70,90,60">
+                <DockPanel Grid.Column="0" Margin="0,0,12,0">
+                    <Panel DockPanel.Dock="Left" Width="10" Margin="0,0,6,0">
+                        <Border Width="3"
+                                HorizontalAlignment="Left"
+                                CornerRadius="2"
+                                Margin="0,12"
+                                Background="{DynamicResource AppAccentBrush}"
+                                IsVisible="{Binding IsPlaying}" />
+                    </Panel>
+                    <StackPanel x:Name="RowActions"
+                                Classes="rowActions"
+                                DockPanel.Dock="Right"
+                                Orientation="Horizontal"
+                                Spacing="2"
+                                VerticalAlignment="Center">
+                        <Button Classes="miniIcon"
+                                Command="{Binding PlayCommand}"
+                                ToolTip.Tip="Play">
+                            <Viewbox Width="15" Height="15">
+                                <Path Data="{StaticResource IconPlay}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                        <Button Classes="miniIcon"
+                                Command="{Binding AddToQueueCommand}"
+                                ToolTip.Tip="Add to queue">
+                            <Viewbox Width="15" Height="15">
+                                <Path Data="{StaticResource IconAdd}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Title}"
+                               VerticalAlignment="Center"
+                               MaxLines="1"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                </DockPanel>
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Artist}"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           MaxLines="1"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,12,0"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock x:Name="AlbumText"
+                           Grid.Column="2"
+                           Text="{Binding Album}"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           MaxLines="1"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,12,0"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock x:Name="YearText"
+                           Grid.Column="3"
+                           Text="{Binding Year}"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           MaxLines="1"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock x:Name="GenreText"
+                           Grid.Column="4"
+                           Text="{Binding Genre}"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           MaxLines="1"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,12,0"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="5"
+                           Text="{Binding Duration}"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Right"
+                           FontSize="13"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </Grid>
+
+            <!-- Narrow layout: stack the title over a single "artist · album" line,
+                 keeping the duration on the right. Shown below 650px. -->
+            <Grid x:Name="NarrowRoot"
+                  Height="60"
+                  IsVisible="False"
+                  VerticalAlignment="Center"
+                  ColumnDefinitions="Auto,*,Auto,Auto">
+                <Panel Grid.Column="0" Width="10" Margin="0,0,6,0">
+                    <Border Width="3"
+                            HorizontalAlignment="Left"
+                            CornerRadius="2"
+                            Margin="0,16"
+                            Background="{DynamicResource AppAccentBrush}"
+                            IsVisible="{Binding IsPlaying}" />
+                </Panel>
+                <StackPanel Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Spacing="2">
+                    <TextBlock Text="{Binding Title}"
+                               MaxLines="1"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <TextBlock FontSize="13"
+                               MaxLines="1"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0} · {1}">
+                                <Binding Path="Artist" />
+                                <Binding Path="Album" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Column="2"
+                            Classes="rowActions"
+                            Orientation="Horizontal"
+                            Spacing="2"
+                            Margin="8,0"
+                            VerticalAlignment="Center">
+                    <Button Classes="miniIcon"
+                            Command="{Binding PlayCommand}"
+                            ToolTip.Tip="Play">
+                        <Viewbox Width="15" Height="15">
+                            <Path Data="{StaticResource IconPlay}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                    <Button Classes="miniIcon"
+                            Command="{Binding AddToQueueCommand}"
+                            ToolTip.Tip="Add to queue">
+                        <Viewbox Width="15" Height="15">
+                            <Path Data="{StaticResource IconAdd}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                </StackPanel>
+                <TextBlock Grid.Column="3"
+                           Text="{Binding Duration}"
+                           VerticalAlignment="Center"
+                           FontSize="13"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </Grid>
+        </Panel>
+    </Border>
+</UserControl>

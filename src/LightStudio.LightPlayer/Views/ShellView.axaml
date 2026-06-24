@@ -1,0 +1,319 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="1100"
+             d:DesignHeight="720"
+             x:Class="LightStudio.LightPlayer.Views.ShellView"
+             x:DataType="vm:ShellViewModel">
+
+    <UserControl.Resources>
+        <!-- Navigation entry shared by the primary and footer item lists. -->
+        <DataTemplate x:Key="NavItemTemplate" x:DataType="vm:NavigationItemViewModel">
+            <Button Classes="nav"
+                    Classes.selected="{Binding IsSelected}"
+                    Command="{Binding SelectCommand}"
+                    ToolTip.Tip="{Binding Title}">
+                <Panel>
+                    <Border Classes="navIndicator" />
+                    <StackPanel Classes="navContent"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <Viewbox Width="20" Height="20">
+                            <Path Data="{Binding IconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                        <TextBlock Classes="navLabel"
+                                   Text="{Binding Title}"
+                                   Margin="14,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    </StackPanel>
+                </Panel>
+            </Button>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <!--
+            Anchor the rail icons to a fixed left offset so they sit centered in the 56px
+            compact rail AND keep that exact position when the pane expands. Only the text
+            labels toggle visibility; the icons must never shift horizontally between states
+            (mixing Center/Left alignment previously drifted each icon by a few pixels).
+        -->
+        <Style Selector="DockPanel.navPane Button.railToggle">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="10,10,8,2" />
+        </Style>
+        <Style Selector="DockPanel.navPane TextBlock.navLabel">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="DockPanel.navPane.expanded TextBlock.navLabel">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="DockPanel.navPane StackPanel.navContent">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="12,0,0,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="*,Auto" Background="{DynamicResource AppPageBackgroundBrush}">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <!-- Navigation: native SplitView in compact-inline (hamburger) mode -->
+            <SplitView Grid.Column="0"
+                       DisplayMode="CompactOverlay"
+                       CompactPaneLength="56"
+                       OpenPaneLength="320"
+                       IsPaneOpen="{Binding Navigation.IsExpanded, Mode=TwoWay}"
+                       PaneBackground="{DynamicResource AppNavBackgroundBrush}">
+                <SplitView.Pane>
+                    <DockPanel x:Name="NavPane"
+                               Classes="navPane"
+                               Classes.expanded="{Binding Navigation.IsExpanded}"
+                               LastChildFill="True">
+                        <Button DockPanel.Dock="Top"
+                                Classes="icon railToggle"
+                                ToolTip.Tip="Toggle navigation"
+                                Command="{Binding Navigation.ToggleExpandCommand}">
+                            <Viewbox Width="20" Height="20">
+                                <Path Data="{StaticResource IconMenu}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+
+                        <!-- Fixed height so the SearchBox (expanded) and the icon button (collapsed)
+                             occupy the same vertical space, keeping the nav list below from shifting. -->
+                        <Panel DockPanel.Dock="Top" Height="36" Margin="8,4,8,8">
+                            <ContentControl IsVisible="{Binding Navigation.IsExpanded}">
+                                <controls:SearchBox x:Name="RailSearchBox" DataContext="{Binding Search}" />
+                            </ContentControl>
+                            <Button Classes="icon"
+                                    HorizontalAlignment="Center"
+                                    IsVisible="{Binding !Navigation.IsExpanded}"
+                                    ToolTip.Tip="Search"
+                                    Click="OnExpandAndFocusSearch">
+                                <Viewbox Width="20" Height="20">
+                                    <Path Data="{StaticResource IconSearch}"
+                                          Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                        </Panel>
+
+                        <ItemsControl DockPanel.Dock="Bottom"
+                                      Margin="0,4,0,10"
+                                      ItemsSource="{Binding Navigation.FooterItems}"
+                                      ItemTemplate="{StaticResource NavItemTemplate}" />
+
+                        <!--
+                            Pinned status + action cluster, docked directly above the footer (Settings).
+                            Rows reuse the navContent/navLabel classes so their icons line up with the
+                            destinations above and their captions only appear when the pane is expanded.
+                        -->
+                        <StackPanel DockPanel.Dock="Bottom">
+                            <!-- Scan status: circular spinner; caption shown when the pane is expanded. -->
+                            <Border Height="44"
+                                    Margin="6,2"
+                                    IsVisible="{Binding HasScanStatusText}"
+                                    ToolTip.Tip="{Binding ScanStatusText}">
+                                <StackPanel Classes="navContent"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <Panel Width="20" Height="20">
+                                        <Ellipse Classes="spinner" StrokeDashArray="21,100" />
+                                    </Panel>
+                                    <TextBlock Classes="navLabel"
+                                               Text="{Binding ScanStatusText}"
+                                               Margin="14,0,0,0"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Warning / error: caption shown when the pane is expanded. -->
+                            <Button Classes="nav"
+                                    IsVisible="{Binding HasWarnings}"
+                                    ToolTip.Tip="{Binding WarningText}"
+                                    Click="OnViewWarningsClick">
+                                <StackPanel Classes="navContent"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <Viewbox Width="20" Height="20">
+                                        <Path Data="{StaticResource IconWarning}"
+                                              Fill="{DynamicResource AppFavoriteBrush}" />
+                                    </Viewbox>
+                                    <TextBlock Classes="navLabel"
+                                               Text="{Binding WarningText}"
+                                               Margin="14,0,0,0"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                </StackPanel>
+                            </Button>
+
+                            <!-- More menu -->
+                            <Button Classes="nav" ToolTip.Tip="More">
+                                <StackPanel Classes="navContent"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <Viewbox Width="20" Height="20">
+                                        <Path Data="{StaticResource IconMore}"
+                                              Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                    </Viewbox>
+                                    <TextBlock Classes="navLabel"
+                                               Text="More"
+                                               Margin="14,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                </StackPanel>
+                                <Button.Flyout>
+                                    <MenuFlyout>
+                                        <MenuItem Header="Open file..." Click="OnOpenFilesClick" />
+                                        <Separator />
+                                        <MenuItem Header="Shuffle all" Command="{Binding ShuffleAllCommand}" />
+                                        <MenuItem Header="Recently added" Command="{Binding RecentlyAddedCommand}" />
+                                        <Separator />
+                                        <MenuItem Header="Refresh library" Command="{Binding RefreshLibraryCommand}" />
+                                        <MenuItem Header="Library Sorting">
+                                            <MenuItem Header="Title"
+                                                      ToggleType="Radio"
+                                                      GroupName="LibrarySort"
+                                                      IsVisible="{Binding CanSortByTitle}"
+                                                      IsChecked="{Binding IsSortByTitle}"
+                                                      Command="{Binding SetSortCommand}"
+                                                      CommandParameter="{x:Static models:LibrarySortField.Title}" />
+                                            <MenuItem Header="Album Name"
+                                                      ToggleType="Radio"
+                                                      GroupName="LibrarySort"
+                                                      IsVisible="{Binding CanSortByAlbumName}"
+                                                      IsChecked="{Binding IsSortByAlbumName}"
+                                                      Command="{Binding SetSortCommand}"
+                                                      CommandParameter="{x:Static models:LibrarySortField.AlbumName}" />
+                                            <MenuItem Header="Artist Name"
+                                                      ToggleType="Radio"
+                                                      GroupName="LibrarySort"
+                                                      IsVisible="{Binding CanSortByArtistName}"
+                                                      IsChecked="{Binding IsSortByArtistName}"
+                                                      Command="{Binding SetSortCommand}"
+                                                      CommandParameter="{x:Static models:LibrarySortField.ArtistName}" />
+                                            <MenuItem Header="Genre"
+                                                      ToggleType="Radio"
+                                                      GroupName="LibrarySort"
+                                                      IsVisible="{Binding CanSortByGenre}"
+                                                      IsChecked="{Binding IsSortByGenre}"
+                                                      Command="{Binding SetSortCommand}"
+                                                      CommandParameter="{x:Static models:LibrarySortField.Genre}" />
+                                            <MenuItem Header="Year"
+                                                      ToggleType="Radio"
+                                                      GroupName="LibrarySort"
+                                                      IsVisible="{Binding CanSortByYear}"
+                                                      IsChecked="{Binding IsSortByYear}"
+                                                      Command="{Binding SetSortCommand}"
+                                                      CommandParameter="{x:Static models:LibrarySortField.Year}" />
+                                            <MenuItem Header="Date added"
+                                                      ToggleType="Radio"
+                                                      GroupName="LibrarySort"
+                                                      IsVisible="{Binding CanSortByDateAdded}"
+                                                      IsChecked="{Binding IsSortByDateAdded}"
+                                                      Command="{Binding SetSortCommand}"
+                                                      CommandParameter="{x:Static models:LibrarySortField.DateAdded}" />
+                                            <Separator />
+                                            <MenuItem Header="Ascending"
+                                                      ToggleType="Radio"
+                                                      GroupName="LibrarySortDirection"
+                                                      IsChecked="{Binding SortAscending}"
+                                                      Command="{Binding SortAscendingCommand}" />
+                                            <MenuItem Header="Descending"
+                                                      ToggleType="Radio"
+                                                      GroupName="LibrarySortDirection"
+                                                      IsChecked="{Binding IsSortDescending}"
+                                                      Command="{Binding SortDescendingCommand}" />
+                                            <Separator />
+                                            <MenuItem Header="Enable Grouping"
+                                                      ToggleType="CheckBox"
+                                                      IsChecked="{Binding GroupingEnabled, Mode=TwoWay}" />
+                                        </MenuItem>
+                                        <Separator />
+                                        <MenuItem Header="About" Command="{Binding AboutCommand}" />
+                                    </MenuFlyout>
+                                </Button.Flyout>
+                            </Button>
+
+                            <!-- Now-playing queue toggle -->
+                            <Button Classes="nav"
+                                    ToolTip.Tip="Now playing"
+                                    Command="{Binding Queue.ToggleOpenCommand}">
+                                <StackPanel Classes="navContent"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <Viewbox Width="20" Height="20">
+                                        <Path Data="{StaticResource IconQueue}"
+                                              Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                    </Viewbox>
+                                    <TextBlock Classes="navLabel"
+                                               Text="Now playing"
+                                               Margin="14,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- Divider between the scrolling destinations and the pinned cluster. -->
+                        <Border DockPanel.Dock="Bottom"
+                                Height="1"
+                                Margin="12,6"
+                                Background="{DynamicResource AppDividerBrush}" />
+
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+                            <ItemsControl Margin="0,4,0,0"
+                                          ItemsSource="{Binding Navigation.PrimaryItems}"
+                                          ItemTemplate="{StaticResource NavItemTemplate}" />
+                        </ScrollViewer>
+                    </DockPanel>
+                </SplitView.Pane>
+
+                <!-- Content area: routed page -->
+                <TransitioningContentControl Content="{Binding CurrentPage}"
+                                             PageTransition="{Binding CurrentPageTransition}"
+                                             IsTransitionReversed="{Binding IsBackNavigation}" />
+            </SplitView>
+
+            <!-- Layout spacer: reserves column width only while the pane is persistently open so
+                 page content is pushed aside. During a transient drag hint it stays zero-width,
+                 letting the pane overlay the content instead. -->
+            <Border Grid.Column="1" Width="{Binding Queue.LayoutWidth}">
+                <Border.Transitions>
+                    <Transitions>
+                        <DoubleTransition Property="Width" Duration="0:0:0.22" Easing="CubicEaseOut" />
+                    </Transitions>
+                </Border.Transitions>
+            </Border>
+
+            <!-- Now-playing queue pane (animated open/close). Spans both columns and is
+                 right-aligned so a transient (drag-hint) open overlays the page content, while a
+                 persistent open sits flush over the reserved spacer above. -->
+            <Border Grid.Column="0" Grid.ColumnSpan="2"
+                    HorizontalAlignment="Right"
+                    ClipToBounds="True"
+                    Width="{Binding Queue.PaneWidth}">
+                <Border.Transitions>
+                    <Transitions>
+                        <DoubleTransition Property="Width" Duration="0:0:0.22" Easing="CubicEaseOut" />
+                    </Transitions>
+                </Border.Transitions>
+                <controls:QueuePane DataContext="{Binding Queue}" />
+            </Border>
+        </Grid>
+
+        <!-- Playback bar -->
+        <controls:PlaybackBar Grid.Row="1"
+                              DataContext="{Binding PlaybackBar}"
+                              IsVisible="{Binding HasItem}" />
+    </Grid>
+</UserControl>

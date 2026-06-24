@@ -1,0 +1,114 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="860"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.SongsPageView"
+             x:DataType="vm:SongsPageViewModel">
+    <Panel>
+        <!-- Loading -->
+        <StackPanel IsVisible="{Binding IsLoading}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+            <ProgressBar IsIndeterminate="True" Width="140" Height="4" />
+            <TextBlock Text="Loading songs..."
+                       HorizontalAlignment="Center"
+                       FontSize="13"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <!-- Empty -->
+        <controls:EmptyState IsVisible="{Binding ShowEmpty}"
+                             Header="{Binding EmptyHeader}"
+                             Description="{Binding EmptyDescription}" />
+
+        <!-- Content -->
+        <Grid IsVisible="{Binding ShowContent}" RowDefinitions="Auto,*" Margin="12,32,12,12">
+            <Grid Grid.Row="0"
+                  x:Name="HeaderGrid"
+                  Height="32"
+                  Margin="12,0"
+                  ColumnDefinitions="1.4*,1*,1*,70,90,60">
+                <TextBlock Grid.Column="0" Margin="16,0,0,0" Text="Title" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock x:Name="ArtistHeader" Grid.Column="1" Text="Artist" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock x:Name="AlbumHeader" Grid.Column="2" Text="Album" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock x:Name="YearHeader" Grid.Column="3" Text="Year" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock x:Name="GenreHeader" Grid.Column="4" Text="Genre" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="5" Text="Length" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </Grid>
+
+            <!-- Flat list (virtualized): repeater is the direct ScrollViewer child so it gets a bounded viewport. -->
+            <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowFlat}">
+                <ItemsRepeater ItemsSource="{Binding Items}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Orientation="Vertical" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="models:TrackRowModel">
+                            <controls:TrackRow />
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </ScrollViewer>
+
+            <!-- Grouped list: virtualized via VirtualizingStackPanel. Group headers and track rows are
+                 flattened into one LibraryListEntry collection and a single item template switches on
+                 IsHeader, so every container has the same shape (no cross-type recycling glitches).
+                 VirtualizingStackPanel is used instead of ItemsRepeater's StackLayout because the latter
+                 mis-estimates the scroll extent for non-uniform item heights, leaving the scrollbar thumb
+                 floating around the middle (Avalonia #3041). A plain ItemsControl (rather than ListBox)
+                 hosts it so there is no selection chrome, matching the flat list's behavior. -->
+            <ItemsControl Grid.Row="1"
+                          IsVisible="{Binding ShowGroups}"
+                          ItemsSource="{Binding GroupedItems}">
+                <ItemsControl.Template>
+                    <ControlTemplate>
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsPresenter Name="PART_ItemsPresenter"
+                                            ItemsPanel="{TemplateBinding ItemsPanel}" />
+                        </ScrollViewer>
+                    </ControlTemplate>
+                </ItemsControl.Template>
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:LibraryListEntry">
+                        <Panel>
+                            <!-- Group header -->
+                            <StackPanel IsVisible="{Binding IsHeader}" Margin="0,0,0,2">
+                                <TextBlock Text="{Binding HeaderKey}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Margin="12,12,0,4"
+                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                <Border Height="1" Margin="12,0,12,2" Background="{DynamicResource AppDividerBrush}" />
+                            </StackPanel>
+
+                            <!-- Track row -->
+                            <ContentControl Content="{Binding Item}"
+                                            IsVisible="{Binding !IsHeader}"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch">
+                                <ContentControl.ContentTemplate>
+                                    <DataTemplate x:DataType="models:TrackRowModel">
+                                        <controls:TrackRow />
+                                    </DataTemplate>
+                                </ContentControl.ContentTemplate>
+                            </ContentControl>
+                        </Panel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
+    </Panel>
+</UserControl>

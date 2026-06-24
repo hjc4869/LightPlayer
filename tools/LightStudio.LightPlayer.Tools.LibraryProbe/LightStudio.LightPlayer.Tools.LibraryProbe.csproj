@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<Platforms>x64;ARM64</Platforms>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\LightStudio.FfmpegShim\LightStudio.FfmpegShim.csproj" />
+		<ProjectReference Include="..\..\src\LightStudio.MediaLibraryCore\LightStudio.MediaLibraryCore.csproj" />
+	</ItemGroup>
+
+</Project>

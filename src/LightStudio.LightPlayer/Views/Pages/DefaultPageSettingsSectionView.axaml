@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="360"
+             x:Class="LightStudio.LightPlayer.Views.Pages.DefaultPageSettingsSectionView"
+             x:DataType="vm:DefaultPageSettingsSectionViewModel">
+    <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
+        <StackPanel Spacing="4" Margin="0,0,0,4">
+            <TextBlock Text="Default page"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Text="Choose the route Light opens first."
+                       FontSize="13"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <controls:SettingRow Header="Startup page"
+                             Description="The page to load first when application starts.">
+            <controls:SettingRow.ActionContent>
+                <ComboBox MinWidth="110"
+                          ItemsSource="{Binding PageOptions}"
+                          SelectedItem="{Binding SelectedPage, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DefaultPageOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+    </StackPanel>
+</UserControl>

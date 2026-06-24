@@ -1,0 +1,136 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="900"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.AlbumDetailPageView"
+             x:DataType="vm:AlbumDetailPageViewModel">
+    <UserControl.Styles>
+        <!-- Tappable artist name styled as a flat link, matching the now-playing page. -->
+        <Style Selector="Button.metaLink">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Button.metaLink /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.metaLink:pointerover">
+            <Setter Property="TextBlock.TextDecorations" Value="Underline" />
+        </Style>
+        <!-- When the artist has no detail page (e.g. "Various"), the command is
+             disabled; keep the label flat so it reads as plain text rather than a
+             greyed-out control. -->
+        <Style Selector="Button.metaLink:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
+
+    <Panel>
+        <!-- Loading -->
+        <ProgressBar IsVisible="{Binding IsLoading}"
+                     IsIndeterminate="True"
+                     Width="140"
+                     Height="4"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center" />
+
+        <!-- Content -->
+        <ScrollViewer IsVisible="{Binding ShowContent}">
+            <Grid Margin="32" ColumnDefinitions="Auto,*">
+                <!-- Album art + info; collapses to a single column when the page is narrow. -->
+                <StackPanel x:Name="AlbumArtPanel"
+                            Grid.Column="0"
+                            Width="200"
+                            Margin="0,0,28,0"
+                            Spacing="10">
+                    <controls:MediaThumbnail Width="200"
+                                             Height="200"
+                                             CornerRadius="6"
+                                             Source="{Binding CoverImage}"
+                                             PlaceholderKind="Album" />
+                    <Button Classes="metaLink"
+                            Command="{Binding OpenArtistCommand}"
+                            ToolTip.Tip="Go to artist">
+                        <TextBlock Text="{Binding ArtistName}"
+                                   FontSize="14"
+                                   TextWrapping="Wrap"
+                                   MaxLines="2"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    </Button>
+                    <TextBlock Text="{Binding MetaLine}"
+                               FontSize="13"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                </StackPanel>
+
+                <!-- Title bar + track list -->
+                <Grid Grid.Column="1" RowDefinitions="Auto,*">
+                    <DockPanel Grid.Row="0" Margin="0,4,0,12">
+                        <Button DockPanel.Dock="Left"
+                                Classes="icon"
+                                VerticalAlignment="Center"
+                                Margin="0,0,8,0"
+                                Command="{Binding BackCommand}"
+                                ToolTip.Tip="Back">
+                            <Viewbox Width="20" Height="20">
+                                <Path Data="{StaticResource IconArrowLeft}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                        <StackPanel DockPanel.Dock="Right"
+                                    Orientation="Horizontal"
+                                    Spacing="2"
+                                    VerticalAlignment="Center">
+                            <Button Classes="icon" Command="{Binding PlayCommand}" ToolTip.Tip="Play">
+                                <Viewbox Width="18" Height="18">
+                                    <Path Data="{StaticResource IconPlay}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="icon" Command="{Binding ShuffleCommand}" ToolTip.Tip="Shuffle">
+                                <Viewbox Width="18" Height="18">
+                                    <Path Data="{StaticResource IconShuffleAll}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="icon" Command="{Binding AddToQueueCommand}" ToolTip.Tip="Add to queue">
+                                <Viewbox Width="18" Height="18">
+                                    <Path Data="{StaticResource IconAdd}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="icon" Command="{Binding AddToPlaylistCommand}" ToolTip.Tip="Add to playlist">
+                                <Viewbox Width="18" Height="18">
+                                    <Path Data="{StaticResource IconPlaylist}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                        </StackPanel>
+                        <TextBlock Text="{Binding AlbumTitle}"
+                                   FontSize="24"
+                                   FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   MaxLines="1"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    </DockPanel>
+
+                    <ItemsControl Margin="16,0,0,0" Grid.Row="1" ItemsSource="{Binding Tracks}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:TrackRowModel">
+                                <controls:TrackRow />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+    </Panel>
+</UserControl>

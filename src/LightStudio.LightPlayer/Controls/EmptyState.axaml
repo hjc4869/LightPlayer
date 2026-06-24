@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="400"
+             d:DesignHeight="300"
+             x:Name="Root"
+             x:Class="LightStudio.LightPlayer.Controls.EmptyState">
+    <StackPanel HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Spacing="8">
+        <Viewbox Width="64" Height="64" HorizontalAlignment="Center">
+            <Path Data="{StaticResource IconEmptyLibrary}"
+                  Fill="{DynamicResource AppDisabledTextBrush}" />
+        </Viewbox>
+        <TextBlock Text="{Binding #Root.Header}"
+                   HorizontalAlignment="Center"
+                   FontSize="20"
+                   FontWeight="SemiBold"
+                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        <TextBlock Text="{Binding #Root.Description}"
+                   HorizontalAlignment="Center"
+                   FontSize="13"
+                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+    </StackPanel>
+</UserControl>

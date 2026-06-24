@@ -1,0 +1,52 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:models="using:LightStudio.LightPlayer.Models"
+        mc:Ignorable="d"
+        d:DesignWidth="380"
+        d:DesignHeight="440"
+        x:Class="LightStudio.LightPlayer.Views.Dialogs.PlaylistPickerDialog"
+        Width="380"
+        Height="460"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="Add to playlist">
+    <DockPanel Margin="18" LastChildFill="True">
+        <TextBlock DockPanel.Dock="Top"
+                   Text="Add to playlist"
+                   FontSize="15"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,12" />
+
+        <Button DockPanel.Dock="Top"
+                x:Name="NewPlaylistButton"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Left"
+                Margin="0,0,0,10"
+                Content="+  New playlist..." />
+
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,12,0,0">
+            <Button x:Name="CancelButton" Content="Cancel" />
+            <Button x:Name="ConfirmButton" Content="Add" IsDefault="True" />
+        </StackPanel>
+
+        <ListBox x:Name="PlaylistList">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="models:PlaylistModel">
+                    <StackPanel Spacing="2" Margin="2">
+                        <TextBlock Text="{Binding Title}" />
+                        <TextBlock Text="{Binding Subtitle}"
+                                   FontSize="12"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</Window>

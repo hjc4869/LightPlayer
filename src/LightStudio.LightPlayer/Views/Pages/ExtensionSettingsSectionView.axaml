@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="560"
+             x:Class="LightStudio.LightPlayer.Views.Pages.ExtensionSettingsSectionView"
+             x:DataType="vm:ExtensionSettingsSectionViewModel">
+    <ScrollViewer>
+        <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
+            <StackPanel Spacing="4" Margin="0,0,0,4">
+                <TextBlock Text="Extensions"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <TextBlock Text="Manage third-party lyric sources."
+                           FontSize="13"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </StackPanel>
+
+            <controls:SettingRow Header="Third-party lyrics"
+                                 Description="Re-import the bundled third-party lyric sources. Terms of use from third-party services may apply.">
+                <controls:SettingRow.ActionContent>
+                    <Button Classes="icon"
+                            ToolTip.Tip="Import bundled sources"
+                            Command="{Binding ReimportSourcesCommand}">
+                        <Viewbox Width="16" Height="16">
+                            <Path Data="{StaticResource IconRefresh}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="Lyric sources"
+                                 Description="JavaScript lyric source scripts.">
+                <controls:SettingRow.ActionContent>
+                    <Button Classes="icon"
+                            ToolTip.Tip="Add source"
+                            Click="OnAddSourceClick">
+                        <Viewbox Width="16" Height="16">
+                            <Path Data="{StaticResource IconAdd}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <TextBlock Text="No lyric sources added."
+                       IsVisible="{Binding !HasLyricSources}"
+                       FontSize="13"
+                       Margin="2,6,2,0"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+
+            <ItemsControl ItemsSource="{Binding LyricSources}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:LyricSourceModel">
+                        <controls:SettingRow Header="{Binding Name}">
+                            <controls:SettingRow.ActionContent>
+                                <Button Classes="icon"
+                                        ToolTip.Tip="Remove source"
+                                        Tag="{Binding}"
+                                        Click="OnRemoveSourceClick">
+                                    <Viewbox Width="16" Height="16">
+                                        <Path Data="{StaticResource IconDelete}"
+                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                    </Viewbox>
+                                </Button>
+                            </controls:SettingRow.ActionContent>
+                        </controls:SettingRow>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

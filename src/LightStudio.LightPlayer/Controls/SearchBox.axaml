@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="220"
+             d:DesignHeight="36"
+             x:Class="LightStudio.LightPlayer.Controls.SearchBox"
+             x:DataType="vm:SearchBoxViewModel">
+    <UserControl.Styles>
+        <!-- Pin the suggestion drop-down to the search field width. The Fluent theme only sets the
+             popup MinWidth to the field width, so long items would otherwise make it grow wider. -->
+        <Style Selector="AutoCompleteBox#SearchAuto /template/ Border#PART_SuggestionsContainer">
+            <Setter Property="Width" Value="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}" />
+        </Style>
+    </UserControl.Styles>
+    <Border Background="{DynamicResource AppPanelBackgroundBrush}"
+            BorderBrush="{DynamicResource AppDividerBrush}"
+            BorderThickness="1"
+            CornerRadius="6">
+        <Grid ColumnDefinitions="Auto,*">
+            <Viewbox Grid.Column="0" Width="16" Height="16" Margin="10,0,4,0">
+                <Path Data="{StaticResource IconSearch}"
+                      Fill="{DynamicResource AppSecondaryTextBrush}" />
+            </Viewbox>
+            <AutoCompleteBox x:Name="SearchAuto"
+                             Grid.Column="1"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             PlaceholderText="Search..."
+                             FilterMode="None"
+                             MinimumPrefixLength="1"
+                             MinimumPopulateDelay="0:0:0.2"
+                             MaxDropDownHeight="360"
+                             Text="{Binding Text, Mode=TwoWay}"
+                             AsyncPopulator="{Binding Populator}"
+                             VerticalAlignment="Center">
+                <AutoCompleteBox.KeyBindings>
+                    <KeyBinding Gesture="Enter" Command="{Binding SubmitCommand}" />
+                </AutoCompleteBox.KeyBindings>
+                <AutoCompleteBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:SearchResultModel">
+                        <Grid ColumnDefinitions="Auto,*"
+                              Margin="0,4"
+                              Background="Transparent"
+                              PointerReleased="OnSuggestionPointerReleased">
+                            <controls:MediaThumbnail Grid.Column="0"
+                                                     Width="34"
+                                                     Height="34"
+                                                     CornerRadius="3"
+                                                     Margin="0,0,10,0"
+                                                     Source="{Binding Image}"
+                                                     PlaceholderKind="{Binding ThumbnailKind}"
+                                                     IsVisible="{Binding HasThumbnail}" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}"
+                                           MaxLines="1"
+                                           TextTrimming="CharacterEllipsis" />
+                                <TextBlock Text="{Binding Subtitle}"
+                                           FontSize="12"
+                                           MaxLines="1"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </AutoCompleteBox.ItemTemplate>
+            </AutoCompleteBox>
+        </Grid>
+    </Border>
+</UserControl>

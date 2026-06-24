@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="460"
+             d:DesignHeight="64"
+             x:Name="Root"
+             x:Class="LightStudio.LightPlayer.Controls.SettingRow">
+    <Border Background="{DynamicResource AppPanelBackgroundBrush}"
+            BorderBrush="{DynamicResource AppDividerBrush}"
+            BorderThickness="1"
+            CornerRadius="6"
+            Padding="16,12"
+            Margin="0,0,0,8">
+        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                <TextBlock Text="{Binding #Root.Header}"
+                           FontSize="14"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <TextBlock Text="{Binding #Root.Description}"
+                           FontSize="12"
+                           IsVisible="{Binding #Root.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </StackPanel>
+            <ContentControl Grid.Column="1"
+                            Margin="16,0,0,0"
+                            VerticalAlignment="Center"
+                            Content="{Binding #Root.ActionContent}" />
+        </Grid>
+    </Border>
+</UserControl>

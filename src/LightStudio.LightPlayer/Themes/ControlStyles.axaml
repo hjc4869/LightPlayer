@@ -1,0 +1,150 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!--
+        Icon glyphs are MDI geometries authored on a 24x24 grid. A bare Path defaults to
+        Stretch="None", which makes the shape report a desired size that includes the
+        geometry's top-left origin offset, shifting every glyph toward the bottom-right of
+        its Viewbox. Forcing Uniform stretch normalizes the geometry bounds so glyphs sit
+        centered in their containers.
+    -->
+    <Style Selector="Viewbox > Path">
+        <Setter Property="Stretch" Value="Uniform" />
+    </Style>
+
+    <!-- Transparent icon-only button used across the playback bar, header, and queue. -->
+    <Style Selector="Button.icon">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="8" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.icon /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+    </Style>
+    <Style Selector="Button.icon:disabled">
+        <Setter Property="Opacity" Value="0.4" />
+    </Style>
+
+    <!-- Compact icon button used for the hover actions on library tiles and track rows. -->
+    <Style Selector="Button.miniIcon">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="5" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.miniIcon /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.miniIcon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+    </Style>
+
+    <!-- Primary call-to-action button (e.g. setup Continue). -->
+    <Style Selector="Button.accent">
+        <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="20,10" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.accent /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+    </Style>
+    <Style Selector="Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+        <Setter Property="Opacity" Value="0.9" />
+    </Style>
+
+    <!-- Hyperlink-style text button for secondary dialog actions (import / clear). -->
+    <Style Selector="Button.link">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.link /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.link:pointerover">
+        <Setter Property="TextBlock.TextDecorations" Value="Underline" />
+    </Style>
+
+    <!-- Navigation rail entries -->
+    <Style Selector="Button.nav">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="7" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="6,2" />
+        <Setter Property="Height" Value="44" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+    </Style>
+    <Style Selector="Button.nav.selected /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+    </Style>
+
+    <!-- Selection accent bar shown for the active navigation entry -->
+    <Style Selector="Border.navIndicator">
+        <Setter Property="Width" Value="3" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="CornerRadius" Value="2" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.nav.selected Border.navIndicator">
+        <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+    </Style>
+
+    <!--
+        Indeterminate circular spinner used by the navigation-rail scan indicator. A single arc
+        (drawn as a stroke with a large dash gap) spins continuously by animating a RotateTransform
+        around its centre. Avalonia has no animator for the composite RenderTransform property, so
+        the angle is animated via the RotateTransform.Angle keyframe target. The host row toggles
+        visibility, so the animation only runs while a scan status is shown.
+    -->
+    <Style Selector="Ellipse.spinner">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Stroke" Value="{DynamicResource AppAccentBrush}" />
+        <Setter Property="StrokeThickness" Value="2" />
+        <Setter Property="StrokeLineCap" Value="Round" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Style.Animations>
+            <Animation Duration="0:0:0.9" IterationCount="Infinite" Easing="LinearEasing">
+                <KeyFrame Cue="0%">
+                    <Setter Property="RotateTransform.Angle" Value="0" />
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="RotateTransform.Angle" Value="360" />
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+</Styles>

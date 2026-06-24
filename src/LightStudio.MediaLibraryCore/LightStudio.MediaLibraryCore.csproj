@@ -1,0 +1,111 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Platforms>x64;ARM64</Platforms>
+		<Configurations>Debug;Release;EFMigration</Configurations>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='EFMigration'">
+	  <DefineConstants>$(DefineConstants);EFCORE_MIGRATION</DefineConstants>
+	</PropertyGroup>
+
+	<!--
+	    Per-OS build facility (mirrors the Avalonia app). Resolves the *target* OS
+	    from the publish RuntimeIdentifier when present, otherwise the build host OS,
+	    and emits a WINDOWS / LINUX / MACOS constant. Used to select the SQLite native
+	    provider (and its startup init) below.
+	-->
+	<PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+		<_TargetOS Condition="$(RuntimeIdentifier.StartsWith('win'))">windows</_TargetOS>
+		<_TargetOS Condition="$(RuntimeIdentifier.StartsWith('linux'))">linux</_TargetOS>
+		<_TargetOS Condition="$(RuntimeIdentifier.StartsWith('osx'))">macos</_TargetOS>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
+		<_TargetOS Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</_TargetOS>
+		<_TargetOS Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</_TargetOS>
+		<_TargetOS Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</_TargetOS>
+	</PropertyGroup>
+	<PropertyGroup>
+		<IsWindowsTarget Condition="'$(_TargetOS)' == 'windows'">true</IsWindowsTarget>
+		<IsLinuxTarget Condition="'$(_TargetOS)' == 'linux'">true</IsLinuxTarget>
+		<IsMacOSTarget Condition="'$(_TargetOS)' == 'macos'">true</IsMacOSTarget>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(IsWindowsTarget)' == 'true'">
+		<DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(IsLinuxTarget)' == 'true'">
+		<DefineConstants>$(DefineConstants);LINUX</DefineConstants>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(IsMacOSTarget)' == 'true'">
+		<DefineConstants>$(DefineConstants);MACOS</DefineConstants>
+	</PropertyGroup>
+
+	<!--
+	    SQLite native provider selection.
+	    Default (UseBundledSqlite=false): EF Core SQLite WITHOUT a bundled native
+	    library (Microsoft.EntityFrameworkCore.Sqlite.Core); the app uses the SQLite
+	    provided by the OS - winsqlite3.dll on Windows, libsqlite3 elsewhere (e.g.
+	    supplied by the Flatpak runtime), avoiding a redundant bundled e_sqlite3.
+	    Fallback (-p:UseBundledSqlite=true): the classic bundled e_sqlite3, for
+	    platforms that need the app's own SQLite binary (e.g. Android). Kept for
+	    future use. SqliteProvider.Initialize() (a module initializer) selects the
+	    matching runtime provider using the SQLITE_BUNDLED / WINDOWS constants.
+	-->
+	<PropertyGroup>
+		<UseBundledSqlite Condition="'$(UseBundledSqlite)' == ''">false</UseBundledSqlite>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(UseBundledSqlite)' == 'true'">
+		<DefineConstants>$(DefineConstants);SQLITE_BUNDLED</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Jint" Version="4.10.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.9">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.9" />
+		<PackageReference Include="Microsoft.Extensions.Logging.TraceSource" Version="10.0.9" />
+	</ItemGroup>
+
+	<!-- SQLite provider packages (see the provider-selection notes above). -->
+	<ItemGroup Condition="'$(UseBundledSqlite)' != 'true'">
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="10.0.9" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(UseBundledSqlite)' != 'true' And '$(IsWindowsTarget)' == 'true'">
+		<PackageReference Include="SQLitePCLRaw.provider.winsqlite3" Version="2.1.11" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(UseBundledSqlite)' != 'true' And '$(IsWindowsTarget)' != 'true'">
+		<PackageReference Include="SQLitePCLRaw.bundle_sqlite3" Version="2.1.11" />
+	</ItemGroup>
+	<!-- Fallback: app-bundled e_sqlite3 for platforms without a usable system SQLite. -->
+	<ItemGroup Condition="'$(UseBundledSqlite)' == 'true'">
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Strings\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="Strings\Resources.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Migrations\" />
+	</ItemGroup>
+</Project>

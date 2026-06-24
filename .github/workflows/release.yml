@@ -1,0 +1,75 @@
+name: Release Flatpak
+
+# Build the Flatpak bundle via the Makefile's `flatpak` target and publish it as a
+# GitHub Release. Triggered by pushing a version tag (e.g. v1.0.0) or run manually
+# from the Actions tab (supply the tag to create).
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to create and publish (e.g. v1.0.0).'
+        required: true
+        type: string
+
+# Required so the release step can create the release and upload the bundle.
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build and publish Flatpak
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install flatpak and flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder elfutils
+
+      # Ubuntu 24.04 (ubuntu-latest) restricts unprivileged user namespaces through
+      # AppArmor, which breaks the bubblewrap sandbox that flatpak-builder relies on.
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      # Cache flatpak-builder's downloaded sources (the offline NuGet feed, etc.) and
+      # build state so subsequent runs don't re-fetch everything.
+      - name: Cache flatpak-builder state
+        uses: actions/cache@v4
+        with:
+          path: artifacts/flatpak/.flatpak-builder
+          key: flatpak-builder-${{ runner.os }}-${{ hashFiles('packaging/flatpak/im.hjc.LightPlayer.yml', 'src/**/*.csproj', 'Makefile') }}
+          restore-keys: |
+            flatpak-builder-${{ runner.os }}-
+
+      # Builds and publishes the app self-contained inside the sandbox and writes the
+      # bundle to artifacts/flatpak/im.hjc.LightPlayer.flatpak. The target
+      # also adds the flathub remote and installs the required runtime + dotnet10 SDK
+      # extension (via its flatpak-deps prerequisite).
+      - name: Build Flatpak bundle
+        run: make flatpak
+
+      - name: Resolve release tag
+        id: release
+        env:
+          DISPATCH_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            tag="$DISPATCH_TAG"
+          else
+            tag="$GITHUB_REF_NAME"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: Light Player ${{ steps.release.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: artifacts/flatpak/im.hjc.LightPlayer.flatpak

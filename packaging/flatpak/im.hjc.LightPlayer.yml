@@ -1,0 +1,116 @@
+app-id: im.hjc.LightPlayer
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+# Build-only .NET toolchain. The dotnet10 SDK extension supplies the .NET 10 SDK
+# *inside the build sandbox* (wired up via build-options below), so the host `dotnet`
+# is not used to build the Flatpak. SDK extensions are build-time only — they are never
+# part of the finished runtime.
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.dotnet10
+command: LightStudio.LightPlayer
+
+# NOTE: This manifest builds and publishes the app from source *inside the sandbox*
+# using the dotnet10 SDK extension (see the `lightplayer` module). The publish is
+# self-contained, so it bundles the .NET runtime and NO `org.freedesktop.Sdk.Extension`
+# and NO extra runtime module is added to /app. FFmpeg (7.1.x) and OpenAL
+# (libopenal.so.1) are provided by org.freedesktop.Platform 25.08 and resolved from
+# the standard library path at runtime.
+#
+# NuGet restore runs offline: the build sandbox has no network, so packages are
+# resolved from the local `./nuget-sources` feed that flatpak-builder assembles (during
+# its network-enabled fetch phase) from `nuget-sources.json`. That pinned source list
+# is generated on the host by `make flatpak` via flatpak-dotnet-generator.py.
+
+# Expose the dotnet10 SDK extension's toolchain to every build command. Because the
+# publish is self-contained, DOTNET_ROOT is intentionally NOT set and no `install.sh`
+# runtime module is used.
+build-options:
+  prepend-path: /usr/lib/sdk/dotnet10/bin
+  append-ld-library-path: /usr/lib/sdk/dotnet10/lib
+  prepend-pkg-config-path: /usr/lib/sdk/dotnet10/lib/pkgconfig
+  env:
+    DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+    DOTNET_NOLOGO: '1'
+
+finish-args:
+  # Rendering / windowing. Avalonia 12 (stable) only has an X11 backend, so X11 is
+  # required; under Wayland it runs through XWayland.
+  - --socket=x11
+  - --share=ipc
+  - --device=dri
+  # Audio output (OpenAL -> PulseAudio/PipeWire).
+  - --socket=pulseaudio
+  # Online lyrics search.
+  - --share=network
+  # MPRIS "now playing" / media-key integration. Owning the app id itself (for the
+  # single-instance channel) is always allowed by the sandbox, so only the MPRIS
+  # name needs to be declared here.
+  - --own-name=org.mpris.MediaPlayer2.LightStudioLightPlayer.*
+  # Read-only access to the user's music. Files opened from elsewhere are granted
+  # per-file through the document portal, so no broader filesystem access is needed.
+  - --filesystem=xdg-music:ro
+
+modules:
+  - name: lightplayer
+    buildsystem: simple
+    build-commands:
+      # Publish the app self-contained *inside the sandbox* with the dotnet10 SDK
+      # extension. Restore is offline (--source ./nuget-sources -> the local feed
+      # assembled from nuget-sources.json). -p:Flatpak=true selects the FFmpeg 7.1.1
+      # bindings that match the FFmpeg shipped by org.freedesktop.Platform 25.08. The
+      # .NET RID and MSBuild platform follow the Flatpak build architecture, and
+      # NUGET_PACKAGES / DOTNET_CLI_HOME are pinned to writable paths in the build dir.
+      - |
+        set -e
+        case "$FLATPAK_ARCH" in
+          x86_64)  DOTNET_RID=linux-x64;   DOTNET_PLATFORM=x64 ;;
+          aarch64) DOTNET_RID=linux-arm64; DOTNET_PLATFORM=ARM64 ;;
+          *) echo "unsupported Flatpak arch: $FLATPAK_ARCH" >&2; exit 1 ;;
+        esac
+        export NUGET_PACKAGES="$PWD/.nuget-packages"
+        export DOTNET_CLI_HOME="$PWD/.dotnet-home"
+        dotnet publish src/LightStudio.LightPlayer/LightStudio.LightPlayer.csproj \
+          -c Release -r "$DOTNET_RID" --self-contained true \
+          -p:Flatpak=true -p:Platform="$DOTNET_PLATFORM" \
+          --source ./nuget-sources \
+          -o publish
+      # Install the published, self-contained app under its own prefix.
+      - mkdir -p /app/lightplayer
+      - cp -a publish/. /app/lightplayer/
+      - chmod +x /app/lightplayer/LightStudio.LightPlayer
+      # Expose the launcher on PATH (/app/bin). The .NET apphost resolves its real
+      # location through the symlink, so it still finds its assemblies.
+      - mkdir -p /app/bin
+      - ln -sf /app/lightplayer/LightStudio.LightPlayer /app/bin/LightStudio.LightPlayer
+      # Desktop integration.
+      - install -Dm644 im.hjc.LightPlayer.desktop /app/share/applications/im.hjc.LightPlayer.desktop
+      - install -Dm644 im.hjc.LightPlayer.metainfo.xml /app/share/metainfo/im.hjc.LightPlayer.metainfo.xml
+      # Register the .cue MIME type (glob + magic) so cue sheets are associated.
+      - install -Dm644 im.hjc.LightPlayer.mime.xml /app/share/mime/packages/im.hjc.LightPlayer.xml
+      # Install every icon size the source provides so shells (e.g. the KDE menu)
+      # can pick the exact size they need instead of downscaling one large icon.
+      - install -Dm644 icons/16x16/im.hjc.LightPlayer.png /app/share/icons/hicolor/16x16/apps/im.hjc.LightPlayer.png
+      - install -Dm644 icons/32x32/im.hjc.LightPlayer.png /app/share/icons/hicolor/32x32/apps/im.hjc.LightPlayer.png
+      - install -Dm644 icons/48x48/im.hjc.LightPlayer.png /app/share/icons/hicolor/48x48/apps/im.hjc.LightPlayer.png
+      - install -Dm644 icons/64x64/im.hjc.LightPlayer.png /app/share/icons/hicolor/64x64/apps/im.hjc.LightPlayer.png
+      - install -Dm644 icons/256x256/im.hjc.LightPlayer.png /app/share/icons/hicolor/256x256/apps/im.hjc.LightPlayer.png
+    sources:
+      # The project tree (staged by `make flatpak` without bin/ or obj/).
+      - type: dir
+        path: src
+        dest: src
+      # Pinned offline NuGet feed generated on the host by flatpak-dotnet-generator.py.
+      # flatpak-builder downloads each .nupkg into ./nuget-sources during its fetch
+      # phase, so the in-sandbox restore needs no network.
+      - nuget-sources.json
+      - type: dir
+        path: icons
+        dest: icons
+      - type: file
+        path: im.hjc.LightPlayer.desktop
+      - type: file
+        path: im.hjc.LightPlayer.metainfo.xml
+      - type: file
+        path: im.hjc.LightPlayer.mime.xml

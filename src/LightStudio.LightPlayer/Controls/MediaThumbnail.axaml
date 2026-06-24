@@ -1,0 +1,27 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="135"
+             d:DesignHeight="135"
+             x:Name="Root"
+             x:Class="LightStudio.LightPlayer.Controls.MediaThumbnail">
+    <Border CornerRadius="{Binding #Root.CornerRadius}"
+            ClipToBounds="True"
+            Background="{DynamicResource AppThumbnailPlaceholderBrush}">
+        <Panel>
+            <Grid x:Name="PlaceholderHost"
+                  RowDefinitions="*,2*,*"
+                  ColumnDefinitions="*,2*,*">
+                <Viewbox Grid.Row="1" Grid.Column="1" Stretch="Uniform">
+                    <Path x:Name="PlaceholderGlyph"
+                          Fill="{DynamicResource AppThumbnailGlyphBrush}" />
+                </Viewbox>
+            </Grid>
+            <Image x:Name="ArtworkImage"
+                   Stretch="UniformToFill"
+                   IsVisible="False" />
+        </Panel>
+    </Border>
+</UserControl>

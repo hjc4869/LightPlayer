@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="560"
+             x:Class="LightStudio.LightPlayer.Views.Pages.LibrarySettingsSectionView"
+             x:DataType="vm:LibrarySettingsSectionViewModel">
+    <ScrollViewer>
+        <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
+            <StackPanel Spacing="4" Margin="0,0,0,4">
+                <TextBlock Text="Library folders"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <TextBlock Text="Choose where Light scans for music."
+                           FontSize="13"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </StackPanel>
+
+            <controls:SettingRow Header="Folders"
+                                 Description="Local folders included in the music library.">
+                <controls:SettingRow.ActionContent>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Classes="icon"
+                                ToolTip.Tip="Add folder"
+                                Click="OnAddFolderClick">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconAdd}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                        <Button Classes="icon"
+                                ToolTip.Tip="Scan library"
+                                Command="{Binding ScanLibraryCommand}"
+                                IsVisible="{Binding ShowScanButton}">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconRefresh}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                    </StackPanel>
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <TextBlock Text="{Binding StatusMessage}"
+                       IsVisible="{Binding HasStatusMessage}"
+                       FontSize="12"
+                       Margin="2,-2,2,2"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+
+            <TextBlock Text="No folders added."
+                       IsVisible="{Binding !HasLibraryFolders}"
+                       FontSize="13"
+                       Margin="2,6,2,0"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+
+            <ItemsControl ItemsSource="{Binding LibraryFolders}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:LibraryFolderModel">
+                        <controls:SettingRow Header="{Binding Name}"
+                                             Description="{Binding Path}">
+                            <controls:SettingRow.ActionContent>
+                                <Button Classes="icon"
+                                        ToolTip.Tip="Remove folder"
+                                        Tag="{Binding}"
+                                        Click="OnRemoveFolderClick">
+                                    <Viewbox Width="16" Height="16">
+                                        <Path Data="{StaticResource IconDelete}"
+                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                    </Viewbox>
+                                </Button>
+                            </controls:SettingRow.ActionContent>
+                        </controls:SettingRow>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <controls:SettingRow Header="Scan at startup"
+                                 Description="Automatically scan library folders for new or changed music each time Light starts.">
+                <controls:SettingRow.ActionContent>
+                    <ToggleSwitch IsChecked="{Binding ScanLibraryOnStartup, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <StackPanel Spacing="4" Margin="0,12,0,4">
+                <TextBlock Text="Playback history"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <TextBlock Text="Track what you have played recently."
+                           FontSize="13"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </StackPanel>
+
+            <controls:SettingRow Header="Keep playback history"
+                                 Description="Show recently played tracks on the home page. Turning this off clears the existing history.">
+                <controls:SettingRow.ActionContent>
+                    <ToggleSwitch IsChecked="{Binding EnablePlaybackHistory, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,191 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="360"
+             d:DesignHeight="600"
+             x:Name="QueueRoot"
+             x:Class="LightStudio.LightPlayer.Controls.QueuePane"
+             x:DataType="vm:QueuePaneViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Border.queueItem.playing TextBlock.queueTitle">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+
+        <!-- Queue rows: strip the default ListBoxItem chrome so the 48px template
+             drives the row height, and keep a subtle hover affordance. -->
+        <Style Selector="ListBox.queueList ListBoxItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="ListBox.queueList ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+        </Style>
+
+        <!-- The selection highlight is only meaningful while editing: show it then,
+             and suppress it otherwise so a stray click outside edit mode never
+             leaves a row highlighted. -->
+        <Style Selector="ListBox.queueList.editing ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+        </Style>
+        <Style Selector="ListBox.queueList.editing ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+        </Style>
+        <Style Selector="ListBox.queueList:not(.editing) ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.queueList:not(.editing) ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+        </Style>
+
+        <!-- Active (pressed-in) look for the Edit toggle while edit mode is on. -->
+        <Style Selector="Button.icon.active /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+        </Style>
+
+        <!-- Per-row selection checkbox: a multi-select affordance revealed only in
+             edit mode. It is a pure indicator (hit-test disabled), so a click falls
+             through to the row and the ListBox drives the actual selection. -->
+        <Style Selector="ListBox.queueList CheckBox.selectCheck">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="ListBox.queueList.editing CheckBox.selectCheck">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Width="360"
+            HorizontalAlignment="Left"
+            Background="{DynamicResource AppPageBackgroundBrush}"
+            BorderBrush="{DynamicResource AppDividerBrush}"
+            BorderThickness="1,0,0,0">
+        <Grid RowDefinitions="Auto,*,Auto" Margin="0,32,0,8">
+            <TextBlock Grid.Row="0"
+                       Text="NOW PLAYING"
+                       FontSize="16"
+                       FontWeight="Bold"
+                       Margin="28,0,0,8"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+
+            <!-- Virtualized ListBox (default VirtualizingStackPanel): the now-playing queue
+                 can hold thousands of items. Padding is applied to the inner ItemsPresenter
+                 (part of the scroll extent), so the bottom inset survives to the end of the
+                 scroll range and doesn't clip the last row's descenders. Selection is enabled
+                 only in edit mode (multi-select with shift-range and Ctrl+A); see code-behind. -->
+            <ListBox Grid.Row="1"
+                     x:Name="QueueList"
+                     Classes="queueList"
+                     Classes.editing="{Binding IsEditMode}"
+                     ItemsSource="{Binding Items}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     Padding="22,4,12,8"
+                     SelectionMode="Single"
+                     KeyDown="OnQueueKeyDown"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:MusicPlaybackItemModel">
+                        <Border Classes="queueItem"
+                                Classes.playing="{Binding IsPlaying}"
+                                Background="Transparent"
+                                Height="48"
+                                Padding="6,4"
+                                Tapped="OnItemTapped"
+                                DoubleTapped="OnItemDoubleTapped">
+                            <Border.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuItem Header="Play" Click="OnPlayItemClick" />
+                                    <Separator />
+                                    <MenuItem Header="Remove from queue" Click="OnDeleteItemClick" />
+                                </MenuFlyout>
+                            </Border.ContextFlyout>
+                            <Grid ColumnDefinitions="Auto,*">
+                                <CheckBox Grid.Column="0"
+                                          Classes="selectCheck"
+                                          IsHitTestVisible="False"
+                                          IsChecked="{Binding $parent[ListBoxItem].IsSelected, Mode=OneWay}"
+                                          MinWidth="0"
+                                          Padding="0"
+                                          Margin="2,0,10,0"
+                                          VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Classes="queueTitle"
+                                               Text="{Binding Title}"
+                                               MaxLines="1"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                    <TextBlock Text="{Binding Artist}"
+                                               FontSize="12"
+                                               MaxLines="1"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <!-- Drop insertion indicator: a thin line positioned (from code-behind) at the
+                 boundary where dragged items would be inserted. Left/right insets match the
+                 ListBox content padding so it lines up with the rows. -->
+            <Border Grid.Row="1"
+                    x:Name="DropIndicator"
+                    Height="2"
+                    CornerRadius="1"
+                    Margin="22,0,12,0"
+                    VerticalAlignment="Top"
+                    HorizontalAlignment="Stretch"
+                    IsHitTestVisible="False"
+                    IsVisible="False"
+                    Background="{DynamicResource AppAccentBrush}" />
+
+            <StackPanel Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,8,0,0"
+                        Spacing="6">
+                <Button Classes="icon"
+                        Classes.active="{Binding IsEditMode}"
+                        ToolTip.Tip="Edit queue"
+                        Command="{Binding ToggleEditCommand}">
+                    <Viewbox Width="20" Height="20">
+                        <Path Data="{StaticResource IconEdit}"
+                              Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+                <Button Classes="icon"
+                        ToolTip.Tip="Delete selected"
+                        IsVisible="{Binding IsEditMode}"
+                        Click="OnDeleteSelectedClick">
+                    <Viewbox Width="20" Height="20">
+                        <Path Data="{StaticResource IconDelete}"
+                              Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+                <Button Classes="icon" ToolTip.Tip="Save as playlist">
+                    <Viewbox Width="20" Height="20">
+                        <Path Data="{StaticResource IconSave}"
+                              Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                    <Button.Flyout>
+                        <Flyout Placement="Top">
+                            <StackPanel Width="220" Spacing="8">
+                                <TextBox PlaceholderText="Playlist name"
+                                         Text="{Binding PlaylistName, Mode=TwoWay}" />
+                                <Button HorizontalAlignment="Right"
+                                        Content="Save"
+                                        Command="{Binding SaveCommand}" />
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

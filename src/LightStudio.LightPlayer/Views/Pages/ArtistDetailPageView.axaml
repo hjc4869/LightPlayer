@@ -1,0 +1,85 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="900"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.ArtistDetailPageView"
+             x:DataType="vm:ArtistDetailPageViewModel">
+    <Panel>
+        <!-- Loading -->
+        <ProgressBar IsVisible="{Binding IsLoading}"
+                     IsIndeterminate="True"
+                     Width="140"
+                     Height="4"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center" />
+
+        <!-- Content -->
+        <ScrollViewer IsVisible="{Binding ShowContent}">
+            <StackPanel Margin="32" Spacing="20">
+                <!-- Hero header: back, artist name, shuffle all, then the stats line. -->
+                <StackPanel Spacing="6">
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <Button Grid.Column="0"
+                                Classes="icon"
+                                VerticalAlignment="Center"
+                                Margin="0,0,10,0"
+                                Command="{Binding BackCommand}"
+                                ToolTip.Tip="Back">
+                            <Viewbox Width="20" Height="20">
+                                <Path Data="{StaticResource IconArrowLeft}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding ArtistName}"
+                                   FontSize="36"
+                                   FontWeight="Light"
+                                   VerticalAlignment="Center"
+                                   MaxLines="1"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                        <Button Grid.Column="2"
+                                Classes="icon"
+                                VerticalAlignment="Center"
+                                Padding="12,8"
+                                Command="{Binding ShuffleCommand}"
+                                ToolTip.Tip="Shuffle all">
+                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                                <Grid Width="34" Height="34">
+                                    <Ellipse Stroke="{DynamicResource AppPrimaryTextBrush}" StrokeThickness="2" />
+                                    <Viewbox Width="14" Height="14">
+                                        <Path Data="{StaticResource IconPlay}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                    </Viewbox>
+                                </Grid>
+                                <TextBlock Text="SHUFFLE ALL"
+                                           VerticalAlignment="Center"
+                                           FontSize="16"
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                    <TextBlock Text="{Binding MetaLine}"
+                               Margin="46,0,0,0"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                </StackPanel>
+
+                <!-- One block per album: cover, title, actions and its track rows. -->
+                <ItemsControl ItemsSource="{Binding AlbumSections}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:ArtistAlbumSectionModel">
+                            <controls:AlbumSection Margin="0,6,0,18" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Panel>
+</UserControl>

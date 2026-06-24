@@ -1,0 +1,24 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DesignWidth="380"
+        d:DesignHeight="240"
+        x:Class="LightStudio.LightPlayer.Views.Dialogs.AboutDialog"
+        Width="380"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="About">
+    <StackPanel Margin="24" Spacing="12" HorizontalAlignment="Center">
+        <TextBlock Text="Light Player" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+        <TextBlock x:Name="VersionText" FontSize="13" HorizontalAlignment="Center"
+                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        <TextBlock Text="A cross-platform music player built with Avalonia."
+                   FontSize="12" HorizontalAlignment="Center" TextWrapping="Wrap"
+                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        <Button x:Name="OkButton" Content="OK" IsDefault="True" HorizontalAlignment="Center" Margin="0,8,0,0" />
+    </StackPanel>
+</Window>

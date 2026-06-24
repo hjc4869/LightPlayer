@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="900"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.SearchPageView"
+             x:DataType="vm:SearchPageViewModel">
+    <Panel>
+        <!-- Loading -->
+        <ProgressBar IsVisible="{Binding IsBusy}"
+                     IsIndeterminate="True"
+                     Width="140"
+                     Height="4"
+                     HorizontalAlignment="Center"
+                     VerticalAlignment="Center" />
+
+        <!-- No results -->
+        <controls:EmptyState IsVisible="{Binding ShowNoResults}"
+                             Header="No results"
+                             Description="Try a different search term." />
+
+        <!-- Results -->
+        <ScrollViewer IsVisible="{Binding ShowResults}">
+            <StackPanel Margin="32" Spacing="20">
+                <TextBlock Text="{Binding HeaderText}"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+
+                <!-- Albums -->
+                <StackPanel Spacing="8" IsVisible="{Binding HasAlbums}">
+                    <TextBlock Text="{Binding AlbumsHeader}"
+                               FontSize="17"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <ItemsControl ItemsSource="{Binding AlbumResults}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:LibraryTileModel">
+                                <controls:LibraryTile Margin="0,0,14,16" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Artists -->
+                <StackPanel Spacing="8" IsVisible="{Binding HasArtists}">
+                    <TextBlock Text="{Binding ArtistsHeader}"
+                               FontSize="17"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <ItemsControl ItemsSource="{Binding ArtistResults}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:LibraryTileModel">
+                                <controls:LibraryTile Margin="0,0,14,16" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- Songs -->
+                <StackPanel Spacing="8" IsVisible="{Binding HasSongs}">
+                    <TextBlock Text="{Binding SongsHeader}"
+                               FontSize="17"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <ItemsControl ItemsSource="{Binding SongResults}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:TrackRowModel">
+                                <controls:TrackRow />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Panel>
+</UserControl>

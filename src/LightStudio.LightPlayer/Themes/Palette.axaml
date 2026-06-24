@@ -1,0 +1,44 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ResourceDictionary.ThemeDictionaries>
+        <!-- Light variant -->
+        <ResourceDictionary x:Key="Light">
+            <Color x:Key="AppAccentColor">#3C6E57</Color>
+            <SolidColorBrush x:Key="AppAccentBrush" Color="#3C6E57" />
+            <SolidColorBrush x:Key="AppPageBackgroundBrush" Color="#F6F5F1" />
+            <SolidColorBrush x:Key="AppPanelBackgroundBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppNavBackgroundBrush" Color="#EFEDE6" />
+            <SolidColorBrush x:Key="AppPlaybackBarBackgroundBrush" Color="#FBFAF7" />
+            <SolidColorBrush x:Key="AppPrimaryTextBrush" Color="#1A211D" />
+            <SolidColorBrush x:Key="AppSecondaryTextBrush" Color="#5E6A62" />
+            <SolidColorBrush x:Key="AppDisabledTextBrush" Color="#A7AFA9" />
+            <SolidColorBrush x:Key="AppSelectionBrush" Color="#D7E7DC" />
+            <SolidColorBrush x:Key="AppHoverBrush" Color="#E6E3DA" />
+            <SolidColorBrush x:Key="AppArtOverlayBrush" Color="#7FC1C2C2" />
+            <SolidColorBrush x:Key="AppDividerBrush" Color="#E2DFD5" />
+            <SolidColorBrush x:Key="AppThumbnailPlaceholderBrush" Color="#43484C" />
+            <SolidColorBrush x:Key="AppThumbnailGlyphBrush" Color="#8B9197" />
+            <SolidColorBrush x:Key="AppFavoriteBrush" Color="#C72335" />
+        </ResourceDictionary>
+
+        <!-- Dark variant -->
+        <ResourceDictionary x:Key="Dark">
+            <Color x:Key="AppAccentColor">#7FC6A6</Color>
+            <SolidColorBrush x:Key="AppAccentBrush" Color="#7FC6A6" />
+            <SolidColorBrush x:Key="AppPageBackgroundBrush" Color="#16191A" />
+            <SolidColorBrush x:Key="AppPanelBackgroundBrush" Color="#1E2123" />
+            <SolidColorBrush x:Key="AppNavBackgroundBrush" Color="#202425" />
+            <SolidColorBrush x:Key="AppPlaybackBarBackgroundBrush" Color="#1B1E1F" />
+            <SolidColorBrush x:Key="AppPrimaryTextBrush" Color="#F0F2EF" />
+            <SolidColorBrush x:Key="AppSecondaryTextBrush" Color="#A4ABA5" />
+            <SolidColorBrush x:Key="AppDisabledTextBrush" Color="#6A716B" />
+            <SolidColorBrush x:Key="AppSelectionBrush" Color="#2C4A3B" />
+            <SolidColorBrush x:Key="AppHoverBrush" Color="#2A2E2F" />
+            <SolidColorBrush x:Key="AppArtOverlayBrush" Color="#7F3F3E3E" />
+            <SolidColorBrush x:Key="AppDividerBrush" Color="#32373A" />
+            <SolidColorBrush x:Key="AppThumbnailPlaceholderBrush" Color="#3A3F43" />
+            <SolidColorBrush x:Key="AppThumbnailGlyphBrush" Color="#7C838A" />
+            <SolidColorBrush x:Key="AppFavoriteBrush" Color="#E2566A" />
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

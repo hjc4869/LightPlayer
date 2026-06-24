@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Light Player
+GenericName=Music Player
+Comment=Play and organize your local music library
+Exec=LightStudio.LightPlayer %U
+Icon=im.hjc.LightPlayer
+Terminal=false
+Categories=AudioVideo;Audio;Player;
+Keywords=music;audio;player;library;playlist;
+StartupNotify=true
+MimeType=audio/mpeg;audio/flac;audio/x-flac;audio/wav;audio/x-wav;audio/mp4;audio/x-m4a;audio/aac;audio/ogg;audio/x-vorbis+ogg;audio/opus;audio/x-opus+ogg;audio/x-ms-wma;audio/aiff;audio/x-aiff;audio/x-ape;application/x-cue;

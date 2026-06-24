@@ -1,0 +1,113 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             mc:Ignorable="d"
+             d:DesignWidth="120"
+             d:DesignHeight="150"
+             x:Class="LightStudio.LightPlayer.Controls.LibraryTile"
+             x:DataType="models:LibraryTileModel">
+    <UserControl.Styles>
+        <!-- Outer card border + greyed art overlay revealed when the pointer is over the tile. -->
+        <Style Selector="Border.tileHover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.tileArtOverlay">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Border.tileHover:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+        </Style>
+        <Style Selector="Border.tileHover:pointerover Border.tileArtOverlay">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="tileHover"
+            BorderThickness="1"
+            CornerRadius="6"
+            Padding="4"
+            Tapped="OnTapped">
+        <Border.ContextFlyout>
+            <MenuFlyout>
+                <MenuItem Header="Play" Command="{Binding PlayCommand}" />
+                <MenuItem Header="Add to queue" Command="{Binding AddToQueueCommand}" />
+            </MenuFlyout>
+        </Border.ContextFlyout>
+        <StackPanel Spacing="2" Background="Transparent">
+            <Panel Height="{Binding Path=Bounds.Width, RelativeSource={RelativeSource Self}}">
+                <!-- Single cover (albums) or placeholder glyph (artists without album art). -->
+                <controls:MediaThumbnail Height="{Binding Path=Bounds.Width, RelativeSource={RelativeSource Self}}"
+                                         CornerRadius="4"
+                                         IsVisible="{Binding !HasCollage}"
+                                         Source="{Binding Image}"
+                                         PlaceholderKind="{Binding ThumbnailKind}"
+                                         ToolTip.Tip="{Binding Title}" />
+                <!-- Artist album-art collage: 1x1, 2x2, or 3x3 based on how many covers are available. -->
+                <Border IsVisible="{Binding HasCollage}"
+                        Height="{Binding Path=Bounds.Width, RelativeSource={RelativeSource Self}}"
+                        CornerRadius="4"
+                        ClipToBounds="True"
+                        Background="{DynamicResource AppThumbnailPlaceholderBrush}"
+                        ToolTip.Tip="{Binding Title}">
+                    <ItemsControl ItemsSource="{Binding CollageImages}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="{Binding CollageColumns}" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Image x:CompileBindings="False"
+                                       Source="{Binding}"
+                                       Stretch="UniformToFill" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Border>
+                <Border x:Name="ArtOverlay"
+                        Classes="tileArtOverlay"
+                        Height="{Binding Path=Bounds.Width, RelativeSource={RelativeSource Self}}"
+                        CornerRadius="4"
+                        Background="{DynamicResource AppArtOverlayBrush}">
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="14"
+                                VerticalAlignment="Bottom"
+                                HorizontalAlignment="Center"
+                                Margin="0,0,0,12">
+                        <Button Classes="miniIcon"
+                                Command="{Binding PlayCommand}"
+                                ToolTip.Tip="Play">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconPlay}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                        <Button Classes="miniIcon"
+                                Command="{Binding AddToQueueCommand}"
+                                ToolTip.Tip="Add to queue">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconAdd}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Panel>
+            <TextBlock Text="{Binding Title}"
+                       FontSize="14"
+                       MaxLines="1"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Text="{Binding Subtitle}"
+                       FontSize="12"
+                       MaxLines="1"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+    </Border>
+</UserControl>

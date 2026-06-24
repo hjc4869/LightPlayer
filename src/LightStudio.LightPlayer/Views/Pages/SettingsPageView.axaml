@@ -1,0 +1,72 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="860"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.SettingsPageView"
+             x:DataType="vm:SettingsPageViewModel">
+    <UserControl.Styles>
+        <Style Selector="ListBox.sectionsList">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="ListBox.sectionsList ListBoxItem">
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+    </UserControl.Styles>
+    <Grid x:Name="RootGrid"
+          ColumnDefinitions="260,*"
+          Margin="0,32,0,0">
+        <ListBox x:Name="SectionsList"
+                 Grid.Column="0"
+                 Margin="32,0,32,0"
+                 Classes="sectionsList"
+                 ItemsSource="{Binding Sections}"
+                 SelectedItem="{Binding SelectedSection, Mode=TwoWay}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 Padding="0">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:SettingsSectionViewModel">
+                    <StackPanel Margin="4,6" Spacing="2">
+                        <TextBlock Text="{Binding Title}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                        <TextBlock Text="{Binding Description}"
+                                   FontSize="12"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <DockPanel x:Name="DetailPane"
+                   Grid.Column="1">
+            <!-- Shown only in the narrow single-pane layout to return to the section list. -->
+            <Button x:Name="BackButton"
+                    DockPanel.Dock="Left"
+                    Classes="icon"
+                    VerticalAlignment="Top"
+                    Margin="12,0,12,0"
+                    IsVisible="False"
+                    Click="OnBackClick"
+                    ToolTip.Tip="Back">
+                <Viewbox Width="20" Height="20">
+                    <Path Data="{StaticResource IconArrowLeft}"
+                          Fill="{DynamicResource AppPrimaryTextBrush}" />
+                </Viewbox>
+            </Button>
+
+            <ContentControl Margin="0,0,32,0" Content="{Binding SelectedSection}" />
+        </DockPanel>
+    </Grid>
+</UserControl>

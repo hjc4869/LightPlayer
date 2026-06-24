@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="860"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.ArtistsPageView"
+             x:DataType="vm:ArtistsPageViewModel">
+    <Panel>
+        <!-- Loading -->
+        <StackPanel IsVisible="{Binding IsLoading}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+            <ProgressBar IsIndeterminate="True" Width="140" Height="4" />
+            <TextBlock Text="Loading artists..."
+                       HorizontalAlignment="Center"
+                       FontSize="13"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <!-- Empty -->
+        <controls:EmptyState IsVisible="{Binding ShowEmpty}"
+                             Header="{Binding EmptyHeader}"
+                             Description="{Binding EmptyDescription}" />
+
+        <!-- Flat grid -->
+        <ScrollViewer x:Name="FlatScrollViewer" IsVisible="{Binding ShowFlat}" Margin="32,32,32,0">
+            <ItemsRepeater ItemsSource="{Binding Items}">
+                <ItemsRepeater.Layout>
+                    <UniformGridLayout MinItemWidth="120"
+                                       MinItemHeight="150"
+                                       MinColumnSpacing="6"
+                                       MinRowSpacing="2"
+                                       ItemsStretch="Uniform"/>
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="models:LibraryTileModel">
+                        <controls:LibraryTile />
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+        </ScrollViewer>
+
+        <!-- Grouped grid -->
+        <ScrollViewer x:Name="GroupedScrollViewer" IsVisible="{Binding ShowGroups}" Margin="14,0,14,0">
+            <ItemsControl ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:LibraryTileGroupModel">
+                        <StackPanel Margin="0,0,0,10">
+                            <TextBlock Text="{Binding Key}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Margin="4,10,0,6"
+                                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                            <ItemsRepeater ItemsSource="{Binding Items}">
+                                <ItemsRepeater.Layout>
+                                    <UniformGridLayout MinItemWidth="120"
+                                                       MinItemHeight="150"
+                                                       MinColumnSpacing="6"
+                                                       MinRowSpacing="2"
+                                                       ItemsStretch="Uniform"/>
+                                </ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="models:LibraryTileModel">
+                                        <controls:LibraryTile />
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Panel>
+</UserControl>
