@@ -1,8 +1,6 @@
 ﻿namespace LightStudio.MediaLibraryCore.CueIndex
 {
-    /// <summary>
-    /// This command is used to specify a data/audio file that will be written to the recorder.
-    /// </summary>
+    /// <summary>Represents a FILE entry in a CUE sheet.</summary>
     struct AudioFile
     {
         private string m_Filename;
@@ -14,13 +12,6 @@
             set { m_Filename = value; }
         }
 
-        /// <summary>
-        /// BINARY - Intel binary file (least significant byte first)
-        /// MOTOROLA - Motorola binary file (most significant byte first)
-        /// AIFF - Audio AIFF file
-        /// WAVE - Audio WAVE file
-        /// MP3 - Audio MP3 file
-        /// </summary>
         public FileType Filetype
         {
             get { return m_Filetype; }

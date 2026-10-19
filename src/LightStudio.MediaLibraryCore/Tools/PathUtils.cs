@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LightStudio.MediaLibraryCore.Tools
 {
@@ -11,44 +7,44 @@ namespace LightStudio.MediaLibraryCore.Tools
     {
         public static bool IsSubPathOf(this string path, string baseDirPath)
         {
-            string normalizedPath = Path.GetFullPath(path.Replace('/', '\\')
-                .WithEnding("\\"));
-
-            string normalizedBaseDirPath = Path.GetFullPath(baseDirPath.Replace('/', '\\')
-                .WithEnding("\\"));
-
-            return normalizedPath.StartsWith(normalizedBaseDirPath, StringComparison.OrdinalIgnoreCase);
-        }
-        
-        public static string WithEnding(this string str, string ending)
-        {
-            if (str == null)
-                return ending;
-
-            string result = str;
-            
-            for (int i = 0; i <= ending.Length; i++)
+            if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(baseDirPath))
             {
-                string tmp = result + ending.Right(i);
-                if (tmp.EndsWith(ending))
-                    return tmp;
+                return false;
             }
 
-            return result;
-        }
-
-        public static string Right(this string value, int length)
-        {
-            if (value == null)
+            // Content-provider identifiers are opaque to System.IO. Tree-scoped Android document
+            // URIs retain the tree URI as their prefix, so compare only at a URI path boundary.
+            if (path.Contains("://", StringComparison.Ordinal) ||
+                baseDirPath.Contains("://", StringComparison.Ordinal))
             {
-                throw new ArgumentNullException(nameof(value));
-            }
-            if (length < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(length), length, "Length is less than zero");
+                try
+                {
+                    var candidate = Uri.UnescapeDataString(path).TrimEnd('/', '\\');
+                    var parent = Uri.UnescapeDataString(baseDirPath).TrimEnd('/', '\\');
+                    return string.Equals(candidate, parent, StringComparison.Ordinal) ||
+                        candidate.StartsWith(parent + "/", StringComparison.Ordinal);
+                }
+                catch (UriFormatException)
+                {
+                    return false;
+                }
             }
 
-            return (length < value.Length) ? value.Substring(value.Length - length) : value;
+            try
+            {
+                var candidate = Path.GetFullPath(path);
+                var parent = Path.GetFullPath(baseDirPath);
+                var relative = Path.GetRelativePath(parent, candidate);
+                return relative == "." ||
+                    (!Path.IsPathRooted(relative) &&
+                     relative != ".." &&
+                     !relative.StartsWith($"..{Path.DirectorySeparatorChar}", StringComparison.Ordinal) &&
+                     !relative.StartsWith($"..{Path.AltDirectorySeparatorChar}", StringComparison.Ordinal));
+            }
+            catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException)
+            {
+                return false;
+            }
         }
     }
 }

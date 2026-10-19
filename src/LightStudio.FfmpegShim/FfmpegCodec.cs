@@ -1,19 +1,16 @@
-﻿using FFmpeg.AutoGen;
+using LightStudio.NativeBindings.Types;
+using LightStudio.Logging;
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
-using static FFmpeg.AutoGen.ffmpeg;
-using static LightStudio.FfmpegShim.FfmpegIO;
+using static LightStudio.FfmpegShim.Ffmpeg;
+
 
 namespace LightStudio.FfmpegShim
 {
-    public unsafe class FfmpegCodec
+    public unsafe partial class FfmpegCodec
     {
-        static FfmpegCodec()
-        {
-            FfmpegNativeInitializer.Initialize();
-        }
+        private const int IoBufferSize = 16384;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static private FfmpegMediaInfo InternalGetMediaInfo(AVIOContext* io)
@@ -50,13 +47,16 @@ namespace LightStudio.FfmpegShim
             var AudiofileDuration = 1L;
             if (nAudioStream!= -1)
             {
-                AudiofileDuration =
-                    (long)(pFormatContext->streams[nAudioStream]->duration *
-                    av_q2d(pFormatContext->streams[nAudioStream]->time_base)
-                    * 10000000L);
+                AVStream* audio = pFormatContext->streams[nAudioStream];
+                // Containers such as Matroska leave the stream duration unset and only state the file's.
+                AudiofileDuration = audio->duration != AV_NOPTS_VALUE
+                    ? (long)(audio->duration * Utils.RationalToDouble(audio->time_base) * 10000000L)
+                    : pFormatContext->duration != AV_NOPTS_VALUE
+                        ? pFormatContext->duration * (10000000L / AV_TIME_BASE)
+                        : 1L;
                 if (metadata == null)
                 {
-                    metadata = pFormatContext->streams[nAudioStream]->metadata;
+                    metadata = audio->metadata;
                 }
             }
             var r = new FfmpegMediaInfo(AudiofileDuration, metadata);
@@ -64,104 +64,77 @@ namespace LightStudio.FfmpegShim
             return r;
         }
 
-        static private Stream InternalGetAlbumCover(AVIOContext* io)
+        static private T InternalGetAlbumCover<T>(FfmpegStreamIO io, Func<ReadOnlySpan<byte>, T> read) where T : class
         {
             int ret = 0;
-            if (io == null)
+            if (io.Context == null)
             {
                 throw new Exception("Failed to allocate IO context");
             }
             var pFormatContext = avformat_alloc_context();
-            pFormatContext->pb = io;
+            pFormatContext->pb = io.Context;
             ret = avformat_open_input(&pFormatContext, "", null, null);
-            if (ret < 0)
-            {
-                avformat_close_input(&pFormatContext);
-                throw new Exception($"avformat_open_input failed with {ret:X}");
-            }
-            for (uint i = 0; i < pFormatContext->nb_streams; i++)
-            {
-                if ((pFormatContext->streams[i]->disposition &
-                    AV_DISPOSITION_ATTACHED_PIC) != 0)
-                {
-                    var size = pFormatContext->streams[i]->attached_pic.size;
-                    byte[] buffer = new byte[size];
-                    fixed (byte* buf = buffer)
-                        Buffer.MemoryCopy(pFormatContext->streams[i]->attached_pic.data, buf, size, size);
-                    MemoryStream stream = new MemoryStream(buffer);
-                    avformat_close_input(&pFormatContext);
-                    return stream;
-                }
-            }
-            avformat_close_input(&pFormatContext);
-            return null;
-        }
-
-        static public Stream GetAlbumCoverFromStream(Stream stream, bool close = true)
-        {
-            var fr = new avio_alloc_context_read_packet(StreamRead);
-            var fs = new avio_alloc_context_seek(StreamSeek);
-            var ioobj = new FfmpegIO(stream);
-            var streamReadHandle = GCHandle.Alloc(fr);
-            var streamSeekHandle = GCHandle.Alloc(fs);
-            var ioObjHandle = GCHandle.Alloc(ioobj);
-            AVIOContext* io = null;
-            io = avio_alloc_context(
-                (byte*)av_malloc(16384),
-                16384, 0,
-                &ioObjHandle,
-                fr,
-                null,
-                fs);
             try
             {
-                return InternalGetAlbumCover(io);
+                io.ThrowIfReadFailed();
+                Interop.FfmpegError.ThrowIfError(ret, "avformat_open_input");
+                for (uint i = 0; i < pFormatContext->nb_streams; i++)
+                {
+                    if ((pFormatContext->streams[i]->disposition &
+                        AV_DISPOSITION_ATTACHED_PIC) != 0)
+                    {
+                        var picture = pFormatContext->streams[i]->attached_pic;
+                        // FFmpeg can return a partial attached picture after an I/O failure and mark its packet corrupt.
+                        if ((picture.flags & AV_PKT_FLAG_CORRUPT) != 0)
+                        {
+                            AppLog.Warning("FFmpeg.Artwork", $"Skipping corrupt embedded artwork: stream={i}; bytes={picture.size}.");
+                            continue;
+                        }
+
+                        if (picture.data != null && picture.size > 0)
+                            return read(new ReadOnlySpan<byte>(picture.data, picture.size));
+                    }
+                }
+                return null;
             }
             finally
             {
-                if (io != null)
-                {
-                    av_freep(&io->buffer);
-                    av_free(io);
-                }
-                streamReadHandle.Free();
-                streamSeekHandle.Free();
-                ioObjHandle.Free();
-                ioobj.Dispose(close);
+                avformat_close_input(&pFormatContext);
+            }
+        }
+
+        static public byte[] GetAlbumCoverFromStream(Stream stream, bool close = true) =>
+            ReadAlbumCoverFromStream(stream, static data => data.ToArray(), close);
+
+        /// <summary>Passes the embedded cover to <paramref name="read"/> while it is in FFmpeg's buffer.</summary>
+        static public T ReadAlbumCoverFromStream<T>(Stream stream, Func<ReadOnlySpan<byte>, T> read, bool close = true)
+            where T : class
+        {
+            var io = new FfmpegStreamIO(stream, IoBufferSize);
+            try
+            {
+                return InternalGetAlbumCover(io, read);
+            }
+            finally
+            {
+                io.Dispose();
+                if (close)
+                    stream.Dispose();
             }
         }
 
         static public FfmpegMediaInfo GetMediaInfoFromStream(Stream stream, bool close = true)
         {
-            var fr = new avio_alloc_context_read_packet(StreamRead);
-            var fs = new avio_alloc_context_seek(StreamSeek);
-            var ioobj = new FfmpegIO(stream);
-            var streamReadHandle = GCHandle.Alloc(fr);
-            var streamSeekHandle = GCHandle.Alloc(fs);
-            var ioObjHandle = GCHandle.Alloc(ioobj);
-            AVIOContext* io = null;
-            io = avio_alloc_context(
-                (byte*)av_malloc(16384),
-                16384, 0,
-                &ioObjHandle,
-                fr,
-                null,
-                fs);
+            var io = new FfmpegStreamIO(stream, IoBufferSize);
             try
             {
-                return InternalGetMediaInfo(io);
+                return InternalGetMediaInfo(io.Context);
             }
             finally
             {
-                if (io != null)
-                {
-                    av_freep(&io->buffer);
-                    av_free(io);
-                }
-                streamReadHandle.Free();
-                streamSeekHandle.Free();
-                ioObjHandle.Free();
-                ioobj.Dispose(close);
+                io.Dispose();
+                if (close)
+                    stream.Dispose();
             }
         }
     }

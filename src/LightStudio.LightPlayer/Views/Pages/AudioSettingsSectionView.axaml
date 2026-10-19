@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:playback="using:LightMediaRenderer.Avalonia.Audio"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="300"
+             x:Class="LightStudio.LightPlayer.Views.Pages.AudioSettingsSectionView"
+             x:DataType="vm:AudioSettingsSectionViewModel">
+    <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
+        <StackPanel Spacing="4" Margin="0,0,0,4">
+            <TextBlock Text="{Binding AudioSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Text="{Binding AudioSettings_Subtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       FontSize="13"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <Border Classes="settingsGroup"
+            Classes.joinedBelow="{x:Static services:PlatformServices.SupportsSampleRateSettings}">
+            <StackPanel>
+        <controls:SettingRow Header="{Binding AudioSettings_DeviceHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True">
+            <controls:SettingRow.ActionContent>
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <ComboBox Width="110"
+                              ItemsSource="{Binding Devices}"
+                              SelectedItem="{Binding SelectedDevice, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="playback:AudioOutputDeviceInfo">
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Classes="icon"
+                            ToolTip.Tip="{Binding Common_Refresh, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            Command="{Binding RefreshDevicesCommand}">
+                        <Viewbox Width="16" Height="16">
+                            <Path Data="{StaticResource IconRefresh}"
+                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                </StackPanel>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding AudioSettings_ExclusiveHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             Description="{Binding AudioSettings_ExclusiveDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsVisible="{Binding SupportsExclusiveMode}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding Exclusive, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

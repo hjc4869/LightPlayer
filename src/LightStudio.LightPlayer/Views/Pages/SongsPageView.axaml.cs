@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using LightStudio.LightPlayer.Behaviors;
 
 namespace LightStudio.LightPlayer.Views.Pages;
 
@@ -8,16 +9,13 @@ public partial class SongsPageView : UserControl
     public SongsPageView()
     {
         InitializeComponent();
+        BrowseScrollMemory.Track(this, SongsScrollViewer, GroupedView.ScrollViewer);
+        IncrementalLoadingScroll.Track(this, SongsScrollViewer);
+        HeaderGrid.SizeChanged += (_, args) => ApplyAdaptiveHeader(args.NewSize.Width + 24);
     }
 
-    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-    {
-        base.OnPropertyChanged(change);
-        if (change.Property == BoundsProperty)
-        {
-            ApplyAdaptiveHeader(Bounds.Width);
-        }
-    }
+    private void OnTrackRowSizeChanged(object? sender, SizeChangedEventArgs args) =>
+        GroupedView.MinItemHeight = args.NewSize.Width >= 650 ? 48 : 60;
 
     // Collapse the Album/Year/Genre header columns in lock-step with the TrackRow
     // breakpoints so the header labels stay aligned with the rows beneath them.
@@ -28,8 +26,6 @@ public partial class SongsPageView : UserControl
             return;
         }
 
-        // margin
-        width -= 24;
         var showArtist = width >= 650;
         var showAlbum = width >= 750;
         var showYear = width >= 850;

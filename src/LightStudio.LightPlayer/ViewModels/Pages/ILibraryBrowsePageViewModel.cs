@@ -3,22 +3,32 @@ using LightStudio.LightPlayer.Models;
 
 namespace LightStudio.LightPlayer.ViewModels.Pages;
 
+public interface IScrollPositionPageViewModel
+{
+    double ScrollOffset { get; set; }
+}
+
 /// <summary>
 /// Implemented by the music, albums, and artists pages so the shell can push
-/// persisted sort/grouping settings and trigger an asynchronous load.
+/// persisted sorting settings and trigger an asynchronous load.
 /// </summary>
-public interface ILibraryBrowsePageViewModel
+public interface ILibraryBrowsePageViewModel : IScrollPositionPageViewModel
 {
     LibraryItemKind Kind { get; }
-
-    /// <summary>
-    /// Last vertical scroll offset of the page's grid/list. Persisted on the view model so that
-    /// returning to this page (for example via Back from a detail page) restores the position the
-    /// user left off at instead of jumping back to the top.
-    /// </summary>
-    double ScrollOffset { get; set; }
 
     void ApplyViewSettings(LibraryViewSettings settings);
 
     Task LoadAsync();
+}
+
+/// <summary>Implemented by browse pages that can fetch another bounded result page.</summary>
+public interface IIncrementalLoadingViewModel
+{
+    bool CanLoadMore { get; }
+
+    int LoadedItemCount { get; }
+
+    int TotalItemCount { get; }
+
+    Task LoadMoreAsync();
 }

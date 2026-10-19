@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using LightStudio.LightPlayer.Models;
 
+using Strings = LightStudio.LightPlayer.Strings;
+
 namespace LightStudio.LightPlayer.ViewModels.Pages;
 
 public enum PageContentKind
@@ -13,10 +15,8 @@ public enum PageContentKind
 }
 
 /// <summary>
-/// View model for a routed content page. Until the dedicated pages land in later
-/// migration tasks, this renders a small set of content shapes (tiles, tracks,
-/// settings rows, empty state, or a labelled placeholder) so the shell layout
-/// matches the target UI.
+/// View model for routed pages that display tiles, tracks, settings, an empty state,
+/// or a labeled placeholder.
 /// </summary>
 public class PlaceholderPageViewModel : PageViewModelBase
 {
@@ -44,9 +44,15 @@ public class PlaceholderPageViewModel : PageViewModelBase
 
     public IReadOnlyList<LibraryFolderModel> Folders { get; init; } = [];
 
-    public string EmptyHeader { get; init; } = "It's lonely here.";
+    public string EmptyHeader => Localized(EmptyHeaderKey ?? nameof(Strings.Resources.Home_EmptyHeader));
 
-    public string EmptyDescription { get; init; } = "Add a library folder to get started.";
+    public string EmptyDescription => Localized(EmptyDescriptionKey ?? nameof(Strings.Resources.Placeholder_EmptyDescription));
+
+    /// <summary>Resource key for <see cref="EmptyHeader"/> (use <c>nameof(Resources.Key)</c>).</summary>
+    public string? EmptyHeaderKey { get; init; }
+
+    /// <summary>Resource key for <see cref="EmptyDescription"/> (use <c>nameof(Resources.Key)</c>).</summary>
+    public string? EmptyDescriptionKey { get; init; }
 
     public bool IsTiles => ContentKind == PageContentKind.Tiles;
 
@@ -59,11 +65,11 @@ public class PlaceholderPageViewModel : PageViewModelBase
     public bool IsPlaceholder => ContentKind == PageContentKind.Placeholder;
 
     public static PlaceholderPageViewModel Placeholder(AppRoute route) =>
-        new(route) { Title = route.Title, ContentKind = PageContentKind.Placeholder };
+        new(route) { TitleKey = route.TitleKey, ContentKind = PageContentKind.Placeholder };
 
     public static PlaceholderPageViewModel ForSettings(AppRoute route, IReadOnlyList<LibraryFolderModel> folders) =>
-        new(route) { Title = route.Title, ContentKind = PageContentKind.Settings, Folders = folders };
+        new(route) { TitleKey = route.TitleKey, ContentKind = PageContentKind.Settings, Folders = folders };
 
-    public static PlaceholderPageViewModel ForEmpty(AppRoute route, string header, string description) =>
-        new(route) { Title = route.Title, ContentKind = PageContentKind.Empty, EmptyHeader = header, EmptyDescription = description };
+    public static PlaceholderPageViewModel ForEmpty(AppRoute route, string headerKey, string descriptionKey) =>
+        new(route) { TitleKey = route.TitleKey, ContentKind = PageContentKind.Empty, EmptyHeaderKey = headerKey, EmptyDescriptionKey = descriptionKey };
 }

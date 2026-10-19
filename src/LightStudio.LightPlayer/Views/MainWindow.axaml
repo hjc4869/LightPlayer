@@ -2,18 +2,318 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
     xmlns:views="using:LightStudio.LightPlayer.Views"
+        xmlns:strings="using:LightStudio.LightPlayer.Strings"
+        xmlns:models="using:LightStudio.LightPlayer.Models"
+        xmlns:services="using:LightStudio.LightPlayer.Services"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="720"
         x:Class="LightStudio.LightPlayer.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/light-logo.ico"
-    Title="{Binding Shell.CurrentPage.Title, StringFormat='{}{0} — Light'}"
-    Width="1100"
+    Title="{Binding Shell.WindowPageTitle, StringFormat='{}{0} — Light'}"
+    Width="1200"
     Height="720"
-    MinWidth="800"
+    MinWidth="360"
     MinHeight="600">
 
-    <views:ShellView DataContext="{Binding Shell}" />
+    <Window.Styles>
+        <StyleInclude Source="/Themes/ClientWindowChrome.axaml" />
+    </Window.Styles>
+
+    <!-- Native menu bar. Exported to the platform menu (macOS menu bar, and the global menu on Linux
+         desktops that provide one); ignored on platforms without a native menu, where the in-shell
+         "More" menu remains the entry point. Mirrors the More menu's functionality. Bindings target
+         the hosted shell via the window's MainWindowViewModel.Shell. -->
+    <NativeMenu.Menu>
+        <NativeMenu>
+            <NativeMenuItem Header="{Binding Menu_File, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <NativeMenu>
+                    <NativeMenuItem Header="{Binding Shell_OpenFile, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Click="OnMenuOpenFileClick"
+                                    IsVisible="{x:Static services:PlatformServices.SupportsLocalFileAccess}" />
+                    <NativeMenuItem Header="{Binding Shell_OpenStreamLink, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.OpenStreamLinkCommand}" />
+                    <NativeMenuItemSeparator />
+                    <NativeMenuItem Header="{Binding Shell_ShuffleAll, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding Shell.ShuffleAllCommand}" />
+                    <NativeMenuItem Header="{Binding Shell_RecentlyAdded, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding Shell.RecentlyAddedCommand}" />
+                    <NativeMenuItem Header="{Binding Shell_RefreshLibrary, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding Shell.RefreshLibraryCommand}" />
+                    <NativeMenuItemSeparator />
+                    <NativeMenuItem Header="{Binding Menu_Exit, Source={x:Static strings:LocalizedStrings.Instance}}" Click="OnMenuExitClick" />
+                </NativeMenu>
+            </NativeMenuItem>
+
+            <NativeMenuItem Header="{Binding Menu_Edit, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <NativeMenu>
+                    <NativeMenuItem Header="{Binding QueuePane_EnterEditMode, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsVisible="{Binding !Shell.Queue.IsEditMode}"
+                                    Command="{Binding Shell.Queue.EnterEditModeCommand}" />
+                    <NativeMenuItem Header="{Binding QueuePane_ExitEditMode, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsVisible="{Binding Shell.Queue.IsEditMode}"
+                                    Command="{Binding Shell.Queue.ExitEditModeCommand}" />
+                    <NativeMenuItemSeparator />
+                    <NativeMenuItem Header="{Binding QueuePane_SelectAll, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.Queue.SelectAllCommand}" />
+                    <NativeMenuItem Header="{Binding QueuePane_UnselectAll, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsVisible="{Binding Shell.Queue.IsEditMode}"
+                                    Command="{Binding Shell.Queue.UnselectAllCommand}" />
+                    <NativeMenuItemSeparator IsVisible="{Binding Shell.Queue.IsEditMode}" />
+                    <NativeMenuItem Header="{Binding QueuePane_RemoveSelected, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsVisible="{Binding Shell.Queue.IsEditMode}"
+                                    Command="{Binding Shell.Queue.RemoveSelectedCommand}" />
+                    <NativeMenuItem Header="{Binding QueuePane_RemoveAll, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.Queue.RemoveAllCommand}" />
+                    <NativeMenuItemSeparator />
+                    <NativeMenuItem Header="{Binding QueuePane_SaveAsPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.SaveQueueAsPlaylistCommand}" />
+                </NativeMenu>
+            </NativeMenuItem>
+
+            <NativeMenuItem Header="{Binding Menu_View, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            IsVisible="{Binding Shell.CanSortItems}">
+                <NativeMenu>
+                    <NativeMenuItem Header="{Binding Shell_LayoutGrid, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanChooseLayout}"
+                                    IsChecked="{Binding Shell.IsLayoutGrid}"
+                                    Command="{Binding Shell.SetLayoutCommand}"
+                                    CommandParameter="{x:Static models:LibraryLayoutMode.Grid}" />
+                    <NativeMenuItem Header="{Binding Shell_LayoutList, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanChooseLayout}"
+                                    IsChecked="{Binding Shell.IsLayoutList}"
+                                    Command="{Binding Shell.SetLayoutCommand}"
+                                    CommandParameter="{x:Static models:LibraryLayoutMode.List}" />
+                    <NativeMenuItemSeparator IsVisible="{Binding Shell.CanChooseLayout}" />
+                    <NativeMenuItem Header="{Binding Shell_LayoutVideoFlat, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanChooseVideoLayout}"
+                                    IsChecked="{Binding Shell.IsLayoutGrid}"
+                                    Command="{Binding Shell.SetLayoutCommand}"
+                                    CommandParameter="{x:Static models:LibraryLayoutMode.Grid}" />
+                    <NativeMenuItem Header="{Binding Shell_LayoutVideoFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanChooseVideoLayout}"
+                                    IsChecked="{Binding Shell.IsLayoutFolders}"
+                                    Command="{Binding Shell.SetLayoutCommand}"
+                                    CommandParameter="{x:Static models:LibraryLayoutMode.Folders}" />
+                    <NativeMenuItemSeparator IsVisible="{Binding Shell.CanChooseVideoLayout}" />
+                    <NativeMenuItem Header="{Binding Shell_Grouping, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="CheckBox" IsVisible="{Binding Shell.CanGroupItems}"
+                                    IsChecked="{Binding Shell.GroupingEnabled, Mode=OneWay}"
+                                    Command="{Binding Shell.ToggleGroupingCommand}" />
+                    <NativeMenuItem Header="{Binding Shell_GroupBy, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsVisible="{Binding Shell.CanGroupItems}">
+                        <NativeMenu>
+                            <NativeMenuItem Header="{Binding Shell_GroupName, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            ToggleType="Radio" IsVisible="{Binding Shell.CanGroupByName}"
+                                            IsChecked="{Binding Shell.IsGroupedByName}"
+                                            Command="{Binding Shell.SetGroupByCommand}" CommandParameter="{x:Static models:LibraryGroupField.Name}" />
+                            <NativeMenuItem Header="{Binding Shell_SortArtistName, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            ToggleType="Radio" IsVisible="{Binding Shell.CanGroupByArtist}"
+                                            IsChecked="{Binding Shell.IsGroupedByArtist}"
+                                            Command="{Binding Shell.SetGroupByCommand}" CommandParameter="{x:Static models:LibraryGroupField.Artist}" />
+                            <NativeMenuItem Header="{Binding Shell_SortAlbumName, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            ToggleType="Radio" IsVisible="{Binding Shell.CanGroupByAlbum}"
+                                            IsChecked="{Binding Shell.IsGroupedByAlbum}"
+                                            Command="{Binding Shell.SetGroupByCommand}" CommandParameter="{x:Static models:LibraryGroupField.Album}" />
+                            <NativeMenuItem Header="{Binding Shell_GroupCreationDay, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            ToggleType="Radio" IsVisible="{Binding Shell.CanGroupByCreationDay}"
+                                            IsChecked="{Binding Shell.IsGroupedByCreationDay}"
+                                            Command="{Binding Shell.SetGroupByCommand}" CommandParameter="{x:Static models:LibraryGroupField.CreationDay}" />
+                            <NativeMenuItem Header="{Binding Shell_GroupCreationMonth, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            ToggleType="Radio" IsVisible="{Binding Shell.CanGroupByCreationMonth}"
+                                            IsChecked="{Binding Shell.IsGroupedByCreationMonth}"
+                                            Command="{Binding Shell.SetGroupByCommand}" CommandParameter="{x:Static models:LibraryGroupField.CreationMonth}" />
+                            <NativeMenuItem Header="{Binding Shell_GroupCreationYear, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            ToggleType="Radio" IsVisible="{Binding Shell.CanGroupByCreationYear}"
+                                            IsChecked="{Binding Shell.IsGroupedByCreationYear}"
+                                            Command="{Binding Shell.SetGroupByCommand}" CommandParameter="{x:Static models:LibraryGroupField.CreationYear}" />
+                            <NativeMenuItem Header="{Binding Shell_GroupCountry, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            ToggleType="Radio" IsVisible="{Binding Shell.CanGroupByCountry}"
+                                            IsChecked="{Binding Shell.IsGroupedByCountry}"
+                                            Command="{Binding Shell.SetGroupByCommand}" CommandParameter="{x:Static models:LibraryGroupField.Country}" />
+                            <NativeMenuItem Header="{Binding Shell_GroupState, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            ToggleType="Radio" IsVisible="{Binding Shell.CanGroupByState}"
+                                            IsChecked="{Binding Shell.IsGroupedByState}"
+                                            Command="{Binding Shell.SetGroupByCommand}" CommandParameter="{x:Static models:LibraryGroupField.State}" />
+                            <NativeMenuItem Header="{Binding Shell_GroupCity, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            ToggleType="Radio" IsVisible="{Binding Shell.CanGroupByCity}"
+                                            IsChecked="{Binding Shell.IsGroupedByCity}"
+                                            Command="{Binding Shell.SetGroupByCommand}" CommandParameter="{x:Static models:LibraryGroupField.City}" />
+                        </NativeMenu>
+                    </NativeMenuItem>
+                    <NativeMenuItemSeparator IsVisible="{Binding Shell.CanGroupItems}" />
+                    <NativeMenuItem Header="{Binding Shell_SortTitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanSortByTitle}"
+                                    IsChecked="{Binding Shell.IsSortByTitle}"
+                                    Command="{Binding Shell.SetSortCommand}"
+                                    CommandParameter="{x:Static models:LibrarySortField.Title}" />
+                    <NativeMenuItem Header="{Binding Shell_SortAlbumName, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanSortByAlbumName}"
+                                    IsChecked="{Binding Shell.IsSortByAlbumName}"
+                                    Command="{Binding Shell.SetSortCommand}"
+                                    CommandParameter="{x:Static models:LibrarySortField.AlbumName}" />
+                    <NativeMenuItem Header="{Binding Shell_SortArtistName, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanSortByArtistName}"
+                                    IsChecked="{Binding Shell.IsSortByArtistName}"
+                                    Command="{Binding Shell.SetSortCommand}"
+                                    CommandParameter="{x:Static models:LibrarySortField.ArtistName}" />
+                    <NativeMenuItem Header="{Binding Shell_SortGenre, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanSortByGenre}"
+                                    IsChecked="{Binding Shell.IsSortByGenre}"
+                                    Command="{Binding Shell.SetSortCommand}"
+                                    CommandParameter="{x:Static models:LibrarySortField.Genre}" />
+                    <NativeMenuItem Header="{Binding Shell_SortYear, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanSortByYear}"
+                                    IsChecked="{Binding Shell.IsSortByYear}"
+                                    Command="{Binding Shell.SetSortCommand}"
+                                    CommandParameter="{x:Static models:LibrarySortField.Year}" />
+                    <NativeMenuItem Header="{Binding Shell_SortDateAdded, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanSortByDateAdded}"
+                                    IsChecked="{Binding Shell.IsSortByDateAdded}"
+                                    Command="{Binding Shell.SetSortCommand}"
+                                    CommandParameter="{x:Static models:LibrarySortField.DateAdded}" />
+                    <NativeMenuItem Header="{Binding Common_ColumnLength, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanSortByDuration}"
+                                    IsChecked="{Binding Shell.IsSortByDuration}"
+                                    Command="{Binding Shell.SetSortCommand}"
+                                    CommandParameter="{x:Static models:LibrarySortField.Duration}" />
+                    <NativeMenuItem Header="{Binding Shell_SortFileType, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanSortByFileType}"
+                                    IsChecked="{Binding Shell.IsSortByFileType}"
+                                    Command="{Binding Shell.SetSortCommand}"
+                                    CommandParameter="{x:Static models:LibrarySortField.FileType}" />
+                    <NativeMenuItem Header="{Binding Shell_SortFileSize, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsVisible="{Binding Shell.CanSortByFileSize}"
+                                    IsChecked="{Binding Shell.IsSortByFileSize}"
+                                    Command="{Binding Shell.SetSortCommand}"
+                                    CommandParameter="{x:Static models:LibrarySortField.FileSize}" />
+                    <NativeMenuItemSeparator />
+                    <NativeMenuItem Header="{Binding Shell_SortAscending, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsChecked="{Binding Shell.SortAscending}"
+                                    Command="{Binding Shell.SortAscendingCommand}" />
+                    <NativeMenuItem Header="{Binding Shell_SortDescending, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsChecked="{Binding Shell.IsSortDescending}"
+                                    Command="{Binding Shell.SortDescendingCommand}" />
+                </NativeMenu>
+            </NativeMenuItem>
+
+            <NativeMenuItem Header="{Binding Menu_Playback, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <NativeMenu>
+                    <NativeMenuItem Header="{Binding PlaybackBar_PlayPause, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsEnabled="{Binding Shell.PlaybackBar.HasItem}"
+                                    Command="{Binding Shell.PlaybackBar.PlayPauseCommand}" />
+                    <NativeMenuItem Header="{Binding PlaybackBar_Previous, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsEnabled="{Binding Shell.PlaybackBar.HasItem}"
+                                    Command="{Binding Shell.PlaybackBar.PreviousCommand}" />
+                    <NativeMenuItem Header="{Binding PlaybackBar_Next, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsEnabled="{Binding Shell.PlaybackBar.HasItem}"
+                                    Command="{Binding Shell.PlaybackBar.NextCommand}" />
+                    <NativeMenuItemSeparator />
+                    <NativeMenuItem Header="{Binding PlaybackBar_ModePlayInOrder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsEnabled="{Binding Shell.PlaybackBar.HasItem}"
+                                    IsChecked="{Binding Shell.PlaybackBar.IsModePlayInOrder}"
+                                    Command="{Binding Shell.PlaybackBar.SetModeCommand}"
+                                    CommandParameter="{x:Static models:PlaybackMode.Sequential}" />
+                    <NativeMenuItem Header="{Binding PlaybackBar_ModeRepeatAll, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsEnabled="{Binding Shell.PlaybackBar.HasItem}"
+                                    IsChecked="{Binding Shell.PlaybackBar.IsModeRepeatAll}"
+                                    Command="{Binding Shell.PlaybackBar.SetModeCommand}"
+                                    CommandParameter="{x:Static models:PlaybackMode.ListLoop}" />
+                    <NativeMenuItem Header="{Binding PlaybackBar_ModeRepeatOne, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsEnabled="{Binding Shell.PlaybackBar.HasItem}"
+                                    IsChecked="{Binding Shell.PlaybackBar.IsModeRepeatOne}"
+                                    Command="{Binding Shell.PlaybackBar.SetModeCommand}"
+                                    CommandParameter="{x:Static models:PlaybackMode.SingleTrackLoop}" />
+                    <NativeMenuItem Header="{Binding Common_Shuffle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToggleType="Radio"
+                                    IsEnabled="{Binding Shell.PlaybackBar.HasItem}"
+                                    IsChecked="{Binding Shell.PlaybackBar.IsModeShuffle}"
+                                    Command="{Binding Shell.PlaybackBar.SetModeCommand}"
+                                    CommandParameter="{x:Static models:PlaybackMode.Random}" />
+                </NativeMenu>
+            </NativeMenuItem>
+
+            <NativeMenuItem Header="{Binding Menu_Go, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <NativeMenu>
+                    <NativeMenuItem Header="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding Shell.GoBackCommand}" />
+                    <NativeMenuItem Header="{Binding Menu_Forward, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding Shell.GoForwardCommand}" />
+                    <NativeMenuItemSeparator />
+                    <NativeMenuItem Header="{Binding Nav_Home, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.GoToRouteCommand}"
+                                    CommandParameter="{x:Static models:AppRouteId.Home}" />
+                    <NativeMenuItem Header="{Binding Nav_Music, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.GoToRouteCommand}"
+                                    CommandParameter="{x:Static models:AppRouteId.Songs}" />
+                    <NativeMenuItem Header="{Binding Nav_Albums, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.GoToRouteCommand}"
+                                    CommandParameter="{x:Static models:AppRouteId.Albums}" />
+                    <NativeMenuItem Header="{Binding Nav_Artists, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.GoToRouteCommand}"
+                                    CommandParameter="{x:Static models:AppRouteId.Artists}" />
+                    <NativeMenuItem Header="{Binding Nav_Video, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.GoToRouteCommand}"
+                                    CommandParameter="{x:Static models:AppRouteId.Videos}" />
+                    <NativeMenuItem Header="{Binding Nav_Playlists, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.GoToRouteCommand}"
+                                    CommandParameter="{x:Static models:AppRouteId.Playlists}" />
+                    <NativeMenuItem Header="{Binding Nav_Settings, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.GoToRouteCommand}"
+                                    CommandParameter="{x:Static models:AppRouteId.Settings}" />
+                </NativeMenu>
+            </NativeMenuItem>
+
+            <NativeMenuItem Header="{Binding Menu_Help, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <NativeMenu>
+                    <NativeMenuItem Header="{Binding Shell_CheckForUpdates, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    Command="{Binding Shell.CheckForUpdatesCommand}"
+                                    IsVisible="{Binding Shell.IsUpdateCheckSupported}" />
+                    <NativeMenuItem Header="{Binding Common_About, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding Shell.AboutCommand}" />
+                </NativeMenu>
+            </NativeMenuItem>
+        </NativeMenu>
+    </NativeMenu.Menu>
+
+    <Border x:Name="ClientWindowFrame" ClipToBounds="True">
+        <Panel>
+            <views:ShellView DataContext="{Binding Shell}" />
+            <StackPanel x:Name="ClientWindowControls" IsVisible="False"
+                        Orientation="Horizontal" Width="84" Height="52" Margin="8,0,0,0"
+                        HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Button x:Name="CloseWindowButton" Theme="{StaticResource ClientWindowControlButton}"
+                        Background="#FF5F57" Click="OnCloseWindowClick"
+                        ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        AutomationProperties.Name="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Path Data="{StaticResource IconClose}" />
+                </Button>
+                <Button x:Name="MinimizeWindowButton" Theme="{StaticResource ClientWindowControlButton}"
+                        Background="#FEBC2E" Click="OnMinimizeWindowClick"
+                        IsEnabled="{Binding $parent[Window].CanMinimize}"
+                        ToolTip.Tip="{Binding VideoPlayer_Minimize, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        AutomationProperties.Name="{Binding VideoPlayer_Minimize, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Path Data="{StaticResource IconWindowMinimize}" />
+                </Button>
+                <Button x:Name="MaximizeWindowButton" Theme="{StaticResource ClientWindowControlButton}"
+                        Background="#28C840" Click="OnMaximizeWindowClick"
+                        IsEnabled="{Binding $parent[Window].CanMaximize}">
+                    <Path />
+                </Button>
+            </StackPanel>
+        </Panel>
+    </Border>
 
 </Window>

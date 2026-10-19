@@ -1,0 +1,131 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             x:Class="LightStudio.LightPlayer.Controls.GroupedItemsView"
+             x:Name="Root">
+    <UserControl.Styles>
+        <Style Selector="Button.groupHeader">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="Button.groupHeader:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.groupChoice">
+            <Setter Property="Background" Value="{DynamicResource AppPanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Padding" Value="12,8" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+        <Style Selector="ContentPresenter.groupRow">
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="ContentPresenter.groupRow:pointerover:not(.groupSelected)">
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
+        </Style>
+        <Style Selector="ContentPresenter.groupSelected">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+    </UserControl.Styles>
+        <Grid DataContext="{Binding #Root.Model}" x:DataType="models:GroupedItemsModel"
+            IsVisible="{Binding #Root.Model, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <ScrollViewer x:Name="ItemsScroller" IsVisible="{Binding !IsPickerOpen}">
+            <Grid RowDefinitions="Auto,*">
+            <Border Height="{Binding #Root.LeadingHeight}" Margin="{Binding #Root.LeadingMargin}" />
+            <ItemsControl x:Name="ItemsHost" Grid.Row="1" ItemsSource="{Binding}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <controls:GroupedItemsPanel
+                            MinItemWidth="{Binding $parent[controls:GroupedItemsView].MinItemWidth}"
+                            MinItemHeight="{Binding $parent[controls:GroupedItemsView].MinItemHeight}"
+                            ColumnSpacing="{Binding $parent[controls:GroupedItemsView].ColumnSpacing}"
+                            RowSpacing="{Binding $parent[controls:GroupedItemsView].RowSpacing}"
+                            ContentInset="{Binding $parent[controls:GroupedItemsView].ContentInset}"
+                            FoldersAsList="{Binding $parent[controls:GroupedItemsView].FoldersAsList}"
+                            IsList="{Binding $parent[controls:GroupedItemsView].IsList}" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.DataTemplates>
+                    <DataTemplate DataType="models:LibraryGroupHeader" x:DataType="models:LibraryGroupHeader">
+                        <Button Classes="groupHeader" Command="{Binding OpenCommand}"
+                            Padding="{Binding $parent[controls:GroupedItemsView].ActualHeaderPadding}"
+                                ToolTip.Tip="{Binding Shell_ChooseGroup, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold"
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding Count}" FontSize="12" Margin="12,0"
+                                           Foreground="{DynamicResource AppSecondaryTextBrush}" VerticalAlignment="Center" />
+                                <Path Grid.Column="2" Data="{StaticResource IconChevronRight}" Width="10" Height="10"
+                                      Stretch="Uniform" Fill="{DynamicResource AppAccentBrush}" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+                    </DataTemplate>
+                    <DataTemplate DataType="models:GroupItemPlaceholder">
+                        <Border Margin="6" CornerRadius="4" Opacity="0.35"
+                                Background="{DynamicResource AppThumbnailPlaceholderBrush}" />
+                    </DataTemplate>
+                </ItemsControl.DataTemplates>
+            </ItemsControl>
+            </Grid>
+        </ScrollViewer>
+        <Grid IsVisible="{Binding IsPickerOpen}" RowDefinitions="Auto,Auto,*"
+              Background="{DynamicResource AppPageBackgroundBrush}">
+                        <Border Height="{Binding #Root.LeadingHeight}" Margin="{Binding #Root.LeadingMargin}" />
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="{Binding #Root.PickerHeaderInset}">
+                <TextBlock Text="{Binding Shell_ChooseGroup, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"
+                           Margin="0,0,12,0" TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <Button x:Name="ClosePickerButton" Grid.Column="1" Command="{Binding ClosePickerCommand}"
+                        Width="32" Height="32" Padding="0" BorderThickness="0" Background="Transparent"
+                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                        ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Path Data="{StaticResource IconClose}" Stretch="Uniform" Width="16" Height="16"
+                          Fill="{DynamicResource AppPrimaryTextBrush}" />
+                </Button>
+            </Grid>
+            <ScrollViewer x:Name="GroupPickerScroller" Grid.Row="2">
+                <ItemsControl x:Name="GroupPicker" ItemsSource="{Binding Groups}" Margin="{Binding #Root.PickerContentInset}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <controls:UniformTileGrid MinItemWidth="80" MinItemHeight="64"
+                                                      MinColumnSpacing="8" MinRowSpacing="8" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:LibraryGroupHeader">
+                            <Button Classes="groupChoice" Padding="8,6" CommandParameter="{Binding}"
+                                    Command="{Binding $parent[controls:GroupedItemsView].Model.JumpToGroupCommand}"
+                                    ToolTip.Tip="{Binding Title}">
+                                <Grid RowDefinitions="*,Auto">
+                                    <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold"
+                                               TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Row="1" Text="{Binding Count}" FontSize="12"
+                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                </Grid>
+                            </Button>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

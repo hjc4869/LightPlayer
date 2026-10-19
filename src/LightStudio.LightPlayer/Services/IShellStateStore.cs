@@ -1,16 +1,21 @@
 namespace LightStudio.LightPlayer.Services;
 
 /// <summary>
-/// Persists small pieces of shell layout state across launches, such as whether
-/// the now-playing queue pane is open. Later migration tasks fold this into a
-/// fuller settings store; for the shell it only needs to round-trip a few flags.
+/// Persists shell layout state across launches.
 /// </summary>
 public interface IShellStateStore
 {
     bool IsQueuePaneOpen { get; set; }
 
-    bool IsNavigationExpanded { get; set; }
+    /// <summary>The user's preferred width for the minimized video card, or 0 when none was saved.</summary>
+    double MinimizedVideoWidth { get; set; }
 
     /// <summary>The persisted now-playing queue, or <c>null</c> when none was saved.</summary>
     PlaybackQueuePersistedState? PlaybackQueue { get; set; }
+
+    /// <summary>The persisted desktop main-window placement, or <c>null</c> when none was saved.</summary>
+    WindowPlacement? WindowPlacement { get; set; }
+
+    /// <summary>Where the picture-in-picture window last was, or <c>null</c> when it has never been opened.</summary>
+    PictureInPicturePlacement? PictureInPicturePlacement { get; set; }
 }

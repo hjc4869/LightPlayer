@@ -3,13 +3,16 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Services;
+using LightStudio.LightPlayer.Strings;
 using LightStudio.MediaLibraryCore.Database;
 using LightStudio.MediaLibraryCore.Database.Entities;
+
+using Strings = LightStudio.LightPlayer.Strings;
 
 namespace LightStudio.LightPlayer.ViewModels.Pages;
 
@@ -23,7 +26,8 @@ internal static class TrackRowFactory
     public static TrackRowModel CreateRow(
         DbMediaFile file,
         TrackActionCallbacks callbacks,
-        Func<IReadOnlyList<TrackRowModel>>? playbackContext = null)
+        Func<IReadOnlyList<TrackRowModel>>? playbackContext = null,
+        LibrarySourceId? sourceId = null)
     {
         var title = LibrarySortKeys.Fallback(file.Title, DeriveTitle(file.Path));
         return new TrackRowModel(
@@ -40,11 +44,18 @@ internal static class TrackRowFactory
             LibrarySortKeys.ParseLeadingInt(file.TrackNumber),
             file.DatabaseItemAddedDate,
             callbacks,
-            file.StartTime)
+            file.StartTime,
+            sourceId)
         {
             PlaybackContext = playbackContext,
         };
     }
+
+    public static TrackRowModel CreateRow(
+        Sourced<DbMediaFile> file,
+        TrackActionCallbacks callbacks,
+        Func<IReadOnlyList<TrackRowModel>>? playbackContext = null) =>
+        CreateRow(file.Value, callbacks, playbackContext, file.SourceId);
 
     /// <summary>
     /// Orders an artist's tracks by album, then by natural disc/track order
@@ -59,7 +70,7 @@ internal static class TrackRowFactory
             .ToList();
 
     private static string DeriveTitle(string? path) =>
-        string.IsNullOrWhiteSpace(path) ? "Unknown title" : Path.GetFileNameWithoutExtension(path);
+        string.IsNullOrWhiteSpace(path) ? Strings.Resources.Common_UnknownTitle : Path.GetFileNameWithoutExtension(path);
 }
 
 /// <summary>
@@ -70,27 +81,40 @@ internal static class TrackRowFactory
 internal static class AlbumTileFactory
 {
     public static LibraryTileModel Create(MediaLibraryAlbum album, TileActionCallbacks? tileActions, AlbumArtService albumArt)
+        => Create(new Sourced<MediaLibraryAlbum>(LibrarySourceId.Local, album), tileActions, albumArt);
+
+    public static LibraryTileModel Create(
+        Sourced<MediaLibraryAlbum> sourcedAlbum,
+        TileActionCallbacks? tileActions,
+        AlbumArtService albumArt)
     {
-        var title = LibrarySortKeys.Fallback(album.Title, "Unknown Album");
-        var artist = LibrarySortKeys.Fallback(album.Artist, "Unknown Artist");
+        var album = sourcedAlbum.Value;
+        var title = LibrarySortKeys.Fallback(album.Title, Strings.Resources.Common_UnknownAlbum);
+        var artist = LibrarySortKeys.Fallback(album.Artist, Strings.Resources.Common_UnknownArtist);
         var year = YearLabel(album.Date);
-        var count = album.FileCount == 1 ? "1 item" : $"{album.FileCount} items";
+        var count = album.FileCount == 1 ? Resources.Common_OneItem : string.Format(Resources.Common_ItemsFormat, album.FileCount);
         var subtitle = string.IsNullOrEmpty(year) ? $"{artist} · {count}" : $"{artist} · {year} · {count}";
 
-        var artistKey = album.ArtistForQuery ?? artist;
-        var albumKey = album.Title ?? title;
         var firstFile = album.FirstFileInAlbum;
-
         var tile = new LibraryTileModel(title, subtitle, ThumbnailKind.Album)
         {
             ArtistName = artist,
             Year = year,
-            Identifier = album,
+            Identifier = LibraryItemReference.Album(sourcedAlbum.SourceId, album),
+            Media = new MediaReference(sourcedAlbum.SourceId, firstFile ?? string.Empty),
         };
         tile.OpenCommand = new RelayCommand(() => tileActions?.Open?.Invoke(tile));
         tile.PlayCommand = new RelayCommand(() => tileActions?.Play?.Invoke(tile));
+        tile.PlayNextCommand = new RelayCommand(() => tileActions?.PlayNext?.Invoke(tile));
         tile.AddToQueueCommand = new RelayCommand(() => tileActions?.AddToQueue?.Invoke(tile));
-        tile.ArtLoader = t => LoadArtAsync(albumArt, t, artistKey, albumKey, firstFile);
+        tile.AddToPlaylistCommand = new RelayCommand(() => tileActions?.AddToPlaylist?.Invoke(tile));
+        tile.OpenArtistCommand = new RelayCommand(() => tileActions?.OpenArtist?.Invoke(tile));
+        tile.OpenFolderCommand = new RelayCommand(() => tileActions?.OpenContainingFolder?.Invoke(tile));
+        tile.ArtLoader = (t, token) => LoadArtAsync(
+            albumArt,
+            t,
+            new MediaReference(sourcedAlbum.SourceId, firstFile ?? string.Empty),
+            token);
         return tile;
     }
 
@@ -100,21 +124,43 @@ internal static class AlbumTileFactory
         return parsed > 0 ? parsed.ToString(CultureInfo.InvariantCulture) : string.Empty;
     }
 
-    private static async Task LoadArtAsync(AlbumArtService albumArt, LibraryTileModel tile, string artistKey, string albumKey, string? firstFilePath)
+    private static async Task LoadArtAsync(
+        AlbumArtService albumArt,
+        LibraryTileModel tile,
+        MediaReference media,
+        CancellationToken cancellationToken)
     {
-        var bitmap = await albumArt.GetAlbumArtAsync(artistKey, albumKey, firstFilePath);
-        if (bitmap is null)
+        var image = await albumArt
+            .GetLowQualityTrackArtAsync(media, tile.ArtLoadFifoWindowSize, tile.ArtPixelSize, cancellationToken, tile.ArtCachePool)
+            .ConfigureAwait(false);
+        if (image is null)
         {
             return;
         }
 
-        if (Dispatcher.UIThread.CheckAccess())
+        AlbumArtService.ApplyOnUiThread(image, art => tile.Image = art, cancellationToken);
+    }
+}
+
+internal static class SearchArtistTileFactory
+{
+    internal static LibraryTileModel Create(UnifiedArtistReference artist, TileActionCallbacks actions)
+    {
+        var name = LibrarySortKeys.Fallback(artist.DisplayName, Resources.Common_UnknownArtist);
+        var subtitle = artist.SourceIds.Count == 1
+            ? Resources.RemoteLibraries_LibrarySingular
+            : string.Format(CultureInfo.CurrentCulture, Resources.RemoteLibraries_LibrariesFormat, artist.SourceIds.Count);
+        var tile = new LibraryTileModel(name, subtitle, ThumbnailKind.Artist)
         {
-            tile.Image = bitmap;
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(() => tile.Image = bitmap);
-        }
+            ArtistName = name,
+            Identifier = LibraryItemReference.Artist(artist),
+        };
+        tile.OpenCommand = new RelayCommand(() => actions.Open?.Invoke(tile));
+        tile.PlayCommand = new RelayCommand(() => actions.Play?.Invoke(tile));
+        tile.PlayNextCommand = new RelayCommand(() => actions.PlayNext?.Invoke(tile));
+        tile.AddToQueueCommand = new RelayCommand(() => actions.AddToQueue?.Invoke(tile));
+        tile.AddToPlaylistCommand = new RelayCommand(() => actions.AddToPlaylist?.Invoke(tile));
+        tile.OpenFolderCommand = new RelayCommand(() => actions.OpenContainingFolder?.Invoke(tile));
+        return tile;
     }
 }

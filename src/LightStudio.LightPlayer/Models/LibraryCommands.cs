@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using LightStudio.MediaLibraryCore.Database;
 
 namespace LightStudio.LightPlayer.Models;
@@ -27,11 +28,15 @@ public sealed class LibraryCommands
     /// <summary>Shuffle these tracks into the queue and start playing.</summary>
     public Action<IReadOnlyList<TrackRowModel>>? ShuffleTracks { get; init; }
 
+    public Action<IReadOnlyList<TrackRowModel>>? PlayTracksNext { get; init; }
+
     /// <summary>Append these tracks to the end of the queue.</summary>
     public Action<IReadOnlyList<TrackRowModel>>? AddTracksToQueue { get; init; }
 
     /// <summary>Add these tracks to a playlist (wired with the playlists task).</summary>
     public Action<IReadOnlyList<TrackRowModel>>? AddTracksToPlaylist { get; init; }
+
+    public Func<IReadOnlyList<TrackRowModel>, Task>? AddTracksToPlaylistAsync { get; init; }
 
     /// <summary>Navigate to the album detail page for the supplied identity.</summary>
     public Action<MediaLibraryItemIdentifier>? OpenAlbum { get; init; }

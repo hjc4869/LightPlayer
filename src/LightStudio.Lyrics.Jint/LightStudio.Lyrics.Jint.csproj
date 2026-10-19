@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\LightStudio.MediaLibraryCore\LightStudio.MediaLibraryCore.csproj" />
+    <PackageReference Include="Jint" />
+  </ItemGroup>
+</Project>

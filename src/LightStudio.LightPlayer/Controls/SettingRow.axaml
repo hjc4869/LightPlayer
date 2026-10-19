@@ -7,28 +7,54 @@
              d:DesignHeight="64"
              x:Name="Root"
              x:Class="LightStudio.LightPlayer.Controls.SettingRow">
-    <Border Background="{DynamicResource AppPanelBackgroundBrush}"
-            BorderBrush="{DynamicResource AppDividerBrush}"
-            BorderThickness="1"
-            CornerRadius="6"
-            Padding="16,12"
-            Margin="0,0,0,8">
-        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                <TextBlock Text="{Binding #Root.Header}"
-                           FontSize="14"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                <TextBlock Text="{Binding #Root.Description}"
-                           FontSize="12"
-                           IsVisible="{Binding #Root.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
-            </StackPanel>
-            <ContentControl Grid.Column="1"
-                            Margin="16,0,0,0"
-                            VerticalAlignment="Center"
-                            Content="{Binding #Root.ActionContent}" />
+    <UserControl.Styles>
+        <Style Selector="Border.row">
+            <Setter Property="Margin" Value="0,0,0,8" />
+        </Style>
+        <Style Selector="Border.row.grouped">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Margin" Value="0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="row"
+            Classes.settingsGroup="{Binding !#Root.IsGrouped}"
+            Classes.grouped="{Binding #Root.IsGrouped}">
+        <Grid RowDefinitions="Auto,Auto,Auto">
+            <Border Classes="settingsDivider">
+                <Border.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                        <Binding ElementName="Root" Path="IsGrouped" />
+                        <Binding ElementName="Root" Path="HasTopDivider" />
+                    </MultiBinding>
+                </Border.IsVisible>
+            </Border>
+            <Grid Grid.Row="1"
+                  ColumnDefinitions="*,Auto"
+                  Margin="16,12"
+                  IsVisible="{Binding #Root.IsHeaderVisible}"
+                  VerticalAlignment="Center">
+                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding #Root.Header}"
+                               Classes="settingName"
+                               FontSize="14" />
+                    <TextBlock Text="{Binding #Root.Description}"
+                               Classes="settingDescription"
+                               FontSize="12"
+                               IsVisible="{Binding #Root.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               TextWrapping="Wrap" />
+                    <ContentControl Content="{Binding #Root.DescriptionContent}"
+                                    IsVisible="{Binding #Root.DescriptionContent, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </StackPanel>
+                <ContentControl Grid.Column="1"
+                                Classes="settingAction"
+                                Margin="16,0,0,0"
+                                VerticalAlignment="Center"
+                                Content="{Binding #Root.ActionContent}" />
+            </Grid>
+            <ContentControl Grid.Row="2"
+                            Content="{Binding #Root.RowsContent}"
+                            IsVisible="{Binding #Root.RowsContent, Converter={x:Static ObjectConverters.IsNotNull}}" />
         </Grid>
     </Border>
 </UserControl>

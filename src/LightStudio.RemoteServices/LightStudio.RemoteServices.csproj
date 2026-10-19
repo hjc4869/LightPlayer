@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Remote client services
+    ======================
+    Head-independent implementations of the application's service contracts that talk to a
+    Light Player HTTP server instead of a local library. Everything here is free of browser and
+    desktop APIs, so the browser, desktop, and Android heads can all host a remote session by
+    supplying only their own storage primitives (see IKeyValueStore / IMediaBlockStore).
+  -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <RootNamespace>LightStudio.RemoteServices</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LightStudio.LightPlayer\LightStudio.LightPlayer.csproj" />
+    <ProjectReference Include="..\LightStudio.MediaLibraryCore\LightStudio.MediaLibraryCore.csproj" />
+  </ItemGroup>
+</Project>

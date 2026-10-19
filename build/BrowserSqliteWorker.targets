@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup>
+    <BrowserSqliteProjectDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '../src/LightStudio.LightPlayer.Web'))</BrowserSqliteProjectDirectory>
+    <BrowserSqliteWorkerOutput>$([MSBuild]::NormalizeDirectory('$(ArtifactsPath)', 'browser-sqlite', '$(TargetFramework)'))</BrowserSqliteWorkerOutput>
+  </PropertyGroup>
+  <Target Name="BuildBrowserSqliteWorker" BeforeTargets="PrepareForBuild;AssignTargetPaths"
+          DependsOnTargets="_SetupEmscripten;ResolvePackageAssets" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Error Condition="'$(PkgLightStudio_sqlite-vec)' == ''" Text="The SQLite worker requires LightStudio.sqlite-vec with GeneratePathProperty enabled." />
+    <Exec Command="node &quot;$(BrowserSqliteProjectDirectory)build-sqlite-worker.mjs&quot; --emscripten &quot;$(EmscriptenSdkToolsPath)&quot; --package &quot;$(PkgLightStudio_sqlite-vec)&quot; --output &quot;$(BrowserSqliteWorkerOutput)&quot;" />
+    <ItemGroup>
+      <_BrowserSqliteAsset Include="$(BrowserSqliteWorkerOutput)sqlite.mjs;$(BrowserSqliteWorkerOutput)sqlite.wasm" />
+      <Content Include="@(_BrowserSqliteAsset)" Link="wwwroot/sqlite/native/%(_BrowserSqliteAsset.Filename)%(_BrowserSqliteAsset.Extension)"
+               CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+  <Target Name="CheckBrowserSqliteIsolation" BeforeTargets="WasmLinkDotNet">
+    <ItemGroup>
+      <_UnexpectedBrowserSqlite Include="@(NativeFileReference)" Condition="$([System.String]::Copy('%(NativeFileReference.Identity)').ToLowerInvariant().Contains('sqlite'))" />
+    </ItemGroup>
+    <Error Condition="'@(_UnexpectedBrowserSqlite)' != ''" Text="SQLite must be linked only by the database worker: @(_UnexpectedBrowserSqlite)." />
+  </Target>
+</Project>

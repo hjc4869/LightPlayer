@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:strings="using:LightStudio.LightPlayer.Strings"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
@@ -11,17 +12,21 @@
         CanResize="False"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Title="Playlist">
+        Title="{Binding TextPrompt_DefaultTitle, Source={x:Static strings:LocalizedStrings.Instance}}">
     <StackPanel Margin="20" Spacing="14">
         <TextBlock x:Name="HeaderText"
                    FontSize="15"
                    FontWeight="SemiBold" />
         <TextBox x:Name="InputBox" />
+        <TextBlock x:Name="ValidationText"
+               FontSize="12"
+               TextWrapping="Wrap"
+               IsVisible="False" />
         <StackPanel Orientation="Horizontal"
                     HorizontalAlignment="Right"
                     Spacing="8">
-            <Button x:Name="CancelButton" Content="Cancel" />
-            <Button x:Name="ConfirmButton" Content="OK" IsDefault="True" />
+            <Button x:Name="CancelButton" Content="{Binding Common_Cancel, Source={x:Static strings:LocalizedStrings.Instance}}" />
+            <Button x:Name="ConfirmButton" Content="{Binding Common_OK, Source={x:Static strings:LocalizedStrings.Instance}}" IsDefault="True" />
         </StackPanel>
     </StackPanel>
 </Window>

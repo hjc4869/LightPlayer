@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using LightStudio.LightPlayer.Models;
+using LightStudio.LightPlayer.Services;
 using LightStudio.LightPlayer.ViewModels.Pages;
 
 namespace LightStudio.LightPlayer.Views.Pages;
@@ -20,7 +21,7 @@ public partial class ExtensionSettingsSectionView : UserControl
         }
 
         var topLevel = TopLevel.GetTopLevel(this);
-        await viewModel.AddSourceAsync(topLevel?.StorageProvider);
+        await AppErrorReporter.GuardAsync(() => viewModel.AddSourceAsync(topLevel?.StorageProvider));
     }
 
     private void OnRemoveSourceClick(object? sender, RoutedEventArgs e)

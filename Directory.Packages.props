@@ -1,0 +1,96 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+    <Flatpak Condition="'$(Flatpak)' == ''">false</Flatpak>
+    <LightStudioFfmpegVersion Condition="'$(LightStudioFfmpegVersion)' == ''">9.0.2.6</LightStudioFfmpegVersion>
+    <AvaloniaVersion>12.1.4</AvaloniaVersion>
+    <AvaloniaForkVersion>12.1.5-lightplayer.0</AvaloniaForkVersion>
+    <AvaloniaPlatformVersion Condition="'$(UseAvaloniaFork)' == 'true'">$(AvaloniaForkVersion)</AvaloniaPlatformVersion>
+    <AvaloniaPlatformVersion Condition="'$(UseAvaloniaFork)' != 'true'">$(AvaloniaVersion)</AvaloniaPlatformVersion>
+  </PropertyGroup>
+
+  <!-- Avalonia UI -->
+  <ItemGroup>
+    <PackageVersion Include="Avalonia" Version="$(AvaloniaPlatformVersion)" />
+    <PackageVersion Include="Avalonia.Android" Version="$(AvaloniaPlatformVersion)" />
+    <PackageVersion Include="Avalonia.Browser" Version="$(AvaloniaPlatformVersion)" />
+    <PackageVersion Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.FreeDesktop" Version="$(AvaloniaPlatformVersion)" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.HarfBuzz" Version="$(AvaloniaPlatformVersion)" />
+    <PackageVersion Include="Avalonia.iOS" Version="$(AvaloniaPlatformVersion)" />
+    <PackageVersion Include="Avalonia.Native" Version="$(AvaloniaPlatformVersion)" />
+    <PackageVersion Include="Avalonia.Skia" Version="$(AvaloniaPlatformVersion)" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Wayland" Version="$(AvaloniaPlatformVersion)" />
+    <PackageVersion Include="Avalonia.Win32" Version="$(AvaloniaPlatformVersion)" />
+    <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageVersion Include="Net.Codecrete.QrCodeGenerator" Version="3.1.0" />
+    <!-- Must match the SkiaSharp/HarfBuzzSharp that Avalonia.Skia $(AvaloniaVersion) binds to. -->
+    <PackageVersion Include="SkiaSharp" Version="4.153.1" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.Linux" Version="4.153.1" />
+    <PackageVersion Include="SkiaSharp.NativeAssets.WebAssembly" Version="4.153.1" />
+    <PackageVersion Include="HarfBuzzSharp" Version="14.2.1.301" />
+    <PackageVersion Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.1.301" />
+    <PackageVersion Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="14.2.1.301" />
+    <PackageVersion Include="LightStudio.AvaloniaStatic" Version="12.1.4" />
+    <PackageVersion Condition="'$(UseAvaloniaFork)' == 'true'" Include="LightStudio.AvaloniaStatic.Native" Version="$(AvaloniaPlatformVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="LightStudio.Ffmpeg" Version="$(LightStudioFfmpegVersion)" />
+    <PackageVersion Include="LightStudio.Fonts" Version="1.0.0" />
+    <PackageVersion Include="LightStudio.GeoNames" Version="1.0.0" />
+    <PackageVersion Include="LightStudio.Photos" Version="1.0.8" />
+  </ItemGroup>
+
+  <!-- Audio backends -->
+  <ItemGroup>
+    <PackageVersion Include="NAudio.Wasapi" Version="3.1.0" />
+  </ItemGroup>
+
+  <!-- SQLite providers (one per target OS) -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Data.Sqlite.Core" Version="10.0.9" />
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
+    <PackageVersion Include="SQLitePCLRaw.bundle_sqlite3" Version="2.1.11" />
+    <PackageVersion Include="SQLitePCLRaw.provider.winsqlite3" Version="2.1.11" />
+    <PackageVersion Include="LightStudio.sqlite-vec" Version="0.1.9.6" />
+  </ItemGroup>
+
+  <!-- Inferencing -->
+  <ItemGroup>
+    <PackageVersion Include="LightStudio.Onnx" Version="1.30.0.5" />
+    <PackageVersion Include="Microsoft.Windows.AI.MachineLearning" Version="2.3.42" />
+    <PackageVersion Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
+    <PackageVersion Include="MathNet.Numerics" Version="5.0.0" />
+  </ItemGroup>
+
+  <!-- Microsoft.Extensions.* -->
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.TraceSource" Version="10.0.9" />
+  </ItemGroup>
+
+  <!-- Platform integration -->
+  <ItemGroup>
+    <PackageVersion Include="Jint" Version="5.0.0-preview-2253" />
+    <PackageVersion Include="Microsoft.NET.WebAssembly.Threading" Version="10.0.11" />
+    <PackageVersion Include="Terminal.Gui" Version="2.4.17" />
+    <PackageVersion Include="Tmds.DBus.Protocol" Version="0.94.1" />
+    <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
+    <PackageVersion Include="Xamarin.Google.AI.Edge.LiteRT" Version="2.1.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
+    <PackageVersion Include="WixToolset.BootstrapperApplications.wixext" Version="5.0.2" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+  </ItemGroup>
+</Project>

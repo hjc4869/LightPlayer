@@ -1,0 +1,20 @@
+<Project>
+  <!--
+    Light Player's native binding policy (NativeBindingsPolicy), evaluated for every project once its runtime is
+    selected. FFmpeg comes from the LightStudio.Ffmpeg package profiles on Windows, Apple, Android, and browser
+    runtimes, and from the system development packages on Linux. EnableStaticFfmpeg selects static linkage.
+  -->
+  <PropertyGroup>
+    <NativeBindingsStatic Condition="'$(NativeBindingsStatic)' == '' and '$(EnableStaticFfmpeg)' == 'true'">true</NativeBindingsStatic>
+    <UseFfmpegPackage Condition="!$(NativeBindingsRuntime.StartsWith('linux'))">true</UseFfmpegPackage>
+    <NativeBindingsPackageDirectory Condition="'$(NativeBindingsPackageDirectory)' == '' and '$(UseFfmpegPackage)' == 'true'">$(LightStudioFfmpegPackageRoot)</NativeBindingsPackageDirectory>
+    <NativeBindingsPkgConfigModules Condition="'$(NativeBindingsPkgConfigModules)' == '' and '$(UseFfmpegPackage)' != 'true'">libavcodec;libavformat;libavutil;libavfilter;libswresample;libswscale</NativeBindingsPkgConfigModules>
+
+    <!-- The package publishes one browser profile per threading model and Emscripten generation of the .NET workload. -->
+    <_FfmpegWasmGeneration>em3</_FfmpegWasmGeneration>
+    <_FfmpegWasmGeneration Condition="'$(TargetFramework)' != '' and $([MSBuild]::VersionGreaterThanOrEquals($([MSBuild]::GetTargetFrameworkVersion('$(TargetFramework)')), '11.0'))">em6</_FfmpegWasmGeneration>
+    <_FfmpegWasmThreading>st</_FfmpegWasmThreading>
+    <_FfmpegWasmThreading Condition="'$(WasmEnableThreads)' == 'true'">mt</_FfmpegWasmThreading>
+    <NativeBindingsProfile Condition="'$(NativeBindingsProfile)' == '' and '$(NativeBindingsRuntime)' == 'browser-wasm'">wasm-$(_FfmpegWasmThreading)-$(_FfmpegWasmGeneration)</NativeBindingsProfile>
+  </PropertyGroup>
+</Project>

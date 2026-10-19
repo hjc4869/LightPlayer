@@ -1,0 +1,115 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:video="using:LightMediaRenderer.Avalonia.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             x:Class="LightStudio.LightPlayer.Views.PictureInPictureView"
+             x:DataType="vm:VideoPlayerPageViewModel">
+    <UserControl.Styles>
+        <Style Selector="Button.pipTransport">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="MinWidth" Value="34" />
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="CornerRadius" Value="17" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.pipTransport:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#33FFFFFF" />
+        </Style>
+        <Style Selector="Button.pipTransport Path">
+            <Setter Property="Fill" Value="White" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- The window is dark whatever the app's theme is, like the page the picture came from. -->
+    <ThemeVariantScope RequestedThemeVariant="Dark">
+        <Panel x:Name="Root" Background="Black">
+            <video:VideoView x:Name="Video"
+                             Player="{Binding Player}"
+                             Stretch="{Binding Stretch}"
+                             DebandingQuality="{Binding DebandingQuality}"
+                             ScalingQuality="{Binding ScalingQuality}"
+                             DownscalingQuality="{Binding DownscalingQuality}"
+                             PreferHardwareProcessing="{Binding PreferHardwareProcessing}"
+                             ShaderPackageOverride="{Binding ShaderPackageOverride}"
+                             EnableHdrPassthrough="{Binding EnableHdrPassthrough}"
+                             DisplayPanelBitDepth="{Binding DisplayPanelBitDepth}"
+                             SubtitleBrightnessMode="{Binding SubtitleBrightnessMode}"
+                             Background="Black" />
+
+            <!-- A window this small has no room for a deck that is always there, so it comes up
+                 with the pointer and goes away again a moment after it stops moving. -->
+            <Border x:Name="Deck"
+                    VerticalAlignment="Bottom"
+                    IsVisible="False"
+                    Padding="6,10,6,4"
+                    Background="#C0000000">
+                <StackPanel Spacing="2">
+                    <controls:MediaSeekBar x:Name="SeekBar"
+                                           Margin="4,0"
+                                           TrackHeight="3"
+                                           ThumbRadius="6"
+                                           Position="{Binding PositionSeconds}"
+                                           Buffered="{Binding BufferedSeconds}"
+                                           Minimum="{Binding SeekMinimumSeconds}"
+                                           Duration="{Binding SeekMaximumSeconds}"
+                                           Chapters="{Binding Chapters}"
+                                           IsEnabled="{Binding CanSeek}"
+                                           ProgressBrush="{DynamicResource AppAccentBrush}"
+                                           ThumbBrush="{DynamicResource AppAccentBrush}" />
+
+                    <Grid ColumnDefinitions="Auto,*,Auto">
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2">
+                            <Button Classes="pipTransport"
+                                    Command="{Binding SkipBackCommand}"
+                                    IsVisible="{Binding CanSeek}"
+                                    ToolTip.Tip="{Binding VideoPlayer_Back10, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="18" Height="18"><Path Data="{StaticResource IconSkipBack10}" /></Viewbox>
+                            </Button>
+                            <Button Classes="pipTransport"
+                                    Command="{Binding PlayPauseCommand}"
+                                    ToolTip.Tip="{Binding PlaybackBar_PlayPause, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="20" Height="20">
+                                    <Panel>
+                                        <Path Data="{StaticResource IconPlay}" IsVisible="{Binding !IsPlaying}" />
+                                        <Path Data="{StaticResource IconPause}" IsVisible="{Binding IsPlaying}" />
+                                    </Panel>
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="pipTransport"
+                                    Command="{Binding SkipForwardCommand}"
+                                    IsVisible="{Binding CanSeek}"
+                                    ToolTip.Tip="{Binding VideoPlayer_Forward10, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="18" Height="18"><Path Data="{StaticResource IconSkipForward10}" /></Viewbox>
+                            </Button>
+                        </StackPanel>
+
+                        <TextBlock Grid.Column="1"
+                                   Margin="6,0"
+                                   VerticalAlignment="Center"
+                                   TextAlignment="Center"
+                                   FontFamily="Consolas,Menlo,DejaVu Sans Mono,monospace"
+                                   FontSize="11"
+                                   Foreground="White"
+                                   Text="{Binding TimeText}" />
+
+                        <Button Grid.Column="2"
+                                Classes="pipTransport"
+                                Command="{Binding TogglePictureInPictureCommand}"
+                                ToolTip.Tip="{Binding VideoPlayer_PictureInPictureExit, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox Width="18" Height="18"><Path Data="{StaticResource IconPictureInPicture}" /></Viewbox>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Panel>
+    </ThemeVariantScope>
+</UserControl>

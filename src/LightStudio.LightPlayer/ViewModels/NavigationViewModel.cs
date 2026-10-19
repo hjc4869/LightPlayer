@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LightStudio.LightPlayer.Models;
@@ -16,6 +17,9 @@ public partial class NavigationViewModel : ObservableObject
     [ObservableProperty]
     private bool isExpanded;
 
+    [ObservableProperty]
+    private SplitViewDisplayMode displayMode = SplitViewDisplayMode.CompactOverlay;
+
     public NavigationViewModel(IEnumerable<AppRoute> routes)
     {
         var all = routes.ToList();
@@ -28,6 +32,18 @@ public partial class NavigationViewModel : ObservableObject
             .Select(route => new NavigationItemViewModel(route, OnItemSelected))
             .ToArray();
 
+        // The narrow layout's top tab strip reuses the primary destinations minus Home, Video and
+        // Playlists, which the bottom navigation surfaces separately.
+        LibraryTabs = PrimaryItems
+            .Where(item => item.Id is not (AppRouteId.Home or AppRouteId.Videos or AppRouteId.Playlists))
+            .ToArray();
+
+        // Everything after Home is grouped under the Apple layout's library heading.
+        if (PrimaryItems.FirstOrDefault(item => item.Id != AppRouteId.Home) is { } firstLibraryItem)
+        {
+            firstLibraryItem.StartsLibrarySection = true;
+        }
+
         ToggleExpandCommand = new RelayCommand(() => IsExpanded = !IsExpanded);
     }
 
@@ -37,6 +53,9 @@ public partial class NavigationViewModel : ObservableObject
     public IReadOnlyList<NavigationItemViewModel> PrimaryItems { get; }
 
     public IReadOnlyList<NavigationItemViewModel> FooterItems { get; }
+
+    /// <summary>Library sub-tabs (music / albums / artists) for the narrow top tab strip.</summary>
+    public IReadOnlyList<NavigationItemViewModel> LibraryTabs { get; }
 
     public IRelayCommand ToggleExpandCommand { get; }
 
@@ -57,13 +76,17 @@ public partial class NavigationViewModel : ObservableObject
         }
     }
 
+    public void CollapseOverlay()
+    {
+        if (DisplayMode == SplitViewDisplayMode.CompactOverlay)
+        {
+            IsExpanded = false;
+        }
+    }
+
     private void OnItemSelected(NavigationItemViewModel item)
     {
-        // Picking a destination collapses the expanded (overlay) drawer back to the compact rail
-        // so the chosen page is immediately visible, matching standard navigation-drawer behaviour.
-        // Collapse on any tap — even re-selecting the active item below is a no-op — so the drawer
-        // is always dismissed once the user interacts with it.
-        IsExpanded = false;
+        CollapseOverlay();
 
         // Re-selecting the destination that is already active is a no-op: navigating would
         // needlessly rebuild the page and push a duplicate entry onto the back stack. When the

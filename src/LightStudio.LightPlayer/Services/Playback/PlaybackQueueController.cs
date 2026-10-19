@@ -1,15 +1,17 @@
+using LightMediaRenderer.Avalonia.Audio;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using LightStudio.FfmpegShim;
+using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Services;
+using LightStudio.Logging;
 
 namespace LightStudio.LightPlayer.Services.Playback;
 
@@ -17,15 +19,22 @@ public sealed class PlaybackQueueController : IDisposable
 {
     private static readonly TimeSpan DefaultBufferTarget = TimeSpan.FromMilliseconds(750);
     private static readonly TimeSpan LoopDelay = TimeSpan.FromMilliseconds(15);
+    private static readonly TimeSpan BackendErrorRepeatInterval = TimeSpan.FromSeconds(5);
 
     private readonly Random random = new();
     private readonly ObservableCollection<PlaybackQueueItem> items = new();
     private readonly object playbackGate = new();
     private readonly object statusGate = new();
+    private readonly object backendErrorGate = new();
+    private readonly IClientMediaResolver mediaResolver;
+    private readonly IAudioSeparationService? audioSeparation;
+    private bool separationActive;
     private List<PlaybackQueueItem>? sequentialBackup;
     private Channel<PlaybackControlCommand>? activeControls;
+    private CancellationTokenSource? activeTrackInitialization;
     private PlaybackMode mode = PlaybackMode.Sequential;
     private PlaybackQueuePlaybackState playbackState = PlaybackQueuePlaybackState.Stopped;
+    private bool isInitializing;
     private int currentIndex = -1;
     private float volume = 1.0f;
     private bool paused;
@@ -33,7 +42,17 @@ public sealed class PlaybackQueueController : IDisposable
     private TimeSpan playedDuration;
     private TimeSpan bufferedDuration;
     private TimeSpan pendingStartPosition;
+    private string? lastBackendErrorMessage;
+    private long lastBackendErrorTimestamp;
     private bool disposed;
+
+    public PlaybackQueueController(IClientMediaResolver mediaResolver, IAudioSeparationService? audioSeparation = null)
+    {
+        this.mediaResolver = mediaResolver ?? throw new ArgumentNullException(nameof(mediaResolver));
+        this.audioSeparation = audioSeparation;
+        if (PlatformServices.PcmPlaybackSourceFactory is { } factory)
+            PcmSourceFactory = request => factory(request, mediaResolver);
+    }
 
     public event EventHandler<PlaybackQueueStatusChangedEventArgs>? StatusChanged;
 
@@ -48,6 +67,9 @@ public sealed class PlaybackQueueController : IDisposable
     public event EventHandler<string>? BackendError;
 
     public event EventHandler<string>? Underrun;
+
+    /// <summary>Raised when the audio backend adopts a volume set outside the app (e.g. the system mixer).</summary>
+    public event EventHandler<float>? VolumeChanged;
 
     public ObservableCollection<PlaybackQueueItem> Items => items;
 
@@ -71,11 +93,36 @@ public sealed class PlaybackQueueController : IDisposable
     }
 
     /// <summary>
-    /// Resolves the live system mixer rate. When set, the reused OpenAL output device is recreated
+    /// Resolves the live system mixer rate. When set, the reused audio output device is recreated
     /// at a track boundary once the system output device starts running at a different rate, so
     /// playback follows the new device instead of leaving the audio server to resample a stale rate.
     /// </summary>
     public ISystemSampleRateProvider? SystemSampleRateProvider { get; set; }
+
+    public Func<PcmPlaybackRequest, IPcmPlaybackSource>? PcmSourceFactory { get; set; }
+
+    private bool alwaysResample;
+    private int preferredSampleRate;
+
+    /// <summary>
+    /// Live master switch for resampling, re-read at every track boundary so toggling it mid-playback
+    /// takes effect on the next track. Mirrors <c>PlaybackController.AlwaysResample</c>.
+    /// </summary>
+    public bool AlwaysResample
+    {
+        get => Volatile.Read(ref alwaysResample);
+        set => Volatile.Write(ref alwaysResample, value);
+    }
+
+    /// <summary>
+    /// Live preferred output rate in Hz (0 follows the system mixer rate), re-read at every track
+    /// boundary. Mirrors <c>PlaybackController.PreferredSampleRate</c>.
+    /// </summary>
+    public int PreferredSampleRate
+    {
+        get => Volatile.Read(ref preferredSampleRate);
+        set => Volatile.Write(ref preferredSampleRate, Math.Max(0, value));
+    }
 
     public PlaybackMode Mode
     {
@@ -97,14 +144,14 @@ public sealed class PlaybackQueueController : IDisposable
 
     public void AddRange(IEnumerable<string> filePaths)
     {
-        AddRange(filePaths.Select(path => new PlaybackQueueItem(Path.GetFullPath(path))));
+        AddRange(filePaths.Select(path => new PlaybackQueueItem(path)));
     }
 
     public void AddRange(IEnumerable<PlaybackQueueItem> queueItems)
     {
         ThrowIfDisposed();
 
-        var newItems = queueItems.Select(NormalizeItem).ToList();
+        var newItems = queueItems.ToList();
         if (newItems.Count == 0)
         {
             return;
@@ -137,14 +184,17 @@ public sealed class PlaybackQueueController : IDisposable
 
     public void InsertRange(int index, IEnumerable<string> filePaths)
     {
-        InsertRange(index, filePaths.Select(path => new PlaybackQueueItem(Path.GetFullPath(path))));
+        InsertRange(index, filePaths.Select(path => new PlaybackQueueItem(path)));
     }
 
-    public void InsertRange(int index, IEnumerable<PlaybackQueueItem> queueItems)
+    public void InsertRange(int index, IEnumerable<PlaybackQueueItem> queueItems) =>
+        InsertRange(index, queueItems, preserveOrder: false);
+
+    public void InsertRange(int index, IEnumerable<PlaybackQueueItem> queueItems, bool preserveOrder)
     {
         ThrowIfDisposed();
 
-        var newItems = queueItems.Select(NormalizeItem).ToList();
+        var newItems = queueItems.ToList();
         if (newItems.Count == 0)
         {
             return;
@@ -156,10 +206,10 @@ public sealed class PlaybackQueueController : IDisposable
         {
             sequentialBackup ??= items.ToList();
             sequentialBackup.AddRange(newItems);
-            var shuffled = Shuffle(newItems).ToList();
-            for (var i = 0; i < shuffled.Count; i++)
+            var insertedItems = preserveOrder ? newItems : Shuffle(newItems).ToList();
+            for (var itemIndex = 0; itemIndex < insertedItems.Count; itemIndex++)
             {
-                items.Insert(insertAt + i, shuffled[i]);
+                items.Insert(insertAt + itemIndex, insertedItems[itemIndex]);
             }
         }
         else
@@ -286,6 +336,17 @@ public sealed class PlaybackQueueController : IDisposable
         return TryPostControl(new PlaybackControlCommand(PlaybackControlCommandType.Stop));
     }
 
+    public bool RestartAudio()
+    {
+        if (!Volatile.Read(ref separationActive) &&
+            audioSeparation is not { Status.IsAvailable: true, Track: not AudioSeparationTrack.Original })
+            return false;
+        var current = Status;
+        var position = current.SourcePosition - current.BufferedDuration;
+        return TryPostControl(new PlaybackControlCommand(PlaybackControlCommandType.RestartAudio,
+            Position: position > TimeSpan.Zero ? position : TimeSpan.Zero));
+    }
+
     public bool Seek(TimeSpan position)
     {
         ThrowIfDisposed();
@@ -364,7 +425,7 @@ public sealed class PlaybackQueueController : IDisposable
     /// Reorders the queue, moving the items at <paramref name="sourceIndices"/> so they sit
     /// (in their existing relative order) at <paramref name="targetIndex"/> in the current
     /// list. The currently playing track is preserved by reference, so playback continues
-    /// uninterrupted — this only rewrites the queue order and never posts a control command.
+    /// uninterrupted -- this only rewrites the queue order and never posts a control command.
     /// </summary>
     public bool Move(IReadOnlyList<int> sourceIndices, int targetIndex)
     {
@@ -464,6 +525,10 @@ public sealed class PlaybackQueueController : IDisposable
         }
 
         SetVolumeCore(options.Volume);
+        // Seed the live resample settings from the options this run was started with; the controller
+        // keeps them in sync afterwards so a change applies at the next track boundary.
+        Volatile.Write(ref alwaysResample, options.AlwaysResample);
+        Volatile.Write(ref preferredSampleRate, Math.Max(0, options.PreferredSampleRate));
         ResetRuntimeStatus();
         paused = false;
         var summary = new QueuePlaybackSummary();
@@ -548,11 +613,16 @@ public sealed class PlaybackQueueController : IDisposable
         QueuePlaybackSummary summary,
         CancellationToken cancellationToken)
     {
-        using var outputContext = new PlaybackOutputContext();
-        if (options.PreferredSampleRate > 0)
-        {
-            outputContext.Format = new AudioFormat((uint)options.PreferredSampleRate, 2, 16);
-        }
+        await using var outputContext = new PlaybackOutputContext();
+
+        // Index where the current run of tracks that produced no audio began. When a track
+        // fails to open/decode (throws) or decodes nothing, it is treated as ended and the loop
+        // advances. In looping modes (SingleTrackLoop / ListLoop / Random) MoveNextCore never
+        // reports the end of the queue, so an entirely unplayable queue would otherwise re-open
+        // the same failing track indefinitely, spinning the CPU and flooding the UI with the same
+        // error. Tracking this lets the loop detect when the queue has cycled a full turn without
+        // playing anything and stop instead of looping forever. -1 means "no failing run active".
+        var failureStreakStart = -1;
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -563,17 +633,42 @@ public sealed class PlaybackQueueController : IDisposable
                 break;
             }
 
+            var decodedBytesBefore = summary.DecodedBytes;
             PlaybackTrackOutcome outcome;
+            using var initialization = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            SetActiveTrackInitialization(initialization);
             try
             {
-                outcome = await PlayCurrentTrackAsync(current, options, controls, summary, outputContext, cancellationToken);
+                SetInitializing(true);
+                outcome = await HandleControlsBeforeTrackAsync(controls, outputContext.Output)
+                    ?? await PlayCurrentTrackAsync(current, options, controls, summary, outputContext, initialization);
+            }
+            catch (Exception) when (cancellationToken.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(cancellationToken);
+            }
+            catch (Exception) when (
+                !cancellationToken.IsCancellationRequested && initialization.IsCancellationRequested)
+            {
+                outcome = await HandleControlsBeforeTrackAsync(controls, outputContext.Output)
+                    ?? PlaybackTrackOutcome.Restart;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 summary.Failures++;
-                OnError(current.FilePath, ex.Message);
+                AppLog.Error("Audio.Playback", $"Could not play {current.FilePath}.", ex);
+                OnError(current.FilePath, ex.GetBaseException().Message);
                 outcome = PlaybackTrackOutcome.TrackEnded;
             }
+            finally
+            {
+                ClearActiveTrackInitialization(initialization);
+                SetInitializing(false);
+            }
+
+            // The track made forward progress only if it actually decoded some audio; both a
+            // thrown open/decode failure and a track that yields no samples leave this unchanged.
+            var madeProgress = summary.DecodedBytes > decodedBytesBefore;
 
             switch (outcome)
             {
@@ -581,19 +676,40 @@ public sealed class PlaybackQueueController : IDisposable
                     SetPlaybackState(PlaybackQueuePlaybackState.Stopped, "Queue playback stopped.");
                     return summary;
                 case PlaybackTrackOutcome.Previous:
+                    failureStreakStart = -1;
                     if (!MovePreviousCore())
                     {
                         OnStatusChanged("Already at the first track.");
                     }
                     continue;
                 case PlaybackTrackOutcome.Restart:
+                    failureStreakStart = -1;
                     continue;
                 case PlaybackTrackOutcome.Next:
                 case PlaybackTrackOutcome.TrackEnded:
+                    // A user-issued Next is deliberate queue navigation, never a stuck auto-loop,
+                    // so it clears the failing run. Otherwise remember the first track of a run of
+                    // non-producing tracks so a full cycle back to it can be detected below.
+                    if (outcome == PlaybackTrackOutcome.Next || madeProgress)
+                    {
+                        failureStreakStart = -1;
+                    }
+                    else if (failureStreakStart < 0)
+                    {
+                        failureStreakStart = currentIndex;
+                    }
+
                     if (!MoveNextCore())
                     {
                         OnStatusChanged("End of queue.");
                         SetPlaybackState(PlaybackQueuePlaybackState.Stopped, "Queue playback stopped.");
+                        return summary;
+                    }
+
+                    if (failureStreakStart >= 0 && !madeProgress && currentIndex == failureStreakStart)
+                    {
+                        // Cycled all the way around a looping queue without decoding any audio.
+                        SetPlaybackState(PlaybackQueuePlaybackState.Stopped, "Playback stopped: no playable tracks in the queue.");
                         return summary;
                     }
                     continue;
@@ -610,8 +726,9 @@ public sealed class PlaybackQueueController : IDisposable
         ChannelReader<PlaybackControlCommand> controls,
         QueuePlaybackSummary summary,
         PlaybackOutputContext outputContext,
-        CancellationToken cancellationToken)
+        CancellationTokenSource initialization)
     {
+        var cancellationToken = initialization.Token;
         var requestedTrackPosition = ConsumePendingStartPosition();
 
         // For a CUE track the file is decoded from the track's start offset; the requested
@@ -621,13 +738,33 @@ public sealed class PlaybackQueueController : IDisposable
         var trackStart = isCue ? item.StartTime : TimeSpan.Zero;
         var fileStartPosition = trackStart + requestedTrackPosition;
 
-        using var source = new FfmpegPcmFrameSource(item.FilePath, fileStartPosition, outputContext.Format);
-        var output = EnsureOutput(outputContext, source.Format);
+        // FilePath is a platform-owned media identifier: a local path, a remote server path, or a
+        // content URI. Pass it through unchanged so the active platform I/O implementation can
+        // interpret it in the correct filesystem context.
+        // Resolve the decode/output target live for this track: a fixed rate when "Always resample"
+        // is on, otherwise the track's own native rate (a null target lets the decoder keep the
+        // source rate). EnsureOutput then recreates the device only when this rate actually changes.
+        var sourceFactory = PcmSourceFactory;
+        var platform = sourceFactory is null
+            ? await mediaResolver.ResolvePlatformAsync(new MediaReference(item.SourceId, item.FilePath), cancellationToken).ConfigureAwait(false)
+            : null;
+        using var stream = platform is not null
+            ? await platform.OpenMediaFileAsync(item.FilePath, cancellationToken).ConfigureAwait(false)
+            : null;
+        var hasCueEnd = isCue && item.Duration > TimeSpan.Zero;
+        var cueEndPosition = trackStart + item.Duration;
+        await using IPcmPlaybackSource source = sourceFactory?.Invoke(new PcmPlaybackRequest(
+            item, fileStartPosition, hasCueEnd ? cueEndPosition : null, AlwaysResample, PreferredSampleRate))
+            ?? InProcessPcmPlaybackSource.ForStream(stream!, fileStartPosition, hasCueEnd ? cueEndPosition : null,
+                ResolveOutputSampleRate, audioSeparation);
+        await source.OpenAsync(cancellationToken).ConfigureAwait(false);
+        Volatile.Write(ref separationActive, source.UsesAudioSeparation);
+        ClearActiveTrackInitialization(initialization);
+        var output = await EnsureOutputAsync(outputContext, source.Format, options.BufferTarget, cancellationToken);
+        SetInitializing(false);
 
         // A CUE track's playable length is its declared duration; the final track of a sheet
         // may have an unknown (zero) duration, meaning "play to the end of the file".
-        var hasCueEnd = isCue && item.Duration > TimeSpan.Zero;
-        var cueEndPosition = trackStart + item.Duration;
         var trackDuration = isCue
             ? (item.Duration > TimeSpan.Zero
                 ? item.Duration
@@ -639,8 +776,64 @@ public sealed class PlaybackQueueController : IDisposable
             isCue ? (filePosition > trackStart ? filePosition - trackStart : TimeSpan.Zero) : filePosition;
 
         var state = new TrackPlaybackState();
+        var sourceGate = new object();
         var stopwatch = Stopwatch.StartNew();
         var durationLimit = options.DurationPerTrack ?? TimeSpan.MaxValue;
+
+        AudioOutputReadResult CompleteOutput() =>
+            CanContinueAfterCurrent()
+                ? AudioOutputReadResult.CompleteWithNextSource
+                : AudioOutputReadResult.Complete;
+
+        AudioOutputReadResult PullAudio(TimeSpan _)
+        {
+            lock (sourceGate)
+            {
+                if (state.SourceEnded || state.DecodedDuration >= durationLimit)
+                {
+                    state.SourceEnded = true;
+                    return CompleteOutput();
+                }
+
+                // Only track and CUE boundaries may truncate a decoded frame. The backend's
+                // requested duration is a fill hint; using it here would discard the rest of
+                // every codec frame that crosses the backend's buffer target.
+                var maxFrame = durationLimit - state.DecodedDuration;
+                if (hasCueEnd)
+                {
+                    var remainingToCueEnd = cueEndPosition - source.Position;
+                    if (remainingToCueEnd < maxFrame)
+                    {
+                        maxFrame = remainingToCueEnd;
+                    }
+                }
+
+                AudioOutputReadResult frame;
+                try
+                {
+                    if (!source.TryRead(maxFrame, out frame))
+                        return AudioOutputReadResult.FromBuffer(ReadOnlyMemory<byte>.Empty, TimeSpan.Zero);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return AudioOutputReadResult.Complete;
+                }
+                if (frame.EndOfStream)
+                {
+                    state.SourceEnded = true;
+                    Console.WriteLine(
+                        $"[Playback] Source ended: '{item.DisplayName}' started={state.Started} " +
+                        $"decoded={state.DecodedDuration} sourcePosition={source.Position} duration={source.Duration} " +
+                        $"frames={state.FrameCount} lastError={source.LastError}");
+                    return CompleteOutput();
+                }
+
+                state.DecodedDuration += frame.Duration;
+                state.DecodedBytes += frame.ByteLength;
+                state.FrameCount++;
+                return frame;
+            }
+        }
 
         summary.TracksStarted++;
         Console.WriteLine(
@@ -656,146 +849,151 @@ public sealed class PlaybackQueueController : IDisposable
         UpdateRuntimeStatus(ToTrackRelative(source.Position), TimeSpan.Zero, TimeSpan.Zero);
         var startedTitle = isCue && !string.IsNullOrWhiteSpace(item.Title)
             ? item.Title!
-            : source.Metadata.Title ?? item.DisplayName;
+            : source.Title ?? item.DisplayName;
         TrackStarted?.Invoke(this, new PlaybackQueueTrackStartedEventArgs(item, CurrentIndex, items.Count, startedTitle, trackDuration, Mode, Volume));
 
-        while (!cancellationToken.IsCancellationRequested)
+        bool keepOutputQueued = false;
+        try
         {
-            while (controls.TryRead(out var control))
+            while (!cancellationToken.IsCancellationRequested)
             {
-                var outcome = HandleControl(control, source, output, state, trackStart);
-                if (outcome.HasValue)
+                while (controls.TryRead(out var control))
                 {
-                    stopwatch.Stop();
-                    return CompleteTrack(summary, item, state, output, stopwatch.Elapsed, outcome.Value, keepOutputQueued: false);
-                }
-            }
-
-            output.Volume = Volume;
-
-            if (paused)
-            {
-                output.Update();
-                UpdateRuntimeStatus(ToTrackRelative(source.Position), output.PlayedDuration, output.BufferedDuration);
-                await Task.Delay(LoopDelay, cancellationToken);
-                continue;
-            }
-
-            output.Update();
-            UpdateRuntimeStatus(ToTrackRelative(source.Position), output.PlayedDuration, output.BufferedDuration);
-
-            while (!state.SourceEnded && state.DecodedDuration < durationLimit && output.BufferedDuration < options.BufferTarget)
-            {
-                // Bound the next frame so a CUE track never bleeds past its segment: read at
-                // most up to the cue end. A zero/negative bound makes ReadFrame return null,
-                // which the loop treats as end-of-track and advances to the next entry.
-                var maxFrame = durationLimit - state.DecodedDuration;
-                if (hasCueEnd)
-                {
-                    var remainingToCueEnd = cueEndPosition - source.Position;
-                    if (remainingToCueEnd < maxFrame)
+                    var outcome = await HandleControlAsync(control, source, output, state, sourceGate, trackStart, cancellationToken);
+                    if (outcome.HasValue)
                     {
-                        maxFrame = remainingToCueEnd;
+                        stopwatch.Stop();
+                        return CompleteTrack(summary, item, state, output, stopwatch.Elapsed, outcome.Value, keepOutputQueued: false);
                     }
                 }
 
-                var frame = source.ReadFrame(maxFrame);
-                if (frame is null)
+                output.Volume = Volume;
+
+                if (!state.OutputStarted && !paused)
                 {
+                    await output.StartAsync(PullAudio, cancellationToken);
+                    state.OutputStarted = true;
+                }
+
+                if (paused)
+                {
+                    lock (sourceGate)
+                    {
+                        UpdateRuntimeStatus(ToTrackRelative(source.Position), output.PlayedDuration, output.BufferedDuration);
+                    }
+                    await Task.Delay(LoopDelay, cancellationToken);
+                    continue;
+                }
+
+                bool sourceEnded;
+                TimeSpan decodedDuration;
+                lock (sourceGate)
+                {
+                    sourceEnded = state.SourceEnded || output.SourceExhausted;
+                    decodedDuration = state.DecodedDuration;
+                    UpdateRuntimeStatus(ToTrackRelative(source.Position), output.PlayedDuration, output.BufferedDuration);
+                }
+
+                if (!state.Started && state.DecodedBytes > 0)
+                {
+                    state.Started = true;
+                    SetPlaybackState(PlaybackQueuePlaybackState.Playing, "Playback started.");
+                }
+
+                if (sourceEnded || decodedDuration >= durationLimit)
+                {
+                    var canContinue = CanContinueAfterCurrent();
+                    if (canContinue || output.IsDrained)
+                    {
+                        keepOutputQueued = canContinue;
+                        stopwatch.Stop();
+                        return CompleteTrack(summary, item, state, output, stopwatch.Elapsed, PlaybackTrackOutcome.TrackEnded, keepOutputQueued: canContinue);
+                    }
+                }
+
+                await Task.Delay(LoopDelay, cancellationToken);
+            }
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+        finally
+        {
+            if (!keepOutputQueued)
+            {
+                await output.ResetAfterSeekAsync();
+                lock (sourceGate)
                     state.SourceEnded = true;
-                    Console.WriteLine(
-                        $"[Playback] Source ended: '{item.DisplayName}' started={state.Started} " +
-                        $"decoded={state.DecodedDuration} sourcePosition={source.Position} duration={source.Duration} " +
-                        $"frames={state.FrameCount} queuedBuffers={output.QueuedBufferCount} lastFfmpegError={source.LastFfmpegError}");
-                    break;
-                }
-
-                output.QueueBuffer(frame.Data);
-                state.DecodedDuration += frame.Duration;
-                state.DecodedBytes += frame.Data.Length;
-                state.FrameCount++;
             }
-
-            if (!state.Started && output.QueuedBufferCount > 0)
-            {
-                output.Start();
-                state.Started = true;
-                SetPlaybackState(PlaybackQueuePlaybackState.Playing, "Playback started.");
-            }
-
-            if (state.SourceEnded || state.DecodedDuration >= durationLimit)
-            {
-                var canContinue = CanContinueAfterCurrent();
-                if (canContinue || output.QueuedBufferCount == 0)
-                {
-                    stopwatch.Stop();
-                    return CompleteTrack(summary, item, state, output, stopwatch.Elapsed, PlaybackTrackOutcome.TrackEnded, keepOutputQueued: canContinue);
-                }
-            }
-
-            if (!state.Started && state.SourceEnded)
-            {
-                stopwatch.Stop();
-                return CompleteTrack(summary, item, state, output, stopwatch.Elapsed, PlaybackTrackOutcome.TrackEnded, keepOutputQueued: CanContinueAfterCurrent());
-            }
-
-            await Task.Delay(LoopDelay, cancellationToken);
         }
 
         stopwatch.Stop();
         return CompleteTrack(summary, item, state, output, stopwatch.Elapsed, PlaybackTrackOutcome.Quit, keepOutputQueued: false);
     }
 
-    private OpenAlAudioOutputDevice EnsureOutput(PlaybackOutputContext outputContext, AudioFormat format)
+    private async Task<IAudioOutputDevice> EnsureOutputAsync(
+        PlaybackOutputContext outputContext, AudioFormat format, TimeSpan bufferTarget, CancellationToken cancellationToken)
     {
-        if (outputContext.Output is not null)
+        var existing = outputContext.Output;
+        if (existing is not null)
         {
-            // Reuse the open device/context across tracks so same-device transitions stay gapless.
-            // But OpenAL fixes its mixer rate when the context is created: if the user switches to
-            // an output device that runs at a different rate, OpenAL keeps rendering at the old rate
-            // and the audio server resamples to the new device (visible as a stale rate in pw-top).
-            // Recreate the device once, at this track boundary, so OpenAL renegotiates and outputs at
-            // the new device's native rate. That costs a single gap on a device switch — an accepted
-            // trade for output quality — while an unchanged device keeps playing gaplessly.
-            if (!SystemOutputRateChanged(outputContext.Output))
+            // Reuse the open device across tracks so same-rate transitions stay gapless. Recreate it
+            // once, at this track boundary, when the target output rate changed: a resample-setting
+            // change, a system mixer rate change in follow mode, or (in follow-source mode) a new
+            // track whose native rate differs from the current one.
+            if (outputContext.Format is not { } currentFormat || currentFormat.SampleRate == format.SampleRate)
             {
-                return outputContext.Output;
+                return existing;
             }
 
-            outputContext.Output.Dispose();
+            Console.WriteLine(
+                $"[Playback] Output rate changed {currentFormat.SampleRate} Hz -> {format.SampleRate} Hz; " +
+                "recreating audio output device to renegotiate.");
+            await existing.DisposeAsync();
             outputContext.Output = null;
         }
 
-        var output = new OpenAlAudioOutputDevice(format)
-        {
-            Volume = Volume
-        };
-        output.BackendError += (_, message) => BackendError?.Invoke(this, message);
+        var output = await AudioOutputDeviceFactory.CreateAsync(format, bufferTarget, cancellationToken);
+        output.Volume = Volume;
+        output.BackendError += (_, error) => ThreadPool.QueueUserWorkItem(
+            static state => state.Controller.PublishBackendError(state.Error),
+            (Controller: this, Error: error),
+            preferLocal: false);
         output.Underrun += (_, message) => Underrun?.Invoke(this, message);
+        output.VolumeChanged += OnOutputVolumeChanged;
         outputContext.Output = output;
         outputContext.Format = format;
         return output;
     }
 
-    private bool SystemOutputRateChanged(OpenAlAudioOutputDevice output)
+    private void PublishBackendError(AudioOutputError error)
     {
-        var systemRate = SystemSampleRateProvider?.GetSystemSampleRate() ?? 0;
-        if (systemRate <= 0)
+        lock (backendErrorGate)
         {
-            // The live system rate is unknown; keep the current device rather than churn it.
-            return false;
+            long now = Environment.TickCount64;
+            if (string.Equals(lastBackendErrorMessage, error.Message, StringComparison.Ordinal) &&
+                now - lastBackendErrorTimestamp < BackendErrorRepeatInterval.TotalMilliseconds)
+            {
+                return;
+            }
+
+            lastBackendErrorMessage = error.Message;
+            lastBackendErrorTimestamp = now;
         }
 
-        var currentRate = output.DeviceSampleRate;
-        if (currentRate <= 0 || currentRate == systemRate)
+        AppLog.Warning("Audio.Output", error.Message, error.Cause);
+        BackendError?.Invoke(this, error.Message);
+    }
+
+    private int ResolveOutputSampleRate()
+    {
+        if (!AlwaysResample)
         {
-            return false;
+            return 0;
         }
 
-        Console.WriteLine(
-            $"[Playback] System output rate changed {currentRate} Hz -> {systemRate} Hz; " +
-            "recreating OpenAL device to renegotiate.");
-        return true;
+        var preferred = PreferredSampleRate;
+        return preferred > 0
+            ? preferred
+            : SystemSampleRateProvider?.GetSystemSampleRate() ?? 0;
     }
 
     private PlaybackTrackOutcome CompleteTrack(
@@ -811,11 +1009,6 @@ public sealed class PlaybackQueueController : IDisposable
             ? state.DecodedDuration
             : output.PlayedDuration;
         var underrunCount = output.UnderrunCount;
-        if (!keepOutputQueued)
-        {
-            output.ResetAfterSeek();
-        }
-
         UpdateRuntimeStatus(TimeSpan.Zero, played, TimeSpan.Zero);
         AddTrackSummary(summary, state, played, elapsed, underrunCount, outcome);
         Console.WriteLine(
@@ -830,18 +1023,115 @@ public sealed class PlaybackQueueController : IDisposable
         return outcome;
     }
 
-    private PlaybackTrackOutcome? HandleControl(PlaybackControlCommand control, FfmpegPcmFrameSource source, IAudioOutputDevice output, TrackPlaybackState state, TimeSpan trackStart)
+    private async Task<PlaybackTrackOutcome?> HandleControlsBeforeTrackAsync(
+        ChannelReader<PlaybackControlCommand> controls,
+        IAudioOutputDevice? output)
+    {
+        while (controls.TryRead(out var control))
+        {
+            switch (control.Type)
+            {
+                case PlaybackControlCommandType.TogglePause:
+                    await SetPausedBeforeTrackAsync(!paused, output);
+                    break;
+                case PlaybackControlCommandType.Pause:
+                    await SetPausedBeforeTrackAsync(true, output);
+                    break;
+                case PlaybackControlCommandType.Resume:
+                    await SetPausedBeforeTrackAsync(false, output);
+                    break;
+                case PlaybackControlCommandType.Next:
+                    if (output is not null)
+                        await output.ResetAfterSeekAsync();
+                    return PlaybackTrackOutcome.Next;
+                case PlaybackControlCommandType.Previous:
+                    if (output is not null)
+                        await output.ResetAfterSeekAsync();
+                    return PlaybackTrackOutcome.Previous;
+                case PlaybackControlCommandType.Stop:
+                    if (output is not null)
+                        await output.ResetAfterSeekAsync();
+                    return PlaybackTrackOutcome.Quit;
+                case PlaybackControlCommandType.PlayAt:
+                    if (!SetIndexCore(control.Index, clearPendingPosition: true))
+                    {
+                        OnStatusChanged($"Track number out of range: {control.Index + 1}");
+                        break;
+                    }
+
+                    paused = false;
+                    if (output is not null)
+                        await output.ResetAfterSeekAsync();
+                    OnStatusChanged("Track selected");
+                    return PlaybackTrackOutcome.Restart;
+                case PlaybackControlCommandType.Seek:
+                case PlaybackControlCommandType.RestartAudio:
+                    pendingStartPosition = control.Position < TimeSpan.Zero
+                        ? TimeSpan.Zero
+                        : control.Position;
+                    UpdateRuntimeStatus(pendingStartPosition, TimeSpan.Zero, TimeSpan.Zero);
+                    OnStatusChanged($"Position set: {pendingStartPosition}");
+                    if (output is not null)
+                        await output.ResetAfterSeekAsync();
+                    return PlaybackTrackOutcome.Restart;
+                case PlaybackControlCommandType.SetVolume:
+                    SetVolumeCore(control.Volume);
+                    if (output is not null)
+                    {
+                        output.Volume = Volume;
+                    }
+                    break;
+            }
+        }
+
+        return null;
+    }
+
+    private async Task SetPausedBeforeTrackAsync(bool value, IAudioOutputDevice? output)
+    {
+        if (output is not null)
+        {
+            if (value)
+            {
+                await PauseOutputAsync(output);
+            }
+            else
+            {
+                await ResumeOutputAsync(output);
+            }
+            return;
+        }
+
+        if (paused == value)
+        {
+            return;
+        }
+
+        paused = value;
+        SetPlaybackState(
+            value ? PlaybackQueuePlaybackState.Paused : PlaybackQueuePlaybackState.Playing,
+            value ? "Paused." : "Resumed.");
+    }
+
+    private async Task<PlaybackTrackOutcome?> HandleControlAsync(
+        PlaybackControlCommand control,
+        IPcmPlaybackSource source,
+        IAudioOutputDevice output,
+        TrackPlaybackState state,
+        object sourceGate,
+        TimeSpan trackStart,
+        CancellationToken cancellationToken)
     {
         switch (control.Type)
         {
             case PlaybackControlCommandType.TogglePause:
-                TogglePause(output);
+                await TogglePauseOutputAsync(output);
                 return null;
             case PlaybackControlCommandType.Pause:
-                Pause(output);
+                await PauseOutputAsync(output);
                 return null;
             case PlaybackControlCommandType.Resume:
-                Resume(output);
+                await ResumeOutputAsync(output);
                 return null;
             case PlaybackControlCommandType.Next:
                 return PlaybackTrackOutcome.Next;
@@ -862,16 +1152,28 @@ public sealed class PlaybackQueueController : IDisposable
                 OnStatusChanged("Track selected");
                 return PlaybackTrackOutcome.Restart;
             case PlaybackControlCommandType.Seek:
+                if (source.RequiresRestartOnSeek)
+                {
+                    pendingStartPosition = control.Position < TimeSpan.Zero ? TimeSpan.Zero : control.Position;
+                    return PlaybackTrackOutcome.Restart;
+                }
                 // The requested position is relative to the (possibly CUE) track; translate it
                 // to an absolute file offset before seeking, and report it back track-relative.
                 var seekTarget = trackStart + (control.Position < TimeSpan.Zero ? TimeSpan.Zero : control.Position);
-                output.ResetAfterSeek();
-                var actual = source.Seek(seekTarget);
-                state.ResetAfterSeek();
-                var relative = source.Position > trackStart ? source.Position - trackStart : TimeSpan.Zero;
+                await output.ResetAfterSeekAsync();
+                TimeSpan actual = await source.SeekAsync(seekTarget, cancellationToken);
+                TimeSpan relative;
+                lock (sourceGate)
+                {
+                    state.ResetAfterSeek();
+                    relative = source.Position > trackStart ? source.Position - trackStart : TimeSpan.Zero;
+                }
                 UpdateRuntimeStatus(relative, output.PlayedDuration, output.BufferedDuration);
                 OnStatusChanged($"Seek requested {control.Position}, actual {actual}.");
                 return null;
+            case PlaybackControlCommandType.RestartAudio:
+                pendingStartPosition = control.Position;
+                return PlaybackTrackOutcome.Restart;
             case PlaybackControlCommandType.SetVolume:
                 SetVolumeCore(control.Volume);
                 output.Volume = Volume;
@@ -881,19 +1183,19 @@ public sealed class PlaybackQueueController : IDisposable
         }
     }
 
-    private void TogglePause(IAudioOutputDevice output)
+    private async Task TogglePauseOutputAsync(IAudioOutputDevice output)
     {
         if (paused)
         {
-            Resume(output);
+            await ResumeOutputAsync(output);
         }
         else
         {
-            Pause(output);
+            await PauseOutputAsync(output);
         }
     }
 
-    private void Pause(IAudioOutputDevice output)
+    private async Task PauseOutputAsync(IAudioOutputDevice output)
     {
         if (paused)
         {
@@ -903,13 +1205,13 @@ public sealed class PlaybackQueueController : IDisposable
         paused = true;
         if (output.State == AudioOutputState.Playing)
         {
-            output.Pause();
+            await output.PauseAsync();
         }
 
         SetPlaybackState(PlaybackQueuePlaybackState.Paused, "Paused.");
     }
 
-    private void Resume(IAudioOutputDevice output)
+    private async Task ResumeOutputAsync(IAudioOutputDevice output)
     {
         if (!paused)
         {
@@ -919,7 +1221,7 @@ public sealed class PlaybackQueueController : IDisposable
         paused = false;
         if (output.State == AudioOutputState.Paused)
         {
-            output.Resume();
+            await output.ResumeAsync();
         }
 
         SetPlaybackState(PlaybackQueuePlaybackState.Playing, "Resumed.");
@@ -1122,9 +1424,46 @@ public sealed class PlaybackQueueController : IDisposable
     {
         lock (playbackGate)
         {
-            return activeControls?.Writer.TryWrite(command) == true;
+            if (activeControls?.Writer.TryWrite(command) != true)
+            {
+                return false;
+            }
+
+            if (InterruptsTrackInitialization(command.Type))
+            {
+                activeTrackInitialization?.Cancel();
+            }
+
+            return true;
         }
     }
+
+    private void SetActiveTrackInitialization(CancellationTokenSource cancellation)
+    {
+        lock (playbackGate)
+        {
+            activeTrackInitialization = cancellation;
+        }
+    }
+
+    private void ClearActiveTrackInitialization(CancellationTokenSource cancellation)
+    {
+        lock (playbackGate)
+        {
+            if (ReferenceEquals(activeTrackInitialization, cancellation))
+            {
+                activeTrackInitialization = null;
+            }
+        }
+    }
+
+    private static bool InterruptsTrackInitialization(PlaybackControlCommandType type) =>
+        type is PlaybackControlCommandType.Stop
+            or PlaybackControlCommandType.Next
+            or PlaybackControlCommandType.Previous
+            or PlaybackControlCommandType.PlayAt
+            or PlaybackControlCommandType.Seek
+            or PlaybackControlCommandType.RestartAudio;
 
     private void SetVolumeCore(float value)
     {
@@ -1137,6 +1476,16 @@ public sealed class PlaybackQueueController : IDisposable
         {
             volume = Math.Clamp(value, 0.0f, 1.0f);
         }
+    }
+
+    private void OnOutputVolumeChanged(object? sender, float level)
+    {
+        // The backend already holds this level (the user set it in the system mixer), so adopt it as
+        // the controller's volume without posting a control command back to the output, and surface
+        // it so the UI slider follows. The play loop's periodic "output.Volume = Volume" re-assert is
+        // then a no-op because the device already has the value.
+        SetVolumeCore(level);
+        VolumeChanged?.Invoke(this, Volume);
     }
 
     private TimeSpan ConsumePendingStartPosition()
@@ -1182,11 +1531,25 @@ public sealed class PlaybackQueueController : IDisposable
         }
     }
 
+    private void SetInitializing(bool value)
+    {
+        lock (statusGate)
+        {
+            if (isInitializing == value)
+                return;
+            isInitializing = value;
+        }
+        OnStatusChanged(string.Empty);
+    }
+
     private PlaybackQueueStatus CreateStatus()
     {
         lock (statusGate)
         {
-            return new PlaybackQueueStatus(Current, CurrentIndex, items.Count, mode, playbackState, sourcePosition, playedDuration, bufferedDuration, volume);
+            return new PlaybackQueueStatus(Current, CurrentIndex, items.Count, mode, playbackState, sourcePosition, playedDuration, bufferedDuration, volume)
+            {
+                IsInitializing = isInitializing,
+            };
         }
     }
 
@@ -1214,14 +1577,6 @@ public sealed class PlaybackQueueController : IDisposable
     private bool IsValidIndex(int index)
     {
         return index >= 0 && index < items.Count;
-    }
-
-    private static PlaybackQueueItem NormalizeItem(PlaybackQueueItem item)
-    {
-        var fullPath = Path.GetFullPath(item.FilePath);
-        return string.Equals(fullPath, item.FilePath, StringComparison.Ordinal)
-            ? item
-            : item with { FilePath = fullPath };
     }
 
     private void ThrowIfDisposed()
@@ -1252,6 +1607,8 @@ public sealed class PlaybackQueueController : IDisposable
 
         public bool Started { get; set; }
 
+        public bool OutputStarted { get; set; }
+
         public void ResetAfterSeek()
         {
             DecodedBytes = 0;
@@ -1259,19 +1616,17 @@ public sealed class PlaybackQueueController : IDisposable
             DecodedDuration = TimeSpan.Zero;
             SourceEnded = false;
             Started = false;
+            OutputStarted = false;
         }
     }
 
-    private sealed class PlaybackOutputContext : IDisposable
+    private sealed class PlaybackOutputContext : IAsyncDisposable
     {
-        public OpenAlAudioOutputDevice? Output { get; set; }
+        public IAudioOutputDevice? Output { get; set; }
 
         public AudioFormat? Format { get; set; }
 
-        public void Dispose()
-        {
-            Output?.Dispose();
-        }
+        public ValueTask DisposeAsync() => Output?.DisposeAsync() ?? ValueTask.CompletedTask;
     }
 
     private sealed record PlaybackControlCommand(
@@ -1290,6 +1645,7 @@ public sealed class PlaybackQueueController : IDisposable
         Previous,
         PlayAt,
         Seek,
+        RestartAudio,
         SetVolume
     }
 

@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
@@ -10,65 +11,177 @@
              d:DesignHeight="36"
              x:Class="LightStudio.LightPlayer.Controls.SearchBox"
              x:DataType="vm:SearchBoxViewModel">
+    <UserControl.Resources>
+        <!-- A bare glyph without the bezel that the Fluent and Apple button themes draw. -->
+        <ControlTheme x:Key="SearchClearButtonTheme" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <ContentPresenter Name="PART_ContentPresenter"
+                                      Background="{TemplateBinding Background}"
+                                      Padding="{TemplateBinding Padding}"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}" />
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+    </UserControl.Resources>
     <UserControl.Styles>
+        <Style Selector="Border#SearchSurface">
+            <Setter Property="Background" Value="{DynamicResource AppPanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="Viewbox#SearchGlyph">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+            <Setter Property="Margin" Value="10,0,4,0" />
+        </Style>
+        <Style Selector="Viewbox#SearchGlyph > Path">
+            <Setter Property="Fill" Value="{DynamicResource AppSecondaryTextBrush}" />
+        </Style>
+        <Style Selector="AutoCompleteBox#SearchAuto">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button#ClearButton">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- Seated in a glass capsule that supplies the field surface, with the metrics of a macOS
+             toolbar search field. The focus ring surrounds the 36-DIP capsule. -->
+        <Style Selector="controls|SearchBox.glass">
+            <Setter Property="ClipToBounds" Value="False" />
+            <Style Selector="^ Border#SearchSurface">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+            </Style>
+            <Style Selector="^ Viewbox#SearchGlyph">
+                <Setter Property="Width" Value="13" />
+                <Setter Property="Height" Value="13" />
+                <Setter Property="Margin" Value="11,0,0,0" />
+            </Style>
+            <Style Selector="^ Viewbox#SearchGlyph > Path, ^ Button#ClearButton Path">
+                <Setter Property="Fill" Value="{DynamicResource MacSettingsSecondaryLabelBrush}" />
+            </Style>
+            <Style Selector="^ Button#ClearButton:pressed Path">
+                <Setter Property="Fill" Value="{DynamicResource MacSettingsLabelBrush}" />
+            </Style>
+            <Style Selector="^ Button#ClearButton.hasText">
+                <Setter Property="IsVisible" Value="True" />
+            </Style>
+            <Style Selector="^ AutoCompleteBox#SearchAuto">
+                <Setter Property="VerticalAlignment" Value="Stretch" />
+            </Style>
+            <!-- Suggestions open below the focus ring. -->
+            <Style Selector="^ AutoCompleteBox /template/ Popup#PART_Popup">
+                <Setter Property="VerticalOffset" Value="6" />
+            </Style>
+            <Style Selector="^ AutoCompleteBox /template/ TextBox#PART_TextBox">
+                <Setter Property="FontFamily" Value="{DynamicResource AppMacControlFontFamily}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="LetterSpacing" Value="{DynamicResource AppMacControlLetterSpacing}" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Padding" Value="8,0.5,4,0" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Foreground" Value="{DynamicResource MacSettingsLabelBrush}" />
+                <Setter Property="PlaceholderForeground" Value="{DynamicResource MacPlaceholderBrush}" />
+                <Setter Property="CaretBrush" Value="{DynamicResource AppAccentBrush}" />
+                <Setter Property="SelectionBrush" Value="{DynamicResource AppMacTextSelectionBrush}" />
+                <Setter Property="SelectionForegroundBrush" Value="{DynamicResource MacSettingsLabelBrush}" />
+            </Style>
+            <Style Selector="^ AutoCompleteBox /template/ TextBox /template/ Border#PART_BorderElement">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+            </Style>
+            <Style Selector="^ AutoCompleteBox /template/ TextBox /template/ TextBlock#PART_Placeholder">
+                <Setter Property="Opacity" Value="1" />
+            </Style>
+            <Style Selector="^ Border#MacFocusRing">
+                <Setter Property="CornerRadius" Value="21" />
+            </Style>
+            <Style Selector="^:focus-within Border#MacFocusRing">
+                <Setter Property="IsVisible" Value="True" />
+            </Style>
+        </Style>
+        <!-- A window that is not key drops the focus ring and the selection emphasis. -->
+        <Style Selector=":is(Window)[IsActive=False] controls|SearchBox.glass">
+            <Style Selector="^ Border#MacFocusRing">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+            <Style Selector="^ AutoCompleteBox /template/ TextBox#PART_TextBox">
+                <Setter Property="SelectionBrush" Value="{DynamicResource MacUnemphasizedSelection}" />
+            </Style>
+        </Style>
         <!-- Pin the suggestion drop-down to the search field width. The Fluent theme only sets the
              popup MinWidth to the field width, so long items would otherwise make it grow wider. -->
         <Style Selector="AutoCompleteBox#SearchAuto /template/ Border#PART_SuggestionsContainer">
             <Setter Property="Width" Value="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}" />
         </Style>
     </UserControl.Styles>
-    <Border Background="{DynamicResource AppPanelBackgroundBrush}"
-            BorderBrush="{DynamicResource AppDividerBrush}"
-            BorderThickness="1"
-            CornerRadius="6">
-        <Grid ColumnDefinitions="Auto,*">
-            <Viewbox Grid.Column="0" Width="16" Height="16" Margin="10,0,4,0">
-                <Path Data="{StaticResource IconSearch}"
-                      Fill="{DynamicResource AppSecondaryTextBrush}" />
-            </Viewbox>
-            <AutoCompleteBox x:Name="SearchAuto"
-                             Grid.Column="1"
-                             Background="Transparent"
-                             BorderThickness="0"
-                             PlaceholderText="Search..."
-                             FilterMode="None"
-                             MinimumPrefixLength="1"
-                             MinimumPopulateDelay="0:0:0.2"
-                             MaxDropDownHeight="360"
-                             Text="{Binding Text, Mode=TwoWay}"
-                             AsyncPopulator="{Binding Populator}"
-                             VerticalAlignment="Center">
-                <AutoCompleteBox.KeyBindings>
-                    <KeyBinding Gesture="Enter" Command="{Binding SubmitCommand}" />
-                </AutoCompleteBox.KeyBindings>
-                <AutoCompleteBox.ItemTemplate>
-                    <DataTemplate x:DataType="models:SearchResultModel">
-                        <Grid ColumnDefinitions="Auto,*"
-                              Margin="0,4"
-                              Background="Transparent"
-                              PointerReleased="OnSuggestionPointerReleased">
-                            <controls:MediaThumbnail Grid.Column="0"
-                                                     Width="34"
-                                                     Height="34"
-                                                     CornerRadius="3"
-                                                     Margin="0,0,10,0"
-                                                     Source="{Binding Image}"
-                                                     PlaceholderKind="{Binding ThumbnailKind}"
-                                                     IsVisible="{Binding HasThumbnail}" />
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Title}"
-                                           MaxLines="1"
-                                           TextTrimming="CharacterEllipsis" />
-                                <TextBlock Text="{Binding Subtitle}"
-                                           FontSize="12"
-                                           MaxLines="1"
-                                           TextTrimming="CharacterEllipsis"
-                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                            </StackPanel>
-                        </Grid>
-                    </DataTemplate>
-                </AutoCompleteBox.ItemTemplate>
-            </AutoCompleteBox>
-        </Grid>
-    </Border>
+    <Panel>
+        <Border x:Name="SearchSurface">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <Viewbox x:Name="SearchGlyph" Grid.Column="0">
+                    <Path Data="{StaticResource IconSearch}" />
+                </Viewbox>
+                <AutoCompleteBox x:Name="SearchAuto"
+                                 Grid.Column="1"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 PlaceholderText="{Binding SearchBox_Placeholder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 FilterMode="None"
+                                 MinimumPrefixLength="1"
+                                 MinimumPopulateDelay="0:0:0.2"
+                                 MaxDropDownHeight="360"
+                                 Text="{Binding Text, Mode=TwoWay}"
+                                 AsyncPopulator="{Binding Populator}">
+                    <AutoCompleteBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding SubmitCommand}" />
+                    </AutoCompleteBox.KeyBindings>
+                    <AutoCompleteBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:SearchResultModel">
+                            <Grid ColumnDefinitions="Auto,*"
+                                  Margin="0,4"
+                                  Background="Transparent"
+                                  PointerReleased="OnSuggestionPointerReleased">
+                                <controls:MediaThumbnail Grid.Column="0"
+                                                         Width="34"
+                                                         Height="34"
+                                                         CornerRadius="3"
+                                                         Margin="0,0,10,0"
+                                                         Source="{Binding Image}"
+                                                         PlaceholderKind="{Binding ThumbnailKind}"
+                                                         IsVisible="{Binding HasThumbnail}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Title}"
+                                               MaxLines="1"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Subtitle}"
+                                               FontSize="12"
+                                               MaxLines="1"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </AutoCompleteBox.ItemTemplate>
+                </AutoCompleteBox>
+                <Button x:Name="ClearButton"
+                        Grid.Column="2"
+                        Theme="{StaticResource SearchClearButtonTheme}"
+                        Margin="0,0,7,0"
+                        VerticalAlignment="Center"
+                        Classes.hasText="{Binding Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                        AutomationProperties.Name="{Binding SearchBox_Clear, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        Click="OnClearClick">
+                    <Viewbox Width="13" Height="13">
+                        <Path Data="{StaticResource IconCloseCircle}" />
+                    </Viewbox>
+                </Button>
+            </Grid>
+        </Border>
+        <Border x:Name="MacFocusRing" Theme="{StaticResource MacFocusRing}" />
+    </Panel>
 </UserControl>

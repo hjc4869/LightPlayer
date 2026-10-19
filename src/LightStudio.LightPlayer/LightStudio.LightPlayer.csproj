@@ -1,59 +1,32 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <Platforms>x64;ARM64</Platforms>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <RootNamespace>LightStudio.LightPlayer</RootNamespace>
-    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
-  </PropertyGroup>
-
   <!--
-    Per-OS build facility
-    =====================
-    Resolves the *target* operating system so that OS-specific dependencies and
-    source are only compiled into the matching build (and excluded from every
-    other OS build). The target OS is taken from the publish RuntimeIdentifier
-    when present (so cross-publishing such as `dotnet publish -r win-x64` on Linux
-    stays correct) and otherwise falls back to the build host OS for a plain
-    `dotnet build` / `dotnet run`.
-
-    Each resolved target OS gets:
-      * a compilation constant (LINUX / WINDOWS / MACOS) for guarding
-        platform-specific API calls with #if, and
-      * an Is<OS>Target property for conditioning MSBuild items such as
-        PackageReference and Compile.
+    Shared application library
+    =========================
+    Contains the whole Avalonia application (App, Views, ViewModels, Services,
+    themes, converters, and assets) as a class library so it can be hosted by any
+    platform head. LightMediaRenderer.Avalonia supplies playback orchestration,
+    A/V synchronization, graphics integration, and the VideoView and PhotoView controls.
+    LightMediaRenderer supplies Skia video/photo and subtitle rendering. Playback consumes the same
+    IAudioOutputDevice backends as music playback. The desktop head
+    (LightStudio.LightPlayer.Desktop) supplies the entry point, the WinExe output
+    type, NativeAOT publishing, and the desktop windowing backends; the Android head
+    (LightStudio.LightPlayer.Android) supplies its own. Keep this project free of
+    platform-backend dependencies (such as Avalonia.Desktop) so non-desktop heads can
+    reference it. Native declarations use the target profile propagated by each head.
   -->
-  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
-    <_TargetOS Condition="$(RuntimeIdentifier.StartsWith('win'))">windows</_TargetOS>
-    <_TargetOS Condition="$(RuntimeIdentifier.StartsWith('linux'))">linux</_TargetOS>
-    <_TargetOS Condition="$(RuntimeIdentifier.StartsWith('osx'))">macos</_TargetOS>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
-    <_TargetOS Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</_TargetOS>
-    <_TargetOS Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</_TargetOS>
-    <_TargetOS Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</_TargetOS>
-  </PropertyGroup>
-
   <PropertyGroup>
-    <IsWindowsTarget Condition="'$(_TargetOS)' == 'windows'">true</IsWindowsTarget>
-    <IsLinuxTarget Condition="'$(_TargetOS)' == 'linux'">true</IsLinuxTarget>
-    <IsMacOSTarget Condition="'$(_TargetOS)' == 'macos'">true</IsMacOSTarget>
+    <Nullable>enable</Nullable>
+    <RootNamespace>LightStudio.LightPlayer</RootNamespace>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(IsWindowsTarget)' == 'true'">
-    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(IsLinuxTarget)' == 'true'">
-    <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(IsMacOSTarget)' == 'true'">
-    <DefineConstants>$(DefineConstants);MACOS</DefineConstants>
-  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="lmp" />
+    <InternalsVisibleTo Include="lmpdroid" />
+    <InternalsVisibleTo Include="lmpios" />
+    <InternalsVisibleTo Include="lmpweb" />
+    <InternalsVisibleTo Include="LightStudio.LocalServices" />
+  </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Models\" />
@@ -61,56 +34,55 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resource\lrclib.js" LogicalName="LightStudio.LightPlayer.Resource.lrclib.js" />
     <EmbeddedResource Include="Resource\netease.js" LogicalName="LightStudio.LightPlayer.Resource.netease.js" />
-    <EmbeddedResource Include="Resource\qqmusic.js" LogicalName="LightStudio.LightPlayer.Resource.qqmusic.js" />
-    <EmbeddedResource Include="Resource\xiami.js" LogicalName="LightStudio.LightPlayer.Resource.xiami.js" />
   </ItemGroup>
 
-  <!-- Cross-platform dependencies (compiled into every target OS build). -->
+  <!--
+    Legal notices shown in the About dialog. The repository-root LICENSE and
+    THIRDPARTY.txt files are embedded with stable manifest names so they can be
+    read at runtime via Assembly.GetManifestResourceStream (AOT/trim safe).
+  -->
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="12.0.5" />
-    <PackageReference Include="Avalonia.Desktop" Version="12.0.5" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.5" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.5" />
-    <PackageReference Include="Avalonia.Controls.ItemsRepeater" Version="12.0.0" />
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="OpenTK.Audio.OpenAL" Version="4.9.4" />
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="LightStudio.LightPlayer.Resource.LICENSE.txt" />
+    <EmbeddedResource Include="..\..\THIRDPARTY.txt" LogicalName="LightStudio.LightPlayer.Resource.THIRDPARTY.txt" />
   </ItemGroup>
-
-  <!--
-    Linux-only dependencies and source: MPRIS "now playing" / transport controls
-    exposed over D-Bus (Tmds.DBus). Excluded from Windows and macOS builds.
-  -->
-  <ItemGroup Condition="'$(IsLinuxTarget)' == 'true'">
-    <PackageReference Include="Tmds.DBus" Version="0.94.2" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(IsLinuxTarget)' != 'true'">
-    <Compile Remove="Services\Playback\Mpris\**\*.cs" />
-    <Compile Remove="Services\SingleInstance\**\*.cs" />
-  </ItemGroup>
-
-  <!--
-    Windows-only dependencies and source. Placeholder for future integrations
-    (e.g. System Media Transport Controls via CsWinRT). Example:
-      <PackageReference Include="Microsoft.Windows.CsWinRT" Version="x.y.z" />
-  -->
-  <ItemGroup Condition="'$(IsWindowsTarget)' == 'true'">
-    <PackageReference Include="OpenAL.Soft" Version="1.23.1" />
-  </ItemGroup>
-
-  <!--
-    macOS-only dependencies and source. Placeholder for future integrations
-    (e.g. Now Playing via MPNowPlayingInfoCenter / MPRemoteCommandCenter).
-  -->
-  <ItemGroup Condition="'$(IsMacOSTarget)' == 'true'">
-  </ItemGroup>
-
-	<ItemGroup>
-		<RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="9" />
-	</ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Net.Codecrete.QrCodeGenerator" />
+  </ItemGroup>
+
+  <!-- Video rendering integration -->
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="SkiaSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LightMediaRenderer\LightMediaRenderer.csproj" />
+    <ProjectReference Include="..\LightMediaRenderer.Avalonia\LightMediaRenderer.Avalonia.csproj" />
     <ProjectReference Include="..\LightStudio.FfmpegShim\LightStudio.FfmpegShim.csproj" />
-    <ProjectReference Include="..\LightStudio.MediaLibraryCore\LightStudio.MediaLibraryCore.csproj" />
+    <ProjectReference Include="..\LightStudio.MediaLibraryCore.Contracts\LightStudio.MediaLibraryCore.Contracts.csproj" />
   </ItemGroup>
+
+  <!--
+    Localization resources. The neutral Resources.resx is embedded by the SDK's
+    default glob (manifest name LightStudio.LightPlayer.Strings.Resources), and the
+    source generator exposes Resources and LocalizedStrings properties at compile
+    time. Culture-specific resx files alongside it supply translations.
+  -->
+  <ItemGroup>
+    <AdditionalFiles Include="Strings\Resources.resx" />
+    <ProjectReference Include="..\..\tools\LightStudio.LightPlayer.Generators\LightStudio.LightPlayer.Generators.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+  </ItemGroup>
+
+  <Import Project="..\..\build\BuildSourceVersion.targets" />
+  <PropertyGroup>
+    <NativeBindingsEnabled>true</NativeBindingsEnabled>
+  </PropertyGroup>
 </Project>

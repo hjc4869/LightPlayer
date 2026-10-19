@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
@@ -13,20 +14,20 @@
     <ScrollViewer>
         <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
             <StackPanel Spacing="4" Margin="0,0,0,4">
-                <TextBlock Text="Extensions"
+                <TextBlock Text="{Binding ExtensionSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
                            FontSize="22"
                            FontWeight="SemiBold"
                            Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                <TextBlock Text="Manage third-party lyric sources."
+                <TextBlock Text="{Binding Description}"
                            FontSize="13"
                            Foreground="{DynamicResource AppSecondaryTextBrush}" />
             </StackPanel>
 
-            <controls:SettingRow Header="Third-party lyrics"
-                                 Description="Re-import the bundled third-party lyric sources. Terms of use from third-party services may apply.">
+            <controls:SettingRow Header="{Binding ExtensionSettings_ThirdPartyLyricsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding ExtensionSettings_ThirdPartyLyricsDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
                 <controls:SettingRow.ActionContent>
                     <Button Classes="icon"
-                            ToolTip.Tip="Import bundled sources"
+                            ToolTip.Tip="{Binding ExtensionSettings_ImportBundled, Source={x:Static strings:LocalizedStrings.Instance}}"
                             Command="{Binding ReimportSourcesCommand}">
                         <Viewbox Width="16" Height="16">
                             <Path Data="{StaticResource IconRefresh}"
@@ -34,47 +35,68 @@
                         </Viewbox>
                     </Button>
                 </controls:SettingRow.ActionContent>
-            </controls:SettingRow>
-
-            <controls:SettingRow Header="Lyric sources"
-                                 Description="JavaScript lyric source scripts.">
-                <controls:SettingRow.ActionContent>
-                    <Button Classes="icon"
-                            ToolTip.Tip="Add source"
-                            Click="OnAddSourceClick">
-                        <Viewbox Width="16" Height="16">
-                            <Path Data="{StaticResource IconAdd}"
-                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
-                        </Viewbox>
-                    </Button>
-                </controls:SettingRow.ActionContent>
-            </controls:SettingRow>
-
-            <TextBlock Text="No lyric sources added."
-                       IsVisible="{Binding !HasLyricSources}"
-                       FontSize="13"
-                       Margin="2,6,2,0"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
-
-            <ItemsControl ItemsSource="{Binding LyricSources}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="models:LyricSourceModel">
-                        <controls:SettingRow Header="{Binding Name}">
-                            <controls:SettingRow.ActionContent>
+                <controls:SettingRow.RowsContent>
+                    <StackPanel>
+                        <Border Classes="settingsDividedRow">
+                            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding ExtensionSettings_LyricSourcesHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                               Classes="settingName"
+                                               FontSize="14" />
+                                    <TextBlock Text="{Binding ExtensionSettings_LyricSourcesDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                               Classes="settingDescription"
+                                               FontSize="12"
+                                               TextWrapping="Wrap" />
+                                </StackPanel>
                                 <Button Classes="icon"
-                                        ToolTip.Tip="Remove source"
-                                        Tag="{Binding}"
-                                        Click="OnRemoveSourceClick">
+                                        Grid.Column="1"
+                                        Margin="16,0,0,0"
+                                        VerticalAlignment="Center"
+                                        ToolTip.Tip="{Binding ExtensionSettings_AddSource, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                        Click="OnAddSourceClick">
                                     <Viewbox Width="16" Height="16">
-                                        <Path Data="{StaticResource IconDelete}"
-                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        <Path Data="{StaticResource IconAdd}"
+                                              Fill="{DynamicResource AppPrimaryTextBrush}" />
                                     </Viewbox>
                                 </Button>
-                            </controls:SettingRow.ActionContent>
-                        </controls:SettingRow>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                            </Grid>
+                        </Border>
+                        <Border Classes="settingsDividedRow"
+                                IsVisible="{Binding !HasLyricSources}">
+                            <TextBlock Text="{Binding ExtensionSettings_NoSources, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding LyricSources}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:LyricSourceModel">
+                                    <Border Classes="settingsDividedRow">
+                                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}"
+                                                       Classes="settingName"
+                                                       Grid.Column="0"
+                                                       FontSize="14"
+                                                       VerticalAlignment="Center" />
+                                            <Button Classes="icon"
+                                                    Grid.Column="1"
+                                                    Margin="16,0,0,0"
+                                                    VerticalAlignment="Center"
+                                                    ToolTip.Tip="{Binding ExtensionSettings_RemoveSource, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                    Tag="{Binding}"
+                                                    Click="OnRemoveSourceClick">
+                                                <Viewbox Width="16" Height="16">
+                                                    <Path Data="{StaticResource IconDelete}"
+                                                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                                </Viewbox>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </controls:SettingRow.RowsContent>
+            </controls:SettingRow>
         </StackPanel>
     </ScrollViewer>
 </UserControl>

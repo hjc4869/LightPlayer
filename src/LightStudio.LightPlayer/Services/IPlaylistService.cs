@@ -1,9 +1,13 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using LightStudio.LightPlayer.Models;
 
 namespace LightStudio.LightPlayer.Services;
+
+/// <summary>A playlist file selected or created by the frontend.</summary>
+public sealed record PlaylistFile(string Name, string Content, string? BaseDirectory = null);
 
 /// <summary>
 /// A Cross-platform app-native store that owns the user's playlists and their
@@ -12,6 +16,12 @@ namespace LightStudio.LightPlayer.Services;
 /// </summary>
 public interface IPlaylistService
 {
+    /// <summary>Raised after a playlist mutation has fully updated the live model.</summary>
+    event EventHandler? Changed;
+
+    /// <summary>What this store holds. Music and video playlists are kept in separate stores.</summary>
+    PlaylistKind Kind { get; }
+
     /// <summary>The live set of playlists, ordered by title.</summary>
     ObservableCollection<PlaylistModel> Playlists { get; }
 
@@ -19,8 +29,8 @@ public interface IPlaylistService
     Task InitializeAsync();
 
     /// <summary>
-    /// The well-known "Favorites" playlist that backs the Like button. Always
-    /// present and listed among <see cref="Playlists"/> like any other playlist.
+    /// The well-known favorites playlist that backs the Like button (music) or the tile star
+    /// (video). Always present and listed among <see cref="Playlists"/> like any other playlist.
     /// </summary>
     PlaylistModel Favorites { get; }
 
@@ -50,9 +60,9 @@ public interface IPlaylistService
     /// <summary>Replaces a playlist's entries (used by reorder and remove edits).</summary>
     Task ReplaceItemsAsync(string id, IEnumerable<PlaylistItemModel> items);
 
-    /// <summary>Imports an <c>.m3u</c>/<c>.m3u8</c>/<c>.wpl</c> file as a new playlist.</summary>
-    Task<PlaylistModel> ImportAsync(string filePath);
+    /// <summary>Imports frontend-read <c>.m3u</c>/<c>.m3u8</c>/<c>.wpl</c> content as a new playlist.</summary>
+    Task<PlaylistModel> ImportAsync(PlaylistFile file);
 
-    /// <summary>Exports a playlist to the supplied path as M3U or WPL by extension.</summary>
-    Task ExportAsync(string id, string filePath);
+    /// <summary>Creates M3U or WPL content, selected from <paramref name="fileName"/>'s extension.</summary>
+    Task<PlaylistFile?> ExportAsync(string id, string fileName);
 }

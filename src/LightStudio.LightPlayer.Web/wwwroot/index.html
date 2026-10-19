@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f6f6">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Light Player">
+  <meta name="description" content="A music and video player for your own library, on your own devices.">
+  <script>
+    (function () {
+      var storageKey = 'lightplayer-web.pageTheme';
+      var systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+      var theme = { mode: 'system', lightColor: '#f6f6f6', darkColor: '#161616' };
+
+      function isValid(value) {
+        return value && /^(system|light|dark)$/.test(value.mode) &&
+          /^#[0-9a-f]{6}$/i.test(value.lightColor) && /^#[0-9a-f]{6}$/i.test(value.darkColor);
+      }
+
+      try {
+        var stored = JSON.parse(localStorage.getItem(storageKey));
+        if (isValid(stored)) theme = stored;
+      } catch (error) {
+        console.warn('The page theme could not be restored.', error);
+      }
+
+      function apply() {
+        var dark = theme.mode === 'dark' || (theme.mode === 'system' && systemTheme.matches);
+        var color = dark ? theme.darkColor : theme.lightColor;
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        document.documentElement.style.setProperty('--page-background', color);
+        document.querySelector('meta[name="theme-color"]').content = color;
+      }
+
+      window.lightPlayerPageTheme = {
+        update: function (mode, lightColor, darkColor) {
+          var value = { mode: mode, lightColor: lightColor, darkColor: darkColor };
+          if (!isValid(value)) return;
+          theme = value;
+          apply();
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(theme));
+          } catch (error) {
+            console.warn('The page theme could not be saved.', error);
+          }
+        }
+      };
+
+      systemTheme.addEventListener('change', apply);
+      apply();
+    })();
+  </script>
+  <script>
+    (function () {
+      var storageKey = 'lightplayer.pairingLaunch';
+
+      function capturePairingLaunch(reload) {
+        if (!location.hash.startsWith('#pair?')) return;
+        var launch = location.hash.slice('#pair?'.length);
+        window.__lightPlayerPairingLaunch = launch;
+        try { sessionStorage.setItem(storageKey, launch); } catch (e) { }
+        history.replaceState(history.state, '', location.pathname + location.search);
+        if (reload) location.reload();
+      }
+
+      capturePairingLaunch(false);
+      window.addEventListener('hashchange', function () { capturePairingLaunch(true); });
+    })();
+  </script>
+  <title>Light Player Web</title>
+  <style>
+    :root {
+      --page-background: #f6f6f6;
+      --page-foreground: #1a1a1a;
+      --page-secondary: #5e5e5e;
+      --page-muted: #5e5e5e;
+      --page-track: rgba(0, 0, 0, .12);
+      --page-details: rgba(0, 0, 0, .06);
+    }
+    :root[data-theme="dark"] {
+      --page-foreground: #efefef;
+      --page-secondary: #c7ced6;
+      --page-muted: #a4a4a4;
+      --page-track: rgba(255, 255, 255, .12);
+      --page-details: rgba(255, 255, 255, .06);
+    }
+    html, body, #out { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body { background: var(--page-background); }
+
+    #boot {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      box-sizing: border-box;
+      padding: 24px;
+      background: var(--page-background);
+      color: var(--page-foreground);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    }
+
+    #boot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+      transition: opacity .35s ease;
+    }
+
+    #boot.hidden { opacity: 0; pointer-events: none; }
+    #boot.hidden #boot-spinner { animation: none; }
+
+    #boot-spinner {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 3px solid var(--page-track);
+      border-top-color: #4cc2ff;
+      animation: boot-spin .9s linear infinite;
+    }
+
+    @keyframes boot-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { #boot-spinner { animation-duration: 3s; } }
+
+    #boot-title { font-size: 20px; font-weight: 600; }
+    #boot-status { font-size: 13px; color: var(--page-muted); min-height: 1.2em; }
+
+    #boot-bar {
+      width: min(280px, 70vw);
+      height: 4px;
+      border-radius: 2px;
+      background: var(--page-track);
+      overflow: hidden;
+    }
+
+    #boot-bar-fill {
+      width: 0;
+      height: 100%;
+      background: #4cc2ff;
+      transition: width .2s ease;
+    }
+
+    #boot-error { display: none; max-width: 640px; }
+    #boot.error #boot-spinner,
+    #boot.error #boot-bar,
+    #boot.error #boot-status { display: none; }
+    #boot.error #boot-error { display: block; }
+
+    #boot-error-message { font-size: 14px; color: var(--page-secondary); line-height: 1.5; }
+
+    #boot-error-details {
+      margin-top: 14px;
+      font-size: 12px;
+      color: var(--page-muted);
+      text-align: left;
+    }
+
+    #boot-error-details summary { cursor: pointer; }
+
+    #boot-error-text {
+      margin: 8px 0 0;
+      padding: 10px;
+      max-height: 30vh;
+      overflow: auto;
+      border-radius: 6px;
+      background: var(--page-details);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    button.primary {
+      padding: 8px 20px;
+      border: 0;
+      border-radius: 6px;
+      background: #4cc2ff;
+      color: #10151a;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button.primary:hover { background: #6ccdff; }
+    button.primary:disabled { opacity: .5; cursor: default; }
+
+    #boot-reload, #boot-restart-latest { margin-top: 18px; max-width: 100%; white-space: normal; }
+
+    #version-dialog {
+      color-scheme: inherit;
+      box-sizing: border-box;
+      width: min(480px, calc(100% - 32px));
+      max-height: calc(100dvh - 32px);
+      overflow: auto;
+      padding: 24px;
+      border: 1px solid light-dark(#d4d4d4, #555);
+      border-radius: 6px;
+      background: light-dark(#fff, #242424);
+      color: light-dark(#202020, #eee);
+      font: 14px system-ui, -apple-system, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    #version-dialog::backdrop { background: rgba(0, 0, 0, .45); }
+    #version-title { margin: 0; font-size: 18px; line-height: 1.4; overflow-wrap: anywhere; }
+    #version-message { line-height: 1.5; overflow-wrap: anywhere; }
+    #version-message:empty { display: none; }
+    #version-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+    #version-actions:empty { display: none; }
+    #version-actions button {
+      flex: 1 1 180px;
+      min-width: 0;
+      padding: 10px 14px;
+      border: 1px solid light-dark(#ccc, #666);
+      border-radius: 4px;
+      font: inherit;
+      cursor: pointer;
+      overflow-wrap: anywhere;
+    }
+    #version-dialog.checking::after {
+      content: "";
+      display: block;
+      width: 24px;
+      height: 24px;
+      margin: 20px auto 0;
+      border: 3px solid light-dark(#ddd, #555);
+      border-top-color: #0078d4;
+      border-radius: 50%;
+      animation: boot-spin .9s linear infinite;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #version-dialog.checking::after { animation-duration: 3s; }
+    }
+
+  </style>
+</head>
+<body>
+  <div id="out"></div>
+
+  <div id="boot" role="status" aria-live="polite">
+    <div id="boot-spinner"></div>
+    <div id="boot-title">Light Player</div>
+    <div id="boot-bar"><div id="boot-bar-fill"></div></div>
+    <div id="boot-status">Starting…</div>
+    <div id="boot-error">
+      <div id="boot-error-message"></div>
+      <details id="boot-error-details">
+        <summary>Details</summary>
+        <pre id="boot-error-text"></pre>
+      </details>
+      <button id="boot-reload" class="primary" type="button">Reload</button>
+      <button id="boot-restart-latest" class="primary" type="button">Restart with latest version</button>
+    </div>
+  </div>
+  <dialog id="version-dialog" aria-labelledby="version-title" aria-describedby="version-message">
+    <h2 id="version-title" aria-live="polite"></h2>
+    <p id="version-message"></p>
+    <div id="version-actions"></div>
+  </dialog>
+  <script>
+    (function () {
+      var boot = document.getElementById('boot');
+      var statusEl = document.getElementById('boot-status');
+      var titleEl = document.getElementById('boot-title');
+      var barFill = document.getElementById('boot-bar-fill');
+      var messageEl = document.getElementById('boot-error-message');
+      var detailsEl = document.getElementById('boot-error-details');
+      var detailsText = document.getElementById('boot-error-text');
+      var appStarted = false;
+      var failed = false;
+      var hideTimer = 0;
+
+      document.getElementById('boot-reload').addEventListener('click', function () {
+        location.reload();
+      });
+
+      document.getElementById('boot-restart-latest').addEventListener('click', function () {
+        if (window.lightPlayerVersions) {
+          window.lightPlayerVersions.restartLatest();
+          return;
+        }
+        try {
+          localStorage.removeItem('lightplayer-web.loadedVersion');
+          localStorage.removeItem('lightplayer-web.skippedVersion');
+          location.reload();
+        } catch (error) {
+          api.fail('An unexpected error stopped the application.', error);
+        }
+      });
+
+      function describe(error) {
+        if (error === undefined || error === null) return '';
+        if (typeof error === 'string') return error;
+        // ManagedError.stack is a lazy getter that synchronously calls back into .NET,
+        // which is forbidden on the UI thread in multithreaded WebAssembly builds.
+        var stackDescriptor = Object.getOwnPropertyDescriptor(error, 'stack');
+        if ((!stackDescriptor || !stackDescriptor.get) && error.stack) return String(error.stack);
+        if (error.message) return String(error.message);
+        try { return JSON.stringify(error); } catch (e) { return String(error); }
+      }
+
+      // Only a runtime-level failure should tear down an app that is already running.
+      function isFatalRuntimeError(text) {
+        return /Aborted\(|RuntimeError|out of memory|memory access out of bounds|unreachable executed|\.NET runtime/i.test(text);
+      }
+
+      var api = {
+        status: function (text) {
+          if (!failed) statusEl.textContent = text;
+        },
+        notice: function (text) {
+          clearTimeout(hideTimer);
+          failed = false;
+          boot.style.display = '';
+          boot.classList.remove('hidden', 'error');
+          titleEl.textContent = 'Light Player';
+          statusEl.textContent = text;
+          document.getElementById('boot-spinner').style.display = 'none';
+          document.getElementById('boot-bar').style.display = 'none';
+        },
+        progress: function (loaded, total) {
+          if (failed || !total) return;
+          var percent = Math.min(100, Math.round((loaded / total) * 100));
+          barFill.style.width = percent + '%';
+          statusEl.textContent = 'Loading application… ' + percent + '%';
+        },
+        // Hides the boot overlay while the server picker owns the screen, and brings it
+        // back once a server has been chosen.
+        suspend: function () {
+          boot.style.display = 'none';
+        },
+        resume: function (text) {
+          boot.style.display = '';
+          boot.classList.remove('error');
+          failed = false;
+          if (text) statusEl.textContent = text;
+        },
+        // Avalonia renders into a canvas inside #out; wait for it so the overlay does
+        // not disappear before the first frame is on screen.
+        hideWhenAppReady: function () {
+          if (appStarted || failed) return;
+          var observer = new MutationObserver(check);
+          var timeout = setTimeout(finish, 15000);
+
+          function finish() {
+            clearTimeout(timeout);
+            observer.disconnect();
+            api.ready();
+          }
+
+          function check() {
+            if (document.querySelector('#out canvas')) {
+              requestAnimationFrame(function () { requestAnimationFrame(finish); });
+            }
+          }
+
+          observer.observe(document.getElementById('out'), { childList: true, subtree: true });
+          check();
+        },
+        ready: function () {
+          if (failed || appStarted) return;
+          appStarted = true;
+          barFill.style.width = '100%';
+          boot.classList.add('hidden');
+          hideTimer = setTimeout(function () {
+            if (!failed) boot.style.display = 'none';
+          }, 400);
+          window.dispatchEvent(new Event('lightplayer-ready'));
+        },
+        fail: function (message, error) {
+          failed = true;
+          clearTimeout(hideTimer);
+          boot.style.display = '';
+          boot.classList.remove('hidden');
+          boot.classList.add('error');
+          titleEl.textContent = 'Light Player could not start';
+          messageEl.textContent = message;
+          var text = describe(error);
+          detailsText.textContent = text;
+          detailsEl.style.display = text ? '' : 'none';
+          window.dispatchEvent(new Event('lightplayer-boot-failed'));
+        }
+      };
+
+      window.addEventListener('error', function (e) {
+        if (e.target !== window && e.target.tagName !== 'SCRIPT') return;
+        var text = describe(e.error) || e.message || '';
+        if (!appStarted || isFatalRuntimeError(text)) {
+          api.fail('An unexpected error stopped the application.', text);
+        }
+      }, true);
+
+      window.addEventListener('unhandledrejection', function (e) {
+        var text = describe(e.reason);
+        if (!appStarted || isFatalRuntimeError(text)) {
+          api.fail('An unexpected error stopped the application.', text);
+        }
+      });
+
+      window.lightPlayerBoot = api;
+    })();
+  </script>
+  <script type="module" src="/version-loader.js"></script>
+</body>
+</html>

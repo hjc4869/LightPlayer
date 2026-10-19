@@ -1,0 +1,146 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>lmp</AssemblyName>
+    <Nullable>enable</Nullable>
+    <RootNamespace>LightStudio.LightPlayer.Desktop</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    <PublishAot Condition=" '$(Configuration)' == 'Release' ">true</PublishAot>
+  </PropertyGroup>
+
+  <!--
+    Desktop entry point (application head)
+    ======================================
+    This is the distributed executable for the Windows/Linux/macOS desktop build.
+    It owns everything specific to shipping a standalone desktop binary: the
+    WinExe output type, the Windows application manifest, NativeAOT publishing, and
+    the desktop windowing backends (Avalonia.Desktop); it defers all UI, view
+    models, and services to the shared LightStudio.LightPlayer library so the same
+    application can be hosted by other heads (e.g. LightStudio.LightPlayer.Android).
+  -->
+
+  <!--
+    Per-OS build facility
+    =====================
+    Resolves the *target* operating system so that OS-specific dependencies and
+    source are only compiled into the matching build (and excluded from every
+    other OS build). The target OS is taken from the publish RuntimeIdentifier
+    when present (so cross-publishing such as `dotnet publish -r win-x64` on Linux
+    stays correct) and otherwise falls back to the build host OS for a plain
+    `dotnet build` / `dotnet run`.
+
+    Each resolved target OS gets:
+      * a compilation constant (LINUX / WINDOWS / MACOS) for guarding
+        platform-specific API calls with #if, and
+      * an Is<OS>Target property for conditioning MSBuild items such as
+        PackageReference and Compile.
+  -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <_TargetOS Condition="$(RuntimeIdentifier.StartsWith('win'))">windows</_TargetOS>
+    <_TargetOS Condition="$(RuntimeIdentifier.StartsWith('linux'))">linux</_TargetOS>
+    <_TargetOS Condition="$(RuntimeIdentifier.StartsWith('osx'))">macos</_TargetOS>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
+    <_TargetOS Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</_TargetOS>
+    <_TargetOS Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</_TargetOS>
+    <_TargetOS Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</_TargetOS>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <IsWindowsTarget Condition="'$(_TargetOS)' == 'windows'">true</IsWindowsTarget>
+    <IsLinuxTarget Condition="'$(_TargetOS)' == 'linux'">true</IsLinuxTarget>
+    <IsMacOSTarget Condition="'$(_TargetOS)' == 'macos'">true</IsMacOSTarget>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(IsWindowsTarget)' == 'true'">
+    <TargetFramework>$(TargetFramework)-$(WindowsTargetVersion)</TargetFramework>
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+    <ApplicationIcon>..\LightStudio.LightPlayer\Assets\light-logo.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsLinuxTarget)' == 'true'">
+    <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
+    <AvaloniaAccessUnstablePrivateApis>true</AvaloniaAccessUnstablePrivateApis>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsMacOSTarget)' == 'true'">
+    <DefineConstants>$(DefineConstants);MACOS</DefineConstants>
+    <AvaloniaAccessUnstablePrivateApis>true</AvaloniaAccessUnstablePrivateApis>
+  </PropertyGroup>
+  <PropertyGroup Condition="('$(IsMacOSTarget)' == 'true' OR '$(IsWindowsTarget)' == 'true') AND '$(PublishAot)' == 'true'">
+    <DefineConstants>$(DefineConstants);FFMPEG_STATIC</DefineConstants>
+    <EnableStaticFfmpeg>true</EnableStaticFfmpeg>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+    <DefineConstants>$(DefineConstants);SQLITE_VEC_STATIC</DefineConstants>
+    <EnableStaticSqliteVec>true</EnableStaticSqliteVec>
+    <EnableStaticPhotos>true</EnableStaticPhotos>
+  </PropertyGroup>
+
+  <!--
+    Desktop windowing backends and AppBuilder.UsePlatformDetect(). This meta-package
+    pulls in the X11 / Win32 / macOS Avalonia backends and is intentionally kept out
+    of the shared library so non-desktop heads (Android) do not depend on it.
+  -->
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Win32" />
+    <PackageReference Include="Avalonia.FreeDesktop" />
+    <PackageReference Include="Avalonia.HarfBuzz" />
+    <PackageReference Condition="'$(IsLinuxTarget)' == 'true'" Include="Avalonia.Wayland" />
+    <PackageReference Condition="'$(IsMacOSTarget)' == 'true'" Include="Avalonia.Native" />
+    <PackageReference Condition="'$(IsLinuxTarget)' == 'true'" Include="Tmds.DBus.Protocol" />
+    <PackageReference Condition="'$(IsLinuxTarget)' == 'true'" Include="SQLitePCLRaw.bundle_sqlite3" />
+    <PackageReference Condition="'$(IsMacOSTarget)' == 'true'" Include="SQLitePCLRaw.bundle_e_sqlite3" />
+    <PackageReference Condition="'$(IsWindowsTarget)' == 'true'" Include="NAudio.Wasapi" />
+    <PackageReference Condition="'$(IsWindowsTarget)' == 'true'" Include="SQLitePCLRaw.provider.winsqlite3" />
+    <PackageReference Condition="'$(IsLinuxTarget)' != 'true'" Include="LightStudio.Ffmpeg" />
+    <PackageReference Include="LightStudio.Photos" />
+    <PackageReference Include="LightStudio.AvaloniaStatic" />
+    <PackageReference Condition="'$(IsMacOSTarget)' == 'true'" Include="LightStudio.AvaloniaStatic.Native" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(PublishAot)' == 'true'">
+    <DirectPInvoke Include="__Internal;vec0" />
+    <DirectPInvoke Include="liblcms2" />
+    <DirectPInvoke Include="libraw" />
+    <DirectPInvoke Include="libjpegxr" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsLinuxTarget)' != 'true'">
+    <Compile Remove="Services\Mpris\**\*.cs" />
+    <Compile Remove="Services\SingleInstance\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsWindowsTarget)' != 'true'">
+    <Compile Remove="Windows\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsMacOSTarget)' != 'true'">
+    <Compile Remove="Apple\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsLinuxTarget)' != 'true'">
+    <Compile Remove="Linux\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LightStudio.Logging\LightStudio.Logging.csproj" />
+    <ProjectReference Include="..\LightStudio.LocalServices\LightStudio.LocalServices.csproj" />
+    <ProjectReference Condition="'$(IsWindowsTarget)' == 'true'" Include="..\LightStudio.Inference.WindowsML\LightStudio.Inference.WindowsML.csproj" />
+    <ProjectReference Condition="'$(IsWindowsTarget)' != 'true'" Include="..\LightStudio.Inference.Onnx\LightStudio.Inference.Onnx.csproj" />
+    <ProjectReference Include="..\LightStudio.Lyrics.Jint\LightStudio.Lyrics.Jint.csproj" />
+    <ProjectReference Include="..\LightStudio.LightPlayer\LightStudio.LightPlayer.csproj" />
+    <ProjectReference Include="..\LightStudio.RemoteApi\LightStudio.RemoteApi.csproj" />
+    <ProjectReference Include="..\LightStudio.RemoteServices\LightStudio.RemoteServices.csproj" />
+    <ProjectReference Include="..\LightStudio.MediaLibraryCore.Contracts\LightStudio.MediaLibraryCore.Contracts.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <NativeBindingsEnabled>true</NativeBindingsEnabled>
+  </PropertyGroup>
+</Project>

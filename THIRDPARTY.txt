@@ -1,0 +1,197 @@
+Light Player — Third-Party Notices
+==================================
+
+Light Player is built on the following third-party components. Each remains the
+property of its respective authors and is used under the terms of the license
+noted below. The complete license text for every component is available at the
+referenced URL.
+
+
+User-interface framework
+------------------------
+Avalonia
+  (Avalonia, Avalonia.Desktop, Avalonia.Android, Avalonia.Themes.Fluent)
+  License: MIT
+  https://github.com/AvaloniaUI/Avalonia/blob/main/licence.md
+
+Inter typeface  (Avalonia.Fonts.Inter)
+  License: SIL Open Font License 1.1
+  https://github.com/rsms/inter/blob/master/LICENSE.txt
+
+Noto Sans CJK SC typeface
+  (embedded in the WebAssembly build as the CJK font fallback; the browser
+   backend has no access to system fonts)
+  License: SIL Open Font License 1.1
+  https://github.com/notofonts/noto-cjk/blob/main/Sans/LICENSE
+
+CommunityToolkit.Mvvm
+  License: MIT
+  https://github.com/CommunityToolkit/dotnet/blob/main/License.md
+
+Net.Codecrete.QrCodeGenerator
+  License: MIT
+  https://github.com/manuelbl/QrCodeGenerator/blob/master/LICENSE.txt
+
+Terminal.Gui
+  (terminal user interface for the server configure command)
+  License: MIT
+  https://github.com/tui-cs/Terminal.Gui/blob/v2.4.17/LICENSE
+
+
+Audio playback
+--------------
+NAudio  (NAudio.Wasapi and NAudio.Core; Windows WASAPI playback)
+  License: MIT
+  https://github.com/naudio/NAudio/blob/master/license.txt
+
+PulseAudio
+  (system libpulse client library used by Linux desktop playback)
+  License: GNU LGPL v2.1-or-later
+  https://gitlab.freedesktop.org/pulseaudio/pulseaudio/-/blob/master/LICENSE
+
+FFmpeg
+  (native libavcodec / libavformat / libavutil / … shared libraries, provided by
+   the host OS, the Flatpak runtime, the LightStudio.Ffmpeg.osx-arm64 package on
+   macOS, or LightStudio.Ffmpeg.Android on Android)
+  License: GNU LGPL v2.1-or-later (some optional components are GPL)
+  https://www.ffmpeg.org/legal.html
+
+
+JPEG XR photo decoding
+----------------------
+jxrlib (native JPEG XR codec)
+  BSD 2-Clause License
+
+Copyright (c) Microsoft Corp.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+RAW photo decoding
+------------------
+LibRaw
+  License: GNU LGPL v2.1
+  https://github.com/LibRaw/LibRaw/blob/0.22.1/LICENSE.LGPL
+
+
+Photo color management
+----------------------
+LittleCMS 2
+  License: MIT
+  https://github.com/mm2/Little-CMS/blob/master/COPYING
+
+Adobe Gain Map
+  This product includes Gain Map technology under license by Adobe.
+  https://helpx.adobe.com/camera-raw/using/gain-map.html
+
+
+Photo locations
+---------------
+GeoNames geographical database
+  (place, state, and country names used to label photo locations, embedded as
+   the offline LightStudio.GeoNames database)
+  License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+  https://creativecommons.org/licenses/by/4.0/
+  Attribution: GeoNames, https://www.geonames.org/
+  Source: https://download.geonames.org/export/dump/
+  Changes: filtered to populated places from cities1000 with their
+  administrative regions, countries, and selected localized names, and encoded
+  as a compact binary search index:
+  https://github.com/hjc4869/LightPlayer-Packages/tree/master/package/geonames
+  GeoNames provides its data "as is", without warranty or any representation of
+  accuracy, timeliness, or completeness.
+
+Media library & persistence
+---------------------------
+Microsoft.Windows.AI.MachineLearning and DirectML (Windows)
+  License: Microsoft Software License Terms, with included third-party notices
+  https://www.nuget.org/packages/Microsoft.Windows.AI.MachineLearning/2.3.42/License
+  Dynamically acquired execution providers have their own license terms:
+  https://learn.microsoft.com/windows/ai/new-windows-ml/supported-execution-providers
+
+ONNX Runtime and Dawn
+  Licenses: MIT (ONNX Runtime), BSD 3-Clause (Dawn), and included dependency notices
+  https://github.com/microsoft/onnxruntime/blob/main/LICENSE
+  https://dawn.googlesource.com/dawn/+/refs/heads/main/LICENSE
+
+LiteRT and .NET for Android bindings (Android photo inference)
+  Licenses: Apache License 2.0 (LiteRT), MIT (bindings), and included dependency notices
+  https://github.com/google-ai-edge/LiteRT/blob/main/LICENSE
+  https://www.nuget.org/packages/Xamarin.Google.AI.Edge.LiteRT/2.1.5/License
+
+Microsoft.ML.Tokenizers
+  License: MIT
+  https://github.com/dotnet/machinelearning/blob/main/LICENSE
+
+MathNet.Numerics (audio separation transforms)
+  License: MIT
+  https://github.com/mathnet/mathnet-numerics/blob/master/LICENSE.md
+
+SQLite  (native database engine)
+  License: Public Domain
+  https://www.sqlite.org/copyright.html
+
+sqlite-vec
+  License: MIT
+  https://github.com/asg017/sqlite-vec/blob/main/LICENSE-MIT
+
+SQLitePCLRaw
+  (SQLitePCLRaw.core, .provider.winsqlite3, .bundle_sqlite3, .bundle_e_sqlite3)
+  License: Apache License 2.0
+  https://github.com/ericsink/SQLitePCL.raw/blob/main/LICENSE.TXT
+
+Microsoft.Data.Sqlite
+  License: MIT
+  https://github.com/dotnet/efcore/blob/main/LICENSE.txt
+
+Jint  (JavaScript engine for lyric-source scripts)
+  License: BSD 2-Clause
+  https://github.com/sebastienros/jint/blob/main/LICENSE.txt
+
+
+.NET runtime & libraries
+------------------------
+.NET Runtime and Microsoft.Extensions.*
+  (Caching.Memory, Configuration, Logging, and the .NET base class libraries)
+  License: MIT
+  https://github.com/dotnet/runtime/blob/main/LICENSE.TXT
+
+
+Platform integration
+--------------------
+Tmds.DBus.Protocol  (Linux D-Bus / MPRIS integration)
+  License: MIT
+  https://github.com/tmds/Tmds.DBus/blob/main/COPYING
+
+AndroidX  (Xamarin.AndroidX.Core.SplashScreen)
+  License: Apache License 2.0
+  https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt
+
+
+Packaging
+---------
+WiX Toolset 5.0.2
+  (build tooling and the WixStandardBootstrapperApplication embedded in Windows
+   setup executables)
+  License: Microsoft Reciprocal License (MS-RL)
+  Source: https://github.com/wixtoolset/wix/tree/v5.0.2
+  https://github.com/wixtoolset/wix/blob/v5.0.2/LICENSE.TXT

@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             x:Class="LightStudio.LightPlayer.Views.Pages.PhotoSearchPageView"
+             x:DataType="vm:PhotoSearchPageViewModel">
+    <UserControl.Styles>
+        <Style Selector="ItemsControl.photoResults">
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <controls:UniformTileGrid MinItemWidth="270" MinItemHeight="165" MinColumnSpacing="4" MinRowSpacing="4" />
+                </ItemsPanelTemplate>
+            </Setter>
+            <Setter Property="ItemTemplate">
+                <DataTemplate x:DataType="models:VideoTileModel"><Viewbox><controls:VideoTile /></Viewbox></DataTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ItemsControl.photoResults.narrow">
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+            </Setter>
+            <Setter Property="ItemTemplate">
+                <DataTemplate x:DataType="models:VideoTileModel"><controls:VideoListRow /></DataTemplate>
+            </Setter>
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="Auto,Auto,*" MaxWidth="1180" HorizontalAlignment="Stretch">
+        <Grid x:Name="SearchHeader" ColumnDefinitions="Auto,*,Auto" Margin="24,20,24,12">
+            <Button Classes="icon" Command="{Binding BackCommand}" IsVisible="{Binding ShowBackButton}"
+                    Margin="0,0,12,0" VerticalAlignment="Center"
+                    ToolTip.Tip="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconArrowLeft}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+            </Button>
+            <TextBlock Grid.Column="1" Text="{Binding HeaderText}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <Button Grid.Column="2" Classes="icon" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" Margin="12,0,0,0"
+                    ToolTip.Tip="{Binding Common_Refresh, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconRefresh}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+            </Button>
+        </Grid>
+        <TextBlock Grid.Row="1" Text="{Binding ErrorText}" TextWrapping="Wrap" Margin="24,0,24,8" FontSize="12"
+                   Foreground="{DynamicResource AppFavoriteBrush}" />
+        <ScrollViewer Grid.Row="2" x:Name="PhotosScrollViewer">
+            <ItemsControl Classes="photoResults" Classes.narrow="{Binding IsNarrow}"
+                          ItemsSource="{Binding Items}" Margin="16,0,16,24" />
+        </ScrollViewer>
+        <controls:EmptyState Grid.Row="2" IsVisible="{Binding ShowEmpty}"
+                             Header="{Binding Search_NoResultsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             Description="{Binding Search_NoResultsDescription, Source={x:Static strings:LocalizedStrings.Instance}}" />
+        <ProgressBar Grid.Row="2" Height="3" MinHeight="0" VerticalAlignment="Bottom"
+                     IsVisible="{Binding IsBusy}" IsIndeterminate="{Binding IsBusy}" />
+    </Grid>
+</UserControl>

@@ -3,9 +3,7 @@ using System.Text;
 
 namespace LightStudio.MediaLibraryCore.CueIndex
 {
-    /// <summary>
-    /// A CueSheet class used to create, open, edit, and save cuesheets.
-    /// </summary>
+    /// <summary>Parses and serializes CUE sheets.</summary>
     class CueSheet
     {
         #region Private Variables
@@ -14,7 +12,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
         private string m_Catalog = "";
         private string m_CDTextFile = "";
         private string[] m_Comments = new string[0];
-        // strings that don't belong or were mistyped in the global part of the cue
+        // Unrecognized global CUE lines are preserved when the sheet is serialized.
         private string[] m_Garbage = new string[0];
         private string m_Performer = "";
         private string m_Songwriter = "";
@@ -26,11 +24,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
         #region Properties
 
 
-        /// <summary>
-        /// Returns/Sets track in this cuefile.
-        /// </summary>
-        /// <param name="tracknumber">The track in this cuefile.</param>
-        /// <returns>Track at the tracknumber.</returns>
+        /// <summary>Gets or sets a track by its zero-based position.</summary>
         public Track this[int tracknumber]
         {
             get
@@ -45,8 +39,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
 
         /// <summary>
-        /// The catalog number must be 13 digits long and is encoded according to UPC/EAN rules.
-        /// Example: CATALOG 1234567890123
+        /// Gets or sets the 13-digit UPC/EAN catalog number.
         /// </summary>
         public string Catalog
         {
@@ -54,62 +47,48 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             set { m_Catalog = value; }
         }
 
-        /// <summary>
-        /// This command is used to specify the name of the file that contains the encoded CD-TEXT information for the disc. This command is only used with files that were either created with the graphical CD-TEXT editor or generated automatically by the software when copying a CD-TEXT enhanced disc.
-        /// </summary>
+        /// <summary>Gets or sets the file containing encoded CD-TEXT data.</summary>
         public string CDTextFile
         {
             get { return m_CDTextFile; }
             set { m_CDTextFile = value; }
         }
 
-        /// <summary>
-        /// This command is used to put comments in your CUE SHEET file.
-        /// </summary>
+        /// <summary>Gets or sets global REM comment values.</summary>
         public string[] Comments
         {
             get { return m_Comments; }
             set { m_Comments = value; }
         }
 
-        /// <summary>
-        /// Lines in the cue file that don't belong or have other general syntax errors.
-        /// </summary>
+        /// <summary>Gets unrecognized global CUE lines.</summary>
         public string[] Garbage
         {
             get { return m_Garbage; }
         }
 
-        /// <summary>
-        /// This command is used to specify the name of a perfomer for a CD-TEXT enhanced disc.
-        /// </summary>
+        /// <summary>Gets or sets the disc performer.</summary>
         public string Performer
         {
             get { return m_Performer; }
             set { m_Performer = value; }
         }
 
-        /// <summary>
-        /// This command is used to specify the name of a songwriter for a CD-TEXT enhanced disc.
-        /// </summary>
+        /// <summary>Gets or sets the disc songwriter.</summary>
         public string Songwriter
         {
             get { return m_Songwriter; }
             set { m_Songwriter = value; }
         }
 
-        /// <summary>
-        /// The title of the entire disc as a whole.
-        /// </summary>
+        /// <summary>Gets or sets the disc title.</summary>
         public string Title
         {
             get { return m_Title; }
             set { m_Title = value; }
         }
 
-        /// <summary>
-        /// The array of tracks on the cuesheet.
-        /// </summary>
+        /// <summary>Gets or sets the tracks in the sheet.</summary>
         public Track[] Tracks
         {
             get { return m_Tracks; }
@@ -120,17 +99,9 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
         #region Constructors
 
-        /// <summary>
-        /// Create a cue sheet from scratch.
-        /// </summary>
         public CueSheet()
         { }
 
-        /// <summary>
-        /// Parse a cue sheet string.
-        /// </summary>
-        /// <param name="cueString">A string containing the cue sheet data.</param>
-        /// <param name="lineDelims">Line delimeters; set to "(char[])null" for default delimeters.</param>
         public CueSheet(string cueString, char[] lineDelims)
         {
             if (lineDelims == null)
@@ -147,10 +118,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
         #region Methods
 
-        /// <summary>
-        /// Removes any empty lines, elimating possible trouble.
-        /// </summary>
-        /// <param name="file"></param>
         private void RemoveEmptyLines(ref string[] file)
         {
             int itemsRemoved = 0;
@@ -175,8 +142,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
         private void ParseCue(string[] file)
         {
-            //-1 means still global, 
-            //all others are track specific
+            // -1 selects global directives; nonnegative values select a track.
             int trackOn = -1;
             AudioFile currentFile = new AudioFile();
 
@@ -185,7 +151,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                 file[i] = file[i].Trim();
                 var propLen = file[i].IndexOf(' ');
 
-                // Invalid line
                 if (propLen < 0)
                 {
                     continue;
@@ -232,7 +197,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                     case "TRACK":
                         trackOn++;
                         ParseTrack(file[i], trackOn);
-                        if (currentFile.Filename != "") //if there's a file
+                        if (currentFile.Filename != "")
                         {
                             m_Tracks[trackOn].DataFile = currentFile;
                             currentFile = new AudioFile();
@@ -240,7 +205,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                         break;
                     default:
                         ParseGarbage(file[i], trackOn);
-                        //save discarded junk and place string[] with track it was found in
                         break;
                 }
             }
@@ -249,7 +213,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
         private void ParseComment(string line, int trackOn)
         {
-            //remove "REM" (we know the line has already been .Trim()'ed)
             line = line.Substring(line.IndexOf(' '), line.Length - line.IndexOf(' ')).Trim();
 
             if (trackOn == -1)
@@ -276,7 +239,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
             line = line.Substring(0, line.LastIndexOf(' ')).Trim();
 
-            //if quotes around it, remove them.
             if (line[0] == '"')
             {
                 line = line.Substring(1, line.LastIndexOf('"') - 1);
@@ -328,9 +290,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                             break;
                     }
 
-                    //processing for a case when there isn't any more spaces
-                    //i.e. avoiding the "index cannot be less than zero" error
-                    //when calling line.IndexOf(' ')
+                    // A final flag has no following space.
                     try
                     {
                         temp = line.Substring(line.IndexOf(' '), line.Length - line.IndexOf(' '));
@@ -340,7 +300,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                         temp = line.Substring(0, line.Length);
                     }
 
-                    //if the flag hasn't already been processed
                     if (temp.ToUpper().Trim() != line.ToUpper().Trim())
                     {
                         ParseFlags(temp, trackOn);
@@ -381,12 +340,10 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
             if (indexType == "INDEX")
             {
-                //read the index number
                 number = Convert.ToInt32(tempString.Substring(0, tempString.IndexOf(' ')));
                 tempString = tempString.Substring(tempString.IndexOf(' '), tempString.Length - tempString.IndexOf(' ')).Trim();
             }
 
-            //extract the minutes, seconds, and frames
             minutes = Convert.ToInt32(tempString.Substring(0, tempString.IndexOf(':')));
             seconds = Convert.ToInt32(tempString.Substring(tempString.IndexOf(':') + 1, tempString.LastIndexOf(':') - tempString.IndexOf(':') - 1));
             frames = Convert.ToInt32(tempString.Substring(tempString.LastIndexOf(':') + 1, tempString.Length - tempString.LastIndexOf(':') - 1));
@@ -411,7 +368,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
             line = line.Substring(line.IndexOf(' '), line.Length - line.IndexOf(' ')).Trim();
 
-            //get rid of the quotes
             if (line[0] == '"')
             {
                 line = line.Substring(1, line.LastIndexOf('"') - 1);
@@ -472,11 +428,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             }
         }
 
-        /// <summary>
-        /// Parses the TRACK command. 
-        /// </summary>
-        /// <param name="line">The line in the cue file that contains the TRACK command.</param>
-        /// <param name="trackOn">The track currently processing.</param>
         private void ParseTrack(string line, int trackOn)
         {
             string tempString;
@@ -491,20 +442,12 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             catch (Exception)
             { throw; }
 
-            //find the data type.
             tempString = tempString.Substring(tempString.IndexOf(' '), tempString.Length - tempString.IndexOf(' ')).Trim();
 
             AddTrack(trackNumber, tempString);
         }
 
-        /// <summary>
-        /// Reallocates an array with a new size, and copies the contents
-        /// of the old array to the new array.
-        /// </summary>
-        /// <param name="oldArray">The old array, to be reallocated.</param>
-        /// <param name="newSize">The new array size.</param>
-        /// <returns>A new array with the same contents.</returns>
-        /// <remarks >Useage: int[] a = {1,2,3}; a = (int[])ResizeArray(a,5);</remarks>
+        /// <summary>Returns a copy of an array with the requested size.</summary>
         public static System.Array ResizeArray(System.Array oldArray, int newSize)
         {
             int oldSize = oldArray.Length;
@@ -516,22 +459,12 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             return newArray;
         }
 
-        /// <summary>
-        /// Add a track to the current cuesheet.
-        /// </summary>
-        /// <param name="tracknumber">The number of the said track.</param>
-        /// <param name="datatype">The datatype of the track.</param>
         private void AddTrack(int tracknumber, string datatype)
         {
             m_Tracks = (Track[])ResizeArray(m_Tracks, m_Tracks.Length + 1);
             m_Tracks[m_Tracks.Length - 1] = new Track(tracknumber, datatype);
         }
 
-        /// <summary>
-        /// Add a track to the current cuesheet
-        /// </summary>
-        /// <param name="title">The title of the track.</param>
-        /// <param name="performer">The performer of this track.</param>
         public void AddTrack(string title, string performer)
         {
             m_Tracks = (Track[])ResizeArray(m_Tracks, m_Tracks.Length + 1);
@@ -552,12 +485,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             m_Tracks[m_Tracks.Length - 1].DataFile = new AudioFile(filename, fType);
         }
 
-        /// <summary>
-        /// Add a track to the current cuesheet
-        /// </summary>
-        /// <param name="title">The title of the track.</param>
-        /// <param name="performer">The performer of this track.</param>
-        /// <param name="datatype">The datatype for the track (typically DataType.Audio)</param>
         public void AddTrack(string title, string performer, DataType datatype)
         {
             m_Tracks = (Track[])ResizeArray(m_Tracks, m_Tracks.Length + 1);
@@ -567,20 +494,12 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             m_Tracks[m_Tracks.Length - 1].Title = title;
         }
 
-        /// <summary>
-        /// Add a track to the current cuesheet
-        /// </summary>
-        /// <param name="track">Track object to add to the cuesheet.</param>
         public void AddTrack(Track track)
         {
             m_Tracks = (Track[])ResizeArray(m_Tracks, m_Tracks.Length + 1);
             m_Tracks[m_Tracks.Length - 1] = track;
         }
 
-        /// <summary>
-        /// Remove a track from the cuesheet.
-        /// </summary>
-        /// <param name="trackIndex">The index of the track you wish to remove.</param>
         public void RemoveTrack(int trackIndex)
         {
             for (int i = trackIndex; i < m_Tracks.Length - 1; i++)
@@ -590,42 +509,22 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             m_Tracks = (Track[])ResizeArray(m_Tracks, m_Tracks.Length - 1);
         }
 
-        /// <summary>
-        /// Add index information to an existing track.
-        /// </summary>
-        /// <param name="trackIndex">The array index number of track to be modified</param>
-        /// <param name="indexNum">The index number of the new index</param>
-        /// <param name="minutes">The minute value of the new index</param>
-        /// <param name="seconds">The seconds value of the new index</param>
-        /// <param name="frames">The frames value of the new index</param>
         public void AddIndex(int trackIndex, int indexNum, int minutes, int seconds, int frames)
         {
             m_Tracks[trackIndex].AddIndex(indexNum, minutes, seconds, frames);
         }
 
-        /// <summary>
-        /// Remove an index from a track.
-        /// </summary>
-        /// <param name="trackIndex">The array-index of the track.</param>
-        /// <param name="indexIndex">The index of the Index you wish to remove.</param>
+        /// <summary>Removes an index by array position rather than by its CUE index number.</summary>
         public void RemoveIndex(int trackIndex, int indexIndex)
         {
-            //Note it is the index of the Index you want to delete, 
-            //which may or may not correspond to the number of the index.
             m_Tracks[trackIndex].RemoveIndex(indexIndex);
         }
 
-        /// <summary>
-        /// Save the cue sheet file to specified location.
-        /// </summary>
-        /// <param name="filename">Filename of destination cue sheet file.</param>
+        /// <summary>Returns the serialized CUE sheet content.</summary>
         public string SaveCue() => this.ToString();
 
 
-        /// <summary>
-        /// Method to output the cuesheet into a single formatted string.
-        /// </summary>
-        /// <returns>The entire cuesheet formatted to specification.</returns>
+        /// <summary>Serializes the CUE sheet.</summary>
         public override string ToString()
         {
             StringBuilder output = new StringBuilder();
@@ -666,7 +565,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
                 if (i != m_Tracks.Length - 1)
                 {
-                    //add line break for each track except last
                     output.Append(Environment.NewLine);
                 }
             }
@@ -676,16 +574,13 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
         #endregion
 
-        //TODO: Fix calculation bugs; currently generates erroneous IDs.
         #region CalculateDiscIDs
-        //For complete CDDB/freedb discID calculation, see:
-        //http://www.freedb.org/modules.php?name=Sections&sop=viewarticle&artid=6
 
         public string CalculateCDDBdiscID()
         {
             int i, t = 0, n = 0;
 
-            /* For backward compatibility this algorithm must not change */
+            // Persisted disc IDs require this calculation to remain stable.
 
             i = 0;
 
@@ -694,8 +589,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                 n = n + cddb_sum((lastTrackIndex(m_Tracks[i]).Minutes * 60) + lastTrackIndex(m_Tracks[i]).Seconds);
                 i++;
             }
-
-            //Console.WriteLine(n.ToString());
 
             t = ((lastTrackIndex(m_Tracks[m_Tracks.Length - 1]).Minutes * 60) + lastTrackIndex(m_Tracks[m_Tracks.Length - 1]).Seconds) -
                 ((lastTrackIndex(m_Tracks[0]).Minutes * 60) + lastTrackIndex(m_Tracks[0]).Seconds);
@@ -709,8 +602,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
         private int cddb_sum(int n)
         {
             int ret;
-
-            /* For backward compatibility this algorithm must not change */
 
             ret = 0;
 

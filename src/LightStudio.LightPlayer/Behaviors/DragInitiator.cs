@@ -18,14 +18,21 @@ namespace LightStudio.LightPlayer.Behaviors;
 /// </remarks>
 internal sealed class DragInitiator
 {
-    private const double DragThreshold = 4;
+    private const double DragThreshold = 40;
+    private static readonly DataFormat<string> MacOsDragMarker =
+        DataFormat.CreateStringApplicationFormat("LightStudio.LightPlayer.InternalDrag");
 
     private PointerPressedEventArgs? pressed;
     private Point origin;
 
+    /// <summary>True after the current gesture has moved far enough to start a drag.</summary>
+    public bool HasStarted { get; private set; }
+
     /// <summary>Records a potential drag start. Call from a pointer-pressed handler.</summary>
     public void Arm(PointerPressedEventArgs e, Visual reference)
     {
+        HasStarted = false;
+
         // Internal drags are mouse/pen only. On a touch screen a press-and-move is a tap or a
         // scroll, so starting a drag there fights with those gestures and cripples usability;
         // ignore touch entirely. External file drops don't come through here, so they still work.
@@ -75,7 +82,8 @@ internal sealed class DragInitiator
             return;
         }
 
-        // Clear before awaiting so a cancelled/failed drag doesn't leave us armed.
+        // Clear before awaiting so a canceled/failed drag doesn't leave us armed.
+        HasStarted = true;
         Disarm();
 
         var data = dataFactory();
@@ -84,13 +92,24 @@ internal sealed class DragInitiator
             return;
         }
 
+        if (OperatingSystem.IsMacOS())
+        {
+            foreach (var item in data.Items)
+            {
+                if (item is DataTransferItem mutableItem)
+                {
+                    mutableItem.Set(MacOsDragMarker, "1");
+                }
+            }
+        }
+
         try
         {
             await DragDrop.DoDragDropAsync(trigger, data, effects);
         }
         catch
         {
-            // The drag may be cancelled or the platform source unavailable; ignore.
+            // The drag may be canceled or the platform source unavailable; ignore.
         }
     }
 }

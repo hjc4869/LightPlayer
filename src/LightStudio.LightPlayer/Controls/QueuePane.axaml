@@ -1,8 +1,12 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
              xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
              mc:Ignorable="d"
              d:DesignWidth="360"
@@ -12,19 +16,18 @@
              x:DataType="vm:QueuePaneViewModel">
 
     <UserControl.Styles>
-        <Style Selector="Border.queueItem.playing TextBlock.queueTitle">
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
-        </Style>
-
         <!-- Queue rows: strip the default ListBoxItem chrome so the 48px template
              drives the row height, and keep a subtle hover affordance. -->
         <Style Selector="ListBox.queueList ListBoxItem">
             <Setter Property="Padding" Value="0" />
             <Setter Property="MinHeight" Value="0" />
         </Style>
+        <!-- Round the hover/selection fill so the queue matches the library's TrackRow rows. -->
+        <Style Selector="ListBox.queueList ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
         <Style Selector="ListBox.queueList ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
         </Style>
 
         <!-- The selection highlight is only meaningful while editing: show it then,
@@ -40,7 +43,7 @@
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector="ListBox.queueList:not(.editing) ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
         </Style>
 
         <!-- Active (pressed-in) look for the Edit toggle while edit mode is on. -->
@@ -57,135 +60,328 @@
         <Style Selector="ListBox.queueList.editing CheckBox.selectCheck">
             <Setter Property="IsVisible" Value="True" />
         </Style>
+        <Style Selector="Border#PaneBorder">
+            <Setter Property="Width" Value="360" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="BorderThickness" Value="1,0,0,0" />
+            <Setter Property="Background" Value="{DynamicResource AppQueueSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppChromeDividerBrush}" />
+        </Style>
+        <Style Selector="Border#PaneBorder.fullPage">
+            <Setter Property="Width" Value="NaN" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Border#PaneBorder.floating">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder#QueueBackdrop">
+            <Setter Property="IsVisible" Value="False" />
+            <Setter Property="BackdropStyle" Value="{DynamicResource AppBackdropStyle}" />
+            <Setter Property="FallbackColor" Value="{DynamicResource AppQueueBackdropColor}" />
+            <Setter Property="TintColor" Value="{DynamicResource AppQueueBackdropTintColor}" />
+        </Style>
+        <Style Selector="Border#PaneBorder.floating lmr|BackdropBorder#QueueBackdrop">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <!-- Apple layout: docked, the queue sits on the sidebar's material, taking up the colors of
+             the page beside it; opened over the page, it floats as an inset frosted panel. -->
+        <Style Selector="Border#PaneBorder.apple:not(.fullPage)">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Style Selector="^ lmr|BackdropBorder#QueueBackdrop">
+                <Setter Property="IsVisible" Value="True" />
+                <Setter Property="BackdropStyle" Value="Blur" />
+                <Setter Property="LightSpill" Value="{DynamicResource AppQueueLightSpill}" />
+                <Setter Property="FallbackColor" Value="{DynamicResource AppNavBackdropColor}" />
+                <Setter Property="TintColor" Value="{DynamicResource AppNavBackdropTintColor}" />
+            </Style>
+        </Style>
+        <Style Selector="Border#PaneBorder.apple.floating:not(.fullPage)">
+            <Setter Property="Width" Value="344" />
+            <Setter Property="Margin" Value="8" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+            <Setter Property="BoxShadow" Value="0 8 28 0 #2E000000" />
+            <Style Selector="^ lmr|BackdropBorder#QueueBackdrop">
+                <Setter Property="LightSpill" Value="0" />
+                <Setter Property="FallbackColor" Value="{DynamicResource AppQueueBackdropColor}" />
+                <Setter Property="TintColor" Value="{DynamicResource AppQueueBackdropTintColor}" />
+            </Style>
+        </Style>
+        <Style Selector="Border#PaneBorder.floating.backdrop, Border#PaneBorder.apple.backdrop:not(.fullPage)">
+            <Style Selector="^ ListBox.queueList ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropHoverBrush}" />
+            </Style>
+            <Style Selector="^ ListBox.queueList.editing ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropSelectionBrush}" />
+            </Style>
+            <Style Selector="^ ListBox.queueList.editing ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropSelectedHoverBrush}" />
+            </Style>
+            <Style Selector="^ ListBox.queueList ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropPressedBrush}" />
+            </Style>
+            <Style Selector="^ Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropHoverBrush}" />
+            </Style>
+            <Style Selector="^ Button.icon.active /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropSelectionBrush}" />
+            </Style>
+            <Style Selector="^ Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropPressedBrush}" />
+            </Style>
+        </Style>
+        <Style Selector="Grid#QueueHeader">
+            <Setter Property="Margin" Value="0,28,0,8" />
+        </Style>
+        <Style Selector="TextBlock.queueHeaderTitle">
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Margin" Value="28,0,0,0" />
+        </Style>
+        <Style Selector="ListBox.queueList">
+            <Setter Property="Padding" Value="12,4,12,8" />
+        </Style>
+        <Style Selector="Border.queueItem">
+            <Setter Property="Height" Value="48" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+        <Style Selector="Panel.playingSlot">
+            <Setter Property="Width" Value="10" />
+        </Style>
+        <Style Selector="Border.playingIndicator">
+            <Setter Property="Margin" Value="0,8" />
+        </Style>
+        <Style Selector="TextBlock.queueArtist">
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <!-- Apple layout, docked: the sidebar's width and surface, compact rows, and a header centered
+             on the toolbar's page title. Keep the row and inset values linked to QueuePane.axaml.cs. -->
+        <Style Selector="Border#PaneBorder.apple:not(.floating):not(.fullPage)">
+            <Setter Property="Width" Value="{Binding PinnedWidth}" />
+            <Setter Property="Background" Value="{DynamicResource AppNavSurfaceBrush}" />
+            <Style Selector="^ Grid#QueueHeader">
+                <!-- Keep linked to the AppleTopBar height in ShellView.axaml. -->
+                <Setter Property="Height" Value="52" />
+                <Setter Property="Margin" Value="0" />
+            </Style>
+            <!-- Matches the toolbar's page title; the left edge lines up with the row text. -->
+            <Style Selector="^ TextBlock.queueHeaderTitle">
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="Margin" Value="16,0,0,0" />
+            </Style>
+            <Style Selector="^ Button.queueClose">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+            <Style Selector="^ ListBox.queueList">
+                <Setter Property="Padding" Value="6,4,6,8" />
+            </Style>
+            <Style Selector="^ Border.queueItem">
+                <Setter Property="Height" Value="40" />
+                <Setter Property="Padding" Value="3,2" />
+            </Style>
+            <Style Selector="^ Panel.playingSlot">
+                <Setter Property="Width" Value="7" />
+            </Style>
+            <Style Selector="^ Border.playingIndicator">
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="Height" Value="14" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+            <Style Selector="^ TextBlock.queueTitle">
+                <Setter Property="FontSize" Value="12" />
+            </Style>
+            <Style Selector="^ TextBlock.queueArtist">
+                <Setter Property="FontSize" Value="11" />
+            </Style>
+        </Style>
     </UserControl.Styles>
 
-    <Border Width="360"
-            HorizontalAlignment="Left"
-            Background="{DynamicResource AppPageBackgroundBrush}"
-            BorderBrush="{DynamicResource AppDividerBrush}"
-            BorderThickness="1,0,0,0">
-        <Grid RowDefinitions="Auto,*,Auto" Margin="0,32,0,8">
-            <TextBlock Grid.Row="0"
-                       Text="NOW PLAYING"
-                       FontSize="16"
-                       FontWeight="Bold"
-                       Margin="28,0,0,8"
-                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+    <Border x:Name="PaneBorder"
+            Classes.floating="{Binding IsTemporarilyOpen}"
+            Classes.backdrop="{DynamicResource AppHasBackdropEffects}"
+            Classes.apple="{DynamicResource AppIsAppleChrome}"
+            Classes.fullPage="{Binding IsFullPage, RelativeSource={RelativeSource AncestorType=controls:QueuePane}}">
+        <Panel lmr:BackdropBorder.ForegroundSource="{Binding #QueueBackdrop}">
+            <lmr:BackdropBorder x:Name="QueueBackdrop"
+                                     IsHitTestVisible="False"
+                                     CornerRadius="{Binding #PaneBorder.CornerRadius}" />
+            <Grid RowDefinitions="Auto,*,Auto" ClipToBounds="True" Margin="{Binding IsFullPage, RelativeSource={RelativeSource AncestorType=controls:QueuePane}, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='0,0,0,8'}">
+                <!-- Header (title + close). Hidden in the full-page (narrow) presentation, where the
+                     shell's mobile top bar already shows the "Now Playing" title and the bottom
+                     navigation dismisses the page, so this internal header would be redundant. -->
+                <Grid Grid.Row="0" x:Name="QueueHeader" ColumnDefinitions="*,Auto"
+                      IsVisible="{Binding !IsFullPage, RelativeSource={RelativeSource AncestorType=controls:QueuePane}}">
+                    <TextBlock Grid.Column="0"
+                               Classes="queueHeaderTitle"
+                               Text="{Binding QueuePane_NowPlayingHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               FontWeight="Bold"
+                               VerticalAlignment="Center"
+                               Background="Transparent"
+                               Cursor="Hand"
+                               Tapped="OnNowPlayingHeaderTapped"
+                               Foreground="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                    <Button Grid.Column="1"
+                            Classes="icon queueClose"
+                            Margin="0,0,14,0"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            Command="{Binding CloseCommand}">
+                        <Viewbox Width="12" Height="12">
+                            <Path Data="{StaticResource IconClose}"
+                                  Fill="{lmr:BackdropForeground ResourceKey=AppSecondaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                </Grid>
 
-            <!-- Virtualized ListBox (default VirtualizingStackPanel): the now-playing queue
-                 can hold thousands of items. Padding is applied to the inner ItemsPresenter
-                 (part of the scroll extent), so the bottom inset survives to the end of the
-                 scroll range and doesn't clip the last row's descenders. Selection is enabled
-                 only in edit mode (multi-select with shift-range and Ctrl+A); see code-behind. -->
-            <ListBox Grid.Row="1"
-                     x:Name="QueueList"
-                     Classes="queueList"
-                     Classes.editing="{Binding IsEditMode}"
-                     ItemsSource="{Binding Items}"
-                     Background="Transparent"
-                     BorderThickness="0"
-                     Padding="22,4,12,8"
-                     SelectionMode="Single"
-                     KeyDown="OnQueueKeyDown"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="models:MusicPlaybackItemModel">
-                        <Border Classes="queueItem"
-                                Classes.playing="{Binding IsPlaying}"
-                                Background="Transparent"
-                                Height="48"
-                                Padding="6,4"
-                                Tapped="OnItemTapped"
-                                DoubleTapped="OnItemDoubleTapped">
-                            <Border.ContextFlyout>
-                                <MenuFlyout>
-                                    <MenuItem Header="Play" Click="OnPlayItemClick" />
-                                    <Separator />
-                                    <MenuItem Header="Remove from queue" Click="OnDeleteItemClick" />
-                                </MenuFlyout>
-                            </Border.ContextFlyout>
-                            <Grid ColumnDefinitions="Auto,*">
-                                <CheckBox Grid.Column="0"
-                                          Classes="selectCheck"
-                                          IsHitTestVisible="False"
-                                          IsChecked="{Binding $parent[ListBoxItem].IsSelected, Mode=OneWay}"
-                                          MinWidth="0"
-                                          Padding="0"
-                                          Margin="2,0,10,0"
-                                          VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                    <TextBlock Classes="queueTitle"
-                                               Text="{Binding Title}"
-                                               MaxLines="1"
-                                               TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                                    <TextBlock Text="{Binding Artist}"
-                                               FontSize="12"
-                                               MaxLines="1"
-                                               TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <!-- Virtualized ListBox (default VirtualizingStackPanel): the now-playing queue
+                     can hold thousands of items. Padding is applied to the inner ItemsPresenter
+                     (part of the scroll extent), so the bottom inset survives to the end of the
+                     scroll range and doesn't clip the last row's descenders. Selection is enabled
+                     only in edit mode (multi-select with shift-range and Ctrl+A); see code-behind. -->
+                <controls:ReleaseSelectingListBox Grid.Row="1"
+                         x:Name="QueueList"
+                         Classes="queueList"
+                         Classes.editing="{Binding IsEditMode}"
+                         ItemsSource="{Binding Items}"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         SelectionMode="Single"
+                         KeyDown="OnQueueKeyDown"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <controls:ReleaseSelectingListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:MusicPlaybackItemModel">
+                            <Border Classes="queueItem"
+                                    Background="Transparent"
+                                    Tapped="OnItemTapped"
+                                    DoubleTapped="OnItemDoubleTapped">
+                                <Border.ContextFlyout>
+                                    <MenuFlyout>
+                                        <MenuItem Header="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}" Click="OnPlayItemClick" />
+                                        <Separator />
+                                        <MenuItem Header="{Binding Common_GoToAlbum, Source={x:Static strings:LocalizedStrings.Instance}}" Click="OnOpenAlbumClick" />
+                                        <MenuItem Header="{Binding Common_GoToArtist, Source={x:Static strings:LocalizedStrings.Instance}}" Click="OnOpenArtistClick" />
+                                        <Separator />
+                                        <MenuItem Header="{Binding QueuePane_RemoveFromQueue, Source={x:Static strings:LocalizedStrings.Instance}}" Click="OnDeleteItemClick" />
+                                        <Separator />
+                                        <MenuItem Header="{Binding Common_Properties, Source={x:Static strings:LocalizedStrings.Instance}}" Click="OnPropertiesItemClick" />
+                                        <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                  Click="OnOpenFolderItemClick"
+                                                  IsVisible="{Binding CanOpenContainingFolder}" />
+                                    </MenuFlyout>
+                                </Border.ContextFlyout>
+                                <Grid ColumnDefinitions="Auto,Auto,*">
+                                    <Panel Grid.Column="0" Classes="playingSlot">
+                                        <Border Classes="playingIndicator"
+                                                Width="3"
+                                                HorizontalAlignment="Left"
+                                                CornerRadius="2"
+                                                Background="{DynamicResource AppAccentBrush}"
+                                                IsVisible="{Binding IsPlaying}" />
+                                    </Panel>
+                                    <CheckBox Grid.Column="1"
+                                              Classes="selectCheck"
+                                              IsHitTestVisible="False"
+                                              IsChecked="{Binding $parent[ListBoxItem].IsSelected, Mode=OneWay}"
+                                              MinWidth="0"
+                                              Padding="0"
+                                              Margin="2,0,10,0"
+                                              VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                        <controls:FixedLineTextBlock Classes="queueTitle"
+                                                   Text="{Binding Title}"
+                                                   LineHeight="17"
+                                                   MaxLines="1"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                                        <controls:FixedLineTextBlock Classes="queueArtist"
+                                                   Text="{Binding Artist}"
+                                                   LineHeight="15"
+                                                   MaxLines="1"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{lmr:BackdropForeground ResourceKey=AppSecondaryTextBrush}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </controls:ReleaseSelectingListBox.ItemTemplate>
+                </controls:ReleaseSelectingListBox>
+
+                <!-- Drop insertion indicator: a thin line positioned (from code-behind) at the
+                     boundary where dragged items would be inserted. Left/right insets match the
+                     ListBox content padding so it lines up with the rows. -->
+                <Border Grid.Row="1"
+                        x:Name="DropIndicator"
+                        Height="2"
+                        CornerRadius="1"
+                        Margin="22,0,12,0"
+                        VerticalAlignment="Top"
+                        HorizontalAlignment="Stretch"
+                        IsHitTestVisible="False"
+                        IsVisible="False"
+                        Background="{DynamicResource AppAccentBrush}" />
+
+                <StackPanel Grid.Row="2"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Margin="0,8,0,0"
+                            Spacing="6">
+                    <Button Classes="icon"
+                            Classes.active="{Binding IsEditMode}"
+                            ToolTip.Tip="{Binding QueuePane_EditQueue, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            Command="{Binding ToggleEditCommand}">
+                        <Viewbox Width="20" Height="20">
+                            <Path Data="{StaticResource IconEdit}"
+                                  Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                    <Button Classes="icon"
+                            ToolTip.Tip="{Binding QueuePane_SelectAll, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            IsVisible="{Binding IsEditMode}"
+                            Command="{Binding SelectAllCommand}">
+                        <Viewbox Width="20" Height="20">
+                            <Path Data="{StaticResource IconCheck}"
+                                  Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                    <Button Classes="icon"
+                            ToolTip.Tip="{Binding QueuePane_UnselectAll, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            IsVisible="{Binding IsEditMode}"
+                            Command="{Binding UnselectAllCommand}">
+                        <Rectangle Width="14" Height="14" RadiusX="2" RadiusY="2"
+                                   StrokeThickness="1.5"
+                                   Stroke="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                    </Button>
+                    <Button Classes="icon"
+                            ToolTip.Tip="{Binding QueuePane_DeleteSelected, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            IsVisible="{Binding IsEditMode}"
+                            Click="OnDeleteSelectedClick">
+                        <Viewbox Width="20" Height="20">
+                            <Path Data="{StaticResource IconDelete}"
+                                  Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                    <Button Classes="icon" ToolTip.Tip="{Binding QueuePane_SaveAsPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox Width="20" Height="20">
+                            <Path Data="{StaticResource IconSave}"
+                                  Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                        </Viewbox>
+                        <Button.Flyout>
+                            <Flyout Placement="Top">
+                                <StackPanel Width="220" Spacing="8">
+                                    <TextBox PlaceholderText="{Binding Common_PlaylistName, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                             Text="{Binding PlaylistName, Mode=TwoWay}" />
+                                    <Button HorizontalAlignment="Right"
+                                            Content="{Binding Common_Save, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            Command="{Binding SaveCommand}" />
                                 </StackPanel>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-
-            <!-- Drop insertion indicator: a thin line positioned (from code-behind) at the
-                 boundary where dragged items would be inserted. Left/right insets match the
-                 ListBox content padding so it lines up with the rows. -->
-            <Border Grid.Row="1"
-                    x:Name="DropIndicator"
-                    Height="2"
-                    CornerRadius="1"
-                    Margin="22,0,12,0"
-                    VerticalAlignment="Top"
-                    HorizontalAlignment="Stretch"
-                    IsHitTestVisible="False"
-                    IsVisible="False"
-                    Background="{DynamicResource AppAccentBrush}" />
-
-            <StackPanel Grid.Row="2"
-                        Orientation="Horizontal"
-                        HorizontalAlignment="Center"
-                        Margin="0,8,0,0"
-                        Spacing="6">
-                <Button Classes="icon"
-                        Classes.active="{Binding IsEditMode}"
-                        ToolTip.Tip="Edit queue"
-                        Command="{Binding ToggleEditCommand}">
-                    <Viewbox Width="20" Height="20">
-                        <Path Data="{StaticResource IconEdit}"
-                              Fill="{DynamicResource AppPrimaryTextBrush}" />
-                    </Viewbox>
-                </Button>
-                <Button Classes="icon"
-                        ToolTip.Tip="Delete selected"
-                        IsVisible="{Binding IsEditMode}"
-                        Click="OnDeleteSelectedClick">
-                    <Viewbox Width="20" Height="20">
-                        <Path Data="{StaticResource IconDelete}"
-                              Fill="{DynamicResource AppPrimaryTextBrush}" />
-                    </Viewbox>
-                </Button>
-                <Button Classes="icon" ToolTip.Tip="Save as playlist">
-                    <Viewbox Width="20" Height="20">
-                        <Path Data="{StaticResource IconSave}"
-                              Fill="{DynamicResource AppPrimaryTextBrush}" />
-                    </Viewbox>
-                    <Button.Flyout>
-                        <Flyout Placement="Top">
-                            <StackPanel Width="220" Spacing="8">
-                                <TextBox PlaceholderText="Playlist name"
-                                         Text="{Binding PlaylistName, Mode=TwoWay}" />
-                                <Button HorizontalAlignment="Right"
-                                        Content="Save"
-                                        Command="{Binding SaveCommand}" />
-                            </StackPanel>
-                        </Flyout>
-                    </Button.Flyout>
-                </Button>
-            </StackPanel>
-        </Grid>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Panel>
     </Border>
 </UserControl>

@@ -1,8 +1,8 @@
-name: Release Flatpak
+name: Release
 
-# Build the Flatpak bundle via the Makefile's `flatpak` target and publish it as a
-# GitHub Release. Triggered by pushing a version tag (e.g. v1.0.0) or run manually
-# from the Actions tab (supply the tag to create).
+# Build the Linux Flatpak bundles, Windows x64/ARM64 MSIX and WiX packages, and
+# the macOS ARM64 ZIP, Android APK, and iOS IPA, then publish every platform asset in one GitHub Release. Triggered by
+# pushing a version tag (e.g. v1.0.0) or run manually from the Actions tab.
 on:
   push:
     tags:
@@ -19,9 +19,9 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    name: Build and publish Flatpak
-    runs-on: ubuntu-latest
+  build-linux-x64:
+    name: Build Linux x64 Flatpak
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,8 +31,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends flatpak flatpak-builder elfutils
 
-      # Ubuntu 24.04 (ubuntu-latest) restricts unprivileged user namespaces through
-      # AppArmor, which breaks the bubblewrap sandbox that flatpak-builder relies on.
       - name: Allow unprivileged user namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
@@ -41,18 +39,358 @@ jobs:
       - name: Cache flatpak-builder state
         uses: actions/cache@v4
         with:
-          path: artifacts/flatpak/.flatpak-builder
-          key: flatpak-builder-${{ runner.os }}-${{ hashFiles('packaging/flatpak/im.hjc.LightPlayer.yml', 'src/**/*.csproj', 'Makefile') }}
+          path: artifacts/flatpak-x86_64/.flatpak-builder
+          key: flatpak-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packaging/flatpak/im.hjc.LightPlayer.yml', 'src/**/*.csproj', 'Makefile') }}
           restore-keys: |
-            flatpak-builder-${{ runner.os }}-
+            flatpak-builder-${{ runner.os }}-${{ runner.arch }}-
 
       # Builds and publishes the app self-contained inside the sandbox and writes the
-      # bundle to artifacts/flatpak/im.hjc.LightPlayer.flatpak. The target
+      # bundle beneath artifacts/flatpak-x86_64/. The target
       # also adds the flathub remote and installs the required runtime + dotnet10 SDK
       # extension (via its flatpak-deps prerequisite).
       - name: Build Flatpak bundle
-        run: make flatpak
+        run: make flatpak RID=linux-x64
 
+      - name: Stage Linux x64 release asset
+        run: |
+          mkdir -p artifacts/release
+          cp artifacts/flatpak-x86_64/im.hjc.LightPlayer-x86_64.flatpak artifacts/release/
+
+      - name: Upload Linux x64 release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-x64
+          path: artifacts/release/*.flatpak
+          if-no-files-found: error
+          retention-days: 1
+
+  build-linux-arm64:
+    name: Build Linux ARM64 Flatpak
+    runs-on: ubuntu-26.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install flatpak and flatpak-builder
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder elfutils
+
+      - name: Allow unprivileged user namespaces
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      # Keep ARM64 build state separate from the x64 cache.
+      - name: Cache flatpak-builder state
+        uses: actions/cache@v4
+        with:
+          path: artifacts/flatpak-aarch64/.flatpak-builder
+          key: flatpak-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packaging/flatpak/im.hjc.LightPlayer.yml', 'src/**/*.csproj', 'Makefile') }}
+          restore-keys: |
+            flatpak-builder-${{ runner.os }}-${{ runner.arch }}-
+
+      # Build natively on an ARM64 runner instead of emulating with QEMU on x64.
+      - name: Build Flatpak bundle
+        run: make flatpak RID=linux-arm64
+
+      - name: Stage Linux ARM64 release asset
+        run: |
+          mkdir -p artifacts/release
+          cp artifacts/flatpak-aarch64/im.hjc.LightPlayer-aarch64.flatpak artifacts/release/
+
+      - name: Upload Linux ARM64 release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-arm64
+          path: artifacts/release/*.flatpak
+          if-no-files-found: error
+          retention-days: 1
+
+  build-windows:
+    name: Build Windows MSIX bundle
+    runs-on: windows-2025-vs2026
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v3
+        with:
+          msbuild-architecture: x64
+
+      # The long-lived code-signing certificate lives in repository secrets so every
+      # release is signed by the same identity and users can update in place.
+      # See docs/release-signing.md for how to create and store these secrets.
+      - name: Restore signing certificate from secrets
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_BASE64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_SIGNING_CERTIFICATE_BASE64)) {
+            throw 'The WINDOWS_SIGNING_CERTIFICATE_BASE64 secret is not configured. See docs/release-signing.md.'
+          }
+
+          $certificatePath = Join-Path $env:GITHUB_WORKSPACE 'packaging\LightPlayerMSIX\LightPlayerMSIX_TemporaryKey.pfx'
+          [System.IO.File]::WriteAllBytes(
+            $certificatePath,
+            [System.Convert]::FromBase64String($env:WINDOWS_SIGNING_CERTIFICATE_BASE64))
+
+      - name: Build signed MSIX bundle
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          $project = Join-Path $env:GITHUB_WORKSPACE 'packaging\LightPlayerMSIX\LightPlayerMSIX.wapproj'
+          $packageRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts\msix\AppPackages'
+          $certificatePath = Join-Path $env:GITHUB_WORKSPACE 'packaging\LightPlayerMSIX\LightPlayerMSIX_TemporaryKey.pfx'
+
+          # Supplying this as an environment property preserves the semicolon as
+          # a runtime-list delimiter while WAP builds each platform with its RID.
+          $env:RuntimeIdentifiers = 'win-x64;win-arm64'
+
+          # The wapproj already points PackageCertificateKeyFile at this file; the
+          # password is passed as an environment property so it never appears in the
+          # command line that MSBuild echoes into the build log.
+          if (-not (Test-Path -LiteralPath $certificatePath)) {
+            throw "The signing certificate was not restored to $certificatePath."
+          }
+          $env:PackageCertificatePassword = $env:WINDOWS_SIGNING_CERTIFICATE_PASSWORD
+
+          msbuild $project `
+            /restore `
+            /m `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /p:GenerateAppxPackageOnBuild=true `
+            /p:UapAppxPackageBuildMode=SideloadOnly `
+            /p:AppxBundle=Always `
+            '/p:AppxBundlePlatforms=x64|ARM64' `
+            /p:AppxPackageDir=$packageRoot `
+            /p:AppxPackageSigningEnabled=true
+
+      - name: Archive complete MSIX sideload package
+        shell: pwsh
+        run: |
+          $packageRoot = Join-Path $env:GITHUB_WORKSPACE 'artifacts\msix\AppPackages'
+          $packageFolders = @(Get-ChildItem $packageRoot -Directory -Filter '*_Test')
+          if ($packageFolders.Count -ne 1) {
+            throw "Expected exactly one MSIX sideload package folder, found $($packageFolders.Count)."
+          }
+
+          $packageFolder = $packageFolders[0]
+          $bundles = @(Get-ChildItem $packageFolder.FullName -File -Filter '*.msixbundle')
+          if ($bundles.Count -ne 1) {
+            throw "Expected exactly one MSIX bundle, found $($bundles.Count)."
+          }
+
+          $requiredFiles = @('Add-AppDevPackage.ps1', 'Install.ps1')
+          foreach ($requiredFile in $requiredFiles) {
+            if (-not (Test-Path (Join-Path $packageFolder.FullName $requiredFile))) {
+              throw "The generated sideload package is missing $requiredFile."
+            }
+          }
+
+          if (-not (Get-ChildItem $packageFolder.FullName -File -Filter '*.cer')) {
+            throw 'The generated sideload package is missing its public signing certificate.'
+          }
+
+          $releaseDirectory = Join-Path $env:GITHUB_WORKSPACE 'artifacts\release'
+          New-Item -ItemType Directory -Path $releaseDirectory -Force | Out-Null
+          $archivePath = Join-Path $releaseDirectory "LightPlayerMSIX.zip"
+          Compress-Archive -LiteralPath $packageFolder.FullName -DestinationPath $archivePath
+
+      - name: Remove signing certificate from the runner
+        if: always()
+        shell: pwsh
+        run: |
+          $certificatePath = Join-Path $env:GITHUB_WORKSPACE 'packaging\LightPlayerMSIX\LightPlayerMSIX_TemporaryKey.pfx'
+          Remove-Item -LiteralPath $certificatePath -Force -ErrorAction SilentlyContinue
+
+      - name: Upload Windows release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: artifacts/release/*.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  build-windows-setup:
+    name: Build Windows setup executables
+    runs-on: windows-2025-vs2026
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # WiX is restored through its MSBuild SDK.
+      - name: Build x64 and ARM64 setup executables
+        shell: pwsh
+        run: ./packaging/LightPlayerSetup/build.ps1
+
+      - name: Upload Windows setup release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-setup
+          path: artifacts/release/LightPlayerSetup-*.exe
+          if-no-files-found: error
+          retention-days: 1
+
+  build-macos-arm64:
+    name: Build macOS ARM64 ZIP
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build macOS ARM64 ZIP
+        run: make osxapp
+
+      - name: Upload macOS ARM64 release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos-arm64
+          path: artifacts/release/LightPlayer-osx-arm64.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  build-ios:
+    name: Build unsigned iOS ARM64 IPA
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.0.1.app/Contents/Developer
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.100
+
+      - name: Install .NET iOS workload
+        run: |
+          dotnet new globaljson --sdk-version 10.0.100 --roll-forward disable
+          dotnet workload install ios --version 10.0.100
+
+      - name: Build unsigned iOS ARM64 IPA
+        run: |
+          dotnet publish src/LightStudio.LightPlayer.iOS/LightStudio.LightPlayer.iOS.csproj \
+            --configuration Release \
+            --runtime ios-arm64 \
+            -p:Platform=ARM64 \
+            -p:EnableCodeSigning=false \
+            -p:CodesignRequireProvisioningProfile=false \
+            -p:BuildIpa=true \
+            -p:IpaPackageDir="$GITHUB_WORKSPACE/artifacts/release" \
+            -p:IpaPackageName=LightPlayer-ios-arm64.ipa
+
+      - name: Upload iOS release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ios
+          path: artifacts/release/*.ipa
+          if-no-files-found: error
+          retention-days: 1
+
+  build-android:
+    name: Build Android APK
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0 ndk;28.2.13676358'
+
+      - name: Install .NET Android workload
+        run: |
+          dotnet workload install android
+
+      # The upload keystore lives in repository secrets so every release keeps the
+      # same signing identity; Android refuses to update an installed app whose
+      # signature changed. See docs/release-signing.md.
+      - name: Restore Android keystore from secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo 'The ANDROID_KEYSTORE_BASE64 secret is not configured. See docs/release-signing.md.' >&2
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/signing"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/signing/release.keystore"
+
+      - name: Build Android APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          android_sdk_root="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          android_ndk_directory="$android_sdk_root/ndk/28.2.13676358"
+          test -n "$android_sdk_root"
+          test -d "$android_ndk_directory"
+          dotnet build src/LightStudio.LightPlayer.Android/LightStudio.LightPlayer.Android.csproj \
+            --configuration Release \
+            -p:AndroidSdkDirectory="$android_sdk_root" \
+            -p:AndroidNdkDirectory="$android_ndk_directory" \
+            -p:AndroidKeyStore=true \
+            -p:AndroidSigningKeyStore="$RUNNER_TEMP/signing/release.keystore" \
+            -p:AndroidSigningStorePass="env:ANDROID_KEYSTORE_PASSWORD" \
+            -p:AndroidSigningKeyAlias="$ANDROID_KEY_ALIAS" \
+            -p:AndroidSigningKeyPass="env:ANDROID_KEY_PASSWORD"
+
+      - name: Remove Android keystore from the runner
+        if: always()
+        run: rm -f "$RUNNER_TEMP/signing/release.keystore"
+
+      - name: Upload Android release asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: artifacts/bin/LightStudio.LightPlayer.Android/release/im.hjc.LightPlayer-Signed.apk
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-release:
+    name: Publish unified release
+    needs:
+      - build-linux-x64
+      - build-linux-arm64
+      - build-windows
+      - build-windows-setup
+      - build-macos-arm64
+      - build-ios
+      - build-android
+    runs-on: ubuntu-26.04
+    steps:
       - name: Resolve release tag
         id: release
         env:
@@ -65,6 +403,13 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -72,4 +417,9 @@ jobs:
           name: Light Player ${{ steps.release.outputs.tag }}
           generate_release_notes: true
           fail_on_unmatched_files: true
-          files: artifacts/flatpak/im.hjc.LightPlayer.flatpak
+          files: |
+            release-assets/*.flatpak
+            release-assets/*.zip
+            release-assets/*.exe
+            release-assets/*.apk
+            release-assets/*.ipa

@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
@@ -9,9 +10,9 @@
              d:DesignWidth="1200"
              d:DesignHeight="640"
              x:Class="LightStudio.LightPlayer.Views.Pages.NowPlayingPageView"
+             xmlns:animations="using:LightStudio.LightPlayer.Animations"
              x:DataType="vm:NowPlayingPageViewModel">
     <UserControl.Styles>
-        <!-- Tappable metadata text (artist / album) styled as a flat link. -->
         <Style Selector="Button.metaLink">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
@@ -28,31 +29,60 @@
             <Setter Property="TextBlock.TextDecorations" Value="Underline" />
         </Style>
 
-        <!-- Uppercase section header matching the original now-playing surface. -->
         <Style Selector="TextBlock.sectionHeader">
             <Setter Property="FontSize" Value="18" />
             <Setter Property="FontWeight" Value="Bold" />
             <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
         </Style>
+
+        <Style Selector="Button.pageDot">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.pageDot /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.pageDot:pointerover Ellipse.pageDot">
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+        <Style Selector="Ellipse.pageDot">
+            <Setter Property="Width" Value="6" />
+            <Setter Property="Height" Value="6" />
+            <Setter Property="Opacity" Value="0.45" />
+            <Setter Property="Fill" Value="{DynamicResource AppSecondaryTextBrush}" />
+        </Style>
+        <Style Selector="Ellipse.pageDot.current">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="Fill" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
     </UserControl.Styles>
 
-    <!-- Three columns (metadata / lyrics / upcoming). The metadata and upcoming
-         columns are collapsed one at a time as the page narrows; see code-behind. -->
-    <Grid x:Name="RootGrid" Margin="32,32,32,16">
+    <Grid RowDefinitions="*,Auto" Margin="32,32,32,16">
+    <Panel x:Name="PagerHost" Background="Transparent" ClipToBounds="True">
+    <Grid x:Name="RootGrid" Width="0" HorizontalAlignment="Left" Background="Transparent">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="270" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="0" />
             <ColumnDefinition Width="360" />
         </Grid.ColumnDefinitions>
 
-        <!-- Cover + metadata -->
         <StackPanel Grid.Column="0"
                     x:Name="MetadataPanel"
                     Width="240"
                     Margin="0,0,30,0"
                     VerticalAlignment="Top"
-                    Spacing="14">
+                    Spacing="7">
             <controls:MediaThumbnail Width="240"
+                                     animations:ConnectedArtwork.Key="{Binding ArtworkKey}"
                                      Height="240"
                                      HorizontalAlignment="Left"
                                      CornerRadius="8"
@@ -67,7 +97,7 @@
                                  Foreground="{DynamicResource AppPrimaryTextBrush}" />
             <Button Classes="metaLink"
                     Command="{Binding OpenArtistCommand}"
-                    ToolTip.Tip="Go to artist">
+                    ToolTip.Tip="{Binding Common_GoToArtist, Source={x:Static strings:LocalizedStrings.Instance}}">
                 <TextBlock Text="{Binding Artist}"
                            FontSize="15"
                            TextTrimming="CharacterEllipsis"
@@ -75,7 +105,7 @@
             </Button>
             <Button Classes="metaLink"
                     Command="{Binding OpenAlbumCommand}"
-                    ToolTip.Tip="Go to album">
+                    ToolTip.Tip="{Binding Common_GoToAlbum, Source={x:Static strings:LocalizedStrings.Instance}}">
                 <TextBlock Text="{Binding Album}"
                            FontSize="13"
                            TextTrimming="CharacterEllipsis"
@@ -83,17 +113,15 @@
             </Button>
         </StackPanel>
 
-        <!-- Lyrics -->
-        <Grid Grid.Column="1"
-              Margin="0,0,0,0"
+          <Grid Grid.Column="1"
+              x:Name="LyricsPanel"
               RowDefinitions="Auto,*"
               ColumnDefinitions="*,Auto">
             <TextBlock Grid.Row="0" Grid.Column="0"
                        Classes="sectionHeader"
-                       Text="LYRICS"
+                       Text="{Binding NowPlaying_LyricsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                        VerticalAlignment="Center" />
 
-            <!-- Timing offset + manual search, stacked vertically on the right -->
             <StackPanel Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
                         Orientation="Vertical"
                         Spacing="8"
@@ -102,31 +130,30 @@
                         HorizontalAlignment="Right">
                 <Button Classes="icon"
                         Command="{Binding OffsetEarlierCommand}"
-                        ToolTip.Tip="Lyrics earlier (+1s)">
+                        ToolTip.Tip="{Binding NowPlaying_LyricsEarlier, Source={x:Static strings:LocalizedStrings.Instance}}">
                     <Viewbox Width="18" Height="18">
                         <Path Data="{StaticResource IconChevronUp}" Fill="{DynamicResource AppPrimaryTextBrush}" />
                     </Viewbox>
                 </Button>
                 <Button Classes="icon"
                         Command="{Binding OffsetLaterCommand}"
-                        ToolTip.Tip="Lyrics later (-1s)">
+                        ToolTip.Tip="{Binding NowPlaying_LyricsLater, Source={x:Static strings:LocalizedStrings.Instance}}">
                     <Viewbox Width="18" Height="18">
                         <Path Data="{StaticResource IconChevronDown}" Fill="{DynamicResource AppPrimaryTextBrush}" />
                     </Viewbox>
                 </Button>
                 <Button Classes="icon"
                         Command="{Binding SearchLyricsCommand}"
-                        ToolTip.Tip="Search lyrics">
+                        ToolTip.Tip="{Binding NowPlaying_SearchLyrics, Source={x:Static strings:LocalizedStrings.Instance}}">
                     <Viewbox Width="18" Height="18">
                         <Path Data="{StaticResource IconSearch}" Fill="{DynamicResource AppPrimaryTextBrush}" />
                     </Viewbox>
                 </Button>
             </StackPanel>
 
-            <!-- Lyrics body -->
             <Panel Grid.Row="1" Grid.Column="0" Margin="0,16,0,0">
                 <ProgressBar IsVisible="{Binding LrcSearchBusy}"
-                             IsIndeterminate="True"
+                             IsIndeterminate="{Binding LrcSearchBusy}"
                              Width="140"
                              Height="4"
                              HorizontalAlignment="Center"
@@ -140,24 +167,25 @@
                            TextWrapping="Wrap"
                            TextAlignment="Center"
                            Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <controls:LyricsPresenter IsVisible="{Binding HasLyrics}"
+                <controls:LyricsPresenter x:Name="LyricsControl"
+                                          IsVisible="{Binding HasLyrics}"
                                           LinesSource="{Binding Lines}"
                                           CurrentIndex="{Binding CurrentIndex}" />
             </Panel>
         </Grid>
 
-        <!-- Upcoming -->
         <Grid Grid.Column="2"
               x:Name="UpcomingPanel"
               Margin="24,0,0,0"
               RowDefinitions="Auto,*">
             <TextBlock Grid.Row="0"
                        Classes="sectionHeader"
-                       Text="UPCOMING" />
+                       Margin="5,0,0,0"
+                       Text="{Binding NowPlaying_UpcomingHeader, Source={x:Static strings:LocalizedStrings.Instance}}" />
             <ScrollViewer Grid.Row="1"
                           Margin="0,16,0,0"
                           HorizontalScrollBarVisibility="Disabled"
-                          VerticalScrollBarVisibility="Auto">
+                          VerticalScrollBarVisibility="Hidden">
                 <ItemsControl ItemsSource="{Binding Upcoming}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -166,26 +194,44 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="models:LibraryTileModel">
-                            <Button Background="Transparent"
-                                    BorderThickness="0"
-                                    Padding="0"
-                                    Width="150"
-                                    Margin="0,0,12,16"
-                                    Command="{Binding OpenCommand}">
-                                <StackPanel Spacing="6">
-                                    <controls:MediaThumbnail Width="120" Height="120" CornerRadius="4"
-                                                             Source="{Binding Image}"
-                                                             PlaceholderKind="{Binding ThumbnailKind}" />
-                                    <TextBlock Text="{Binding Title}" FontSize="13" MaxLines="1" TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                                    <TextBlock Text="{Binding Subtitle}" FontSize="12" MaxLines="1" TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                                </StackPanel>
-                            </Button>
+                            <Viewbox Margin="0,0,12,16" Width="150">
+                                <controls:LibraryTile />
+                            </Viewbox>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>
         </Grid>
+    </Grid>
+    </Panel>
+
+    <StackPanel Grid.Row="1"
+                x:Name="PageDots"
+                IsVisible="False"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Margin="0,8,0,0">
+        <Button Classes="pageDot"
+                Tag="0"
+                Click="OnPageDotClick"
+                AutomationProperties.Name="{Binding NowPlaying_TabTrack, Source={x:Static strings:LocalizedStrings.Instance}}"
+                ToolTip.Tip="{Binding NowPlaying_TabTrack, Source={x:Static strings:LocalizedStrings.Instance}}">
+            <Ellipse x:Name="MetadataDot" Classes="pageDot" />
+        </Button>
+        <Button Classes="pageDot"
+                Tag="1"
+                Click="OnPageDotClick"
+                AutomationProperties.Name="{Binding NowPlaying_TabLyrics, Source={x:Static strings:LocalizedStrings.Instance}}"
+                ToolTip.Tip="{Binding NowPlaying_TabLyrics, Source={x:Static strings:LocalizedStrings.Instance}}">
+            <Ellipse x:Name="LyricsDot" Classes="pageDot" />
+        </Button>
+        <Button Classes="pageDot"
+                Tag="2"
+                Click="OnPageDotClick"
+                AutomationProperties.Name="{Binding NowPlaying_TabUpNext, Source={x:Static strings:LocalizedStrings.Instance}}"
+                ToolTip.Tip="{Binding NowPlaying_TabUpNext, Source={x:Static strings:LocalizedStrings.Instance}}">
+            <Ellipse x:Name="UpcomingDot" Classes="pageDot" />
+        </Button>
+    </StackPanel>
     </Grid>
 </UserControl>

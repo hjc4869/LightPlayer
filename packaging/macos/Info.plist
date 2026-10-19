@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS application bundle metadata for Light Player
+  ==================================================
+  This Info.plist is copied into "Light Player.app/Contents/Info.plist" by the
+  osxapp target in the Makefile. The CFBundleShortVersionString and
+  CFBundleVersion values below are placeholders: the Makefile overwrites them
+  (via /usr/libexec/PlistBuddy) with the <Version> declared in
+  Directory.Build.props so the shipped bundle always matches the build.
+
+  Keep the identity keys (CFBundleIdentifier, CFBundleExecutable, CFBundleName)
+  in sync with LightStudio.LightPlayer.Desktop.Services.AppInfo and the assembly
+  name of the desktop head.
+-->
+<plist version="1.0">
+<dict>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <key>CFBundleName</key>
+    <string>Light Player</string>
+    <key>CFBundleDisplayName</key>
+    <string>Light Player</string>
+    <key>CFBundleIdentifier</key>
+    <string>im.hjc.LightPlayer</string>
+
+    <!-- Native executable emitted by the desktop head's NativeAOT publish. -->
+    <key>CFBundleExecutable</key>
+    <string>lmp</string>
+
+    <!-- AppIcon.icns is generated from the app icon by the Makefile. -->
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+
+    <!-- Overwritten by the Makefile from Directory.Build.props <Version>. -->
+    <key>CFBundleShortVersionString</key>
+    <string>0.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>0.0.0.0</string>
+
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+
+    <!-- Apple Silicon only build; Big Sur is the first arm64 desktop release. -->
+    <key>LSMinimumSystemVersion</key>
+    <string>11.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.entertainment</string>
+
+    <!--
+      Audio and video file associations (Finder "Open With" / drag-onto-icon).
+      Mirrors the MimeType list in packaging/flatpak/im.hjc.LightPlayer.desktop so
+      the macOS build offers the same "open files to play them" integration.
+    -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Audio File</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>mp3</string>
+                <string>flac</string>
+                <string>wav</string>
+                <string>m4a</string>
+                <string>aac</string>
+                <string>ogg</string>
+                <string>oga</string>
+                <string>opus</string>
+                <string>wma</string>
+                <string>aiff</string>
+                <string>aif</string>
+                <string>ape</string>
+                <string>cue</string>
+            </array>
+        </dict>
+        <!-- Matches MediaContainerFormats.Video, the containers opened as video. -->
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Video File</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>mkv</string>
+                <string>mp4</string>
+                <string>m4v</string>
+                <string>mov</string>
+                <string>avi</string>
+                <string>webm</string>
+                <string>ts</string>
+                <string>m2ts</string>
+                <string>mts</string>
+                <string>flv</string>
+                <string>wmv</string>
+                <string>mpg</string>
+                <string>mpeg</string>
+                <string>ogv</string>
+                <string>rmvb</string>
+                <string>rv</string>
+                <string>rvx</string>
+                <string>3gp</string>
+                <string>3g2</string>
+                <string>3gp2</string>
+                <string>3gpp2</string>
+                <string>dv</string>
+                <string>fli</string>
+                <string>flc</string>
+                <string>m1u</string>
+                <string>m4u</string>
+                <string>mxu</string>
+                <string>asf</string>
+                <string>asx</string>
+                <string>wax</string>
+                <string>wmx</string>
+                <string>wvx</string>
+            </array>
+        </dict>
+        <!-- Matches MediaContainerFormats.Image, the stills opened in the photo viewer. -->
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Image File</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>jpg</string>
+                <string>jpeg</string>
+                <string>jpe</string>
+                <string>jfif</string>
+                <string>png</string>
+                <string>webp</string>
+                <string>avif</string>
+                <string>heic</string>
+                <string>heif</string>
+                <string>hif</string>
+                <string>jxl</string>
+                <string>jxr</string>
+                <string>wdp</string>
+                <string>hdp</string>
+                <string>dng</string>
+                <string>bmp</string>
+                <string>dib</string>
+                <string>gif</string>
+                <string>tif</string>
+                <string>tiff</string>
+                <string>ppm</string>
+                <string>pgm</string>
+                <string>pnm</string>
+                <string>tga</string>
+                <string>exr</string>
+                <string>hdr</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>

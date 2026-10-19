@@ -1,0 +1,594 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  IgnorableNamespaces="uap rescap uap3">
+
+  <Identity
+    Name="LightStudio.LightPlayer"
+    Publisher="CN=Light Studio, O=Light Studio, C=US"
+    Version="2.0.0.0" />
+
+  <mp:PhoneIdentity PhoneProductId="b4da3669-0964-4eb3-88a3-1bda18456815" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+
+  <Properties>
+    <DisplayName>Light Player</DisplayName>
+    <PublisherDisplayName>David Huang</PublisherDisplayName>
+    <Logo>Images\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26120.0" />
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.26120.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="x-generate"/>
+  </Resources>
+
+  <Applications>
+    <Application Id="App"
+      Executable="$targetnametoken$.exe"
+      EntryPoint="$targetentrypoint$">
+      <uap:VisualElements
+        DisplayName="ms-resource:AppName"
+        Description="Light Player"
+        BackgroundColor="transparent"
+        Square150x150Logo="Images\Square150x150Logo.png"
+        Square44x44Logo="Images\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Images\Wide310x150Logo.png" />
+        <uap:LockScreen BadgeLogo="Images\BadgeLogo.png" Notification="badgeAndTileText"/>
+        <uap:SplashScreen Image="Images\SplashScreen.png"/>
+      </uap:VisualElements>
+      <Extensions>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="dsf">
+            <uap:DisplayName>DSF</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Direct Stream Digital Stream File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.dsf</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="dff">
+            <uap:DisplayName>DSDIFF</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Direct Stream Digital Interchange File Format</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.dff</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="cue">
+            <uap:DisplayName>CUE sheet</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>CUE sheet</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="application/x-cue">.cue</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="wpl">
+            <uap:DisplayName>Windows Media Playlist</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Windows Media Playlist</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.wpl</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="ogg">
+            <uap:DisplayName>Ogg Container File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Ogg Container File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/ogg">.ogg</uap:FileType>
+              <uap:FileType ContentType="audio/ogg">.oga</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="wav">
+            <uap:DisplayName>Waveform Audio File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Waveform Audio File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/wav">.wav</uap:FileType>
+              <uap:FileType ContentType="audio/wave">.wave</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="mp3">
+            <uap:DisplayName>MPEG-1 or MPEG-2 Audio Layer III File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>MPEG-1 or MPEG-2 Audio Layer III File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/mpeg">.mp3</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="wma">
+            <uap:DisplayName>Advanced Systems Format File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Advanced Systems Format File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/x-ms-wma">.wma</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="flac">
+            <uap:DisplayName>Free Loseless Audio Codec File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Free Loseless Audio Codec File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/x-flac">.flac</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="ape">
+            <uap:DisplayName>Monkey's Audio File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Monkey's Audio File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/x-ape">.ape</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="tak">
+            <uap:DisplayName>Tom's lossless Audio Kompressor File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Tom's lossless Audio Kompressor File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/x-tak">.tak</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="tta">
+            <uap:DisplayName>True Audio File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>True Audio File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/x-tta">.tta</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="m3u">
+            <uap:DisplayName>M3u playlist</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>M3u playlist</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType>.m3u</uap:FileType>
+              <uap:FileType>.m3u8</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="m4a">
+            <uap:DisplayName>MPEG-4 Part 14 File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>MPEG-4 Part 14 File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/m4a">.m4a</uap:FileType>
+              <uap:FileType ContentType="audio/m4a">.aac</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="opus">
+            <uap:DisplayName>Opus Audio File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Opus Audio File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/opus">.opus</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="aiff">
+            <uap:DisplayName>Audio Interchange File Format</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Audio Interchange File Format</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="audio/aiff">.aiff</uap:FileType>
+              <uap:FileType ContentType="audio/aiff">.aif</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <!--
+          Video containers. These match MediaContainerFormats.Video, the same list the library
+          scanner opens: a file that turns out to hold no video track still plays as audio.
+        -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="mkv">
+            <uap:DisplayName>Matroska Video File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Matroska Video File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/x-matroska">.mkv</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="mp4">
+            <uap:DisplayName>MPEG-4 Video File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>MPEG-4 Video File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/mp4">.mp4</uap:FileType>
+              <uap:FileType ContentType="video/x-m4v">.m4v</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="mov">
+            <uap:DisplayName>QuickTime Movie</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>QuickTime Movie</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/quicktime">.mov</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="avi">
+            <uap:DisplayName>Audio Video Interleave File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Audio Video Interleave File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/x-msvideo">.avi</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="webm">
+            <uap:DisplayName>WebM Video File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>WebM Video File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/webm">.webm</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="mpegts">
+            <uap:DisplayName>MPEG Transport Stream</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>MPEG Transport Stream</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/mp2t">.ts</uap:FileType>
+              <uap:FileType ContentType="video/mp2t">.m2ts</uap:FileType>
+              <uap:FileType ContentType="video/mp2t">.mts</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="mpeg">
+            <uap:DisplayName>MPEG Program Stream</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>MPEG Program Stream</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/mpeg">.mpg</uap:FileType>
+              <uap:FileType ContentType="video/mpeg">.mpeg</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="wmv">
+            <uap:DisplayName>Windows Media Video File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Windows Media Video File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/x-ms-wmv">.wmv</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="flv">
+            <uap:DisplayName>Flash Video File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Flash Video File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/x-flv">.flv</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="ogv">
+            <uap:DisplayName>Ogg Video File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Ogg Video File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/ogg">.ogv</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="rmvb">
+            <uap:DisplayName>RealMedia Variable Bitrate File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>RealMedia Variable Bitrate File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="application/vnd.rn-realmedia-vbr">.rmvb</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="video3gp">
+            <uap:DisplayName>3GPP Multimedia File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>3GPP Multimedia File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/3gpp">.3gp</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="realvideo">
+            <uap:DisplayName>RealVideo File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>RealVideo File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/vnd.rn-realvideo">.rv</uap:FileType>
+              <uap:FileType ContentType="video/vnd.rn-realvideo">.rvx</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="video3gpp2">
+            <uap:DisplayName>3GPP2 Multimedia File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>3GPP2 Multimedia File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/3gpp2">.3g2</uap:FileType>
+              <uap:FileType ContentType="video/3gpp2">.3gp2</uap:FileType>
+              <uap:FileType ContentType="video/3gpp2">.3gpp2</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="dv">
+            <uap:DisplayName>Digital Video File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Digital Video File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/dv">.dv</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="flic">
+            <uap:DisplayName>FLIC Animation File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>FLIC Animation File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/fli">.fli</uap:FileType>
+              <uap:FileType ContentType="video/fli">.flc</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="mpegurl">
+            <uap:DisplayName>MPEG URL File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>MPEG URL File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/vnd.mpegurl">.m1u</uap:FileType>
+              <uap:FileType ContentType="video/vnd.mpegurl">.m4u</uap:FileType>
+              <uap:FileType ContentType="video/vnd.mpegurl">.mxu</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="asf">
+            <uap:DisplayName>Advanced Systems Format File</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Advanced Systems Format File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/x-ms-asf">.asf</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="wmx">
+            <uap:DisplayName>Windows Media Metafile</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Windows Media Metafile</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="video/x-ms-wmx">.asx</uap:FileType>
+              <uap:FileType ContentType="video/x-ms-wmx">.wax</uap:FileType>
+              <uap:FileType ContentType="video/x-ms-wmx">.wmx</uap:FileType>
+              <uap:FileType ContentType="video/x-ms-wmx">.wvx</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+
+        <!-- Stills opened in the photo viewer; matches MediaContainerFormats.Image. -->
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="jpeg">
+            <uap:DisplayName>JPEG Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>JPEG Image</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/jpeg">.jpg</uap:FileType>
+              <uap:FileType ContentType="image/jpeg">.jpeg</uap:FileType>
+              <uap:FileType ContentType="image/jpeg">.jpe</uap:FileType>
+              <uap:FileType ContentType="image/jpeg">.jfif</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="png">
+            <uap:DisplayName>PNG Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>PNG Image</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/png">.png</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="webpimage">
+            <uap:DisplayName>WebP Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>WebP Image</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/webp">.webp</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="avif">
+            <uap:DisplayName>AVIF Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>AV1 Image File Format</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/avif">.avif</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="heif">
+            <uap:DisplayName>HEIF Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>High Efficiency Image File</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/heic">.heic</uap:FileType>
+              <uap:FileType ContentType="image/heif">.heif</uap:FileType>
+              <uap:FileType ContentType="image/heif">.hif</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="jxl">
+            <uap:DisplayName>JPEG XL Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>JPEG XL Image</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/jxl">.jxl</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="jxr">
+            <uap:DisplayName>JPEG XR</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>JPEG XR</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/jxr">.jxr</uap:FileType>
+              <uap:FileType ContentType="image/vnd.ms-photo">.wdp</uap:FileType>
+              <uap:FileType ContentType="image/vnd.ms-photo">.hdp</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="dng">
+            <uap:DisplayName>DNG</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Adobe Digital Negative</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/x-adobe-dng">.dng</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="bitmap">
+            <uap:DisplayName>Bitmap Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Windows Bitmap Image</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/bmp">.bmp</uap:FileType>
+              <uap:FileType ContentType="image/bmp">.dib</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="gif">
+            <uap:DisplayName>GIF Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Graphics Interchange Format Image</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/gif">.gif</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="tiff">
+            <uap:DisplayName>TIFF Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Tagged Image File Format</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/tiff">.tif</uap:FileType>
+              <uap:FileType ContentType="image/tiff">.tiff</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="netpbm">
+            <uap:DisplayName>Netpbm Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Portable Anymap Image</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/x-portable-pixmap">.ppm</uap:FileType>
+              <uap:FileType ContentType="image/x-portable-graymap">.pgm</uap:FileType>
+              <uap:FileType ContentType="image/x-portable-anymap">.pnm</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="targa">
+            <uap:DisplayName>Targa Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Truevision Targa Image</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/x-targa">.tga</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="openexr">
+            <uap:DisplayName>OpenEXR Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>OpenEXR High Dynamic Range Image</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/x-exr">.exr</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="radiance">
+            <uap:DisplayName>Radiance HDR Image</uap:DisplayName>
+            <uap:Logo>Images\Square44x44Logo.png</uap:Logo>
+            <uap:InfoTip>Radiance RGBE High Dynamic Range Image</uap:InfoTip>
+            <uap:SupportedFileTypes>
+              <uap:FileType ContentType="image/vnd.radiance">.hdr</uap:FileType>
+            </uap:SupportedFileTypes>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <uap:Capability Name="musicLibrary"/>
+    <uap:Capability Name="picturesLibrary"/>
+    <uap3:Capability Name="backgroundMediaPlayback"/>
+    <!--<rescap:Capability Name="broadFileSystemAccess" />-->
+  </Capabilities>
+</Package>

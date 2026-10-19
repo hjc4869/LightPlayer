@@ -1,0 +1,297 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="520"
+             x:Class="LightStudio.LightPlayer.Views.Pages.RemoteApiSettingsSectionView"
+             x:DataType="vm:RemoteApiSettingsSectionViewModel">
+    <!-- The inset lives on the content, not the scroll viewer, so the scroll bar stays at the pane edge. -->
+    <ScrollViewer>
+        <StackPanel MaxWidth="680"
+                    HorizontalAlignment="Stretch"
+                    Margin="{Binding ContentMargin}"
+                    Spacing="10">
+            <StackPanel Spacing="4" Margin="0,0,0,4">
+                <TextBlock Text="{Binding RemoteApiSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <TextBlock Text="{Binding RemoteApiSettings_Subtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           FontSize="13"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </StackPanel>
+
+            <Border Classes="settingsGroup">
+                <StackPanel>
+            <controls:SettingRow Header="{Binding RemoteApiSettings_HttpServerHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding RemoteApiSettings_HttpServerDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsGrouped="True">
+                <controls:SettingRow.ActionContent>
+                    <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding Enabled, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_ListenHostHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding RemoteApiSettings_ListenHostDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <TextBox Width="140" Text="{Binding Host, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_PortHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding RemoteApiSettings_PortDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <controls:NumberEntry Width="140"
+                                          Minimum="1"
+                                          Maximum="65535"
+                                          Increment="1"
+                                          FormatString="0"
+                                          Number="{Binding Port, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_AuthHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding RemoteApiSettings_AuthDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding RequireAuthentication, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_UsernameHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding RequireAuthentication}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <TextBox Width="140" Text="{Binding Username, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_PasswordHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding RemoteApiSettings_PasswordPlaceholder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding RequireAuthentication}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <TextBox Width="140"
+                             PasswordChar="•"
+                             Text="{Binding Password, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_AllowedOriginsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding RemoteApiSettings_AllowedOriginsDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.DescriptionContent>
+                    <Button Classes="link"
+                            FontSize="12"
+                            HorizontalAlignment="Left"
+                            Margin="0,2,0,0"
+                            Command="{Binding AddOfficialOriginCommand}"
+                            Content="{Binding RemoteApiSettings_AllowedOriginsAddOfficial, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                </controls:SettingRow.DescriptionContent>
+                <controls:SettingRow.ActionContent>
+                    <TextBox Width="140"
+                             Text="{Binding AllowedOrigins, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+                </StackPanel>
+            </Border>
+
+            <Button Content="{Binding RemoteApiSettings_ApplyButton, Source={x:Static strings:LocalizedStrings.Instance}}"
+                    HorizontalAlignment="Right"
+                    Command="{Binding ApplyCommand}" />
+
+            <TextBlock Text="{Binding StatusText}"
+                       IsVisible="{Binding HasStatusText}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+
+            <TextBlock Text="{Binding FirewallNotice}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            <TextBlock Text="{Binding ConnectionNotice}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            <TextBlock Text="{Binding SecurityNotice}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource AppFavoriteBrush}" />
+
+            <StackPanel IsVisible="{Binding CanCreatePairingLink}"
+                        Spacing="4">
+                <WrapPanel Orientation="Horizontal">
+                    <Button Classes="link"
+                            HorizontalAlignment="Left"
+                            Margin="0,0,8,4"
+                            Click="CopyPairingLink">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock Text="{Binding RemoteApiSettings_PairingConnect, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            <TextBlock Text="{Binding PairingClientOrigin}" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="link"
+                            HorizontalAlignment="Left"
+                            Margin="0,0,8,4"
+                            Content="{Binding RemoteApiSettings_PairingShowQr, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            Click="ShowPairingQrCode" />
+                    <TextBlock Text="{Binding RemoteApiSettings_PairingCopied, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               IsVisible="{Binding PairingLinkCopied}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,0,4"
+                               FontSize="12"
+                               Foreground="{DynamicResource AppFavoriteBrush}" />
+                </WrapPanel>
+                <StackPanel x:Name="PairingQrPanel"
+                            IsVisible="False"
+                            HorizontalAlignment="Left"
+                            Spacing="8"
+                            Margin="0,4,0,4">
+                    <TextBlock Text="{Binding RemoteApiSettings_PairingQrInstruction, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               FontSize="13"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <Border Width="300"
+                            Height="300"
+                            Background="White"
+                            CornerRadius="4">
+                        <Image x:Name="PairingQrImage"
+                               Width="300"
+                               Height="300"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapInterpolationMode="None" />
+                    </Border>
+                    <Button HorizontalAlignment="Right"
+                            Content="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            Click="HidePairingQrCode" />
+                </StackPanel>
+                <TextBlock Text="{Binding RemoteApiSettings_PairingAuthenticatedNotice, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           IsVisible="{Binding PairingRequiresAuthentication}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Text="{Binding RemoteApiSettings_PairingOpenNotice, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           IsVisible="{Binding PairingWithoutAuthentication}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppFavoriteBrush}" />
+            </StackPanel>
+
+            <Border Height="1" Margin="0,8" Background="{DynamicResource AppDividerBrush}" />
+
+            <Border Classes="settingsGroup">
+                <StackPanel>
+            <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding RemoteApiSettings_TranscodeDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsGrouped="True">
+                <controls:SettingRow.ActionContent>
+                    <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding TranscodeEnabled, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeHardwareHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding TranscodeEnabled}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding TranscodeHardware, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeHardwareScalingHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding HasHardwareScalingSetting}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding TranscodeHardwareScaling, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeDeviceTypeHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding HasHardwareTranscodeSettings}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <ComboBox Width="140"
+                              ItemsSource="{Binding TranscodeDeviceTypeOptions}"
+                              SelectedItem="{Binding SelectedTranscodeDeviceType, Mode=TwoWay}"
+                              DisplayMemberBinding="{Binding Title}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeDeviceHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding HasTranscodeDevices}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <ComboBox Width="140"
+                              ItemsSource="{Binding TranscodeDeviceOptions}"
+                              SelectedItem="{Binding SelectedTranscodeDevice, Mode=TwoWay}"
+                              DisplayMemberBinding="{Binding Title}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeRateControlHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding HasTranscodeRateControlSettings}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <ComboBox Width="140"
+                              ItemsSource="{Binding TranscodeRateControlOptions}"
+                              SelectedItem="{Binding SelectedTranscodeRateControl, Mode=TwoWay}"
+                              DisplayMemberBinding="{Binding Title}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeQualityHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding HasTranscodeQualitySettings}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <ComboBox Width="140"
+                              ItemsSource="{Binding TranscodeQualityOptions}"
+                              SelectedItem="{Binding SelectedTranscodeQuality, Mode=TwoWay}"
+                              DisplayMemberBinding="{Binding Title}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeUsageHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding HasTranscodeUsageSettings}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <ComboBox Width="140"
+                              ItemsSource="{Binding TranscodeUsageOptions}"
+                              SelectedItem="{Binding SelectedTranscodeUsage, Mode=TwoWay}"
+                              DisplayMemberBinding="{Binding Title}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeSoftwareHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding HasSoftwareTranscodeSettings}"
+                                 IsGrouped="True"
+                                 HasTopDivider="True">
+                <controls:SettingRow.ActionContent>
+                    <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding TranscodeAllowSoftware, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+            </controls:SettingRow>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

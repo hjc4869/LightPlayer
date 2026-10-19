@@ -1,0 +1,38 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <WindowsTargetVersion>windows10.0.19041.0</WindowsTargetVersion>
+    <AndroidTargetVersion>android</AndroidTargetVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Platforms>x64;ARM64</Platforms>
+    <Configurations>Debug;Release</Configurations>
+    <Version>2.0.0.0</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <NoWarn>$(NoWarn);IL2026;IL2104;IL2111;IL3050;IL3053;XA1040;WASM0001</NoWarn>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+    <UseAvaloniaFork Condition="'$(UseAvaloniaFork)' == ''">true</UseAvaloniaFork>
+    <DefineConstants Condition="'$(UseAvaloniaFork)' == 'true'">$(DefineConstants);LMR_AVALONIA_FORK</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DebuggerSupport>false</DebuggerSupport>
+    <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
+    <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>
+    <Http3Support>false</Http3Support>
+    <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
+    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+    <MetricsSupport>false</MetricsSupport>
+    <!-- <StackTraceSupport>false</StackTraceSupport> -->
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>
+    <OptimizationPreference>Speed</OptimizationPreference>
+    <EventSourceSupport>false</EventSourceSupport>
+    <IlcTrimMetadata>true</IlcTrimMetadata>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <NativeBindingsPolicy>$(MSBuildThisFileDirectory)build/NativeBindings.Configuration.targets</NativeBindingsPolicy>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)tools/NativeBindings/NativeBindings.props" />
+</Project>

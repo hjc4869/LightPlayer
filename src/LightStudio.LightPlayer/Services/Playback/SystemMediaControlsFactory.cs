@@ -1,7 +1,5 @@
 using System;
-#if LINUX
-using LightStudio.LightPlayer.Services.Playback.Mpris;
-#endif
+using LightStudio.Logging;
 
 namespace LightStudio.LightPlayer.Services.Playback;
 
@@ -14,47 +12,23 @@ namespace LightStudio.LightPlayer.Services.Playback;
 /// </summary>
 internal static class SystemMediaControlsFactory
 {
-#if LINUX
-    private const string Identity = "LightPlayer";
-#endif
+    private static Func<ISystemMediaControls> SmcFactory = () => new NoopSystemMediaControls();
+
+    public static void Register(Func<ISystemMediaControls> smcFactory)
+    {
+        SmcFactory = smcFactory;
+    }
 
     public static ISystemMediaControls Create()
     {
         try
         {
-#if LINUX
-            if (OperatingSystem.IsLinux())
-            {
-                // The instance suffix keeps the bus name unique per process so
-                // multiple running copies don't collide on the well-known name.
-                var suffix = $"LightStudioLightPlayer.instance{Environment.ProcessId}";
-                return new MprisSystemMediaControls(Identity, suffix);
-            }
-#endif
-
-#if WINDOWS
-            if (OperatingSystem.IsWindows())
-            {
-                // Placeholder for Windows System Media Transport Controls (SMTC),
-                // e.g. via Windows.Media.SystemMediaTransportControls.
-                return new NoopSystemMediaControls();
-            }
-#endif
-
-#if MACOS
-            if (OperatingSystem.IsMacOS())
-            {
-                // Placeholder for macOS Now Playing (MPNowPlayingInfoCenter /
-                // MPRemoteCommandCenter).
-                return new NoopSystemMediaControls();
-            }
-#endif
-
-            return new NoopSystemMediaControls();
+            return SmcFactory();
         }
-        catch
+        catch (Exception ex)
         {
             // Optional integration: never let media-control setup break playback.
+            AppLog.Warning("SystemMediaControls", "Could not create system media controls.", ex);
             return new NoopSystemMediaControls();
         }
     }

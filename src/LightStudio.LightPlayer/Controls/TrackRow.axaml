@@ -1,15 +1,18 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
              xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
              mc:Ignorable="d"
              d:DesignWidth="700"
              d:DesignHeight="48"
              x:Class="LightStudio.LightPlayer.Controls.TrackRow"
              x:DataType="models:TrackRowModel">
     <UserControl.Styles>
-        <!-- Greyed row + inline play/append actions revealed when the pointer is over the row. -->
+        <!-- Grayed row + inline play/append actions revealed when the pointer is over the row. -->
         <Style Selector="Border.rowHover">
             <Setter Property="Background" Value="Transparent" />
         </Style>
@@ -17,30 +20,55 @@
             <Setter Property="IsVisible" Value="False" />
         </Style>
         <Style Selector="Border.rowHover:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
         </Style>
         <Style Selector="Border.rowHover:pointerover StackPanel.rowActions">
             <Setter Property="IsVisible" Value="True" />
         </Style>
+
+        <!-- Now-playing track: highlight the title with the accent color and bold weight. -->
+        <Style Selector="TextBlock.trackTitle">
+            <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
+        </Style>
+        <Style Selector="TextBlock.trackTitle.playing">
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
     </UserControl.Styles>
 
     <Border Classes="rowHover"
+            Classes.folder="{Binding IsFolder}"
             CornerRadius="4"
-            Padding="12,0"
+            Padding="12,0,12,0"
+            Focusable="{Binding IsFolder}"
+            KeyDown="OnRowKeyDown"
             Tapped="OnTapped"
             DoubleTapped="OnDoubleTapped">
         <Border.ContextFlyout>
             <MenuFlyout>
-                <MenuItem Header="Play" Command="{Binding PlayCommand}" />
-                <MenuItem Header="Play next" Command="{Binding PlayNextCommand}" />
-                <MenuItem Header="Add to queue" Command="{Binding AddToQueueCommand}" />
-                <MenuItem Header="Add to playlist" Command="{Binding AddToPlaylistCommand}" />
-                <MenuItem Header="Remove from playlist"
+                <MenuItem Header="{Binding Selection_Select, Source={x:Static strings:LocalizedStrings.Instance}}"
+                          Command="{Binding Selection.EnterCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanSelect}" />
+                <Separator IsVisible="{Binding CanSelect}" />
+                <MenuItem Header="{Binding Common_Open, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding OpenMusicFolderCommand}" IsVisible="{Binding IsFolder}" />
+                <MenuItem Header="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding FolderPlayCommand}" IsVisible="{Binding IsFolder}" />
+                <MenuItem Header="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding PlayCommand}" IsVisible="{Binding !IsFolder}" />
+                <MenuItem Header="{Binding Common_PlayNext, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding FolderPlayNextCommand}" IsVisible="{Binding IsFolder}" />
+                <MenuItem Header="{Binding Common_PlayNext, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding PlayNextCommand}" IsVisible="{Binding !IsFolder}" />
+                <MenuItem Header="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding FolderAddToQueueCommand}" IsVisible="{Binding IsFolder}" />
+                <MenuItem Header="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding AddToQueueCommand}" IsVisible="{Binding !IsFolder}" />
+                <MenuItem Header="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding FolderAddToPlaylistCommand}" IsVisible="{Binding IsFolder}" />
+                <MenuItem Header="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding AddToPlaylistCommand}" IsVisible="{Binding !IsFolder}" />
+                <MenuItem Header="{Binding Common_RemoveFromPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}"
                           Command="{Binding RemoveFromPlaylistCommand}"
                           IsVisible="{Binding IsPlaylistItem}" />
-                <Separator />
-                <MenuItem Header="Properties" Command="{Binding PropertiesCommand}" />
-                <MenuItem Header="Open containing folder" Command="{Binding OpenFolderCommand}" />
+                <Separator IsVisible="{Binding !IsFolder}" />
+                <MenuItem Header="{Binding Common_GoToAlbum, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding OpenAlbumCommand}" IsVisible="{Binding CanOpenAlbum}" />
+                <MenuItem Header="{Binding Common_GoToArtist, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding OpenArtistCommand}" IsVisible="{Binding CanOpenArtist}" />
+                <Separator IsVisible="{Binding !IsFolder}" />
+                <MenuItem Header="{Binding Common_Properties, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding PropertiesCommand}" IsVisible="{Binding !IsFolder}" />
+                <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                          Command="{Binding OpenFolderCommand}"
+                          IsVisible="{Binding CanOpenContainingFolder}" />
             </MenuFlyout>
         </Border.ContextFlyout>
 
@@ -52,14 +80,11 @@
                   VerticalAlignment="Center"
                   ColumnDefinitions="1.4*,1*,1*,70,90,60">
                 <DockPanel Grid.Column="0" Margin="0,0,12,0">
-                    <Panel DockPanel.Dock="Left" Width="10" Margin="0,0,6,0">
-                        <Border Width="3"
-                                HorizontalAlignment="Left"
-                                CornerRadius="2"
-                                Margin="0,12"
-                                Background="{DynamicResource AppAccentBrush}"
-                                IsVisible="{Binding IsPlaying}" />
-                    </Panel>
+                    <Viewbox x:Name="WideFolderIcon" DockPanel.Dock="Right"
+                             IsVisible="{Binding IsFolder}" Width="18" Height="18"
+                             Margin="8,0,0,0" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconFolder}" Fill="{DynamicResource AppSecondaryTextBrush}" />
+                    </Viewbox>
                     <StackPanel x:Name="RowActions"
                                 Classes="rowActions"
                                 DockPanel.Dock="Right"
@@ -67,30 +92,30 @@
                                 Spacing="2"
                                 VerticalAlignment="Center">
                         <Button Classes="miniIcon"
-                                Command="{Binding PlayCommand}"
-                                ToolTip.Tip="Play">
+                                Command="{Binding RowPlayCommand}"
+                                ToolTip.Tip="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}">
                             <Viewbox Width="15" Height="15">
                                 <Path Data="{StaticResource IconPlay}"
                                       Fill="{DynamicResource AppPrimaryTextBrush}" />
                             </Viewbox>
                         </Button>
-                        <Button Classes="miniIcon"
-                                Command="{Binding AddToQueueCommand}"
-                                ToolTip.Tip="Add to queue">
-                            <Viewbox Width="15" Height="15">
-                                <Path Data="{StaticResource IconAdd}"
-                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
-                            </Viewbox>
-                        </Button>
+                        <controls:AddToQueueButton Classes="miniIcon"
+                                IconSize="15"
+                                Command="{Binding RowAddToQueueCommand}"
+                                ToolTip.Tip="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" />
                     </StackPanel>
-                    <TextBlock Text="{Binding Title}"
+                    <TextBlock Classes="trackTitle"
+                               Classes.playing="{Binding IsPlaying}"
+                               Text="{Binding Title}"
+                               ToolTip.Tip="{Binding Title}"
                                VerticalAlignment="Center"
                                MaxLines="1"
-                               TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                               TextTrimming="CharacterEllipsis" />
                 </DockPanel>
-                <TextBlock Grid.Column="1"
+                <TextBlock x:Name="ArtistText"
+                           Grid.Column="1"
                            Text="{Binding Artist}"
+                           ToolTip.Tip="{Binding Artist}"
                            VerticalAlignment="Center"
                            FontSize="13"
                            MaxLines="1"
@@ -100,6 +125,7 @@
                 <TextBlock x:Name="AlbumText"
                            Grid.Column="2"
                            Text="{Binding Album}"
+                           ToolTip.Tip="{Binding Album}"
                            VerticalAlignment="Center"
                            FontSize="13"
                            MaxLines="1"
@@ -109,6 +135,7 @@
                 <TextBlock x:Name="YearText"
                            Grid.Column="3"
                            Text="{Binding Year}"
+                           ToolTip.Tip="{Binding Year}"
                            VerticalAlignment="Center"
                            FontSize="13"
                            MaxLines="1"
@@ -116,6 +143,7 @@
                 <TextBlock x:Name="GenreText"
                            Grid.Column="4"
                            Text="{Binding Genre}"
+                           ToolTip.Tip="{Binding Genre}"
                            VerticalAlignment="Center"
                            FontSize="13"
                            MaxLines="1"
@@ -124,45 +152,39 @@
                            Foreground="{DynamicResource AppSecondaryTextBrush}" />
                 <TextBlock Grid.Column="5"
                            Text="{Binding Duration}"
+                           ToolTip.Tip="{Binding Duration}"
                            VerticalAlignment="Center"
                            HorizontalAlignment="Right"
                            FontSize="13"
                            Foreground="{DynamicResource AppSecondaryTextBrush}" />
             </Grid>
 
-            <!-- Narrow layout: stack the title over a single "artist · album" line,
+            <!-- Narrow layout: stack the title over a single "artist / album" line,
                  keeping the duration on the right. Shown below 650px. -->
             <Grid x:Name="NarrowRoot"
                   Height="60"
                   IsVisible="False"
                   VerticalAlignment="Center"
                   ColumnDefinitions="Auto,*,Auto,Auto">
-                <Panel Grid.Column="0" Width="10" Margin="0,0,6,0">
-                    <Border Width="3"
-                            HorizontalAlignment="Left"
-                            CornerRadius="2"
-                            Margin="0,16"
-                            Background="{DynamicResource AppAccentBrush}"
-                            IsVisible="{Binding IsPlaying}" />
-                </Panel>
                 <StackPanel Grid.Column="1"
                             VerticalAlignment="Center"
                             Spacing="2">
-                    <TextBlock Text="{Binding Title}"
+                    <controls:FixedLineTextBlock Classes="trackTitle"
+                               Classes.playing="{Binding IsPlaying}"
+                               Text="{Binding Title}"
+                               ToolTip.Tip="{Binding Title}"
+                               LineHeight="17"
+                               MaxLines="1"
+                               TextTrimming="CharacterEllipsis" />
+                    <controls:FixedLineTextBlock Text="{Binding SubText}"
+                               IsVisible="{Binding !IsFolder}"
+                               ToolTip.Tip="{Binding SubText}"
+                               Height="18"
+                               FontSize="13"
+                               LineHeight="16"
                                MaxLines="1"
                                TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                    <TextBlock FontSize="13"
-                               MaxLines="1"
-                               TextTrimming="CharacterEllipsis"
-                               Foreground="{DynamicResource AppSecondaryTextBrush}">
-                        <TextBlock.Text>
-                            <MultiBinding StringFormat="{}{0} · {1}">
-                                <Binding Path="Artist" />
-                                <Binding Path="Album" />
-                            </MultiBinding>
-                        </TextBlock.Text>
-                    </TextBlock>
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
                 </StackPanel>
                 <StackPanel Grid.Column="2"
                             Classes="rowActions"
@@ -171,24 +193,26 @@
                             Margin="8,0"
                             VerticalAlignment="Center">
                     <Button Classes="miniIcon"
-                            Command="{Binding PlayCommand}"
-                            ToolTip.Tip="Play">
+                            Command="{Binding RowPlayCommand}"
+                            ToolTip.Tip="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}">
                         <Viewbox Width="15" Height="15">
                             <Path Data="{StaticResource IconPlay}"
                                   Fill="{DynamicResource AppPrimaryTextBrush}" />
                         </Viewbox>
                     </Button>
-                    <Button Classes="miniIcon"
-                            Command="{Binding AddToQueueCommand}"
-                            ToolTip.Tip="Add to queue">
-                        <Viewbox Width="15" Height="15">
-                            <Path Data="{StaticResource IconAdd}"
-                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
-                        </Viewbox>
-                    </Button>
+                    <controls:AddToQueueButton Classes="miniIcon"
+                            IconSize="15"
+                            Command="{Binding RowAddToQueueCommand}"
+                            ToolTip.Tip="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" />
                 </StackPanel>
-                <TextBlock Grid.Column="3"
+                <Viewbox x:Name="NarrowFolderIcon" Grid.Column="3"
+                         IsVisible="{Binding IsFolder}" Width="18" Height="18"
+                         Margin="8,0,0,0" VerticalAlignment="Center">
+                    <Path Data="{StaticResource IconFolder}" Fill="{DynamicResource AppSecondaryTextBrush}" />
+                </Viewbox>
+                <TextBlock Grid.Column="3" IsVisible="{Binding !IsFolder}"
                            Text="{Binding Duration}"
+                           ToolTip.Tip="{Binding Duration}"
                            VerticalAlignment="Center"
                            FontSize="13"
                            Foreground="{DynamicResource AppSecondaryTextBrush}" />

@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFramework)-browser</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>lmpweb</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmBuildNative>true</WasmBuildNative>
+    <WasmMainJSPath>main.js</WasmMainJSPath>
+    <WasmEnableThreads>false</WasmEnableThreads>
+    <NativeBindingsEmitImports>false</NativeBindingsEmitImports>
+    <WasmEnableSIMD>true</WasmEnableSIMD>
+    <WasmNativeStrip>true</WasmNativeStrip>
+    <WasmNativeDebugSymbols>false</WasmNativeDebugSymbols>
+    <!-- <WasmSingleFileBundle>true</WasmSingleFileBundle> -->
+    <CompressionEnabled>false</CompressionEnabled>
+    <WasmAllowUndefinedSymbols>false</WasmAllowUndefinedSymbols>
+    <!--
+      Sharded ICU picks a single icudt_*.dat from the browser locale at boot, so a user on an
+      English browser could not switch the interface to Japanese/Chinese. Ship the full data set.
+    -->
+    <BlazorWebAssemblyLoadAllGlobalizationData>true</BlazorWebAssemblyLoadAllGlobalizationData>
+    <RunAOTCompilation>true</RunAOTCompilation>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+		<WasmBitcodeCompileOptimizationFlag>-O3</WasmBitcodeCompileOptimizationFlag>
+		<EmccLinkOptimizationFlag>-O3</EmccLinkOptimizationFlag>
+		<EmccCompileOptimizationFlag>-O3</EmccCompileOptimizationFlag>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" />
+    <PackageReference Include="Avalonia.Browser" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Avalonia.HarfBuzz" />
+    <PackageReference Include="LightStudio.Ffmpeg" />
+    <PackageReference Include="LightStudio.Fonts" />
+    <PackageReference Include="LightStudio.Photos" />
+    <PackageReference Include="Microsoft.NET.WebAssembly.Threading" Condition="'$(WasmEnableThreads)' == 'true'" />
+    <PackageReference Include="LightStudio.sqlite-vec" ExcludeAssets="build;buildTransitive" GeneratePathProperty="true" PrivateAssets="all" />
+    <ProjectReference Include="..\LightStudio.LightPlayer\LightStudio.LightPlayer.csproj" />
+    <ProjectReference Include="..\LightStudio.LocalServices\LightStudio.LocalServices.csproj" />
+    <ProjectReference Include="..\LightStudio.Logging\LightStudio.Logging.csproj" />
+    <ProjectReference Include="..\LightStudio.RemoteServices\LightStudio.RemoteServices.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="$(LightStudioFontsDirectory)/*.otf;$(LightStudioFontsDirectory)/OFL.txt"
+             Link="wwwroot/fonts/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <WasmEnvironmentVariable
+        Include="MONO_GC_PARAMS"
+        Value="soft-heap-limit=512m,default-allowance-ratio=2" />
+  </ItemGroup>
+
+  <Target Name="SelectBrowserGraphicsNativeAssets" BeforeTargets="PrepareForBuild"
+          Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(TargetFrameworkVersion)', '11.0'))">
+    <PropertyGroup>
+      <_BrowserGraphicsNativeFlavor>st</_BrowserGraphicsNativeFlavor>
+      <_BrowserGraphicsNativeFlavor Condition="'$(WasmEnableThreads)' == 'true'">mt</_BrowserGraphicsNativeFlavor>
+      <_BrowserGraphicsNativeFlavor Condition="'$(WasmEnableSIMD)' == 'true'">$(_BrowserGraphicsNativeFlavor),simd</_BrowserGraphicsNativeFlavor>
+    </PropertyGroup>
+    <ItemGroup>
+      <_BrowserGraphicsNative Include="$(SkiaSharpStaticLibraryPath)/5.0.6/$(_BrowserGraphicsNativeFlavor)/libSkiaSharp.a"
+                              Condition="'$(ShouldIncludeNativeSkiaSharp)' == 'true'" />
+      <_BrowserGraphicsNative Include="$(HarfBuzzSharpStaticLibraryPath)/5.0.6/$(_BrowserGraphicsNativeFlavor)/libHarfBuzzSharp.a;$(HarfBuzzSharpStaticLibraryPath)/5.0.6/$(_BrowserGraphicsNativeFlavor)/libHarfBuzzSharp.wasm.a"
+                              Condition="'$(ShouldIncludeNativeHarfBuzzSharp)' == 'true'" />
+      <NativeFileReference Remove="@(NativeFileReference)"
+               Condition="'%(NativeFileReference.Filename)' == 'libSkiaSharp' or '%(NativeFileReference.Filename)' == 'libHarfBuzzSharp' or '%(NativeFileReference.Filename)' == 'libHarfBuzzSharp.wasm'" />
+      <NativeFileReference Include="@(_BrowserGraphicsNative)" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(_BrowserGraphicsNative.Identity)')"
+           Text="Missing .NET 11 browser graphics archive: %(_BrowserGraphicsNative.Identity)." />
+  </Target>
+
+  <Target Name="CleanWebPublishDirectory" BeforeTargets="PrepareForPublish" Condition="'$(PublishDir)' != ''">
+    <RemoveDir Directories="$(PublishDir)" />
+  </Target>
+  <Import Project="../../build/BrowserMediaWorker.targets" />
+  <Import Project="../../build/BrowserSqliteWorker.targets" />
+</Project>

@@ -1,0 +1,2484 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Microsoft ResX Schema
+
+    Version 2.0
+
+    The primary goals of this format is to allow a simple XML format
+    that is mostly human readable. The generation and parsing of the
+    various data types are done through the TypeConverter classes
+    associated with the data types.
+
+    Example:
+
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+
+    There are any number of "resheader" rows that contain simple
+    name/value pairs.
+
+    Each data row contains a name, and value. The row also contains a
+    type or mimetype. Type corresponds to a .NET class that support
+    text/value conversion through the TypeConverter architecture.
+    Classes that don't support this are serialized and stored with the
+    mimetype set.
+
+    The mimetype is used for serialized objects, and tells the
+    ResXResourceReader how to depersist the object. This is currently not
+    extensible. For a given mimetype the value must be set accordingly:
+
+    Note - application/x-microsoft.net.object.binary.base64 is the format
+    that the ResXResourceWriter will generate, however the reader can
+    read any of the formats listed below.
+
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="About_GitHubProject" xml:space="preserve">
+    <value>Proyecto en GitHub</value>
+  </data>
+  <data name="About_ExportLogs" xml:space="preserve">
+    <value>Exportar registros guardados</value>
+  </data>
+  <data name="About_BrowserDiagnostics" xml:space="preserve">
+    <value>Diagnóstico del navegador</value>
+  </data>
+  <data name="About_ResetIndexDatabase" xml:space="preserve">
+    <value>Restablecer base de datos del índice</value>
+  </data>
+  <data name="About_ResetIndexDatabaseConfirm" xml:space="preserve">
+    <value>Light Player se cerrará. Los índices de la biblioteca y de búsqueda semántica se restablecerán la próxima vez que inicie la aplicación. Se conservarán sus ajustes, listas de reproducción y archivos multimedia.</value>
+  </data>
+  <data name="About_ResetIndexDatabaseManualScan" xml:space="preserve">
+    <value>Deberá escanear su biblioteca manualmente después del próximo inicio.</value>
+  </data>
+  <data name="About_ResetAndClose" xml:space="preserve">
+    <value>Restablecer y cerrar</value>
+  </data>
+  <data name="About_ResetIndexDatabaseBrowserConfirm" xml:space="preserve">
+    <value>La página se recargará y se restablecerán los índices de la biblioteca y de búsqueda semántica. Se conservarán sus ajustes, listas de reproducción y archivos multimedia.</value>
+  </data>
+  <data name="About_ResetAndReload" xml:space="preserve">
+    <value>Restablecer y recargar</value>
+  </data>
+  <data name="About_ProductName" xml:space="preserve">
+    <value>Light Player</value>
+  </data>
+  <data name="About_Tagline" xml:space="preserve">
+    <value>Un reproductor multimedia multiplataforma creado con Avalonia.</value>
+  </data>
+  <data name="About_VersionFormat" xml:space="preserve">
+    <value>Versión {0} (compilación {1})</value>
+  </data>
+  <data name="Albums_EmptyDescription" xml:space="preserve">
+    <value>Añade una carpeta a la biblioteca y analízala para ver tus álbumes.</value>
+  </data>
+  <data name="Albums_EmptyHeader" xml:space="preserve">
+    <value>Aún no hay álbumes</value>
+  </data>
+  <data name="Albums_Loading" xml:space="preserve">
+    <value>Cargando álbumes...</value>
+  </data>
+  <data name="Artists_EmptyDescription" xml:space="preserve">
+    <value>Añade una carpeta a la biblioteca y analízala para ver tus artistas.</value>
+  </data>
+  <data name="Artists_EmptyHeader" xml:space="preserve">
+    <value>Aún no hay artistas</value>
+  </data>
+  <data name="Artists_Loading" xml:space="preserve">
+    <value>Cargando artistas...</value>
+  </data>
+  <data name="Common_About" xml:space="preserve">
+    <value>Acerca de</value>
+  </data>
+  <data name="Common_Add" xml:space="preserve">
+    <value>Añadir</value>
+  </data>
+  <data name="Common_AddToPlaylist" xml:space="preserve">
+    <value>Añadir a una lista de reproducción</value>
+  </data>
+  <data name="Common_AddToQueue" xml:space="preserve">
+    <value>Añadir a la cola</value>
+  </data>
+  <data name="Common_AlbumsFormat" xml:space="preserve">
+    <value>{0} álbumes</value>
+  </data>
+  <data name="Common_Back" xml:space="preserve">
+    <value>Atrás</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Common_Restore" xml:space="preserve">
+    <value>Restaurar</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="Common_ColumnAlbum" xml:space="preserve">
+    <value>Álbum</value>
+  </data>
+  <data name="Common_ColumnArtist" xml:space="preserve">
+    <value>Artista</value>
+  </data>
+  <data name="Common_ColumnGenre" xml:space="preserve">
+    <value>Género</value>
+  </data>
+  <data name="Common_ColumnLength" xml:space="preserve">
+    <value>Duración</value>
+  </data>
+  <data name="Common_ColumnTitle" xml:space="preserve">
+    <value>Título</value>
+  </data>
+  <data name="Common_ColumnYear" xml:space="preserve">
+    <value>Año</value>
+  </data>
+  <data name="Common_Continue" xml:space="preserve">
+    <value>Continuar</value>
+  </data>
+  <data name="Common_Copy" xml:space="preserve">
+    <value>Copiar</value>
+  </data>
+  <data name="Common_Create" xml:space="preserve">
+    <value>Crear</value>
+  </data>
+  <data name="Common_Delete" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="Common_Edit" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="Common_GoToAlbum" xml:space="preserve">
+    <value>Ir al álbum</value>
+  </data>
+  <data name="Common_GoToArtist" xml:space="preserve">
+    <value>Ir al artista</value>
+  </data>
+  <data name="Common_GoToLocation" xml:space="preserve">
+    <value>Ir a la ubicación</value>
+  </data>
+  <data name="Common_ImportLyrics" xml:space="preserve">
+    <value>Importar letras</value>
+  </data>
+  <data name="Common_ItemsFormat" xml:space="preserve">
+    <value>{0} elementos</value>
+  </data>
+  <data name="Common_OK" xml:space="preserve">
+    <value>Aceptar</value>
+  </data>
+  <data name="Common_Loading" xml:space="preserve">
+    <value>Cargando...</value>
+  </data>
+  <data name="Common_OneAlbum" xml:space="preserve">
+    <value>1 álbum</value>
+  </data>
+  <data name="Common_OneItem" xml:space="preserve">
+    <value>1 elemento</value>
+  </data>
+  <data name="Common_Open" xml:space="preserve">
+    <value>Abrir</value>
+  </data>
+  <data name="Common_OpenContainingFolder" xml:space="preserve">
+    <value>Abrir la carpeta contenedora</value>
+  </data>
+  <data name="Common_Play" xml:space="preserve">
+    <value>Reproducir</value>
+  </data>
+  <data name="Common_PlayNext" xml:space="preserve">
+    <value>Reproducir a continuación</value>
+  </data>
+  <data name="Common_Playlist" xml:space="preserve">
+    <value>Lista de reproducción</value>
+  </data>
+  <data name="Common_PlaylistName" xml:space="preserve">
+    <value>Nombre de la lista de reproducción</value>
+  </data>
+  <data name="Common_Properties" xml:space="preserve">
+    <value>Propiedades</value>
+  </data>
+  <data name="Common_Refresh" xml:space="preserve">
+    <value>Actualizar</value>
+  </data>
+  <data name="Common_RemoveFromPlaylist" xml:space="preserve">
+    <value>Quitar de la lista de reproducción</value>
+  </data>
+  <data name="Common_Rename" xml:space="preserve">
+    <value>Cambiar nombre</value>
+  </data>
+  <data name="Common_Retry" xml:space="preserve">
+    <value>Reintentar</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="Common_Search" xml:space="preserve">
+    <value>Buscar</value>
+  </data>
+  <data name="Common_ScrollLeft" xml:space="preserve">
+    <value>Desplazar a la izquierda</value>
+  </data>
+  <data name="Common_ScrollRight" xml:space="preserve">
+    <value>Desplazar a la derecha</value>
+  </data>
+  <data name="Common_Select" xml:space="preserve">
+    <value>Seleccionar</value>
+  </data>
+  <data name="Common_Shuffle" xml:space="preserve">
+    <value>Aleatorio</value>
+  </data>
+  <data name="Common_Song" xml:space="preserve">
+    <value>Canción</value>
+  </data>
+  <data name="Common_System" xml:space="preserve">
+    <value>Sistema</value>
+  </data>
+  <data name="Common_ThemeDark" xml:space="preserve">
+    <value>Oscuro</value>
+  </data>
+  <data name="Common_ThemeLight" xml:space="preserve">
+    <value>Claro</value>
+  </data>
+  <data name="Common_ThemeSystem" xml:space="preserve">
+    <value>Usar la configuración del sistema</value>
+  </data>
+  <data name="Common_Unknown" xml:space="preserve">
+    <value>Desconocido</value>
+  </data>
+  <data name="Common_UnknownAlbum" xml:space="preserve">
+    <value>Álbum desconocido</value>
+  </data>
+  <data name="Common_UnknownArtist" xml:space="preserve">
+    <value>Artista desconocido</value>
+  </data>
+  <data name="Common_UnknownGenre" xml:space="preserve">
+    <value>Género desconocido</value>
+  </data>
+  <data name="Common_UnknownTitle" xml:space="preserve">
+    <value>Título desconocido</value>
+  </data>
+  <data name="Common_UnknownYear" xml:space="preserve">
+    <value>Año desconocido</value>
+  </data>
+  <data name="Connection_ServerName" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="Connection_ServerAddress" xml:space="preserve">
+    <value>Dirección</value>
+  </data>
+  <data name="Connection_UserName" xml:space="preserve">
+    <value>Nombre de usuario</value>
+  </data>
+  <data name="Connection_Password" xml:space="preserve">
+    <value>Contraseña</value>
+  </data>
+  <data name="DefaultPageSettings_StartupPageHeader" xml:space="preserve">
+    <value>Página de inicio</value>
+  </data>
+  <data name="DefaultPage_LastPage" xml:space="preserve">
+    <value>Última página</value>
+  </data>
+  <data name="ExtensionSettings_AddSource" xml:space="preserve">
+    <value>Añadir fuente</value>
+  </data>
+  <data name="ExtensionSettings_AddSourcePickerTitle" xml:space="preserve">
+    <value>Añadir fuente de letras</value>
+  </data>
+  <data name="ExtensionSettings_ImportBundled" xml:space="preserve">
+    <value>Importar las fuentes incluidas</value>
+  </data>
+  <data name="ExtensionSettings_LyricSourcesDescription" xml:space="preserve">
+    <value>Scripts de JavaScript para fuentes de letras.</value>
+  </data>
+  <data name="ExtensionSettings_LyricSourcesHeader" xml:space="preserve">
+    <value>Fuentes de letras</value>
+  </data>
+  <data name="ExtensionSettings_NoSources" xml:space="preserve">
+    <value>No se ha añadido ninguna fuente de letras.</value>
+  </data>
+  <data name="ExtensionSettings_RemoveSource" xml:space="preserve">
+    <value>Quitar fuente</value>
+  </data>
+  <data name="ExtensionSettings_Subtitle" xml:space="preserve">
+    <value>Gestiona las fuentes de letras de terceros.</value>
+  </data>
+  <data name="ExtensionSettings_ThirdPartyLyricsDescription" xml:space="preserve">
+    <value>Vuelve a importar las fuentes de letras de terceros incluidas. Pueden aplicarse las condiciones de uso de los servicios de terceros.</value>
+  </data>
+  <data name="ExtensionSettings_ThirdPartyLyricsHeader" xml:space="preserve">
+    <value>Letras de terceros</value>
+  </data>
+  <data name="ExtensionSettings_Title" xml:space="preserve">
+    <value>Extensiones</value>
+  </data>
+  <data name="Home_ContinueWatching" xml:space="preserve">
+    <value>Seguir viendo</value>
+  </data>
+  <data name="Home_EmptyDescription" xml:space="preserve">
+    <value>Añade una carpeta a la biblioteca y analízala para empezar.</value>
+  </data>
+  <data name="Home_EmptyHeader" xml:space="preserve">
+    <value>Esto está muy vacío.</value>
+  </data>
+  <data name="Home_RecentlyAddedVideos" xml:space="preserve">
+    <value>Vídeos añadidos recientemente</value>
+  </data>
+  <data name="Home_RecentlyPlayed" xml:space="preserve">
+    <value>Reproducido recientemente</value>
+  </data>
+  <data name="Home_ShuffleAlbums" xml:space="preserve">
+    <value>Mostrar otros álbumes</value>
+  </data>
+  <data name="Home_Spotlight" xml:space="preserve">
+    <value>De tu biblioteca</value>
+  </data>
+  <data name="Home_SpotlightNext" xml:space="preserve">
+    <value>Elemento siguiente</value>
+  </data>
+  <data name="Home_SpotlightPrevious" xml:space="preserve">
+    <value>Elemento anterior</value>
+  </data>
+  <data name="Home_Upcoming" xml:space="preserve">
+    <value>A continuación</value>
+  </data>
+  <data name="Home_ViewAll" xml:space="preserve">
+    <value>Ver todo</value>
+  </data>
+  <data name="InitialSetup_EnableThirdPartyLyrics" xml:space="preserve">
+    <value>Activar los servicios de letras de terceros</value>
+  </data>
+  <data name="InitialSetup_Intro" xml:space="preserve">
+    <value>Antes de empezar, dedica un momento a revisar la configuración inicial.</value>
+  </data>
+  <data name="InitialSetup_ThirdPartyTerms" xml:space="preserve">
+    <value>Pueden aplicarse las condiciones de uso de los servicios de terceros.</value>
+  </data>
+  <data name="InitialSetup_Title" xml:space="preserve">
+    <value>Te damos la bienvenida a Light</value>
+  </data>
+  <data name="LanguageSettings_InterfaceLanguageHeader" xml:space="preserve">
+    <value>Idioma de la interfaz</value>
+  </data>
+  <data name="Library_SelectAlbumHeader" xml:space="preserve">
+    <value>Selecciona un álbum</value>
+  </data>
+  <data name="Library_SelectArtistHeader" xml:space="preserve">
+    <value>Selecciona un artista</value>
+  </data>
+  <data name="Library_SelectItemDescription" xml:space="preserve">
+    <value>Elige un elemento de la lista para ver sus detalles.</value>
+  </data>
+  <data name="LibrarySettings_AddDefaultFolders" xml:space="preserve">
+    <value>Añadir carpetas predeterminadas</value>
+  </data>
+  <data name="LibrarySettings_AddDefaultFoldersConfirmMessageFormat" xml:space="preserve">
+    <value>¿Añadir estas carpetas de música predeterminadas a la biblioteca?
+
+{0}</value>
+  </data>
+  <data name="LibrarySettings_AddDefaultFoldersConfirmTitle" xml:space="preserve">
+    <value>Añadir carpetas predeterminadas</value>
+  </data>
+  <data name="LibrarySettings_AddFolder" xml:space="preserve">
+    <value>Añadir carpeta</value>
+  </data>
+  <data name="LibrarySettings_AddMusicFolderPickerTitle" xml:space="preserve">
+    <value>Añadir carpeta de música</value>
+  </data>
+  <data name="LibrarySettings_ChooseExistingFolder" xml:space="preserve">
+    <value>Elige una carpeta local existente.</value>
+  </data>
+  <data name="LibrarySettings_DefaultFoldersAlreadyAdded" xml:space="preserve">
+    <value>Las carpetas de música predeterminadas ya están en la biblioteca.</value>
+  </data>
+  <data name="LibrarySettings_FolderAlreadyCovered" xml:space="preserve">
+    <value>Esa carpeta ya está incluida en la biblioteca.</value>
+  </data>
+  <data name="LibrarySettings_FolderAccessRefused" xml:space="preserve">
+    <value>No se concedió el acceso a esa carpeta.</value>
+  </data>
+  <data name="LibrarySettings_FolderPickingUnavailable" xml:space="preserve">
+    <value>La selección de carpetas no está disponible en esta plataforma.</value>
+  </data>
+  <data name="LibrarySettings_BrowserFolderAccessDescription" xml:space="preserve">
+    <value>Puede ser necesario volver a conceder acceso a las carpetas al recargar la página. Los análisis de la biblioteca son manuales.</value>
+  </data>
+  <data name="LibrarySettings_BrowserTemporaryFolderAccessDescription" xml:space="preserve">
+    <value>Seleccione de nuevo cada carpeta de la biblioteca al recargar la página. Los archivos nuevos aparecen después de recargar, volver a seleccionar la carpeta y analizarla.</value>
+  </data>
+  <data name="LibrarySettings_FolderAccessUnavailable" xml:space="preserve">
+    <value>Este navegador no admite el acceso persistente a carpetas locales. Aún puedes abrir archivos individualmente.</value>
+  </data>
+  <data name="LibrarySettings_GrantFolderAccess" xml:space="preserve">
+    <value>Conceder acceso</value>
+  </data>
+  <data name="LibrarySettings_RenewFolderAccessTitle" xml:space="preserve">
+    <value>Restaurar el acceso a las carpetas</value>
+  </data>
+  <data name="LibrarySettings_RenewFolderAccessMessageFormat" xml:space="preserve">
+    <value>Estas carpetas de la biblioteca necesitan tu permiso de nuevo para poder leer su contenido:
+
+{0}</value>
+  </data>
+  <data name="LibrarySettings_FoldersDescription" xml:space="preserve">
+    <value>Carpetas locales incluidas en la biblioteca de música.</value>
+  </data>
+  <data name="LibrarySettings_FoldersHeader" xml:space="preserve">
+    <value>Carpetas</value>
+  </data>
+  <data name="LibrarySettings_KeepHistoryDescription" xml:space="preserve">
+    <value>Al desactivarlo, se borra el historial existente.</value>
+  </data>
+  <data name="LibrarySettings_KeepHistoryHeader" xml:space="preserve">
+    <value>Conservar el historial de reproducción</value>
+  </data>
+  <data name="LibrarySettings_NoDefaultFolders" xml:space="preserve">
+    <value>No se encontró ninguna carpeta de música predeterminada en este dispositivo.</value>
+  </data>
+  <data name="LibrarySettings_NoFolders" xml:space="preserve">
+    <value>No se ha añadido ninguna carpeta.</value>
+  </data>
+  <data name="LibrarySettings_OnlyLocalFolders" xml:space="preserve">
+    <value>Solo se pueden añadir carpetas locales a la biblioteca del escritorio.</value>
+  </data>
+  <data name="LibrarySettings_RemoveFolder" xml:space="preserve">
+    <value>Quitar carpeta</value>
+  </data>
+  <data name="LibrarySettings_RemoveNestedFirst" xml:space="preserve">
+    <value>Quita las subcarpetas de la biblioteca antes de añadir su carpeta principal.</value>
+  </data>
+  <data name="LibrarySettings_ScanAtStartupDescription" xml:space="preserve">
+    <value>Escanear automáticamente las carpetas de la biblioteca al iniciar la aplicación.</value>
+  </data>
+  <data name="LibrarySettings_ScanAtStartupHeader" xml:space="preserve">
+    <value>Analizar al iniciar</value>
+  </data>
+  <data name="LibrarySettings_ScanLibrary" xml:space="preserve">
+    <value>Analizar la biblioteca</value>
+  </data>
+  <data name="LibrarySettings_Subtitle" xml:space="preserve">
+    <value>Elige dónde busca Light música y vídeo.</value>
+  </data>
+  <data name="LibrarySettings_Title" xml:space="preserve">
+    <value>Carpetas de la biblioteca</value>
+  </data>
+  <data name="LyricSearch_ClearLyrics" xml:space="preserve">
+    <value>Borrar las letras</value>
+  </data>
+  <data name="LyricSearch_Header" xml:space="preserve">
+    <value>Elegir letras del catálogo</value>
+  </data>
+  <data name="LyricSearch_ImportExternal" xml:space="preserve">
+    <value>Importar letras externas...</value>
+  </data>
+  <data name="LyricSearch_NoResultsFound" xml:space="preserve">
+    <value>No se encontraron resultados.</value>
+  </data>
+  <data name="LyricSearch_NoSourcesInstalled" xml:space="preserve">
+    <value>No hay fuentes de letras instaladas. Añade una en Configuración &gt; Extensiones.</value>
+  </data>
+  <data name="LyricSearch_OneResultFound" xml:space="preserve">
+    <value>1 resultado encontrado.</value>
+  </data>
+  <data name="LyricSearch_ResultsFoundFormat" xml:space="preserve">
+    <value>{0} resultados encontrados.</value>
+  </data>
+  <data name="LyricSearch_SearchFailedFormat" xml:space="preserve">
+    <value>Error en la búsqueda: {0}</value>
+  </data>
+  <data name="Menu_Exit" xml:space="preserve">
+    <value>Salir</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="Menu_File" xml:space="preserve">
+    <value>Archivo</value>
+  </data>
+  <data name="Menu_Forward" xml:space="preserve">
+    <value>Adelante</value>
+  </data>
+  <data name="Menu_Go" xml:space="preserve">
+    <value>Ir</value>
+  </data>
+  <data name="Menu_Help" xml:space="preserve">
+    <value>Ayuda</value>
+  </data>
+  <data name="Menu_Playback" xml:space="preserve">
+    <value>Reproducción</value>
+  </data>
+  <data name="Menu_View" xml:space="preserve">
+    <value>Ver</value>
+  </data>
+  <data name="Nav_AlbumDetail" xml:space="preserve">
+    <value>Detalle del álbum</value>
+  </data>
+  <data name="Nav_Albums" xml:space="preserve">
+    <value>Álbumes</value>
+  </data>
+  <data name="Nav_ArtistDetail" xml:space="preserve">
+    <value>Detalle del artista</value>
+  </data>
+  <data name="Nav_Artists" xml:space="preserve">
+    <value>Artistas</value>
+  </data>
+  <data name="Nav_Home" xml:space="preserve">
+    <value>Inicio</value>
+  </data>
+  <data name="Nav_Library" xml:space="preserve">
+    <value>Biblioteca</value>
+  </data>
+  <data name="Nav_Music" xml:space="preserve">
+    <value>Música</value>
+  </data>
+  <data name="Nav_NowPlaying" xml:space="preserve">
+    <value>Reproduciendo</value>
+  </data>
+  <data name="Nav_PlaylistDetail" xml:space="preserve">
+    <value>Detalle de la lista de reproducción</value>
+  </data>
+  <data name="Nav_Playlists" xml:space="preserve">
+    <value>Listas de reproducción</value>
+  </data>
+  <data name="Nav_Settings" xml:space="preserve">
+    <value>Configuración</value>
+  </data>
+  <data name="NowPlaying_LyricsEarlier" xml:space="preserve">
+    <value>Letras antes (+1 s)</value>
+  </data>
+  <data name="NowPlaying_LyricsHeader" xml:space="preserve">
+    <value>LETRAS</value>
+  </data>
+  <data name="NowPlaying_LyricsLater" xml:space="preserve">
+    <value>Letras después (-1 s)</value>
+  </data>
+  <data name="NowPlaying_Minimize" xml:space="preserve">
+    <value>Minimizar</value>
+  </data>
+  <data name="NowPlaying_NoLyricsAddSource" xml:space="preserve">
+    <value>No se encontraron letras. Añade una fuente de letras en Configuración o importa un archivo .lrc.</value>
+  </data>
+  <data name="NowPlaying_NoLyricsSearchImport" xml:space="preserve">
+    <value>No se encontraron letras. Usa Buscar o Importar para añadir un archivo .lrc.</value>
+  </data>
+  <data name="NowPlaying_SearchLyrics" xml:space="preserve">
+    <value>Buscar letras</value>
+  </data>
+  <data name="NowPlaying_TabLyrics" xml:space="preserve">
+    <value>Letras</value>
+  </data>
+  <data name="NowPlaying_TabTrack" xml:space="preserve">
+    <value>Música</value>
+  </data>
+  <data name="NowPlaying_TabUpNext" xml:space="preserve">
+    <value>A continuación</value>
+  </data>
+  <data name="NowPlaying_UpcomingHeader" xml:space="preserve">
+    <value>A CONTINUACIÓN</value>
+  </data>
+  <data name="Placeholder_AddAFolderHeader" xml:space="preserve">
+    <value>Añadir una carpeta</value>
+  </data>
+  <data name="Placeholder_AddFolderDescription" xml:space="preserve">
+    <value>Elige las carpetas que quieres incluir en tu biblioteca de música.</value>
+  </data>
+  <data name="Placeholder_Appearance" xml:space="preserve">
+    <value>Apariencia</value>
+  </data>
+  <data name="Placeholder_EmptyDescription" xml:space="preserve">
+    <value>Añade una carpeta a la biblioteca para empezar.</value>
+  </data>
+  <data name="Placeholder_PlaceholderRoute" xml:space="preserve">
+    <value>Ruta de marcador de posición</value>
+  </data>
+  <data name="Placeholder_RemoveThisFolder" xml:space="preserve">
+    <value>Quitar esta carpeta</value>
+  </data>
+  <data name="Placeholder_ThemeDescription" xml:space="preserve">
+    <value>Elige el aspecto de la aplicación.</value>
+  </data>
+  <data name="PlaybackBar_Like" xml:space="preserve">
+    <value>Me gusta</value>
+  </data>
+  <data name="PlaybackBar_ModePlayInOrder" xml:space="preserve">
+    <value>Reproducir en orden</value>
+  </data>
+  <data name="PlaybackBar_ModeRepeatAll" xml:space="preserve">
+    <value>Repetir todo</value>
+  </data>
+  <data name="PlaybackBar_ModeRepeatOne" xml:space="preserve">
+    <value>Repetir una</value>
+  </data>
+  <data name="PlaybackBar_Next" xml:space="preserve">
+    <value>Siguiente</value>
+  </data>
+  <data name="PlaybackBar_OpenNowPlaying" xml:space="preserve">
+    <value>Abrir Reproduciendo</value>
+  </data>
+  <data name="PlaybackBar_PlayPause" xml:space="preserve">
+    <value>Reproducir / Pausar</value>
+  </data>
+  <data name="PlaybackBar_Previous" xml:space="preserve">
+    <value>Anterior</value>
+  </data>
+  <data name="PlaybackBar_Volume" xml:space="preserve">
+    <value>Volumen</value>
+  </data>
+  <data name="PlaylistDetail_DeleteConfirmFormat" xml:space="preserve">
+    <value>¿Eliminar «{0}»? Esta acción no se puede deshacer.</value>
+  </data>
+  <data name="PlaylistDetail_DeletePlaylist" xml:space="preserve">
+    <value>Eliminar la lista de reproducción</value>
+  </data>
+  <data name="PlaylistDetail_EmptyDescription" xml:space="preserve">
+    <value>Añade música desde la biblioteca o desde la cola de reproducción.</value>
+  </data>
+  <data name="PlaylistDetail_EmptyHeader" xml:space="preserve">
+    <value>Esta lista de reproducción está vacía</value>
+  </data>
+  <data name="PlaylistDetail_Export" xml:space="preserve">
+    <value>Exportar...</value>
+  </data>
+  <data name="PlaylistDetail_RenameDialogHeader" xml:space="preserve">
+    <value>Cambiar el nombre de la lista de reproducción</value>
+  </data>
+  <data name="PlaylistDialog_ExportTitle" xml:space="preserve">
+    <value>Exportar la lista de reproducción</value>
+  </data>
+  <data name="PlaylistModel_NoItems" xml:space="preserve">
+    <value>Sin elementos</value>
+  </data>
+  <data name="PlaylistPicker_NewPlaylist" xml:space="preserve">
+    <value>+  Nueva lista de reproducción...</value>
+  </data>
+  <data name="Playlists_ChooseFromListDescription" xml:space="preserve">
+    <value>Elige una lista de reproducción para ver su contenido.</value>
+  </data>
+  <data name="Playlists_CreateOrImportDescription" xml:space="preserve">
+    <value>Crea una lista de reproducción o importa un archivo M3U o WPL para empezar.</value>
+  </data>
+  <data name="Playlists_ImportPlaylist" xml:space="preserve">
+    <value>Importar lista de reproducción</value>
+  </data>
+  <data name="Playlists_NewPlaylist" xml:space="preserve">
+    <value>Nueva lista de reproducción</value>
+  </data>
+  <data name="Playlists_NoPlaylists" xml:space="preserve">
+    <value>Aún no hay listas de reproducción</value>
+  </data>
+  <data name="Playlists_SaveQueueToCreate" xml:space="preserve">
+    <value>Guarda la cola de reproducción para crear una.</value>
+  </data>
+  <data name="Playlists_SelectPlaylistHeader" xml:space="preserve">
+    <value>Selecciona una lista de reproducción</value>
+  </data>
+  <data name="Props_AlbumArtist" xml:space="preserve">
+    <value>Artista del álbum</value>
+  </data>
+  <data name="Props_AspectRatio" xml:space="preserve">
+    <value>Relación de aspecto</value>
+  </data>
+  <data name="Props_BitDepth" xml:space="preserve">
+    <value>Profundidad de bits</value>
+  </data>
+  <data name="Props_Bitrate" xml:space="preserve">
+    <value>Tasa de bits</value>
+  </data>
+  <data name="Props_BitrateKbpsFormat" xml:space="preserve">
+    <value>{0:0} kb/s</value>
+  </data>
+  <data name="Props_Channels" xml:space="preserve">
+    <value>Canales</value>
+  </data>
+  <data name="Props_Codec" xml:space="preserve">
+    <value>Códec</value>
+  </data>
+  <data name="Props_Color" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="Props_Composer" xml:space="preserve">
+    <value>Compositor</value>
+  </data>
+  <data name="Props_Container" xml:space="preserve">
+    <value>Contenedor</value>
+  </data>
+  <data name="Props_Date" xml:space="preserve">
+    <value>Fecha</value>
+  </data>
+  <data name="Props_Disc" xml:space="preserve">
+    <value>Disco</value>
+  </data>
+  <data name="Props_Disposition" xml:space="preserve">
+    <value>Disposición</value>
+  </data>
+  <data name="Props_Duration" xml:space="preserve">
+    <value>Duración</value>
+  </data>
+  <data name="Props_FileName" xml:space="preserve">
+    <value>Nombre del archivo</value>
+  </data>
+  <data name="Props_FileSizeMbFormat" xml:space="preserve">
+    <value>{0:0.00} MB</value>
+  </data>
+  <data name="Props_FrameRate" xml:space="preserve">
+    <value>Frecuencia de fotogramas</value>
+  </data>
+  <data name="Props_FrameRateFpsFormat" xml:space="preserve">
+    <value>{0:0.###} fps</value>
+  </data>
+  <data name="Props_Frames" xml:space="preserve">
+    <value>Fotogramas</value>
+  </data>
+  <data name="Props_Language" xml:space="preserve">
+    <value>Idioma</value>
+  </data>
+  <data name="Props_Location" xml:space="preserve">
+    <value>Ubicación</value>
+  </data>
+  <data name="Props_PixelFormat" xml:space="preserve">
+    <value>Formato de píxel</value>
+  </data>
+  <data name="Props_Profile" xml:space="preserve">
+    <value>Perfil</value>
+  </data>
+  <data name="Props_Resolution" xml:space="preserve">
+    <value>Resolución</value>
+  </data>
+  <data name="Props_SampleFormat" xml:space="preserve">
+    <value>Formato de muestra</value>
+  </data>
+  <data name="Props_SampleRate" xml:space="preserve">
+    <value>Frecuencia de muestreo</value>
+  </data>
+  <data name="Props_SampleRateKhzFormat" xml:space="preserve">
+    <value>{0:0.###} kHz</value>
+  </data>
+  <data name="Props_SectionAudioStreamFormat" xml:space="preserve">
+    <value>Flujo de audio n.º {0}</value>
+  </data>
+  <data name="Props_SectionChapters" xml:space="preserve">
+    <value>Capítulos</value>
+  </data>
+  <data name="Props_SectionGeneral" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Props_SectionMetadata" xml:space="preserve">
+    <value>Metadatos</value>
+  </data>
+  <data name="Props_SectionStreamFormat" xml:space="preserve">
+    <value>Flujo n.º {0}</value>
+  </data>
+  <data name="Props_SectionSubtitleStreamFormat" xml:space="preserve">
+    <value>Flujo de subtítulos n.º {0}</value>
+  </data>
+  <data name="Props_SectionVideoStreamFormat" xml:space="preserve">
+    <value>Flujo de vídeo n.º {0}</value>
+  </data>
+  <data name="Props_Size" xml:space="preserve">
+    <value>Tamaño</value>
+  </data>
+  <data name="Props_Track" xml:space="preserve">
+    <value>Pista</value>
+  </data>
+  <data name="Props_Type" xml:space="preserve">
+    <value>Tipo</value>
+  </data>
+  <data name="QueuePane_DeleteSelected" xml:space="preserve">
+    <value>Eliminar la selección</value>
+  </data>
+  <data name="QueuePane_EditQueue" xml:space="preserve">
+    <value>Editar la cola</value>
+  </data>
+  <data name="QueuePane_EnterEditMode" xml:space="preserve">
+    <value>Entrar en modo de edición</value>
+  </data>
+  <data name="QueuePane_ExitEditMode" xml:space="preserve">
+    <value>Salir del modo de edición</value>
+  </data>
+  <data name="QueuePane_NowPlayingHeader" xml:space="preserve">
+    <value>REPRODUCIENDO</value>
+  </data>
+  <data name="QueuePane_RemoveAll" xml:space="preserve">
+    <value>Quitar todo</value>
+  </data>
+  <data name="QueuePane_RemoveFromQueue" xml:space="preserve">
+    <value>Quitar de la cola</value>
+  </data>
+  <data name="QueuePane_RemoveSelected" xml:space="preserve">
+    <value>Quitar la selección</value>
+  </data>
+  <data name="QueuePane_SaveAsPlaylist" xml:space="preserve">
+    <value>Guardar como lista de reproducción</value>
+  </data>
+  <data name="QueuePane_SelectAll" xml:space="preserve">
+    <value>Seleccionar todo</value>
+  </data>
+  <data name="QueuePane_UnselectAll" xml:space="preserve">
+    <value>Anular la selección</value>
+  </data>
+  <data name="RemoteApiSettings_ApplyButton" xml:space="preserve">
+    <value>Aplicar la configuración</value>
+  </data>
+  <data name="RemoteApiSettings_ConnectionNoticeLocal" xml:space="preserve">
+    <value>Dirección de la API: http://{0}:{1}/api/v1/</value>
+  </data>
+  <data name="RemoteApiSettings_ConnectionNoticeRemote" xml:space="preserve">
+    <value>Dispositivos remotos: abre http://&lt;dirección-LAN-de-este-equipo&gt;:{0}/. La dirección 0.0.0.0 es solo una opción de escucha.</value>
+  </data>
+  <data name="RemoteApiSettings_FirewallNotice" xml:space="preserve">
+    <value>Cortafuegos: permite el puerto TCP entrante {0} en los perfiles de red de confianza si otros dispositivos no pueden conectarse.</value>
+  </data>
+  <data name="RemoteApiSettings_HostPlaceholder" xml:space="preserve">
+    <value>host</value>
+  </data>
+  <data name="RemoteApiSettings_HttpServerDescription" xml:space="preserve">
+    <value>Permitir que los navegadores y los clientes de la API se conecten a esta biblioteca multimedia.</value>
+  </data>
+  <data name="RemoteApiSettings_HttpServerHeader" xml:space="preserve">
+    <value>Servidor HTTP</value>
+  </data>
+  <data name="RemoteApiSettings_InvalidPort" xml:space="preserve">
+    <value>El puerto HTTP debe ser un número entero entre 1 y 65535.</value>
+  </data>
+  <data name="RemoteApiSettings_ListenHostDescription" xml:space="preserve">
+    <value>Usa 0.0.0.0 para todas las interfaces de red o 127.0.0.1 solo para este equipo.</value>
+  </data>
+  <data name="RemoteApiSettings_ListenHostHeader" xml:space="preserve">
+    <value>Host de escucha</value>
+  </data>
+  <data name="RemoteApiSettings_MissingHostOrPort" xml:space="preserve">
+    <value>Introduce un host y un puerto entre 1 y 65535.</value>
+  </data>
+  <data name="RemoteApiSettings_PortDescription" xml:space="preserve">
+    <value>Puerto TCP en el que escucha la API REST.</value>
+  </data>
+  <data name="RemoteApiSettings_PortHeader" xml:space="preserve">
+    <value>Puerto</value>
+  </data>
+  <data name="RemoteApiSettings_PortPlaceholder" xml:space="preserve">
+    <value>puerto</value>
+  </data>
+  <data name="RemoteApiSettings_PortUnset" xml:space="preserve">
+    <value>el que elijas</value>
+  </data>
+  <data name="RemoteApiSettings_SecurityNotice" xml:space="preserve">
+    <value>Seguridad: el tráfico HTTP no está cifrado. Activa el inicio de sesión y usa esto solo en una red privada de confianza. No expongas este puerto a Internet ni configures la redirección de puertos en el router.</value>
+  </data>
+  <data name="RemoteApiSettings_ServerDisabled" xml:space="preserve">
+    <value>El servidor HTTP está desactivado.</value>
+  </data>
+  <data name="RemoteApiSettings_ServerFailed" xml:space="preserve">
+    <value>El servidor HTTP no pudo iniciarse: {0}</value>
+  </data>
+  <data name="RemoteApiSettings_ServerRunning" xml:space="preserve">
+    <value>El servidor HTTP está en ejecución en {0}</value>
+  </data>
+  <data name="RemoteApiSettings_Subtitle" xml:space="preserve">
+    <value>Comparte esta biblioteca con la aplicación del navegador y con otros clientes de la API REST.</value>
+  </data>
+  <data name="RemoteApiSettings_Title" xml:space="preserve">
+    <value>Acceso remoto</value>
+  </data>
+  <data name="SampleRateSettings_AlwaysResampleHeader" xml:space="preserve">
+    <value>Remuestrear siempre</value>
+  </data>
+  <data name="SampleRateSettings_NextTrackPrompt" xml:space="preserve">
+    <value>La configuración de frecuencia de muestreo se aplicará al reproducir la siguiente pista.</value>
+  </data>
+  <data name="SampleRateSettings_PreferredRateHeader" xml:space="preserve">
+    <value>Frecuencia de muestreo preferida</value>
+  </data>
+  <data name="SampleRateSettings_SystemRateHeader" xml:space="preserve">
+    <value>Frecuencia de muestreo del sistema</value>
+  </data>
+  <data name="SampleRateSettings_Title" xml:space="preserve">
+    <value>Frecuencia de muestreo</value>
+  </data>
+  <data name="SampleRate_Detecting" xml:space="preserve">
+    <value>Detectando...</value>
+  </data>
+  <data name="AudioSettings_DefaultDevice" xml:space="preserve">
+    <value>Dispositivo predeterminado del sistema</value>
+  </data>
+  <data name="AudioSettings_DeviceHeader" xml:space="preserve">
+    <value>Dispositivo de salida</value>
+  </data>
+  <data name="AudioSettings_ExclusiveDescription" xml:space="preserve">
+    <value>Concede a Light Player acceso exclusivo al dispositivo seleccionado. Puede que otras aplicaciones no puedan reproducir audio.</value>
+  </data>
+  <data name="AudioSettings_ExclusiveHeader" xml:space="preserve">
+    <value>Modo exclusivo</value>
+  </data>
+  <data name="AudioSettings_Subtitle" xml:space="preserve">
+    <value>Elige el dispositivo de salida de audio y el modo de reproducción.</value>
+  </data>
+  <data name="AudioSettings_Title" xml:space="preserve">
+    <value>Salida de audio</value>
+  </data>
+  <data name="AudioSettings_UnavailableDevice" xml:space="preserve">
+    <value>Dispositivo seleccionado (no disponible)</value>
+  </data>
+  <data name="VideoSettings_Title" xml:space="preserve">
+    <value>Vídeo</value>
+  </data>
+  <data name="VideoSettings_Subtitle" xml:space="preserve">
+    <value>Elige las preferencias de conversión, escalado y decodificación de vídeo.</value>
+  </data>
+  <data name="VideoSettings_BufferHeader" xml:space="preserve">
+    <value>Búfer de vídeo</value>
+  </data>
+  <data name="VideoSettings_DebandingHeader" xml:space="preserve">
+    <value>Reducción de bandas</value>
+  </data>
+  <data name="VideoSettings_DebandingOff" xml:space="preserve">
+    <value>Desactivado</value>
+  </data>
+  <data name="VideoSettings_DebandingLow" xml:space="preserve">
+    <value>Baja</value>
+  </data>
+  <data name="VideoSettings_DebandingMedium" xml:space="preserve">
+    <value>Media</value>
+  </data>
+  <data name="VideoSettings_DebandingHigh" xml:space="preserve">
+    <value>Alta</value>
+  </data>
+  <data name="VideoSettings_UpscalingHeader" xml:space="preserve">
+    <value>Ampliación</value>
+  </data>
+  <data name="VideoSettings_DownscalingHeader" xml:space="preserve">
+    <value>Reducción</value>
+  </data>
+  <data name="VideoSettings_PreferHardwareProcessingHeader" xml:space="preserve">
+    <value>Preferir el procesamiento de vídeo por hardware</value>
+  </data>
+  <data name="VideoSettings_HdrPassthroughHeader" xml:space="preserve">
+    <value>Salida de color avanzada (WCG / HDR)</value>
+  </data>
+  <data name="VideoSettings_HdrPassthroughDescription" xml:space="preserve">
+    <value>Reinicia Light para aplicar el cambio.</value>
+  </data>
+  <data name="VideoSettings_Bt709InterpretationHeader" xml:space="preserve"><value>Interpretación de BT.709</value></data>
+  <data name="VideoSettings_Bt709InterpretationDescription" xml:space="preserve"><value>Elige la función de transferencia para los vídeos BT.709.</value></data>
+  <data name="VideoSettings_Bt709PlatformPreferred" xml:space="preserve"><value>Preferencia de la plataforma</value></data>
+  <data name="VideoSettings_Bt709GammaFormat" xml:space="preserve"><value>Gamma {0}</value></data>
+  <data name="VideoSettings_PanelBitDepthHeader" xml:space="preserve">
+    <value>Profundidad de bits del panel</value>
+  </data>
+  <data name="VideoSettings_PanelBitDepthDescription" xml:space="preserve">
+    <value>Anular la decisión de tramado</value>
+  </data>
+  <data name="VideoSettings_PanelBitDepthAutomatic" xml:space="preserve">
+    <value>Predeterminado ({0})</value>
+  </data>
+  <data name="VideoSettings_BitDepthFormat" xml:space="preserve">
+    <value>{0} bits</value>
+  </data>
+  <data name="VideoSettings_ScalingNearest" xml:space="preserve">
+    <value>Vecino más cercano</value>
+  </data>
+  <data name="VideoSettings_ScalingBilinear" xml:space="preserve">
+    <value>Bilineal</value>
+  </data>
+  <data name="VideoSettings_ScalingTrilinear" xml:space="preserve">
+    <value>Trilineal</value>
+  </data>
+  <data name="VideoSettings_HardwareEnabledHeader" xml:space="preserve">
+    <value>Activar el decodificador por hardware</value>
+  </data>
+  <data name="VideoSettings_PhotoDecodePreferenceHeader" xml:space="preserve"><value>Preferencia de decodificación de fotos</value></data>
+  <data name="VideoSettings_PhotoDecodeMemory" xml:space="preserve"><value>Memoria</value></data>
+  <data name="VideoSettings_PhotoDecodePerformance" xml:space="preserve"><value>Rendimiento</value></data>
+  <data name="VideoSettings_HardwareDecoderHeader" xml:space="preserve">
+    <value>Decodificador por hardware preferido</value>
+  </data>
+  <data name="VideoSettings_HardwareDecoderCopyBackDescription" xml:space="preserve">
+    <value>El decodificador seleccionado copia los fotogramas decodificados de vuelta a la memoria del sistema.</value>
+  </data>
+  <data name="VideoSettings_HardwareAuto" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="VideoSettings_HardwareDeviceHeader" xml:space="preserve">
+    <value>Dispositivo de decodificación</value>
+  </data>
+  <data name="VideoSettings_HardwareDeviceDescription" xml:space="preserve">
+    <value>Qué dispositivo gráfico decodifica el vídeo cuando el equipo tiene más de uno.</value>
+  </data>
+  <data name="VideoSettings_HardwareDeviceAuto" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="VideoSettings_HardwareOptionDefault" xml:space="preserve">
+    <value>Predeterminado</value>
+  </data>
+  <data name="SearchBox_Clear" xml:space="preserve">
+    <value>Borrar búsqueda</value>
+  </data>
+  <data name="SearchBox_Placeholder" xml:space="preserve">
+    <value>Buscar...</value>
+  </data>
+  <data name="Search_AlbumsHeaderFormat" xml:space="preserve">
+    <value>Álbumes ({0})</value>
+  </data>
+  <data name="Search_ArtistsHeaderFormat" xml:space="preserve">
+    <value>Artistas ({0})</value>
+  </data>
+  <data name="Search_NoResultsDescription" xml:space="preserve">
+    <value>Prueba con otro término de búsqueda.</value>
+  </data>
+  <data name="Search_NoResultsHeader" xml:space="preserve">
+    <value>Sin resultados</value>
+  </data>
+  <data name="Search_ResultsForFormat" xml:space="preserve">
+    <value>Resultados de «{0}»</value>
+  </data>
+  <data name="Search_SongsHeaderFormat" xml:space="preserve">
+    <value>Música ({0})</value>
+  </data>
+  <data name="Search_VideosHeaderFormat" xml:space="preserve">
+    <value>Vídeos ({0})</value>
+  </data>
+  <data name="SettingsSection_LibraryTitle" xml:space="preserve">
+    <value>Biblioteca</value>
+  </data>
+  <data name="SettingsSection_PlaybackTitle" xml:space="preserve">
+    <value>Reproducción</value>
+  </data>
+  <data name="SettingsSection_SampleRateListTitle" xml:space="preserve">
+    <value>Frecuencia de muestreo</value>
+  </data>
+  <data name="Settings_ChooseFromListDescription" xml:space="preserve">
+    <value>Elige una sección de la lista para ver su configuración.</value>
+  </data>
+  <data name="Settings_SelectSectionHeader" xml:space="preserve">
+    <value>Selecciona una sección</value>
+  </data>
+  <data name="Shell_CheckForUpdates" xml:space="preserve">
+    <value>Buscar actualizaciones</value>
+  </data>
+  <data name="Shell_CueFailureFormat" xml:space="preserve">
+    <value>{0}: no se pudo encontrar ni abrir {1}. Si la hoja CUE está fuera de tu carpeta de música, abre la hoja CUE junto con su archivo de audio para que la aplicación pueda acceder a ambos.</value>
+  </data>
+  <data name="Shell_CueItsAudioFile" xml:space="preserve">
+    <value>su archivo de audio</value>
+  </data>
+  <data name="Shell_IndexedItemsFormat" xml:space="preserve">
+    <value>{0} elementos indexados...</value>
+  </data>
+  <data name="Shell_IndexedOneItem" xml:space="preserve">
+    <value>1 elemento indexado...</value>
+  </data>
+  <data name="Shell_LayoutGrid" xml:space="preserve">
+    <value>Cuadrícula</value>
+  </data>
+  <data name="Shell_LayoutList" xml:space="preserve">
+    <value>Lista</value>
+  </data>
+  <data name="Shell_LibrarySorting" xml:space="preserve">
+    <value>Orden de la biblioteca</value>
+  </data>
+  <data name="Shell_More" xml:space="preserve">
+    <value>Más</value>
+  </data>
+  <data name="Shell_NowPlaying" xml:space="preserve">
+    <value>Reproduciendo</value>
+  </data>
+  <data name="Shell_OneScanWarning" xml:space="preserve">
+    <value>1 aviso del análisis</value>
+  </data>
+  <data name="Shell_OpenMediaFilesPickerTitle" xml:space="preserve">
+    <value>Abrir archivos multimedia</value>
+  </data>
+  <data name="Shell_OpenFile" xml:space="preserve">
+    <value>Abrir archivo...</value>
+  </data>
+  <data name="Shell_OpenStreamLink" xml:space="preserve">
+    <value>Abrir enlace de transmisión...</value>
+  </data>
+  <data name="Shell_OpenFolderFailed" xml:space="preserve">
+    <value>No se pudo abrir la carpeta contenedora</value>
+  </data>
+  <data name="Shell_OpenFolderMissingFormat" xml:space="preserve">
+    <value>La carpeta ya no existe: {0}</value>
+  </data>
+  <data name="Shell_OpenFolderNoApp" xml:space="preserve">
+    <value>Ninguna aplicación de este dispositivo puede mostrar esta carpeta. Instala un gestor de archivos e inténtalo de nuevo.</value>
+  </data>
+  <data name="Shell_OpenFolderRefused" xml:space="preserve">
+    <value>El sistema se negó a abrir la carpeta.</value>
+  </data>
+  <data name="Shell_OpenFolderUnknownLocation" xml:space="preserve">
+    <value>No se pudo determinar la ubicación de este archivo.</value>
+  </data>
+  <data name="Shell_RecentlyAdded" xml:space="preserve">
+    <value>Música añadida recientemente</value>
+  </data>
+  <data name="Shell_RefreshLibrary" xml:space="preserve">
+    <value>Actualizar la biblioteca</value>
+  </data>
+  <data name="Shell_ScanCompleteItemsFormat" xml:space="preserve">
+    <value>Análisis de la biblioteca completado: {0} elementos indexados.</value>
+  </data>
+  <data name="Shell_ScanCompleteOneItem" xml:space="preserve">
+    <value>Análisis de la biblioteca completado: 1 elemento indexado.</value>
+  </data>
+  <data name="Shell_ScanCompletedWithWarnings" xml:space="preserve">
+    <value>El análisis de la biblioteca terminó con avisos de la base de datos.</value>
+  </data>
+  <data name="Shell_ScanFailed" xml:space="preserve">
+    <value>Error en el análisis de la biblioteca.</value>
+  </data>
+  <data name="Shell_ScanRefreshing" xml:space="preserve">
+    <value>Actualizando la biblioteca...</value>
+  </data>
+  <data name="Shell_ScanWarningsFormat" xml:space="preserve">
+    <value>{0} avisos del análisis</value>
+  </data>
+  <data name="Shell_ScanningFoldersFormat" xml:space="preserve">
+    <value>Analizando {0} carpetas...</value>
+  </data>
+  <data name="Shell_ScanningOneFolder" xml:space="preserve">
+    <value>Analizando 1 carpeta...</value>
+  </data>
+  <data name="Shell_ShuffleAll" xml:space="preserve">
+    <value>Reproducir todo al azar</value>
+  </data>
+  <data name="Shell_SortAlbumName" xml:space="preserve">
+    <value>Nombre del álbum</value>
+  </data>
+  <data name="Shell_SortArtistName" xml:space="preserve">
+    <value>Nombre del artista</value>
+  </data>
+  <data name="Shell_SortAscending" xml:space="preserve">
+    <value>Ascendente</value>
+  </data>
+  <data name="Shell_SortDateAdded" xml:space="preserve">
+    <value>Fecha en que se añadió</value>
+  </data>
+  <data name="Shell_SortDescending" xml:space="preserve">
+    <value>Descendente</value>
+  </data>
+  <data name="Shell_SortGenre" xml:space="preserve">
+    <value>Género</value>
+  </data>
+  <data name="Shell_SortTitle" xml:space="preserve">
+    <value>Título</value>
+  </data>
+  <data name="Shell_SortYear" xml:space="preserve">
+    <value>Año</value>
+  </data>
+  <data name="Shell_ToggleNavigation" xml:space="preserve">
+    <value>Mostrar u ocultar la navegación</value>
+  </data>
+  <data name="Shell_UpdateChecking" xml:space="preserve">
+    <value>Buscando actualizaciones...</value>
+  </data>
+  <data name="Shell_UpdateDownloadFormat" xml:space="preserve">
+    <value>Descargar la versión {0}</value>
+  </data>
+  <data name="Shell_UpdateFailedFormat" xml:space="preserve">
+    <value>Error al buscar actualizaciones: {0}</value>
+  </data>
+  <data name="Shell_UpdateUpToDate" xml:space="preserve">
+    <value>Estás usando la última versión.</value>
+  </data>
+  <data name="Shell_WarnActionFailed" xml:space="preserve">
+    <value>La acción falló</value>
+  </data>
+  <data name="Shell_WarnCueOpen" xml:space="preserve">
+    <value>No se pudo abrir la hoja CUE</value>
+  </data>
+  <data name="Shell_WarnLoadLibrary" xml:space="preserve">
+    <value>No se pudo cargar la biblioteca</value>
+  </data>
+  <data name="Shell_WarnLoadPage" xml:space="preserve">
+    <value>No se pudo cargar la página</value>
+  </data>
+  <data name="Shell_WarnPlaybackError" xml:space="preserve">
+    <value>Error de reproducción</value>
+  </data>
+  <data name="Shell_WarnScanFailed" xml:space="preserve">
+    <value>Error en el análisis de la biblioteca</value>
+  </data>
+  <data name="Shell_WarningDetailsTitle" xml:space="preserve">
+    <value>Detalles</value>
+  </data>
+  <data name="Songs_EmptyDescription" xml:space="preserve">
+    <value>Añade una carpeta a la biblioteca y analízala para ver tu música.</value>
+  </data>
+  <data name="Songs_EmptyHeader" xml:space="preserve">
+    <value>Aún no hay música</value>
+  </data>
+  <data name="Songs_Loading" xml:space="preserve">
+    <value>Cargando canciones...</value>
+  </data>
+  <data name="StorageSettings_LyricsHeader" xml:space="preserve">
+    <value>Letras</value>
+  </data>
+  <data name="StorageSettings_LyricsDescription" xml:space="preserve">
+    <value>Letras guardadas en la carpeta de datos de la aplicación.</value>
+  </data>
+  <data name="StorageSettings_VideoPreviewsHeader" xml:space="preserve">
+    <value>Vistas previas de vídeos</value>
+  </data>
+  <data name="StorageSettings_VideoPreviewsDescription" xml:space="preserve">
+    <value>Caché de vistas previas de vídeos locales.</value>
+  </data>
+  <data name="StorageSettings_PhotoPreviewsHeader" xml:space="preserve">
+    <value>Vistas previas de fotos</value>
+  </data>
+  <data name="StorageSettings_PhotoPreviewsDescription" xml:space="preserve">
+    <value>Caché de miniaturas de fotos locales.</value>
+  </data>
+  <data name="StorageSettings_MediaBlocksHeader" xml:space="preserve">
+    <value>Audio transmitido</value>
+  </data>
+  <data name="StorageSettings_MediaBlocksDescription" xml:space="preserve">
+    <value>Partes de pistas remotas guardadas aquí para no volver a descargarlas al reproducirlas de nuevo.</value>
+  </data>
+  <data name="StorageSettings_ImagesHeader" xml:space="preserve">
+    <value>Carátulas y vistas previas de vídeo</value>
+  </data>
+  <data name="StorageSettings_ImagesDescription" xml:space="preserve">
+    <value>Imágenes de portada y fotogramas de vista previa de vídeo descargados del servidor, guardados aquí para no volver a obtenerlos al navegar.</value>
+  </data>
+  <data name="StorageSettings_UsageFormat" xml:space="preserve">
+    <value>{0} elementos, {1}</value>
+  </data>
+  <data name="StorageSettings_Empty" xml:space="preserve">
+    <value>Vacío</value>
+  </data>
+  <data name="StorageSettings_Measuring" xml:space="preserve">
+    <value>Calculando...</value>
+  </data>
+  <data name="StorageSettings_Clear" xml:space="preserve">
+    <value>Borrar</value>
+  </data>
+  <data name="StorageSettings_LimitHeader" xml:space="preserve">
+    <value>Tamaño máximo (MiB)</value>
+  </data>
+  <data name="StorageSettings_LimitDescription" xml:space="preserve">
+    <value>Cuánto espacio puede usar esta caché. Reducirlo elimina los datos usados menos recientemente.</value>
+  </data>
+  <data name="StorageSettings_ClearConfirmTitle" xml:space="preserve">
+    <value>Borrar los datos en caché</value>
+  </data>
+  <data name="StorageSettings_ClearConfirmMessageFormat" xml:space="preserve">
+    <value>¿Quitar «{0}» de este dispositivo? Esta acción no se puede deshacer.</value>
+  </data>
+  <data name="StreamLink_Address" xml:space="preserve">
+    <value>URL de transmisión</value>
+  </data>
+  <data name="StreamLink_InvalidAddress" xml:space="preserve">
+    <value>Introduce una URL HTTP o HTTPS.</value>
+  </data>
+  <data name="StreamLink_Title" xml:space="preserve">
+    <value>Abrir enlace de transmisión</value>
+  </data>
+  <data name="TextPrompt_DefaultTitle" xml:space="preserve">
+    <value>Lista de reproducción</value>
+  </data>
+  <data name="ThemeSettings_RowDescription" xml:space="preserve">
+    <value>Usa la configuración del sistema, el modo claro o el modo oscuro.</value>
+  </data>
+  <data name="ThemeSettings_Subtitle" xml:space="preserve">
+    <value>Elige el tema de la aplicación.</value>
+  </data>
+  <data name="ThemeSettings_Title" xml:space="preserve">
+    <value>Tema</value>
+  </data>
+  <data name="ThemeSettings_SectionTitle" xml:space="preserve">
+    <value>Temas</value>
+  </data>
+  <data name="ThemeSettings_SectionSubtitle" xml:space="preserve">
+    <value>Elige el aspecto de la aplicación</value>
+  </data>
+  <data name="ThemeSettings_ModeSectionSubtitle" xml:space="preserve">
+    <value>Elige cómo se adapta la aplicación a tu sistema.</value>
+  </data>
+  <data name="ThemeSettings_ModeSystemDescription" xml:space="preserve">
+    <value>Cambiar automáticamente.</value>
+  </data>
+  <data name="ThemeSettings_ModeLightDescription" xml:space="preserve">
+    <value>Usar siempre el tema claro.</value>
+  </data>
+  <data name="ThemeSettings_ModeDarkDescription" xml:space="preserve">
+    <value>Usar siempre el tema oscuro.</value>
+  </data>
+  <data name="ThemeSettings_AppleStyleHeader" xml:space="preserve">
+    <value>Activar el estilo de interfaz de Apple</value>
+  </data>
+  <data name="ThemeColor_SectionTitle" xml:space="preserve">
+    <value>Color del tema</value>
+  </data>
+  <data name="ThemeColor_SectionSubtitle" xml:space="preserve">
+    <value>Elige un tema de color para personalizar la aplicación.</value>
+  </data>
+  <data name="ThemeColor_MicaHeader" xml:space="preserve">
+    <value>Fundirse con el escritorio</value>
+  </data>
+  <data name="ThemeColor_MicaDescription" xml:space="preserve">
+    <value>Tiñe la ventana con tu fondo de pantalla mediante el material Mica de Windows 11.</value>
+  </data>
+  <data name="ThemeColor_AddCustom" xml:space="preserve">
+    <value>Añadir tema personalizado</value>
+  </data>
+  <data name="ThemeColor_DeleteTitle" xml:space="preserve">
+    <value>Eliminar tema</value>
+  </data>
+  <data name="ThemeColor_DeleteMessageFormat" xml:space="preserve">
+    <value>¿Eliminar el tema personalizado «{0}»? Esta acción no se puede deshacer.</value>
+  </data>
+  <data name="ThemeColor_Apple" xml:space="preserve">
+    <value>Apple</value>
+  </data>
+  <data name="ThemeColor_WindowsDefault" xml:space="preserve">
+    <value>Windows</value>
+  </data>
+  <data name="ThemeColor_Ocean" xml:space="preserve">
+    <value>Océano</value>
+  </data>
+  <data name="ThemeColor_Forest" xml:space="preserve">
+    <value>Bosque</value>
+  </data>
+  <data name="ThemeColor_Violet" xml:space="preserve">
+    <value>Violeta</value>
+  </data>
+  <data name="ThemeColor_Sunset" xml:space="preserve">
+    <value>Atardecer</value>
+  </data>
+  <data name="ThemeColor_Amber" xml:space="preserve">
+    <value>Ámbar</value>
+  </data>
+  <data name="ThemeColor_Role_Accent" xml:space="preserve">
+    <value>Color de acento</value>
+  </data>
+  <data name="ThemeColor_Role_PageBackground" xml:space="preserve">
+    <value>Fondo de la página</value>
+  </data>
+  <data name="ThemeColor_Role_PanelBackground" xml:space="preserve">
+    <value>Fondo del panel</value>
+  </data>
+  <data name="ThemeColor_Role_NavBackground" xml:space="preserve">
+    <value>Fondo de la navegación</value>
+  </data>
+  <data name="ThemeColor_Role_PlaybackBarBackground" xml:space="preserve">
+    <value>Fondo de la barra de reproducción</value>
+  </data>
+  <data name="ThemeColor_Role_PrimaryText" xml:space="preserve">
+    <value>Texto principal</value>
+  </data>
+  <data name="ThemeColor_Role_SecondaryText" xml:space="preserve">
+    <value>Texto secundario</value>
+  </data>
+  <data name="ThemeColor_Role_DisabledText" xml:space="preserve">
+    <value>Texto desactivado</value>
+  </data>
+  <data name="ThemeColor_Role_Selection" xml:space="preserve">
+    <value>Selección</value>
+  </data>
+  <data name="ThemeColor_Role_Hover" xml:space="preserve">
+    <value>Cursor encima</value>
+  </data>
+  <data name="ThemeColor_Role_ArtOverlay" xml:space="preserve">
+    <value>Superposición de la carátula</value>
+  </data>
+  <data name="ThemeColor_Role_Divider" xml:space="preserve">
+    <value>Separador</value>
+  </data>
+  <data name="ThemeColor_Role_ThumbnailPlaceholder" xml:space="preserve">
+    <value>Fondo de la miniatura</value>
+  </data>
+  <data name="ThemeColor_Role_ThumbnailGlyph" xml:space="preserve">
+    <value>Glifo de la miniatura</value>
+  </data>
+  <data name="ThemeColor_Role_Favorite" xml:space="preserve">
+    <value>Favorito</value>
+  </data>
+  <data name="ThemeEditor_TitleNew" xml:space="preserve">
+    <value>Nuevo tema de color</value>
+  </data>
+  <data name="ThemeEditor_TitleEdit" xml:space="preserve">
+    <value>Editar el tema de color</value>
+  </data>
+  <data name="ThemeEditor_WindowTitle" xml:space="preserve">
+    <value>Tema personalizado</value>
+  </data>
+  <data name="ThemeEditor_NameLabel" xml:space="preserve">
+    <value>Nombre</value>
+  </data>
+  <data name="ThemeEditor_NameWatermark" xml:space="preserve">
+    <value>Mi tema</value>
+  </data>
+  <data name="ThemeEditor_VariantLabel" xml:space="preserve">
+    <value>Apariencia</value>
+  </data>
+  <data name="ThemeEditor_VariantLockedHint" xml:space="preserve">
+    <value>La apariencia queda fija mientras editas para que los colores pertenezcan a un solo tema.</value>
+  </data>
+  <data name="ThemeEditor_BaseOnLabel" xml:space="preserve">
+    <value>Basado en</value>
+  </data>
+  <data name="ThemeEditor_BaseOnPlaceholder" xml:space="preserve">
+    <value>Partir de un tema existente</value>
+  </data>
+  <data name="ThemeEditor_ColorsLabel" xml:space="preserve">
+    <value>Colores</value>
+  </data>
+  <data name="ThemeEditor_NameRequired" xml:space="preserve">
+    <value>Escribe un nombre para el tema.</value>
+  </data>
+  <data name="ThemeEditor_InvalidColor" xml:space="preserve">
+    <value>Uno o varios colores no son valores hexadecimales válidos.</value>
+  </data>
+  <data name="ThemeEditor_OverwriteTitle" xml:space="preserve">
+    <value>Sobrescribir el tema</value>
+  </data>
+  <data name="ThemeEditor_OverwriteConfirm" xml:space="preserve">
+    <value>Sobrescribir</value>
+  </data>
+  <data name="ThemeEditor_OverwriteMessageFormat" xml:space="preserve">
+    <value>Ya existe un tema llamado «{0}». ¿Sobrescribirlo?</value>
+  </data>
+  <data name="RemoteApiSettings_AuthHeader" xml:space="preserve">
+    <value>Exigir inicio de sesión</value>
+  </data>
+  <data name="RemoteApiSettings_AuthDescription" xml:space="preserve">
+    <value>Pedir un nombre de usuario y una contraseña antes de permitir el acceso.</value>
+  </data>
+  <data name="RemoteApiSettings_UsernameHeader" xml:space="preserve">
+    <value>Nombre de usuario</value>
+  </data>
+  <data name="RemoteApiSettings_PasswordHeader" xml:space="preserve">
+    <value>Contraseña</value>
+  </data>
+  <data name="RemoteApiSettings_PasswordPlaceholder" xml:space="preserve">
+    <value>Déjalo en blanco para conservar la contraseña actual</value>
+  </data>
+  <data name="RemoteApiSettings_MissingCredentials" xml:space="preserve">
+    <value>Introduce un nombre de usuario y una contraseña, o desactiva el inicio de sesión.</value>
+  </data>
+  <data name="RemoteApiSettings_AllowedOriginsHeader" xml:space="preserve">
+    <value>Sitios web permitidos</value>
+  </data>
+  <data name="RemoteApiSettings_AllowedOriginsDescription" xml:space="preserve">
+    <value>Sitios web autorizados a llamar a esta API desde un navegador, separados por comas. Déjalo en blanco para no permitir ninguno.</value>
+  </data>
+  <data name="RemoteApiSettings_AllowedOriginsAddOfficial" xml:space="preserve">
+    <value>Añadir lmp.hjc.im</value>
+  </data>
+  <data name="RemoteApiSettings_PairingConnect" xml:space="preserve">
+    <value>Conectar con</value>
+  </data>
+  <data name="RemoteApiSettings_PairingShowQr" xml:space="preserve">
+    <value>Mostrar código QR</value>
+  </data>
+  <data name="RemoteApiSettings_PairingQrInstruction" xml:space="preserve">
+    <value>Instala Light Player en Android y escanea este código QR con la aplicación de cámara del sistema. Este código caduca en 5 minutos.</value>
+  </data>
+  <data name="RemoteApiSettings_PairingCopied" xml:space="preserve">
+    <value>Copiado</value>
+  </data>
+  <data name="RemoteApiSettings_PairingAuthenticatedNotice" xml:space="preserve">
+    <value>El enlace copiado es válido durante 5 minutos. Cualquier persona con quien lo compartas puede añadir esta biblioteca y recibir acceso durante 30 días. Cambia la contraseña para revocar el acceso emparejado.</value>
+  </data>
+  <data name="RemoteApiSettings_PairingOpenNotice" xml:space="preserve">
+    <value>El enlace copiado es válido durante 5 minutos. El inicio de sesión está desactivado, así que cualquiera que pueda acceder a este servidor puede acceder a la biblioteca.</value>
+  </data>
+  <data name="RemoteApiSettings_PairingUnavailable" xml:space="preserve">
+    <value>No se pudo crear un enlace de emparejamiento. Comprueba que este equipo tenga una dirección de red IPv4 privada.</value>
+  </data>
+  <data name="RemoteApiSettings_PairingCopyFailed" xml:space="preserve">
+    <value>No se pudo copiar el enlace de emparejamiento.</value>
+  </data>
+  <data name="RemoteApiSettings_PairingQrFailed" xml:space="preserve">
+    <value>No se pudo crear el código QR de emparejamiento.</value>
+  </data>
+  <data name="RemoteApiPairing_WebSuccess" xml:space="preserve">
+    <value>Conectado a {0}.</value>
+  </data>
+  <data name="RemoteApiPairing_WebFailed" xml:space="preserve">
+    <value>No se pudo añadir la biblioteca emparejada: {0}</value>
+  </data>
+  <data name="RemoteApiPairing_AndroidSuccess" xml:space="preserve">
+    <value>Conectado a {0}.</value>
+  </data>
+  <data name="RemoteApiPairing_AndroidFailed" xml:space="preserve">
+    <value>No se pudo añadir la biblioteca emparejada. Puede que el código haya caducado o que el servidor no esté disponible.</value>
+  </data>
+  <data name="Shell_ServerRunning" xml:space="preserve">
+    <value>Sirviendo en {0}</value>
+  </data>
+  <data name="WaylandSettings_EnableHeader" xml:space="preserve">
+    <value>Activar Wayland</value>
+  </data>
+  <data name="WaylandSettings_ModeAuto" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="WaylandSettings_ModeOff" xml:space="preserve">
+    <value>Desactivado</value>
+  </data>
+  <data name="Nav_Video" xml:space="preserve">
+    <value>Multimedia</value>
+  </data>
+  <data name="Nav_VideoPlayer" xml:space="preserve">
+    <value>Reproductor de vídeo</value>
+  </data>
+  <data name="Nav_PhotoViewer" xml:space="preserve">
+    <value>Foto</value>
+  </data>
+  <data name="Photo_LoadFailed" xml:space="preserve">
+    <value>No se pudo abrir esta imagen.</value>
+  </data>
+  <data name="Photo_LoadFailedDescription" xml:space="preserve">
+    <value>El archivo puede estar dañado o su formato puede no ser compatible con esta versión.</value>
+  </data>
+  <data name="Video_Loading" xml:space="preserve">
+    <value>Cargando contenido multimedia…</value>
+  </data>
+  <data name="Video_EmptyHeader" xml:space="preserve">
+    <value>Aún no hay contenido multimedia.</value>
+  </data>
+  <data name="Video_EmptyDescription" xml:space="preserve">
+    <value>Añade una carpeta multimedia en la configuración para empezar.</value>
+  </data>
+  <data name="Video_LibraryRoot" xml:space="preserve">
+    <value>Biblioteca</value>
+  </data>
+  <data name="Video_GoUp" xml:space="preserve">
+    <value>Subir un nivel</value>
+  </data>
+  <data name="Video_ItemCount" xml:space="preserve">
+    <value>{0} archivos multimedia</value>
+  </data>
+  <data name="Video_ClearSubtitleCache" xml:space="preserve">
+    <value>Borrar los subtítulos importados</value>
+  </data>
+  <data name="Video_ClearPlaybackProgress" xml:space="preserve">
+    <value>Borrar el progreso de reproducción</value>
+  </data>
+  <data name="Video_MarkAsWatched" xml:space="preserve">
+    <value>Marcar como visto</value>
+  </data>
+  <data name="Video_MarkFolderAsWatched" xml:space="preserve">
+    <value>Marcar todo como visto</value>
+  </data>
+  <data name="Video_ClearFolderPlaybackProgress" xml:space="preserve">
+    <value>Borrar todo el progreso de reproducción</value>
+  </data>
+  <data name="Shell_LayoutVideoFlat" xml:space="preserve">
+    <value>Todo el contenido multimedia</value>
+  </data>
+  <data name="Shell_LayoutVideoFolders" xml:space="preserve">
+    <value>Explorar carpetas</value>
+  </data>
+  <data name="VideoPlayer_Back10" xml:space="preserve">
+    <value>Retroceder 10 segundos</value>
+  </data>
+  <data name="VideoPlayer_Forward10" xml:space="preserve">
+    <value>Avanzar 10 segundos</value>
+  </data>
+  <data name="VideoPlayer_Speed" xml:space="preserve">
+    <value>Velocidad de reproducción</value>
+  </data>
+  <data name="VideoPlayer_Subtitles" xml:space="preserve">
+    <value>Activar o desactivar los subtítulos</value>
+  </data>
+  <data name="VideoPlayer_SubtitleTrack" xml:space="preserve">
+    <value>Pista de subtítulos</value>
+  </data>
+  <data name="VideoPlayer_SubtitleBrightness" xml:space="preserve">
+    <value>Brillo de los subtítulos</value>
+  </data>
+  <data name="VideoPlayer_SubtitleBrightnessSdr" xml:space="preserve">
+    <value>Brillo SDR</value>
+  </data>
+  <data name="VideoPlayer_SubtitleBrightnessFollowVideo" xml:space="preserve">
+    <value>Seguir el brillo del vídeo</value>
+  </data>
+  <data name="VideoPlayer_AudioTrack" xml:space="preserve">
+    <value>Pista de audio</value>
+  </data>
+  <data name="VideoPlayer_Resolution" xml:space="preserve">
+    <value>Resolución</value>
+  </data>
+  <data name="VideoPlayer_VideoRendition" xml:space="preserve">
+    <value>Variante de vídeo</value>
+  </data>
+  <data name="VideoPlayer_Live" xml:space="preserve">
+    <value>EN DIRECTO</value>
+  </data>
+  <data name="VideoPlayer_StreamConnecting" xml:space="preserve">
+    <value>Conectando con la transmisión...</value>
+  </data>
+  <data name="VideoPlayer_StreamLoadingManifest" xml:space="preserve">
+    <value>Cargando el manifiesto de la transmisión...</value>
+  </data>
+  <data name="VideoPlayer_StreamReadingInformation" xml:space="preserve">
+    <value>Leyendo la información de la transmisión...</value>
+  </data>
+  <data name="VideoPlayer_StreamOpenFailedFormat" xml:space="preserve">
+    <value>No se pudo abrir la transmisión {0}: {1}</value>
+  </data>
+  <data name="VideoPlayer_LiveStreamEndedFormat" xml:space="preserve">
+    <value>La transmisión {0} en directo terminó inesperadamente.</value>
+  </data>
+  <data name="VideoPlayer_TrackDefault" xml:space="preserve">
+    <value>Predeterminada</value>
+  </data>
+  <data name="VideoPlayer_Chapters" xml:space="preserve">
+    <value>Capítulos</value>
+  </data>
+  <data name="VideoPlayer_Playlist" xml:space="preserve">
+    <value>Lista de vídeos</value>
+  </data>
+  <data name="VideoPlayer_UpNext" xml:space="preserve">
+    <value>A continuación</value>
+  </data>
+  <data name="VideoPlayer_SubtitlesOff" xml:space="preserve">
+    <value>Desactivados</value>
+  </data>
+  <data name="VideoPlayer_AddSubtitle" xml:space="preserve">
+    <value>Añadir archivo de subtítulos</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFromDevice" xml:space="preserve">
+    <value>Desde este dispositivo…</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFromServer" xml:space="preserve">
+    <value>Desde el servidor…</value>
+  </data>
+  <data name="VideoPlayer_SubtitlePickerTitle" xml:space="preserve">
+    <value>Elige un archivo de subtítulos</value>
+  </data>
+  <data name="VideoPlayer_SubtitleBrowserTitle" xml:space="preserve">
+    <value>Subtítulos en el servidor</value>
+  </data>
+  <data name="VideoPlayer_SubtitleBrowserEmpty" xml:space="preserve">
+    <value>Aquí no hay archivos de subtítulos.</value>
+  </data>
+  <data name="VideoPlayer_SubtitleImportedFormat" xml:space="preserve">
+    <value>Importado ({0})</value>
+  </data>
+  <data name="VideoPlayer_AutoPlayNext" xml:space="preserve">
+    <value>Reproducir el siguiente vídeo automáticamente</value>
+  </data>
+  <data name="VideoPlayer_FullScreen" xml:space="preserve">
+    <value>Pantalla completa</value>
+  </data>
+  <data name="VideoPlayer_Minimize" xml:space="preserve">
+    <value>Minimizar</value>
+  </data>
+  <data name="VideoPlayer_Maximize" xml:space="preserve">
+    <value>Maximizar</value>
+  </data>
+  <data name="VideoPlayer_PictureInPicture" xml:space="preserve">
+    <value>Imagen en imagen</value>
+  </data>
+  <data name="VideoPlayer_PictureInPictureExit" xml:space="preserve">
+    <value>Volver a la aplicación</value>
+  </data>
+  <data name="VideoPlayer_PictureInPictureActive" xml:space="preserve">
+    <value>Reproduciéndose en una ventana aparte</value>
+  </data>
+  <data name="VideoPlayer_Statistics" xml:space="preserve">
+    <value>Estadísticas de reproducción</value>
+  </data>
+  <data name="Video_ResumePlayback" xml:space="preserve">
+    <value>Reanudar la reproducción</value>
+  </data>
+  <data name="VideoPlayer_Shortcuts" xml:space="preserve">
+    <value>Atajos de teclado</value>
+  </data>
+  <data name="VideoPlayer_ShortcutSeek5" xml:space="preserve">
+    <value>Retroceder / avanzar 5 segundos</value>
+  </data>
+  <data name="VideoPlayer_ShortcutSeek10" xml:space="preserve">
+    <value>Retroceder / avanzar 10 segundos</value>
+  </data>
+  <data name="VideoPlayer_ShortcutSeek60" xml:space="preserve">
+    <value>Retroceder / avanzar 1 minuto</value>
+  </data>
+  <data name="VideoPlayer_ShortcutStartEnd" xml:space="preserve">
+    <value>Ir al principio / al final</value>
+  </data>
+  <data name="VideoPlayer_ShortcutChapters" xml:space="preserve">
+    <value>Capítulo anterior / siguiente</value>
+  </data>
+  <data name="VideoPlayer_ShortcutVideos" xml:space="preserve">
+    <value>Vídeo anterior / siguiente</value>
+  </data>
+  <data name="VideoPlayer_ShortcutVolume" xml:space="preserve">
+    <value>Subir / bajar el volumen</value>
+  </data>
+  <data name="VideoPlayer_ShortcutMute" xml:space="preserve">
+    <value>Silenciar</value>
+  </data>
+  <data name="VideoPlayer_ShortcutAudioTrack" xml:space="preserve">
+    <value>Siguiente pista de audio</value>
+  </data>
+  <data name="VideoPlayer_ShortcutSubtitleTrack" xml:space="preserve">
+    <value>Siguiente pista de subtítulos</value>
+  </data>
+  <data name="VideoPlayer_ShortcutSpeed" xml:space="preserve">
+    <value>Más lento / más rápido</value>
+  </data>
+  <data name="VideoPlayer_ShortcutClose" xml:space="preserve">
+    <value>Cerrar los menús, salir de pantalla completa</value>
+  </data>
+  <data name="VideoPlayer_ShortcutHelp" xml:space="preserve">
+    <value>Mostrar esta lista</value>
+  </data>
+  <data name="VideoPlayer_Muted" xml:space="preserve">
+    <value>Silenciado</value>
+  </data>
+  <data name="LibrarySettings_MusicFoldersHeader" xml:space="preserve">
+    <value>Carpetas de música</value>
+  </data>
+  <data name="LibrarySettings_VideoFoldersHeader" xml:space="preserve">
+    <value>Carpetas de imágenes y vídeo</value>
+  </data>
+  <data name="LibrarySettings_VideoFoldersDescription" xml:space="preserve">
+    <value>Carpetas que se escanean en busca de imágenes y vídeos.</value>
+  </data>
+  <data name="LibrarySettings_AddVideoFolder" xml:space="preserve">
+    <value>Añadir carpeta de vídeo</value>
+  </data>
+  <data name="LibrarySettings_AddDefaultVideoFoldersConfirmMessageFormat" xml:space="preserve">
+    <value>¿Añadir estas carpetas de vídeo predeterminadas a la biblioteca?
+
+{0}</value>
+  </data>
+  <data name="LibrarySettings_DefaultVideoFoldersAlreadyAdded" xml:space="preserve">
+    <value>Las carpetas de vídeo predeterminadas ya están en la biblioteca.</value>
+  </data>
+  <data name="LibrarySettings_NoDefaultVideoFolders" xml:space="preserve">
+    <value>No se encontró ninguna carpeta de vídeo predeterminada en este dispositivo.</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeHeader" xml:space="preserve">
+    <value>Recodificar para los clientes</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeDescription" xml:space="preserve">
+    <value>Permitir que los clientes pidan a este equipo que transcodifique vídeo y audio.</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeHardwareHeader" xml:space="preserve">
+    <value>Transcodificación por hardware</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeHardwareScalingHeader" xml:space="preserve">
+    <value>Escalado por hardware</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeDeviceTypeHeader" xml:space="preserve">
+    <value>Interfaz de codificación</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeDeviceHeader" xml:space="preserve">
+    <value>Dispositivo de codificación</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeSoftwareHeader" xml:space="preserve">
+    <value>Recurrir al procesador</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeAutomatic" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeRateControlHeader" xml:space="preserve">
+    <value>Control de tasa</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeQualityHeader" xml:space="preserve">
+    <value>Preferencia de codificación</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeUsageHeader" xml:space="preserve">
+    <value>Modo de uso</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateControlHeader" xml:space="preserve">
+    <value>Control de tasa de VA-API</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateCqp" xml:space="preserve">
+    <value>Calidad constante (CQP)</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateCbr" xml:space="preserve">
+    <value>Tasa de bits constante (CBR)</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateVbr" xml:space="preserve">
+    <value>Tasa de bits variable (VBR)</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateIcq" xml:space="preserve">
+    <value>Calidad constante inteligente (ICQ)</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateQvbr" xml:space="preserve">
+    <value>Tasa de bits variable definida por calidad (QVBR)</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateAvbr" xml:space="preserve">
+    <value>Tasa de bits variable media (AVBR)</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiQualityHeader" xml:space="preserve">
+    <value>Preferencia de codificación de VA-API</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiQualityQuality" xml:space="preserve">
+    <value>Calidad</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiQualityBalanced" xml:space="preserve">
+    <value>Equilibrado</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeVaapiQualitySpeed" xml:space="preserve">
+    <value>Velocidad</value>
+  </data>
+  <data name="RemoteTranscodeSettings_Title" xml:space="preserve">
+    <value>Recodificación remota</value>
+  </data>
+  <data name="RemoteTranscodeSettings_Subtitle" xml:space="preserve">
+    <value>Qué pedirle al servidor que recodifique antes de enviarlo a este dispositivo.</value>
+  </data>
+  <data name="RemoteTranscodeSettings_VideoHeader" xml:space="preserve">
+    <value>Recodificar el vídeo</value>
+  </data>
+  <data name="RemoteTranscodeSettings_VideoCodecHeader" xml:space="preserve">
+    <value>Códec de vídeo</value>
+  </data>
+  <data name="RemoteTranscodeSettings_VideoCodecsHeader" xml:space="preserve">
+    <value>Códecs que reproduce este dispositivo</value>
+  </data>
+  <data name="RemoteTranscodeSettings_VideoCodecsDescription" xml:space="preserve">
+    <value>El vídeo en cualquier otro formato se recodifica sean cuales sean los límites. Separa los nombres con comas.</value>
+  </data>
+  <data name="RemoteTranscodeSettings_FileBitrateThresholdHeader" xml:space="preserve">
+    <value>Recodificar los vídeos por encima de</value>
+  </data>
+  <data name="RemoteTranscodeSettings_FileBitrateThresholdDescription" xml:space="preserve">
+    <value>Megabits por segundo del archivo completo, calculados a partir del tamaño y la duración. Cero desactiva este límite.</value>
+  </data>
+  <data name="RemoteTranscodeSettings_VideoBitrateHeader" xml:space="preserve">
+    <value>Tasa de bits objetivo (Mbps)</value>
+  </data>
+  <data name="RemoteTranscodeSettings_VideoHeightThresholdHeader" xml:space="preserve">
+    <value>Recodificar el vídeo más alto de</value>
+  </data>
+  <data name="RemoteTranscodeSettings_VideoHeightThresholdDescription" xml:space="preserve">
+    <value>Altura de imagen en líneas. Cero nunca recodifica solo por el tamaño.</value>
+  </data>
+  <data name="RemoteTranscodeSettings_VideoHeightHeader" xml:space="preserve">
+    <value>Reducir la altura del vídeo a</value>
+  </data>
+  <data name="RemoteTranscodeSettings_VideoHeightDescription" xml:space="preserve">
+    <value>Líneas. Cero conserva el tamaño original y solo baja la tasa de bits.</value>
+  </data>
+  <data name="RemoteTranscodeSettings_AudioHeader" xml:space="preserve">
+    <value>Recodificar el audio</value>
+  </data>
+  <data name="RemoteTranscodeSettings_AudioCodecHeader" xml:space="preserve">
+    <value>Códec de audio</value>
+  </data>
+  <data name="RemoteTranscodeSettings_AudioCodecsHeader" xml:space="preserve">
+    <value>Códecs de audio que se recodifican</value>
+  </data>
+  <data name="RemoteTranscodeSettings_AudioBitrateHeader" xml:space="preserve">
+    <value>Tasa de bits objetivo (Kbps)</value>
+  </data>
+  <data name="RemoteTranscodeSettings_HardwareNotice" xml:space="preserve">
+    <value>Este servidor codifica en un dispositivo gráfico.</value>
+  </data>
+  <data name="RemoteTranscodeSettings_SoftwareNotice" xml:space="preserve">
+    <value>Este servidor codifica en su procesador, así que puede atender muy pocos flujos a la vez.</value>
+  </data>
+  <data name="RemoteTranscodeSettings_Automatic" xml:space="preserve">
+    <value>Lo que elija el servidor</value>
+  </data>
+  <data name="VideoPlayer_Transcode" xml:space="preserve">
+    <value>Recodificación</value>
+  </data>
+  <data name="VideoPlayer_TranscodeFollow" xml:space="preserve">
+    <value>Seguir la configuración</value>
+  </data>
+  <data name="VideoPlayer_TranscodeVideoOn" xml:space="preserve">
+    <value>Recodificar siempre el vídeo</value>
+  </data>
+  <data name="VideoPlayer_TranscodeVideoOff" xml:space="preserve">
+    <value>Enviar el vídeo tal como está</value>
+  </data>
+  <data name="VideoPlayer_TranscodeAudioOn" xml:space="preserve">
+    <value>Recodificar siempre el audio</value>
+  </data>
+  <data name="VideoPlayer_TranscodeAudioOff" xml:space="preserve">
+    <value>Enviar el audio tal como está</value>
+  </data>
+  <data name="VideoPlayer_TranscodeVideoMode" xml:space="preserve">
+    <value>Recodificación de vídeo</value>
+  </data>
+  <data name="VideoPlayer_TranscodeAudioMode" xml:space="preserve">
+    <value>Recodificación de audio</value>
+  </data>
+  <data name="VideoPlayer_TranscodeVideoBitrate" xml:space="preserve">
+    <value>Tasa de bits de vídeo (Mb/s)</value>
+  </data>
+  <data name="VideoPlayer_TranscodeVideoHeight" xml:space="preserve">
+    <value>Resolución de destino (altura en píxeles; vacío usa la configuración global)</value>
+  </data>
+  <data name="VideoPlayer_TranscodeAudioBitrate" xml:space="preserve">
+    <value>Tasa de bits de audio (kb/s)</value>
+  </data>
+  <data name="VideoPlayer_TranscodeRestartNotice" xml:space="preserve">
+    <value>Cambiar esto reinicia el flujo.</value>
+  </data>
+  <data name="VideoPlayer_TranscodeApply" xml:space="preserve">
+    <value>Aplicar</value>
+  </data>
+  <data name="LibrarySource_ThisDevice" xml:space="preserve">
+    <value>Este dispositivo</value>
+  </data>
+  <data name="RemoteLibraries_Title" xml:space="preserve">
+    <value>Bibliotecas remotas</value>
+  </data>
+  <data name="RemoteLibraries_Description" xml:space="preserve">
+    <value>Añade y combina bibliotecas independientes de Light Player.</value>
+  </data>
+  <data name="RemoteLibraries_RemoteOnlyDescription" xml:space="preserve">
+    <value>Las carpetas de la biblioteca local no están disponibles aquí, por lo que solo se pueden usar bibliotecas remotas.</value>
+  </data>
+  <data name="RemoteLibraries_PreferDuplicates" xml:space="preserve">
+    <value>Preferir los duplicados de mayor prioridad</value>
+  </data>
+  <data name="RemoteLibraries_PreferDuplicatesDescription" xml:space="preserve">
+    <value>Ocultar las copias de menor prioridad de álbumes y canciones coincidentes.</value>
+  </data>
+  <data name="RemoteLibraries_Add" xml:space="preserve">
+    <value>Añadir biblioteca remota</value>
+  </data>
+  <data name="RemoteLibraries_PriorityFormat" xml:space="preserve">
+    <value>Prioridad {0}</value>
+  </data>
+  <data name="RemoteLibraries_LoadMusic" xml:space="preserve">
+    <value>Cargar la música</value>
+  </data>
+  <data name="RemoteLibraries_LoadVideo" xml:space="preserve">
+    <value>Cargar el vídeo</value>
+  </data>
+  <data name="RemoteLibraries_RefreshAtStartup" xml:space="preserve">
+    <value>Actualizar al iniciar</value>
+  </data>
+  <data name="RemoteLibraries_MoveUp" xml:space="preserve">
+    <value>Subir</value>
+  </data>
+  <data name="RemoteLibraries_MoveDown" xml:space="preserve">
+    <value>Bajar</value>
+  </data>
+  <data name="RemoteLibraries_Edit" xml:space="preserve">
+    <value>Editar la biblioteca</value>
+  </data>
+  <data name="RemoteLibraries_Refresh" xml:space="preserve">
+    <value>Actualizar la biblioteca</value>
+  </data>
+  <data name="RemoteLibraries_Retry" xml:space="preserve">
+    <value>Reintentar la conexión</value>
+  </data>
+  <data name="RemoteLibraries_RefreshComplete" xml:space="preserve">
+    <value>Actualización completada</value>
+  </data>
+  <data name="RemoteLibraries_StatusConnecting" xml:space="preserve">
+    <value>Conectando</value>
+  </data>
+  <data name="RemoteLibraries_StatusOnline" xml:space="preserve">
+    <value>En línea</value>
+  </data>
+  <data name="RemoteLibraries_StatusOffline" xml:space="preserve">
+    <value>Sin conexión</value>
+  </data>
+  <data name="RemoteLibraries_StatusSignIn" xml:space="preserve">
+    <value>Se requiere iniciar sesión</value>
+  </data>
+  <data name="RemoteLibraries_StatusIncompatible" xml:space="preserve">
+    <value>Servidor incompatible</value>
+  </data>
+  <data name="RemoteLibraries_StatusDisabled" xml:space="preserve">
+    <value>Desactivada</value>
+  </data>
+  <data name="RemoteLibraries_StatusRefreshing" xml:space="preserve">
+    <value>Actualizando</value>
+  </data>
+  <data name="RemoteLibraries_RemoveTitle" xml:space="preserve">
+    <value>Quitar la biblioteca remota</value>
+  </data>
+  <data name="RemoteLibraries_RemoveMessageFormat" xml:space="preserve">
+    <value>¿Quitar «{0}»? Las referencias de las listas de reproducción y de la cola seguirán sin estar disponibles; los datos en caché se eliminarán.</value>
+  </data>
+  <data name="RemoteLibraries_AddHeader" xml:space="preserve">
+    <value>Añadir biblioteca remota</value>
+  </data>
+  <data name="RemoteLibraries_EditHeader" xml:space="preserve">
+    <value>Editar la biblioteca remota</value>
+  </data>
+  <data name="RemoteLibraries_Advanced" xml:space="preserve">
+    <value>Configuración avanzada de conexión</value>
+  </data>
+  <data name="RemoteLibraries_Provider" xml:space="preserve">
+    <value>Servicio</value>
+  </data>
+  <data name="RemoteLibraries_ProviderLightPlayer" xml:space="preserve">
+    <value>Light Player</value>
+  </data>
+  <data name="RemoteLibraries_ProviderNextcloudMusic" xml:space="preserve">
+    <value>Nextcloud Music</value>
+  </data>
+  <data name="RemoteLibraries_ProviderWebDav" xml:space="preserve">
+    <value>WebDAV</value>
+  </data>
+  <data name="RemoteLibraries_WebDavRangeRequired" xml:space="preserve">
+    <value>Este servidor WebDAV no admite solicitudes de intervalos de bytes HTTP, que Light Player necesita para el contenido multimedia remoto.</value>
+  </data>
+  <data name="RemoteLibraries_ConnectedAsFormat" xml:space="preserve">
+    <value>Conectado como {0}</value>
+  </data>
+  <data name="RemoteLibraries_ApiKey" xml:space="preserve">
+    <value>Clave de API de Música</value>
+  </data>
+  <data name="RemoteLibraries_ApiKeyHint" xml:space="preserve">
+    <value>Conéctate en el navegador o pega una clave de API generada en los ajustes de Música de Nextcloud.</value>
+  </data>
+  <data name="RemoteLibraries_ConnectNextcloud" xml:space="preserve">
+    <value>Conectar con Nextcloud</value>
+  </data>
+  <data name="RemoteLibraries_OpenNextcloudMusic" xml:space="preserve">
+    <value>Abrir Música de Nextcloud</value>
+  </data>
+  <data name="RemoteLibraries_ApiProxy" xml:space="preserve">
+    <value>Proxy de la API</value>
+  </data>
+  <data name="RemoteLibraries_NamePlaceholder" xml:space="preserve">
+    <value>Biblioteca de casa</value>
+  </data>
+  <data name="RemoteLibraries_ApiProxyPlaceholder" xml:space="preserve">
+    <value>Déjalo en blanco para conectarte directamente</value>
+  </data>
+  <data name="RemoteLibraries_WebProxy" xml:space="preserve">
+    <value>Retransmitir las solicitudes de API a través de este sitio</value>
+  </data>
+  <data name="RemoteLibraries_WebProxyHint" xml:space="preserve">
+    <value>Una llamada directa requiere que el servidor permita este sitio y el navegador puede pedir permiso para acceder a una dirección de la red local. Activa esta opción si el servidor no se puede alcanzar así.</value>
+  </data>
+  <data name="RemoteLibraries_LoadMusicShort" xml:space="preserve">
+    <value>Música</value>
+  </data>
+  <data name="RemoteLibraries_LoadVideoShort" xml:space="preserve">
+    <value>Vídeo</value>
+  </data>
+  <data name="RemoteLibraries_RememberPassword" xml:space="preserve">
+    <value>Recordar la contraseña en este dispositivo</value>
+  </data>
+  <data name="RemoteLibraries_SaveOffline" xml:space="preserve">
+    <value>Guardar sin conexión</value>
+  </data>
+  <data name="RemoteLibraries_LibrarySingular" xml:space="preserve">
+    <value>1 biblioteca</value>
+  </data>
+  <data name="RemoteLibraries_LibrariesFormat" xml:space="preserve">
+    <value>{0} bibliotecas</value>
+  </data>
+  <data name="Playlists_FavoriteMusic" xml:space="preserve">
+    <value>Música favorita</value>
+  </data>
+  <data name="Playlists_FavoriteVideo" xml:space="preserve">
+    <value>Vídeos favoritos</value>
+  </data>
+  <data name="Playlists_MusicPlaylist" xml:space="preserve">
+    <value>Lista de reproducción de música</value>
+  </data>
+  <data name="Playlists_VideoPlaylist" xml:space="preserve">
+    <value>Lista de reproducción de vídeo</value>
+  </data>
+  <data name="Playlists_NewPlaylistKindHeader" xml:space="preserve">
+    <value>¿Qué tipo de lista de reproducción?</value>
+  </data>
+  <data name="Playlists_UntitledPlaylist" xml:space="preserve">
+    <value>Lista de reproducción sin título</value>
+  </data>
+  <data name="PlaylistDetail_VideoEmptyDescription" xml:space="preserve">
+    <value>Añade vídeos desde la biblioteca de vídeo.</value>
+  </data>
+  <data name="Video_AddToFavorites" xml:space="preserve">
+    <value>Añadir a los vídeos favoritos</value>
+  </data>
+  <data name="Video_RemoveFromFavorites" xml:space="preserve">
+    <value>Quitar de los vídeos favoritos</value>
+  </data>
+  <data name="Video_RecentlyViewed" xml:space="preserve">
+    <value>Visto recientemente</value>
+  </data>
+  <data name="Video_ClearRecentlyViewed" xml:space="preserve">
+    <value>Borrar lo visto recientemente</value>
+  </data>
+  <data name="Video_RecentEmptyHeader" xml:space="preserve">
+    <value>Aún no has visto nada.</value>
+  </data>
+  <data name="Video_RecentEmptyDescription" xml:space="preserve">
+    <value>Las carpetas que explores y los archivos multimedia que abras aparecerán aquí.</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersHeader" xml:space="preserve">
+    <value>Filtros de escalado personalizados</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersDescription" xml:space="preserve">
+    <value>Importa y prioriza filtros de preescalado basados en archivos. Solo se ejecuta el primer filtro apto.</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersFindOnline" xml:space="preserve">
+    <value>Busca paquetes de sombreadores en línea</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersImport" xml:space="preserve">
+    <value>Importar paquete de sombreadores</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersEmpty" xml:space="preserve">
+    <value>No hay ningún filtro de escalado personalizado instalado.</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersImportUnavailable" xml:space="preserve">
+    <value>La importación de carpetas de paquetes de sombreadores no está disponible en este dispositivo.</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersImportPickerTitle" xml:space="preserve">
+    <value>Elige una carpeta de paquete de sombreadores</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersImportedFormat" xml:space="preserve">
+    <value>Se importó {0}.</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersRemoveTitle" xml:space="preserve">
+    <value>Quitar el filtro de escalado</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersRemoveMessageFormat" xml:space="preserve">
+    <value>¿Quitar «{0}»?</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersPriorityFormat" xml:space="preserve">
+    <value>Prioridad {0}</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersMoveUp" xml:space="preserve">
+    <value>Subir</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersMoveDown" xml:space="preserve">
+    <value>Bajar</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersEnabled" xml:space="preserve">
+    <value>Usar automáticamente</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersMaximumResolution" xml:space="preserve">
+    <value>Resolución máxima admitida</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersMaximumResolutionDescription" xml:space="preserve">
+    <value>Lado corto máximo de la fuente, en píxeles, para la selección automática. Usa 0 para ilimitado.</value>
+  </data>
+  <data name="VideoPlayer_ScalingFilter" xml:space="preserve">
+    <value>Filtro de escalado personalizado</value>
+  </data>
+  <data name="VideoPlayer_ScalingFilterAutomatic" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="VideoPlayer_ScalingFilterOff" xml:space="preserve">
+    <value>Desactivado</value>
+  </data>
+  <data name="VideoPlayer_ScalingFilterDisabledSuffix" xml:space="preserve">
+    <value>(desactivado automáticamente)</value>
+  </data>
+  <data name="VideoPlayer_ScalingFilterResolutionSuffix" xml:space="preserve">
+    <value>(por encima del límite automático)</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersDetailsFormat" xml:space="preserve">
+    <value>{0} | {1} | {2} | {3} pasadas</value>
+  </data>
+  <data name="Photo_ShowRaw" xml:space="preserve"><value>Mostrar imagen RAW original</value></data>
+  <data name="Photo_ShowEmbeddedJpeg" xml:space="preserve"><value>Mostrar JPEG incrustado</value></data>
+  <data name="Photo_Hdr" xml:space="preserve">
+    <value>Mapa de ganancia HDR</value>
+  </data>
+  <data name="Photo_ActualSize" xml:space="preserve">
+    <value>Tamaño real (1:1)</value>
+  </data>
+  <data name="Photo_CopyPath" xml:space="preserve">
+    <value>Copiar ruta</value>
+  </data>
+  <data name="Photo_FitToWindow" xml:space="preserve">
+    <value>Ajustar a la ventana</value>
+  </data>
+  <data name="Photo_Next" xml:space="preserve">
+    <value>Imagen siguiente</value>
+  </data>
+  <data name="Photo_ShortcutNavigateOrPan" xml:space="preserve">
+    <value>Desplazar la foto al ampliarla; de lo contrario, ver la foto anterior o siguiente</value>
+  </data>
+  <data name="Photo_OpenWith" xml:space="preserve">
+    <value>Abrir con…</value>
+  </data>
+  <data name="Photo_Previous" xml:space="preserve">
+    <value>Imagen anterior</value>
+  </data>
+  <data name="Photo_Rotate" xml:space="preserve">
+    <value>Girar</value>
+  </data>
+  <data name="Photo_Rotate90" xml:space="preserve">
+    <value>90°</value>
+  </data>
+  <data name="Photo_Rotate180" xml:space="preserve">
+    <value>180°</value>
+  </data>
+  <data name="Photo_Rotate270" xml:space="preserve">
+    <value>270°</value>
+  </data>
+  <data name="Photo_Share" xml:space="preserve">
+    <value>Compartir</value>
+  </data>
+  <data name="Photo_ShareUnsupported" xml:space="preserve">
+    <value>Compartir no está disponible en esta plataforma.</value>
+  </data>
+  <data name="Photo_Zoom" xml:space="preserve">
+    <value>Zoom</value>
+  </data>
+  <data name="Photo_ZoomIn" xml:space="preserve">
+    <value>Acercar</value>
+  </data>
+  <data name="Photo_ZoomOut" xml:space="preserve">
+    <value>Alejar</value>
+  </data>
+  <data name="Props_SectionExif" xml:space="preserve">
+    <value>EXIF</value>
+  </data>
+  <data name="Props_ExifMake" xml:space="preserve"><value>Fabricante de la cámara</value></data>
+  <data name="Props_ExifModel" xml:space="preserve"><value>Modelo de cámara</value></data>
+  <data name="Props_ExifSoftware" xml:space="preserve"><value>Software</value></data>
+  <data name="Props_ExifArtist" xml:space="preserve"><value>Fotógrafo</value></data>
+  <data name="Props_ExifCopyright" xml:space="preserve"><value>Derechos de autor</value></data>
+  <data name="Props_ExifImageDescription" xml:space="preserve"><value>Descripción de la imagen</value></data>
+  <data name="Props_ExifDateTime" xml:space="preserve"><value>Fecha de modificación</value></data>
+  <data name="Props_ExifOrientation" xml:space="preserve"><value>Orientación</value></data>
+  <data name="Props_ExifResolution" xml:space="preserve"><value>Resolución de impresión</value></data>
+  <data name="Props_ExifDateTimeOriginal" xml:space="preserve"><value>Fecha de captura</value></data>
+  <data name="Props_ExifDateTimeDigitized" xml:space="preserve"><value>Fecha de digitalización</value></data>
+  <data name="Props_ExifLensModel" xml:space="preserve"><value>Modelo de objetivo</value></data>
+  <data name="Props_ExifExposureTime" xml:space="preserve"><value>Tiempo de exposición</value></data>
+  <data name="Props_ExifFNumber" xml:space="preserve"><value>Apertura</value></data>
+  <data name="Props_ExifISO" xml:space="preserve"><value>Sensibilidad ISO</value></data>
+  <data name="Props_ExifExposureBias" xml:space="preserve"><value>Compensación de exposición</value></data>
+  <data name="Props_ExifFocalLength" xml:space="preserve"><value>Distancia focal</value></data>
+  <data name="Props_ExifFocalLengthIn35mmFilm" xml:space="preserve"><value>Distancia focal (equivalente a 35 mm)</value></data>
+  <data name="Props_ExifExposureProgram" xml:space="preserve"><value>Programa de exposición</value></data>
+  <data name="Props_ExifMeteringMode" xml:space="preserve"><value>Modo de medición</value></data>
+  <data name="Props_ExifFlash" xml:space="preserve"><value>Flash</value></data>
+  <data name="Props_ExifWhiteBalance" xml:space="preserve"><value>Balance de blancos</value></data>
+  <data name="Props_ExifColorSpace" xml:space="preserve"><value>Espacio de color</value></data>
+  <data name="Props_ExifGPSPosition" xml:space="preserve"><value>Coordenadas GPS</value></data>
+  <data name="Props_ExifGPSAltitude" xml:space="preserve"><value>Altitud GPS</value></data>
+  <data name="Selection_Select" xml:space="preserve"><value>Seleccionar</value></data>
+  <data name="Selection_Exit" xml:space="preserve"><value>Salir de la selección</value></data>
+  <data name="Selection_Count" xml:space="preserve"><value>{0} seleccionados</value></data>
+  <data name="PageSearch_Find" xml:space="preserve"><value>Buscar en la página</value></data>
+  <data name="PageSearch_Previous" xml:space="preserve"><value>Coincidencia anterior</value></data>
+  <data name="PageSearch_Next" xml:space="preserve"><value>Siguiente coincidencia</value></data>
+  <data name="PageSearch_Matches" xml:space="preserve"><value>{0} de {1} elementos coincidentes</value></data>
+  <data name="PageSearch_Partial" xml:space="preserve"><value>No se pudieron buscar algunos elementos.</value></data>
+  <data name="Shell_DownloadDesktopApp" xml:space="preserve">
+    <value>Descargar la aplicación de escritorio</value>
+  </data>
+  <data name="ThemeColor_BackdropHeader" xml:space="preserve">
+    <value>Efectos de fondo</value>
+  </data>
+  <data name="ThemeColor_BackdropGlassContentOnly" xml:space="preserve">
+    <value>Cristal líquido (solo contenido)</value>
+  </data>
+  <data name="ThemeColor_BackdropBlur" xml:space="preserve">
+    <value>Desenfoque</value>
+  </data>
+  <data name="ThemeColor_BackdropOff" xml:space="preserve">
+    <value>Desactivado</value>
+  </data>
+  <data name="Common_OpenInNewWindow" xml:space="preserve">
+    <value>Abrir en una ventana nueva</value>
+  </data>
+  <data name="PhotoIndex_Title" xml:space="preserve"><value>Búsqueda de fotos</value></data>
+  <data name="PhotoIndex_Enable" xml:space="preserve"><value>Búsqueda semántica de fotos</value></data>
+  <data name="PhotoIndex_Description" xml:space="preserve"><value>Encuentra fotos en las carpetas de tu biblioteca describiendo su contenido.</value></data>
+  <data name="Inference_Model" xml:space="preserve"><value>Modelo de búsqueda</value></data>
+  <data name="Inference_NoModel" xml:space="preserve"><value>No hay modelos instalados</value></data>
+  <data name="Inference_Import" xml:space="preserve"><value>Importar carpeta de modelo</value></data>
+  <data name="Inference_Download" xml:space="preserve"><value>Descargar modelo</value></data>
+  <data name="Inference_Device" xml:space="preserve"><value>Dispositivo de procesamiento</value></data>
+  <data name="PhotoIndex_Remote" xml:space="preserve"><value>Permitir que los clientes autenticados busquen estas fotos</value></data>
+  <data name="PhotoIndex_ProgressFormat" xml:space="preserve"><value>{0} indexadas; {1} de {2} procesadas; {3} fallidas</value></data>
+  <data name="Inference_DeviceFallback" xml:space="preserve"><value>No se pudo utilizar el dispositivo seleccionado. Se está utilizando {0}.</value></data>
+  <data name="Inference_WindowsInferenceDescription" xml:space="preserve"><value>Elige una GPU para buscar fotos más rápido o la CPU para una mayor compatibilidad. Algunas operaciones pueden seguir ejecutándose en la CPU. El primer uso puede requerir una descarga.</value></data>
+  <data name="Inference_WindowsProviderWarning" xml:space="preserve"><value>Advertencia: Los proveedores distintos de CPU y DirectML pueden no funcionar correctamente con tu modelo y provocar cierres inesperados. Úsalos bajo tu responsabilidad. Consulta al fabricante de tu hardware sobre los modelos compatibles y la configuración.</value></data>
+  <data name="Inference_Models" xml:space="preserve"><value>Modelos</value></data>
+  <data name="Inference_ModelDescription" xml:space="preserve"><value>Cambiar de modelo restablece el índice.</value></data>
+  <data name="Inference_SiglipBaseDescription" xml:space="preserve"><value>Ligero, para dispositivos con poca potencia de procesamiento, como teléfonos y PC antiguos.</value></data>
+  <data name="Inference_SiglipLargeDescription" xml:space="preserve"><value>Equilibrado, para portátiles modernos, finos y ligeros.</value></data>
+  <data name="Inference_SiglipSo400mDescription" xml:space="preserve"><value>Más grande, para equipos potentes con una tarjeta gráfica dedicada.</value></data>
+  <data name="Inference_Imported" xml:space="preserve"><value>Modelo importado</value></data>
+  <data name="Inference_Downloading" xml:space="preserve"><value>Descargando...</value></data>
+  <data name="Inference_Paused" xml:space="preserve"><value>En pausa</value></data>
+  <data name="Inference_Verifying" xml:space="preserve"><value>Comprobando modelo...</value></data>
+  <data name="Inference_Installing" xml:space="preserve"><value>Instalando...</value></data>
+  <data name="Inference_Canceling" xml:space="preserve"><value>Cancelando...</value></data>
+  <data name="Inference_DownloadFailed" xml:space="preserve"><value>Descarga interrumpida. Reanuda para volver a intentarlo.</value></data>
+  <data name="Inference_PauseDownload" xml:space="preserve"><value>Pausar descarga</value></data>
+  <data name="Inference_ResumeDownload" xml:space="preserve"><value>Reanudar descarga</value></data>
+  <data name="Search_PhotosHeader" xml:space="preserve"><value>Fotos</value></data>
+  <data name="Search_MorePhotos" xml:space="preserve"><value>Más resultados de fotos</value></data>
+  <data name="Search_MoreAlbums" xml:space="preserve"><value>Más resultados de álbumes</value></data>
+  <data name="Search_MoreArtists" xml:space="preserve"><value>Más resultados de artistas</value></data>
+  <data name="Search_MoreSongs" xml:space="preserve"><value>Más resultados de canciones</value></data>
+  <data name="AudioSeparation_Title" xml:space="preserve"><value>Separación de audio</value></data>
+  <data name="AudioSeparation_Subtitle" xml:space="preserve"><value>Escucha pistas aisladas durante la reproducción de música mediante modelos de IA.</value></data>
+  <data name="AudioSeparation_Enable" xml:space="preserve"><value>Activar la separación de audio</value></data>
+  <data name="AudioSeparation_Model" xml:space="preserve"><value>Modelo de separación</value></data>
+  <data name="AudioSeparation_Import" xml:space="preserve"><value>Importar modelo ONNX</value></data>
+  <data name="AudioSeparation_Original" xml:space="preserve"><value>Original</value></data>
+  <data name="AudioSeparation_Track1" xml:space="preserve"><value>Stem 1</value></data>
+  <data name="AudioSeparation_Track2" xml:space="preserve"><value>Stem 2</value></data>
+  <data name="LibrarySettings_AlbumGroupingHeader" xml:space="preserve">
+    <value>Álbumes de distintos artistas</value>
+  </data>
+  <data name="LibrarySettings_AlbumGroupingDescription" xml:space="preserve">
+    <value>Agrupar canciones con el mismo nombre de álbum y sin artista del álbum.</value>
+  </data>
+  <data name="LibrarySettings_AlbumGroupingAlwaysCombine" xml:space="preserve">
+    <value>Combinar siempre</value>
+  </data>
+  <data name="LibrarySettings_AlbumGroupingSameFolder" xml:space="preserve">
+    <value>Combinar en la misma carpeta</value>
+  </data>
+  <data name="LibrarySettings_AlbumGroupingSeparateArtists" xml:space="preserve">
+    <value>Separar por artista</value>
+  </data>
+  <data name="Shell_SortFileType" xml:space="preserve">
+    <value>Tipo de archivo</value>
+  </data>
+  <data name="Shell_SortFileSize" xml:space="preserve">
+    <value>Tamaño de archivo</value>
+  </data>
+  <data name="Shell_Grouping" xml:space="preserve"><value>Agrupar elementos</value></data>
+  <data name="Shell_GroupBy" xml:space="preserve"><value>Agrupar por</value></data>
+  <data name="Shell_GroupName" xml:space="preserve"><value>Carácter inicial</value></data>
+  <data name="Shell_GroupCreationDay" xml:space="preserve"><value>Día</value></data>
+  <data name="Shell_GroupCreationMonth" xml:space="preserve"><value>Mes</value></data>
+  <data name="Shell_GroupCreationYear" xml:space="preserve"><value>Año</value></data>
+  <data name="Shell_GroupCountry" xml:space="preserve"><value>País</value></data>
+  <data name="Shell_GroupState" xml:space="preserve"><value>Región</value></data>
+  <data name="Shell_GroupCity" xml:space="preserve"><value>Ciudad</value></data>
+  <data name="Shell_ChooseGroup" xml:space="preserve"><value>Elegir un grupo</value></data>
+  <data name="Shell_GroupUnknownDate" xml:space="preserve"><value>Fecha desconocida</value></data>
+  <data name="Shell_GroupUnknownLocation" xml:space="preserve"><value>Ubicación desconocida</value></data>
+  <data name="Shell_GroupLocationFormat" xml:space="preserve"><value>{0}, {1}</value></data>
+  <data name="Shell_GroupFolders" xml:space="preserve"><value>Carpetas</value></data>
+  <data name="LibrarySettings_AutoScanHeader" xml:space="preserve">
+    <value>Explorar automáticamente</value>
+  </data>
+  <data name="LibrarySettings_AutoScanDescription" xml:space="preserve">
+    <value>Mantener la biblioteca local actualizada automáticamente.</value>
+  </data>
+  <data name="LibrarySettings_AutoScanIntervalHeader" xml:space="preserve">
+    <value>Intervalo de exploración (minutos)</value>
+  </data>
+  <data name="SettingsPage_General" xml:space="preserve"><value>General</value></data>
+  <data name="SettingsPage_LocalLibrary" xml:space="preserve"><value>Biblioteca local</value></data>
+  <data name="SettingsPage_RemoteLibrary" xml:space="preserve"><value>Biblioteca remota</value></data>
+  <data name="SettingsPage_PhotoIndex" xml:space="preserve"><value>Indexación de fotos</value></data>
+  <data name="SettingsPage_AudioPlayback" xml:space="preserve"><value>Reproducción de audio</value></data>
+  <data name="SettingsPage_VideoPlayback" xml:space="preserve"><value>Reproducción de vídeo</value></data>
+  <data name="SettingsPage_CustomFilters" xml:space="preserve"><value>Filtros personalizados</value></data>
+  <data name="SettingsPage_ServerStreaming" xml:space="preserve"><value>Transmisión del servidor</value></data>
+  <data name="LibrarySettings_MusicLibraryHeader" xml:space="preserve"><value>Biblioteca de música</value></data>
+  <data name="LibrarySettings_MediaLibraryHeader" xml:space="preserve"><value>Fotos y vídeos</value></data>
+  <data name="LibrarySettings_UseSystemLibrary" xml:space="preserve"><value>Usar la biblioteca del sistema</value></data>
+  <data name="LibrarySettings_SystemMusicDescription" xml:space="preserve"><value>Música de la biblioteca multimedia del dispositivo.</value></data>
+  <data name="LibrarySettings_SystemMediaDescription" xml:space="preserve"><value>Fotos y vídeos de la biblioteca multimedia del dispositivo.</value></data>
+  <data name="LibrarySettings_ScanFolders" xml:space="preserve"><value>Escanear carpetas</value></data>
+  <data name="LibrarySettings_ScanFoldersDescription" xml:space="preserve"><value>Incluir archivos de las carpetas seleccionadas.</value></data>
+  <data name="LibrarySettings_ManageMediaAccess" xml:space="preserve"><value>Gestionar el acceso multimedia</value></data>
+  <data name="LibrarySettings_SystemLibraryAccessDenied" xml:space="preserve"><value>No se permite el acceso multimedia. Concédelo en los ajustes del sistema.</value></data>
+  <data name="LibrarySource_SystemLibrary" xml:space="preserve"><value>Biblioteca del sistema</value></data>
+  <data name="LibrarySettings_SourcesDescription" xml:space="preserve"><value>Elige las fuentes de tu música, fotos y vídeos.</value></data>
+  <data name="Library_EmptySourcesDescription" xml:space="preserve"><value>No hay contenido multimedia disponible en las fuentes seleccionadas.</value></data>
+  <data name="Props_SectionPhoto" xml:space="preserve"><value>Foto</value></data>
+  <data name="Props_PhotoComponents" xml:space="preserve"><value>Componentes de imagen</value></data>
+  <data name="Props_PhotoComponentFormat" xml:space="preserve"><value>{0:N0} de {1} ({2})</value></data>
+  <data name="Shell_AutomaticUpdateCheck" xml:space="preserve">
+    <value>Buscar actualizaciones automáticamente</value>
+  </data>
+  <data name="Photo_ToneMapping" xml:space="preserve"><value>Mapeo de tonos HDR</value></data>
+  <data name="Photo_ToneCurve" xml:space="preserve"><value>Curva tonal</value></data>
+  <data name="Photo_ToneAutomatic" xml:space="preserve"><value>Automático</value></data>
+  <data name="Photo_ToneSpline" xml:space="preserve"><value>Spline PQ</value></data>
+  <data name="Photo_ToneHeadroom" xml:space="preserve"><value>Margen HDR de destino</value></data>
+  <data name="Photo_ToneTargetLuminance" xml:space="preserve"><value>Luminancia máxima de destino</value></data>
+  <data name="Photo_ToneReferenceWhite" xml:space="preserve"><value>Blanco de referencia SDR</value></data>
+  <data name="Photo_ToneKneeOffset" xml:space="preserve"><value>Desplazamiento del codo</value></data>
+  <data name="Photo_ToneKneeAdaptation" xml:space="preserve"><value>Adaptación del codo</value></data>
+  <data name="Photo_ToneKneeMinimum" xml:space="preserve"><value>Codo mínimo</value></data>
+  <data name="Photo_ToneKneeMaximum" xml:space="preserve"><value>Codo máximo</value></data>
+  <data name="Photo_ToneKneeDefault" xml:space="preserve"><value>Codo predeterminado</value></data>
+  <data name="Photo_ToneSlopeTuning" xml:space="preserve"><value>Ajuste de pendiente</value></data>
+  <data name="Photo_ToneSlopeOffset" xml:space="preserve"><value>Desplazamiento de pendiente</value></data>
+  <data name="Photo_ToneContrast" xml:space="preserve"><value>Contraste</value></data>
+  <data name="Photo_ToneReset" xml:space="preserve"><value>Restablecer a automático</value></data>
+  <data name="Photo_ToneSave" xml:space="preserve"><value>Guardar como curva tonal preferida</value></data>
+  <data name="Photo_ToneClear" xml:space="preserve"><value>Borrar preferencia guardada</value></data>
+</root>

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using LightStudio.LightPlayer.Models;
+using LightStudio.MediaLibraryCore.IO;
 
 namespace LightStudio.LightPlayer.Services.Playback;
 
@@ -35,6 +37,10 @@ public enum PlaybackQueueTrackEndReason
 /// </summary>
 public sealed record PlaybackQueueItem(string FilePath)
 {
+    public LibrarySourceId SourceId { get; init; } = LibrarySourceId.Local;
+
+    public MediaReference Media => new(SourceId, FilePath);
+
     /// <summary>Offset into <see cref="FilePath"/> at which this track starts. Zero for plain files.</summary>
     public TimeSpan StartTime { get; init; }
 
@@ -51,7 +57,7 @@ public sealed record PlaybackQueueItem(string FilePath)
     public bool IsCueTrack { get; init; }
 
     public string DisplayName =>
-        string.IsNullOrWhiteSpace(Title) ? Path.GetFileNameWithoutExtension(FilePath) : Title!;
+        string.IsNullOrWhiteSpace(Title) ? MediaIdentityNames.Title(FilePath) : Title!;
 }
 
 public sealed record PlaybackQueueStatus(
@@ -63,7 +69,10 @@ public sealed record PlaybackQueueStatus(
     TimeSpan SourcePosition,
     TimeSpan PlayedDuration,
     TimeSpan BufferedDuration,
-    float Volume);
+    float Volume)
+{
+    public bool IsInitializing { get; init; }
+}
 
 public sealed record PlaybackQueueStatusChangedEventArgs(string Message, PlaybackQueueStatus Status);
 
@@ -108,6 +117,13 @@ public sealed record QueuePlaybackOptions(
     TimeSpan BufferTarget,
     int PreferredSampleRate = 0,
     bool AlwaysResample = false);
+
+public sealed record PcmPlaybackRequest(
+    PlaybackQueueItem Item,
+    TimeSpan StartPosition,
+    TimeSpan? EndPosition,
+    bool AlwaysResample,
+    int PreferredSampleRate);
 
 public sealed class QueuePlaybackSummary
 {

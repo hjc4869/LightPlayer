@@ -1,0 +1,573 @@
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="400"
+             d:DesignHeight="800"
+             x:Class="LightStudio.LightPlayer.Controls.NowPlayingSheet"
+             x:DataType="vm:NowPlayingSheetViewModel"
+             ClipToBounds="True">
+
+    <UserControl.Styles>
+        <!-- Pager tab: label plus an accent underline for the active page. Sized like the shell's
+             narrow-layout library tab strip so the two read as the same kind of chrome. -->
+        <Style Selector="Button.sheetTab">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.sheetTab /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.sheetTab:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
+        </Style>
+        <Style Selector="Button.sheetTab TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
+        </Style>
+        <Style Selector="Button.sheetTab.selected TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+        <Style Selector="Button.sheetTab Border.tabIndicator">
+            <Setter Property="Height" Value="2.5" />
+            <Setter Property="Margin" Value="18,0" />
+            <Setter Property="CornerRadius" Value="2" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.sheetTab.selected Border.tabIndicator">
+            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+
+        <!-- Tappable metadata text (artist / album), matching the wide Now Playing page. -->
+        <Style Selector="Button.metaLink">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.metaLink /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.metaLink:pointerover">
+            <Setter Property="TextBlock.TextDecorations" Value="Underline" />
+        </Style>
+
+        <!-- Primary transport button: a filled accent circle around the play/pause glyph. -->
+        <Style Selector="Button.transportPrimary">
+            <Setter Property="Width" Value="60" />
+            <Setter Property="Height" Value="60" />
+            <Setter Property="CornerRadius" Value="30" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.transportPrimary /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="CornerRadius" Value="30" />
+        </Style>
+        <Style Selector="Button.transportPrimary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="Opacity" Value="0.85" />
+        </Style>
+
+        <Style Selector="lmr|BackdropBorder.lyricsActions">
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder.lyricsActions.backdrop Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppBackdropHoverBrush}" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder.lyricsActions.backdrop Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppBackdropPressedBrush}" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder.lyricsActions.liquidGlass">
+            <Setter Property="CornerRadius" Value="19" />
+            <Setter Property="Margin" Value="0,6,6,0" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder.lyricsActions.liquidGlass Button.icon">
+            <Setter Property="Width" Value="34" />
+            <Setter Property="Height" Value="34" />
+            <Setter Property="CornerRadius" Value="17" />
+        </Style>
+
+        <!-- Optical centering for the play triangle. Its bounding box is centered geometrically,
+             but the shape's visual mass sits on the flat left edge while only the tip reaches the
+             right, so the glyph reads as if it were pushed left - most obviously inside the round
+             accent button. A small translate compensates. The class is only set while paused; the
+             pause bars are symmetric and stay untouched. -->
+        <Style Selector="Viewbox.playGlyph">
+            <Setter Property="RenderTransform" Value="translate(2px, 0)" />
+        </Style>
+
+        <!-- The outline only separates the compact card from the page behind it. Once the sheet is
+             pulled open it covers the whole viewport, so the border is dropped rather than drawn as
+             a hairline against nothing. The brush is swapped instead of the thickness so the card's
+             content is never re-measured during the drag.
+
+             The fill follows the same logic. Closed, the card is chrome: it covers the bottom
+             navigation, so it has to be as transparent as the navigation is for the two to share
+             the window backdrop. The moment the drag starts it is a surface over the page instead
+             and goes opaque, or the page would read through it. -->
+        <Style Selector="Border#Card">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppPageBackgroundBrush}" />
+        </Style>
+        <Style Selector="Border#Card.compact">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppChromeDividerBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppQueueSurfaceBrush}" />
+        </Style>
+        <Style Selector="Border#Card.open">
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
+
+    <!--
+        The card. It is always laid out at the sheet's full height and slid down by a render
+        transform so only its header (plus the bottom navigation it covers) shows in the compact
+        state; see the code-behind, which owns the drag, the settle animation, and the cross-fade.
+        Using a transform rather than a height keeps the full page laid out once instead of
+        re-measuring it on every frame of the gesture.
+    -->
+    <Border x:Name="Card"
+            BorderThickness="1,1,1,0"
+            CornerRadius="15,15,0,0"
+            ClipToBounds="True"
+            BoxShadow="0 -2 14 0 #22000000">
+        <Grid RowDefinitions="Auto,*">
+            <!-- Header strip. Owns the drag gesture in both directions: dragging up from the compact
+                 mini player opens the sheet, dragging down from the full page's title bar closes it.
+                 Its height is the artwork plus one uniform inset on every side, keeping the compact
+                 card as dense as the artwork allows. -->
+            <Panel Grid.Row="0" x:Name="HeaderHost" Height="{x:Static controls:NowPlayingSheet.CompactHeight}">
+                <!-- Compact mini player (visible while the sheet is closed). -->
+                <Grid x:Name="CompactContent"
+                      ColumnDefinitions="Auto,*,Auto"
+                      Margin="10,10,6,10">
+                    <controls:MediaThumbnail Grid.Column="0"
+                                             Width="56"
+                                             Height="56"
+                                             VerticalAlignment="Center"
+                                             CornerRadius="8"
+                                             Source="{Binding Playback.AlbumImage}"
+                                             PlaceholderKind="Album" />
+
+                    <!-- Metadata, progress and timing packed tightly so the text block spans the
+                         artwork's height and reads as one unit with it. -->
+                    <StackPanel Grid.Column="1"
+                                Margin="10,0,4,0"
+                                VerticalAlignment="Center"
+                                Orientation="Vertical">
+                        <controls:FixedLineTextBlock Text="{Binding Playback.Title}"
+                                   FontSize="13"
+                                   LineHeight="16"
+                                   FontWeight="SemiBold"
+                                   MaxLines="1"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                        <controls:FixedLineTextBlock Text="{Binding Playback.ArtistAlbum}"
+                                   Margin="0,0,0,-6"
+                                   FontSize="11"
+                                   LineHeight="13"
+                                   MaxLines="1"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                        <StackPanel.Resources>
+                            <x:Double x:Key="SliderHorizontalThumbWidth">10</x:Double>
+                            <x:Double x:Key="SliderHorizontalThumbHeight">10</x:Double>
+                        </StackPanel.Resources>
+                        <controls:PlaybackProgressSlider x:Name="CompactSlider"
+                                Margin="0,-3"
+                                Height="24"
+                                Minimum="0"
+                                Maximum="{Binding Playback.DurationMs}"
+                                Value="{Binding Playback.PositionMs, Mode=TwoWay}"
+                                IsEnabled="{Binding Playback.HasItem}" />
+                        <StackPanel Orientation="Horizontal"
+                                    HorizontalAlignment="Left">
+                            <TextBlock Text="{Binding Playback.PositionText}"
+                                       FontSize="10"
+                                       LineHeight="12"
+                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                            <TextBlock Text=" / "
+                                       FontSize="10"
+                                       LineHeight="12"
+                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                            <TextBlock Text="{Binding Playback.DurationText}"
+                                       FontSize="10"
+                                       LineHeight="12"
+                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal"
+                                Spacing="2"
+                                VerticalAlignment="Center">
+                        <Button Classes="miniIcon"
+                                ToolTip.Tip="{Binding PlaybackBar_Previous, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                IsEnabled="{Binding Playback.HasItem}"
+                                Command="{Binding Playback.PreviousCommand}">
+                            <Viewbox Width="18" Height="18">
+                                <Path Data="{StaticResource IconPrevious}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                        <Button Classes="miniIcon"
+                                ToolTip.Tip="{Binding PlaybackBar_PlayPause, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                IsEnabled="{Binding Playback.HasItem}"
+                                Command="{Binding Playback.PlayPauseCommand}">
+                            <Panel Width="20" Height="20">
+                                <Viewbox Classes.playGlyph="{Binding !Playback.IsPlaying}"
+                                         IsVisible="{Binding !Playback.IsInitializing}">
+                                    <Path Data="{Binding Playback.PlayPauseIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                          Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                                <controls:LoadingSpinner Stroke="{DynamicResource AppPrimaryTextBrush}"
+                                                         IsVisible="{Binding Playback.IsInitializing}" />
+                            </Panel>
+                        </Button>
+                        <Button Classes="miniIcon"
+                                ToolTip.Tip="{Binding PlaybackBar_Next, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                IsEnabled="{Binding Playback.HasItem}"
+                                Command="{Binding Playback.NextCommand}">
+                            <Viewbox Width="18" Height="18">
+                                <Path Data="{StaticResource IconNext}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Full-page title bar (visible while the sheet is open). -->
+                <Grid x:Name="ExpandedHeader"
+                      ColumnDefinitions="Auto,*,Auto"
+                      Margin="8,0"
+                      Opacity="0">
+                    <Button Grid.Column="0"
+                            Classes="icon"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="{Binding NowPlaying_Minimize, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            Command="{Binding CollapseCommand}">
+                        <Viewbox Width="22" Height="22">
+                            <Path Data="{StaticResource IconChevronDown}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding Nav_NowPlaying, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <Button Grid.Column="2"
+                            Classes="icon"
+                            VerticalAlignment="Center"
+                            Click="OnMoreClick"
+                            ToolTip.Tip="{Binding Shell_More, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox Width="20" Height="20">
+                            <Path Data="{StaticResource IconMore}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                        <services:NativeContextMenu.Menu>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <MenuItem Header="{Binding Common_GoToArtist, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                          Command="{Binding OpenArtistCommand}" />
+                                <MenuItem Header="{Binding Common_GoToAlbum, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                          Command="{Binding OpenAlbumCommand}" />
+                                <Separator />
+                                <MenuItem x:Name="AudioSeparationMenuItem"
+                                          Header="{Binding AudioSeparation_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                          IsVisible="{Binding Playback.CanSeparateAudio}">
+                                    <MenuItem.Icon><Path Width="16" Height="16" Stretch="Uniform" Data="{StaticResource IconAudioSeparation}" Fill="{DynamicResource AppPrimaryTextBrush}" /></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                          Command="{Binding Playback.AddToPlaylistCommand}" />
+                                <MenuItem Header="{Binding NowPlaying_SearchLyrics, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                          Command="{Binding Content.SearchLyricsCommand}" />
+                            </MenuFlyout>
+                        </services:NativeContextMenu.Menu>
+                    </Button>
+                </Grid>
+            </Panel>
+
+            <!-- Body. The full page and the shell's bottom navigation share this space: the
+                 navigation shows through the (transparent) body while the sheet is compact, and the
+                 full page fades in over it as the card rises. -->
+            <Panel Grid.Row="1">
+                <Grid x:Name="FullContent" RowDefinitions="Auto,*,Auto" Opacity="0">
+                    <!-- Page tabs -->
+                    <Grid Grid.Row="0" ColumnDefinitions="*,*,*" Margin="8,0">
+                        <Button Grid.Column="0"
+                                Classes="sheetTab"
+                                Classes.selected="{Binding IsTrackTabSelected}"
+                                Command="{Binding SelectTabCommand}"
+                                CommandParameter="{x:Static vm:NowPlayingSheetViewModel.TrackTab}">
+                            <Grid RowDefinitions="*,Auto">
+                                <TextBlock Grid.Row="0"
+                                           Text="{Binding NowPlaying_TabTrack, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                                <Border Grid.Row="1" Classes="tabIndicator" />
+                            </Grid>
+                        </Button>
+                        <Button Grid.Column="1"
+                                Classes="sheetTab"
+                                Classes.selected="{Binding IsLyricsTabSelected}"
+                                Command="{Binding SelectTabCommand}"
+                                CommandParameter="{x:Static vm:NowPlayingSheetViewModel.LyricsTab}">
+                            <Grid RowDefinitions="*,Auto">
+                                <TextBlock Grid.Row="0"
+                                           Text="{Binding NowPlaying_TabLyrics, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                                <Border Grid.Row="1" Classes="tabIndicator" />
+                            </Grid>
+                        </Button>
+                        <Button Grid.Column="2"
+                                Classes="sheetTab"
+                                Classes.selected="{Binding IsUpNextTabSelected}"
+                                Command="{Binding SelectTabCommand}"
+                                CommandParameter="{x:Static vm:NowPlayingSheetViewModel.UpNextTab}">
+                            <Grid RowDefinitions="*,Auto">
+                                <TextBlock Grid.Row="0"
+                                           Text="{Binding NowPlaying_TabUpNext, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center" />
+                                <Border Grid.Row="1" Classes="tabIndicator" />
+                            </Grid>
+                        </Button>
+                    </Grid>
+
+                    <!-- Horizontal pager. Each page is sized to the host in the code-behind, which
+                         also drives the swipe gesture and the settle animation. Every page paints a
+                         transparent background so a swipe is picked up over its empty areas too,
+                         not only where its content happens to be. -->
+                    <Panel Grid.Row="1" x:Name="PagerHost" ClipToBounds="True">
+                        <StackPanel x:Name="PagerTrack"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Left"
+                                    Background="Transparent">
+                            <!-- Cover + metadata, packed against the top of the page. The outer
+                                 panel fills the pager so the empty space below the metadata still
+                                 picks up the swipe. -->
+                            <Grid RowDefinitions="*,Auto" Margin="20,20,20,8" VerticalAlignment="Top">
+                                <Viewbox Grid.Row="0" MaxWidth="360" MaxHeight="360" HorizontalAlignment="Center">
+                                    <controls:MediaThumbnail Width="320"
+                                                                Height="320"
+                                                                CornerRadius="12"
+                                                                Source="{Binding Playback.AlbumImage}"
+                                                                PlaceholderKind="Album" />
+                                </Viewbox>
+                                <StackPanel Grid.Row="1" Margin="0,12,0,0" Spacing="2">
+                                    <TextBlock Text="{Binding Playback.Title}"
+                                                FontSize="20"
+                                                FontWeight="SemiBold"
+                                                MaxLines="2"
+                                                TextAlignment="Center"
+                                                TextWrapping="Wrap"
+                                                TextTrimming="CharacterEllipsis"
+                                                Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                    <Button Classes="metaLink"
+                                            Command="{Binding OpenArtistCommand}"
+                                            ToolTip.Tip="{Binding Common_GoToArtist, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <TextBlock Text="{Binding Playback.Artist}"
+                                                    FontSize="14"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                    </Button>
+                                    <Button Classes="metaLink"
+                                            Command="{Binding OpenAlbumCommand}"
+                                            ToolTip.Tip="{Binding Common_GoToAlbum, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <TextBlock Text="{Binding Playback.Album}"
+                                                    FontSize="13"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Lyrics (reuses the wide Now Playing page's presenter and controls).
+                                 The timing / search actions float over the lyrics' top-right corner
+                                 on an opaque chip rather than reserving a column the narrow page
+                                 cannot spare. -->
+                            <Panel Background="Transparent" Margin="6">
+                                <ProgressBar IsVisible="{Binding Content.LrcSearchBusy}"
+                                             IsIndeterminate="{Binding Content.LrcSearchBusy}"
+                                             Width="140"
+                                             Height="4"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center" />
+                                <TextBlock IsVisible="{Binding Content.ShowNoLyricsMessage}"
+                                           Text="{Binding Content.NoLyricsMessage}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontSize="14"
+                                           MaxWidth="320"
+                                           TextWrapping="Wrap"
+                                           TextAlignment="Center"
+                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                <controls:LyricsPresenter x:Name="LyricsControl"
+                                                          IsVisible="{Binding Content.HasLyrics}"
+                                                          LinesSource="{Binding Content.Lines}"
+                                                          CurrentIndex="{Binding Content.CurrentIndex}" />
+                                <lmr:BackdropBorder HorizontalAlignment="Right"
+                                                         VerticalAlignment="Top"
+                                                         Classes="lyricsActions"
+                                                         Classes.backdrop="{DynamicResource AppHasBackdropEffects}"
+                                                         Classes.liquidGlass="{DynamicResource AppIsLiquidGlass}"
+                                                         Padding="2"
+                                                         BackdropStyle="{DynamicResource AppBackdropStyle}"
+                                                         FallbackColor="{DynamicResource AppQueueBackdropColor}"
+                                                         TintColor="Transparent">
+                                    <StackPanel Orientation="Vertical" Spacing="2">
+                                        <Button Classes="icon"
+                                                Command="{Binding Content.OffsetEarlierCommand}"
+                                                ToolTip.Tip="{Binding NowPlaying_LyricsEarlier, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <Viewbox Width="18" Height="18">
+                                                <Path Data="{StaticResource IconChevronUp}"
+                                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                            </Viewbox>
+                                        </Button>
+                                        <Button Classes="icon"
+                                                Command="{Binding Content.OffsetLaterCommand}"
+                                                ToolTip.Tip="{Binding NowPlaying_LyricsLater, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <Viewbox Width="18" Height="18">
+                                                <Path Data="{StaticResource IconChevronDown}"
+                                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                            </Viewbox>
+                                        </Button>
+                                        <Button Classes="icon"
+                                                Command="{Binding Content.SearchLyricsCommand}"
+                                                ToolTip.Tip="{Binding NowPlaying_SearchLyrics, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <Viewbox Width="18" Height="18">
+                                                <Path Data="{StaticResource IconSearch}"
+                                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                            </Viewbox>
+                                        </Button>
+                                    </StackPanel>
+                                </lmr:BackdropBorder>
+                            </Panel>
+
+                            <!-- Up next: the shared queue pane, in its stretch-to-fill presentation.
+                                 It is the same view model the wide layout docks beside the content,
+                                 so reordering / editing / drag-drop all behave identically here. -->
+                            <controls:QueuePane DataContext="{Binding Queue}" IsFullPage="True" />
+                        </StackPanel>
+                    </Panel>
+
+                    <!-- Transport, shared by every page. -->
+                    <StackPanel Grid.Row="2" Margin="20,4,20,36" Spacing="4">
+                        <Grid RowDefinitions="Auto,Auto">
+                            <Grid.Resources>
+                                <x:Double x:Key="SliderHorizontalThumbWidth">12</x:Double>
+                                <x:Double x:Key="SliderHorizontalThumbHeight">12</x:Double>
+                            </Grid.Resources>
+                                <controls:PlaybackProgressSlider Grid.Row="0"
+                                    x:Name="ExpandedSlider"
+                                    Height="22"
+                                    Minimum="0"
+                                    Maximum="{Binding Playback.DurationMs}"
+                                    Value="{Binding Playback.PositionMs, Mode=TwoWay}"
+                                    IsEnabled="{Binding Playback.HasItem}" />
+                            <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding Playback.PositionText}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding Playback.DurationText}"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                            </Grid>
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal"
+                                    Spacing="14"
+                                    Margin="0,6,0,0"
+                                    HorizontalAlignment="Center">
+                            <Button Classes="icon"
+                                    VerticalAlignment="Center"
+                                    ToolTip.Tip="{Binding Playback.ModeLabel}"
+                                    IsEnabled="{Binding Playback.HasItem}"
+                                    Command="{Binding Playback.CycleModeCommand}">
+                                <Viewbox Width="22" Height="22">
+                                    <Path Data="{Binding Playback.ModeIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                          Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="icon"
+                                    VerticalAlignment="Center"
+                                    ToolTip.Tip="{Binding PlaybackBar_Previous, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsEnabled="{Binding Playback.HasItem}"
+                                    Command="{Binding Playback.PreviousCommand}">
+                                <Viewbox Width="28" Height="28">
+                                    <Path Data="{StaticResource IconPrevious}"
+                                          Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="transportPrimary"
+                                    ToolTip.Tip="{Binding PlaybackBar_PlayPause, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsEnabled="{Binding Playback.HasItem}"
+                                    Command="{Binding Playback.PlayPauseCommand}">
+                                <Panel Width="28" Height="28">
+                                    <Viewbox Classes.playGlyph="{Binding !Playback.IsPlaying}"
+                                             IsVisible="{Binding !Playback.IsInitializing}">
+                                        <Path Data="{Binding Playback.PlayPauseIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                              Fill="White" />
+                                    </Viewbox>
+                                    <controls:LoadingSpinner Width="24" Height="24" Stroke="White"
+                                                             IsVisible="{Binding Playback.IsInitializing}" />
+                                </Panel>
+                            </Button>
+                            <Button Classes="icon"
+                                    VerticalAlignment="Center"
+                                    ToolTip.Tip="{Binding PlaybackBar_Next, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsEnabled="{Binding Playback.HasItem}"
+                                    Command="{Binding Playback.NextCommand}">
+                                <Viewbox Width="28" Height="28">
+                                    <Path Data="{StaticResource IconNext}"
+                                          Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="icon"
+                                    VerticalAlignment="Center"
+                                    ToolTip.Tip="{Binding PlaybackBar_Like, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    IsEnabled="{Binding Playback.HasItem}"
+                                    Command="{Binding Playback.ToggleFavoriteCommand}">
+                                <Panel>
+                                    <Viewbox Width="22" Height="22" IsVisible="{Binding !Playback.IsFavorite}">
+                                        <Path Data="{StaticResource IconHeartOutline}"
+                                              Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                    </Viewbox>
+                                    <Viewbox Width="22" Height="22" IsVisible="{Binding Playback.IsFavorite}">
+                                        <Path Data="{StaticResource IconHeartFilled}"
+                                              Fill="{DynamicResource AppFavoriteBrush}" />
+                                    </Viewbox>
+                                </Panel>
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </Panel>
+        </Grid>
+    </Border>
+</UserControl>

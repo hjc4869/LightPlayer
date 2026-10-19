@@ -1,0 +1,147 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="860"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.ListItemsPageView"
+             x:DataType="vm:ListItemsPageViewModel"
+             lmr:FastImage.CachePool="{x:Static services:AlbumArtService.ThumbnailCache}">
+    <UserControl.Styles>
+        <Style Selector="ListBox.libraryList">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="ListBox.libraryList ListBoxItem">
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="Margin" Value="0,1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <!-- Selected item uses the theme's selection color rather than the Fluent accent. -->
+        <Style Selector="ListBox.libraryList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+        </Style>
+        <Style Selector="ListBox.libraryList ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+        </Style>
+        <Style Selector="ListBox.libraryList.selecting ListBoxItem /template/ ContentPresenter#PART_ContentPresenter,
+                         ListBox.libraryList.selecting ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter,
+                         ListBox.libraryList.selecting ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+                         ListBox.libraryList.selecting ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter,
+                         ListBox.libraryList.selecting ListBoxItem:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
+
+    <!--
+        Adaptive master-detail alternative to the grid: the item list and the selected item's detail
+        (AlbumDetailPageView / ArtistDetailPageView) sit side by side on wide layouts (detail swaps
+        with the light entrance transition); on narrow layouts the detail slides in over the list
+        from the right and back out on return. The back gesture / Android back is handled by the page
+        view model first (collapse to the list) before the shell navigates away.
+    -->
+    <controls:MasterDetailView CompactThreshold="680"
+                               MasterLength="320"
+                               IsCompact="{Binding IsCompact, Mode=OneWayToSource}"
+                               Detail="{Binding SelectedDetail}">
+        <!-- Master: the flat, virtualizing album/artist list with its loading and empty states -->
+        <controls:MasterDetailView.Master>
+            <controls:PageSearchHost Search="{Binding Browse.PageSearch}">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <controls:MultiSelectBar DataContext="{Binding Browse.Selection}" />
+                <!-- Loading -->
+                <StackPanel Grid.Row="1" IsVisible="{Binding Browse.IsLoading}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="10">
+                    <ProgressBar IsIndeterminate="{Binding Browse.IsLoading}" Width="140" Height="4" />
+                    <TextBlock Text="{Binding Browse.LoadingText}"
+                               HorizontalAlignment="Center"
+                               FontSize="13"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                </StackPanel>
+
+                <!-- Empty -->
+                <controls:EmptyState Grid.Row="1" IsVisible="{Binding Browse.ShowEmpty}"
+                                     Header="{Binding Browse.EmptyHeader}"
+                                     Description="{Binding Browse.EmptyDescription}" />
+
+                <!-- List: kept present (even while loading / empty) so its scroll viewer exists for
+                     the scroll-memory behavior, with the loading / empty overlays layered on top. -->
+                <ListBox x:Name="MasterList"
+                         Grid.Row="1"
+                         IsVisible="{Binding !Browse.GroupingEnabled}"
+                         Classes="libraryList"
+                         Classes.selecting="{Binding Browse.Selection.IsActive}"
+                         ItemsSource="{Binding Browse.Items}"
+                         SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                         Padding="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='14,22,14,22'}"
+                         AutoScrollToSelectedItem="False">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <controls:IncrementalVirtualizingStackPanel TotalCount="{Binding Browse.TotalItemCount}" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:LibraryTileModel">
+                            <controls:SelectionItem>
+                                <controls:LibraryListRow />
+                            </controls:SelectionItem>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <controls:GroupedItemsView x:Name="GroupedView" Grid.Row="1"
+                                           Model="{Binding Browse.Grouping}"
+                                           IsVisible="{Binding Browse.GroupingEnabled}"
+                                           IsList="True" MinItemHeight="60" SelectOnTap="True"
+                                           HeaderPadding="8,0"
+                                           SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                                           ContentInset="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='14,22,14,22'}">
+                    <controls:GroupedItemsView.ItemTemplate>
+                        <DataTemplate DataType="models:LibraryTileModel" x:DataType="models:LibraryTileModel">
+                            <controls:SelectionItem Margin="8,6" Focusable="True">
+                                <controls:LibraryListRow />
+                            </controls:SelectionItem>
+                        </DataTemplate>
+                    </controls:GroupedItemsView.ItemTemplate>
+                </controls:GroupedItemsView>
+                <Panel Grid.Row="2" Height="36">
+                    <Panel.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                            <Binding Path="Browse.IsLoadingMore" />
+                            <Binding Path="Browse.HasLoadMoreError" />
+                        </MultiBinding>
+                    </Panel.IsVisible>
+                    <ProgressBar IsVisible="{Binding Browse.IsLoadingMore}"
+                                 IsIndeterminate="{Binding Browse.IsLoadingMore}"
+                                 Width="100"
+                                 Height="3"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center" />
+                    <Button IsVisible="{Binding Browse.HasLoadMoreError}"
+                            Command="{Binding Browse.RetryLoadMoreCommand}"
+                            Content="{Binding Common_Retry, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                </Panel>
+            </Grid>
+            </controls:PageSearchHost>
+        </controls:MasterDetailView.Master>
+
+        <!-- Detail placeholder: shown on wide layouts when no item is selected -->
+        <controls:MasterDetailView.DetailPlaceholder>
+            <controls:EmptyState Header="{Binding DetailPlaceholderHeader}"
+                                 Description="{Binding DetailPlaceholderDescription}" />
+        </controls:MasterDetailView.DetailPlaceholder>
+    </controls:MasterDetailView>
+</UserControl>

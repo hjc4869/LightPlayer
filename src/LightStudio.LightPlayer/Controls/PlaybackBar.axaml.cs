@@ -1,7 +1,8 @@
+using System;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
+using LightStudio.LightPlayer.Services;
 using LightStudio.LightPlayer.ViewModels;
 
 namespace LightStudio.LightPlayer.Controls;
@@ -23,19 +24,8 @@ public partial class PlaybackBar : UserControl
     {
         InitializeComponent();
 
-        // Scrub the progress slider: suppress engine position updates while the
-        // user drags, then seek to the released value. handledEventsToo ensures
-        // the events still arrive after the slider handles them internally.
-        ProgressSlider.AddHandler(
-            PointerPressedEvent,
-            OnProgressPointerPressed,
-            RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
-            handledEventsToo: true);
-        ProgressSlider.AddHandler(
-            PointerReleasedEvent,
-            OnProgressPointerReleased,
-            RoutingStrategies.Tunnel | RoutingStrategies.Bubble,
-            handledEventsToo: true);
+        ProgressSlider.ScrubStarted += OnProgressScrubStarted;
+        ProgressSlider.ScrubCompleted += OnProgressScrubCompleted;
     }
 
     private PlaybackBarViewModel? ViewModel => DataContext as PlaybackBarViewModel;
@@ -46,11 +36,17 @@ public partial class PlaybackBar : UserControl
         set => SetValue(ShowAllControlsProperty, value);
     }
 
-    private void OnProgressPointerPressed(object? sender, PointerPressedEventArgs e) =>
+    private void OnProgressScrubStarted(object? sender, EventArgs e) =>
         ViewModel?.BeginScrub();
 
-    private void OnProgressPointerReleased(object? sender, PointerReleasedEventArgs e) =>
+    private void OnProgressScrubCompleted(object? sender, EventArgs e) =>
         ViewModel?.EndScrub();
+
+    private void OnAudioSeparationClick(object? sender, RoutedEventArgs e)
+    {
+        if (NativeContextMenu.GetMenu(AudioSeparationButton) is { } menu)
+            AudioSeparationMenu.Populate(menu.Items, ViewModel);
+    }
 
     private void OnSizeChanged(object? sender, SizeChangedEventArgs e) =>
         ShowAllControls = e.NewSize.Width > CompactWidthThreshold;

@@ -25,14 +25,18 @@
         </Style>
     </UserControl.Styles>
     <ScrollViewer x:Name="Scroll" VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled">
-        <ItemsControl x:Name="Lines" Margin="24,12">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="models:LyricLineModel">
-                    <TextBlock Classes="lyric"
-                               Classes.current="{Binding IsCurrent}"
-                               Text="{Binding Text}" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <StackPanel>
+            <Border x:Name="StartPadding" Height="0" IsHitTestVisible="False" />
+            <ItemsControl x:Name="Lines" Margin="24,12">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:LyricLineModel">
+                        <TextBlock Classes="lyric"
+                                   Classes.current="{Binding IsCurrent}"
+                                   Text="{Binding Text}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Border x:Name="EndPadding" Height="0" IsHitTestVisible="False" />
+        </StackPanel>
     </ScrollViewer>
 </UserControl>

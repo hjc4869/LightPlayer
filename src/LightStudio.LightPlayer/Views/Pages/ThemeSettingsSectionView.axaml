@@ -1,38 +1,431 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:media="using:Avalonia.Media"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
              mc:Ignorable="d"
              d:DesignWidth="620"
-             d:DesignHeight="360"
+             d:DesignHeight="720"
              x:Class="LightStudio.LightPlayer.Views.Pages.ThemeSettingsSectionView"
              x:DataType="vm:ThemeSettingsSectionViewModel">
+    <UserControl.Styles>
+        <Style Selector="Border.card">
+            <Setter Property="Padding" Value="16" />
+        </Style>
+        <Style Selector="Border.modeRow">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,0,0,6" />
+        </Style>
+        <Style Selector="Border.modeRow.selected">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+        </Style>
+
+        <!--
+            The Fluent RadioButton template hosts its indicator ellipses in an inner Grid
+            pinned with Height=RadioButtonMinHeight (32) and VerticalAlignment=Top, so the
+            circle sticks to the top of taller rows (here the 48px appearance previews).
+            VerticalContentAlignment only centers the content, not the indicator, so center
+            the indicator Grid (the only Grid nested directly inside another Grid) to match.
+        -->
+        <Style Selector="RadioButton.modeOption /template/ Grid > Grid">
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <!-- Color theme tile -->
+        <Style Selector="Button.tileButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="Button.tileButton /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.tileCard">
+            <Setter Property="Background" Value="{DynamicResource AppPanelBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="8" />
+        </Style>
+        <Style Selector="Button.tileButton:pointerover Border.tileCard">
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
+        </Style>
+        <Style Selector="Border.tileCard.selected">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+            <Setter Property="BorderThickness" Value="2" />
+        </Style>
+    </UserControl.Styles>
+
     <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
+        <!-- Section header -->
         <StackPanel Spacing="4" Margin="0,0,0,4">
-            <TextBlock Text="Theme"
+            <TextBlock Text="{Binding ThemeSettings_SectionTitle, Source={x:Static strings:LocalizedStrings.Instance}}"
                        FontSize="22"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource AppPrimaryTextBrush}" />
-            <TextBlock Text="Choose the app theme."
+            <TextBlock Text="{Binding ThemeSettings_SectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
                        FontSize="13"
                        Foreground="{DynamicResource AppSecondaryTextBrush}" />
         </StackPanel>
 
-        <controls:SettingRow Header="Theme"
-                             Description="Use the system setting, light mode, or dark mode.">
-            <controls:SettingRow.ActionContent>
-                <ComboBox Width="110"
-                          ItemsSource="{Binding ThemeOptions}"
-                          SelectedItem="{Binding SelectedTheme, Mode=TwoWay}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ThemeOption">
-                            <TextBlock Text="{Binding Title}" />
+        <!-- Native Apple UI style -->
+        <Border Classes="settingsGroup card" IsVisible="{x:Static services:PlatformServices.SupportsAppleChrome}">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding ThemeSettings_AppleStyleHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               Classes="settingName"
+                               FontSize="14"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1"
+                              OnContent=""
+                              OffContent=""
+                              Margin="16,0,0,0"
+                              VerticalAlignment="Center"
+                              IsChecked="{Binding AppleChromeEnabled, Mode=TwoWay}" />
+            </Grid>
+        </Border>
+
+        <!-- Theme (appearance mode) -->
+        <Border Classes="settingsGroup card">
+            <StackPanel Spacing="10">
+                <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding ThemeSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               Classes="settingName"
+                               FontSize="14" />
+                    <TextBlock Text="{Binding ThemeSettings_ModeSectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               Classes="settingDescription"
+                               FontSize="12"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <ItemsControl ItemsSource="{Binding ModeOptions}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ThemeModeOption">
+                            <Border Classes="modeRow" Classes.selected="{Binding IsSelected}">
+                                <!--
+                                    Intentionally no GroupName: single-selection is driven solely by the
+                                    view model (ThemeSettingsSectionViewModel.OnModeSelected clears the
+                                    other options' IsSelected). Avalonia groups RadioButtons by GroupName in
+                                    a per-window manager, but this section's view is recreated on every
+                                    settings sub-page switch while the view model (and its ModeOptions)
+                                    persist. During the detail transition the departing and arriving views
+                                    are briefly attached together, so a shared GroupName would let the old
+                                    view's radios uncheck the new view's radio for the same option through
+                                    the shared TwoWay IsSelected binding, collapsing the selection to none
+                                    until the whole Settings page is rebuilt.
+                                -->
+                                <RadioButton Classes="modeOption"
+                                             IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                             HorizontalAlignment="Stretch"
+                                             HorizontalContentAlignment="Stretch"
+                                             VerticalContentAlignment="Center">
+                                    <Grid ColumnDefinitions="*,Auto" Margin="6,0,0,0">
+                                        <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Title}"
+                                                       Classes="settingName" />
+                                            <TextBlock Text="{Binding Description}"
+                                                       Classes="settingDescription"
+                                                       FontSize="12"
+                                                       TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1"
+                                                    Orientation="Horizontal"
+                                                    Spacing="6"
+                                                    VerticalAlignment="Center">
+                                            <!-- Light appearance mock -->
+                                            <Border Width="72" Height="48" CornerRadius="6"
+                                                    Background="#FFFFFF" BorderBrush="#E2DFD5" BorderThickness="1"
+                                                    ClipToBounds="True"
+                                                    IsVisible="{Binding ShowLightPreview}">
+                                                <Grid ColumnDefinitions="16,*">
+                                                    <Border Background="#EFEDE6" />
+                                                    <StackPanel Grid.Column="1" Margin="5" Spacing="4" VerticalAlignment="Center">
+                                                        <Border Width="28" Height="5" CornerRadius="2" Background="#3C6E57" HorizontalAlignment="Left" />
+                                                        <Border Width="40" Height="4" CornerRadius="2" Background="#C9CCC8" HorizontalAlignment="Left" />
+                                                        <Border Width="34" Height="4" CornerRadius="2" Background="#D9DBD7" HorizontalAlignment="Left" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                            <!-- Dark appearance mock -->
+                                            <Border Width="72" Height="48" CornerRadius="6"
+                                                    Background="#16191A" BorderBrush="#32373A" BorderThickness="1"
+                                                    ClipToBounds="True"
+                                                    IsVisible="{Binding ShowDarkPreview}">
+                                                <Grid ColumnDefinitions="16,*">
+                                                    <Border Background="#202425" />
+                                                    <StackPanel Grid.Column="1" Margin="5" Spacing="4" VerticalAlignment="Center">
+                                                        <Border Width="28" Height="5" CornerRadius="2" Background="#7FC6A6" HorizontalAlignment="Left" />
+                                                        <Border Width="40" Height="4" CornerRadius="2" Background="#3A3F41" HorizontalAlignment="Left" />
+                                                        <Border Width="34" Height="4" CornerRadius="2" Background="#2F3335" HorizontalAlignment="Left" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </Border>
+                                        </StackPanel>
+                                    </Grid>
+                                </RadioButton>
+                            </Border>
                         </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </controls:SettingRow.ActionContent>
-        </controls:SettingRow>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- Theme color -->
+        <Border Classes="settingsGroup card">
+            <StackPanel Spacing="12">
+                <StackPanel Spacing="2">
+                    <TextBlock Text="{Binding ThemeColor_SectionTitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               Classes="settingName"
+                               FontSize="14" />
+                    <TextBlock Text="{Binding ThemeColor_SectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               Classes="settingDescription"
+                               FontSize="12"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!-- Light color themes -->
+                <StackPanel Spacing="8" IsVisible="{Binding ShowLightThemes}">
+                    <TextBlock Text="{Binding Common_ThemeLight, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               IsVisible="{Binding ShowVariantLabels}" />
+                    <ItemsControl ItemsSource="{Binding LightThemes}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ColorThemeChoiceViewModel">
+                                <Grid Width="100" Margin="0,0,6,10">
+                                    <Button Classes="tileButton" Command="{Binding SelectCommand}">
+                                        <Border Classes="tileCard" Classes.selected="{Binding IsSelected}">
+                                            <StackPanel Spacing="7">
+                                                <Border Height="58" CornerRadius="5"
+                                                        Background="{Binding PageBackgroundBrush}"
+                                                        ClipToBounds="True">
+                                                    <Grid ColumnDefinitions="16,*" Margin="4">
+                                                        <Border CornerRadius="3" Background="{Binding NavBackgroundBrush}">
+                                                            <Ellipse Width="7" Height="7"
+                                                                     Fill="{Binding AccentBrush}"
+                                                                     VerticalAlignment="Top"
+                                                                     HorizontalAlignment="Center"
+                                                                     Margin="0,5,0,0" />
+                                                        </Border>
+                                                        <Border Grid.Column="1" Margin="4,0,0,0" CornerRadius="3"
+                                                                Background="{Binding PanelBackgroundBrush}" Padding="5">
+                                                            <StackPanel Spacing="4" VerticalAlignment="Center">
+                                                                <Border Width="26" Height="5" CornerRadius="2" Background="{Binding AccentBrush}" HorizontalAlignment="Left" />
+                                                                <Border Width="46" Height="4" CornerRadius="2" Background="{Binding PrimaryTextBrush}" HorizontalAlignment="Left" />
+                                                                <Border Width="36" Height="4" CornerRadius="2" Background="{Binding SecondaryTextBrush}" HorizontalAlignment="Left" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                                <ItemsControl ItemsSource="{Binding SwatchBrushes}" HorizontalAlignment="Center">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal" Spacing="5" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="media:IBrush">
+                                                            <Ellipse Width="12" Height="12" Fill="{Binding}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontSize="12"
+                                                           HorizontalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Button>
+                                    <Border IsVisible="{Binding IsSelected}"
+                                            Width="20" Height="20" CornerRadius="10"
+                                            Background="{DynamicResource AppAccentBrush}"
+                                            HorizontalAlignment="Left" VerticalAlignment="Top"
+                                            Margin="6">
+                                        <Viewbox Width="12" Height="12">
+                                            <Path Data="{StaticResource IconCheck}" Fill="#FFFFFF" />
+                                        </Viewbox>
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" Spacing="2"
+                                                HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                Margin="4"
+                                                IsVisible="{Binding CanCustomize}">
+                                        <Button Classes="miniIcon"
+                                                Command="{Binding EditCommand}"
+                                                ToolTip.Tip="{Binding Common_Edit, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <Viewbox Width="14" Height="14">
+                                                <Path Data="{StaticResource IconEdit}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                            </Viewbox>
+                                        </Button>
+                                        <Button Classes="miniIcon"
+                                                Command="{Binding DeleteCommand}"
+                                                ToolTip.Tip="{Binding Common_Delete, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <Viewbox Width="14" Height="14">
+                                                <Path Data="{StaticResource IconDelete}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                            </Viewbox>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Classes="link"
+                            HorizontalAlignment="Left"
+                            Command="{Binding AddLightThemeCommand}"
+                            IsVisible="{Binding AllowCustomThemes}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Viewbox Width="14" Height="14">
+                                <Path Data="{StaticResource IconAdd}" Fill="{DynamicResource AppAccentBrush}" />
+                            </Viewbox>
+                            <TextBlock Text="{Binding ThemeColor_AddCustom, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- Dark color themes -->
+                <StackPanel Spacing="8" IsVisible="{Binding ShowDarkThemes}">
+                    <TextBlock Text="{Binding Common_ThemeDark, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}"
+                               IsVisible="{Binding ShowVariantLabels}" />
+                    <ItemsControl ItemsSource="{Binding DarkThemes}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ColorThemeChoiceViewModel">
+                                <Grid Width="100" Margin="0,0,6,10">
+                                    <Button Classes="tileButton" Command="{Binding SelectCommand}">
+                                        <Border Classes="tileCard" Classes.selected="{Binding IsSelected}">
+                                            <StackPanel Spacing="7">
+                                                <Border Height="58" CornerRadius="5"
+                                                        Background="{Binding PageBackgroundBrush}"
+                                                        ClipToBounds="True">
+                                                    <Grid ColumnDefinitions="16,*" Margin="4">
+                                                        <Border CornerRadius="3" Background="{Binding NavBackgroundBrush}">
+                                                            <Ellipse Width="7" Height="7"
+                                                                     Fill="{Binding AccentBrush}"
+                                                                     VerticalAlignment="Top"
+                                                                     HorizontalAlignment="Center"
+                                                                     Margin="0,5,0,0" />
+                                                        </Border>
+                                                        <Border Grid.Column="1" Margin="4,0,0,0" CornerRadius="3"
+                                                                Background="{Binding PanelBackgroundBrush}" Padding="5">
+                                                            <StackPanel Spacing="4" VerticalAlignment="Center">
+                                                                <Border Width="26" Height="5" CornerRadius="2" Background="{Binding AccentBrush}" HorizontalAlignment="Left" />
+                                                                <Border Width="46" Height="4" CornerRadius="2" Background="{Binding PrimaryTextBrush}" HorizontalAlignment="Left" />
+                                                                <Border Width="36" Height="4" CornerRadius="2" Background="{Binding SecondaryTextBrush}" HorizontalAlignment="Left" />
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                                <ItemsControl ItemsSource="{Binding SwatchBrushes}" HorizontalAlignment="Center">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal" Spacing="5" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate x:DataType="media:IBrush">
+                                                            <Ellipse Width="12" Height="12" Fill="{Binding}" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontSize="12"
+                                                           HorizontalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Button>
+                                    <Border IsVisible="{Binding IsSelected}"
+                                            Width="20" Height="20" CornerRadius="10"
+                                            Background="{DynamicResource AppAccentBrush}"
+                                            HorizontalAlignment="Left" VerticalAlignment="Top"
+                                            Margin="6">
+                                        <Viewbox Width="12" Height="12">
+                                            <Path Data="{StaticResource IconCheck}" Fill="#FFFFFF" />
+                                        </Viewbox>
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" Spacing="2"
+                                                HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                Margin="4"
+                                                IsVisible="{Binding CanCustomize}">
+                                        <Button Classes="miniIcon"
+                                                Command="{Binding EditCommand}"
+                                                ToolTip.Tip="{Binding Common_Edit, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <Viewbox Width="14" Height="14">
+                                                <Path Data="{StaticResource IconEdit}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                            </Viewbox>
+                                        </Button>
+                                        <Button Classes="miniIcon"
+                                                Command="{Binding DeleteCommand}"
+                                                ToolTip.Tip="{Binding Common_Delete, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <Viewbox Width="14" Height="14">
+                                                <Path Data="{StaticResource IconDelete}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                            </Viewbox>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Classes="link"
+                            HorizontalAlignment="Left"
+                            Command="{Binding AddDarkThemeCommand}"
+                            IsVisible="{Binding AllowCustomThemes}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <Viewbox Width="14" Height="14">
+                                <Path Data="{StaticResource IconAdd}" Fill="{DynamicResource AppAccentBrush}" />
+                            </Viewbox>
+                            <TextBlock Text="{Binding ThemeColor_AddCustom, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <!-- System backdrop. Sits with the color choices because it decides what the color
+                     theme is painted on: with it on, the window chrome drops its own fill and the
+                     desktop shows through. Hidden where no backdrop exists. -->
+                <StackPanel Spacing="12" IsVisible="{Binding IsMicaSupported}">
+                    <Border Height="1" Background="{DynamicResource AppDividerBrush}" />
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ThemeColor_MicaHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       Classes="settingName"
+                                       FontSize="14" />
+                            <TextBlock Text="{Binding ThemeColor_MicaDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       Classes="settingDescription"
+                                       FontSize="12"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ToggleSwitch Grid.Column="1"
+                                      OnContent=""
+                                      OffContent=""
+                                      Margin="16,0,0,0"
+                                      VerticalAlignment="Center"
+                                      IsChecked="{Binding MicaEnabled, Mode=TwoWay}" />
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </Border>
     </StackPanel>
 </UserControl>

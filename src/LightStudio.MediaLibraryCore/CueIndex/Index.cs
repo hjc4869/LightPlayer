@@ -1,22 +1,17 @@
 ﻿namespace LightStudio.MediaLibraryCore.CueIndex
 {
     /// <summary>
-    /// This command is used to specify indexes (or subindexes) within a track.
-    /// Syntax:
-    ///  INDEX [number] [mm:ss:ff]
+    /// Represents an INDEX entry in a CUE track.
     /// </summary>
     struct Index
     {
-        //0-99
         int m_number;
 
         int m_minutes;
         int m_seconds;
         int m_frames;
 
-        /// <summary>
-        /// Index number (0-99)
-        /// </summary>
+        /// <summary>Gets or sets the index number, clamped to 0-99.</summary>
         public int Number
         {
             get { return m_number; }
@@ -37,9 +32,7 @@
             }
         }
 
-        /// <summary>
-        /// Possible values: 0-99
-        /// </summary>
+        /// <summary>Gets or sets the minute component, clamped to 0-99.</summary>
         public int Minutes
         {
             get { return m_minutes; }
@@ -60,10 +53,7 @@
             }
         }
 
-        /// <summary>
-        /// Possible values: 0-59
-        /// There are 60 seconds/minute
-        /// </summary>
+        /// <summary>Gets or sets the second component, clamped to 0-59.</summary>
         public int Seconds
         {
             get { return m_seconds; }
@@ -84,10 +74,7 @@
             }
         }
 
-        /// <summary>
-        /// Possible values: 0-74
-        /// There are 75 frames/second
-        /// </summary>
+        /// <summary>Gets or sets the frame component, clamped to 0-74.</summary>
         public int Frames
         {
             get { return m_frames; }
@@ -108,13 +95,6 @@
             }
         }
 
-        /// <summary>
-        /// The Index of a track.
-        /// </summary>
-        /// <param name="number">Index number 0-99</param>
-        /// <param name="minutes">Minutes (0-99)</param>
-        /// <param name="seconds">Seconds (0-59)</param>
-        /// <param name="frames">Frames (0-74)</param>
         public Index(int number, int minutes, int seconds, int frames)
         {
             m_number = number;

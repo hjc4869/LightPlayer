@@ -1,0 +1,88 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>lmpdroid</AssemblyName>
+    <TargetFramework>$(TargetFramework)-$(AndroidTargetVersion)</TargetFramework>
+    <RuntimeIdentifiers Condition="'$(RuntimeIdentifier)' == ''">android-x64;android-arm64</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</RuntimeIdentifiers>
+    <SupportedOSPlatformVersion>35</SupportedOSPlatformVersion>
+    <ApplicationId>im.hjc.LightPlayer</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.1</ApplicationDisplayVersion>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+    <UseNativeHttpHandler>false</UseNativeHttpHandler>
+    <UseMonoRuntime Condition="'$(Configuration)' == 'Release'">false</UseMonoRuntime>
+    <PublishAot Condition="'$(Configuration)' == 'Release'">true</PublishAot>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(PublishAot)' == 'true'">
+    <DefineConstants>$(DefineConstants);SQLITE_VEC_STATIC;FFMPEG_STATIC</DefineConstants>
+    <EnableStaticFfmpeg>true</EnableStaticFfmpeg>
+    <EnableStaticSqliteVec>true</EnableStaticSqliteVec>
+    <EnableStaticPhotos>true</EnableStaticPhotos>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AndroidResource Include="Icon.png">
+      <Link>Resources\drawable\Icon.png</Link>
+    </AndroidResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Android" />
+    <PackageReference Include="LightStudio.AvaloniaStatic" />
+    <PackageReference Include="LightStudio.Ffmpeg" />
+    <PackageReference Include="LightStudio.Photos" />
+    <PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" />
+    <PackageReference Include="SQLitePCLRaw.bundle_sqlite3" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(PublishAot)' == 'true'">
+    <DirectPInvoke Include="__Internal;vec0" />
+    <DirectPInvokeList Include="SqliteDirectPInvoke.txt" />
+    <DirectPInvoke Include="liblcms2" />
+    <DirectPInvoke Include="libraw" />
+    <DirectPInvoke Include="libjpegxr" />
+    <!-- Android UseNativeHttpHandler=false CoreCLR NativeAOT workaround for .NET 10, Remove in .NET 11 -->
+    <IlcArg Include="--export-dynamic-symbol:Java_net_dot_android_crypto_DotnetProxyTrustManager_verifyRemoteCertificate" />
+    <LinkerArg Include="-Wl,-u,Java_net_dot_android_crypto_DotnetProxyTrustManager_verifyRemoteCertificate" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LightStudio.Logging\LightStudio.Logging.csproj" />
+    <ProjectReference Include="..\LightStudio.LocalServices\LightStudio.LocalServices.csproj" />
+    <ProjectReference Include="..\LightStudio.Inference.LiteRT\LightStudio.Inference.LiteRT.csproj" />
+    <ProjectReference Include="..\LightStudio.Lyrics.Jint\LightStudio.Lyrics.Jint.csproj" />
+    <ProjectReference Include="..\LightStudio.RemoteServices\LightStudio.RemoteServices.csproj" />
+    <ProjectReference Include="..\LightStudio.LightPlayer\LightStudio.LightPlayer.csproj" />
+    <ProjectReference Include="..\LightStudio.MediaLibraryCore.Contracts\LightStudio.MediaLibraryCore.Contracts.csproj" />
+  </ItemGroup>
+
+    <Target Name="ConfigureAndroidNativeAotTargetTriple"
+      AfterTargets="AvaloniaStaticAndroidLinkMode"
+          Condition="'$(PublishAot)' == 'true' and
+                    ('$(RuntimeIdentifier)' == 'android-x64' or
+                      '$(RuntimeIdentifier)' == 'android-arm64')">
+    <ItemGroup>
+      <LinkerArg Remove="--target=$(TargetTriple)" />
+    </ItemGroup>
+    <PropertyGroup>
+      <CrossCompileAbi>android$(SupportedOSPlatformVersion.Split('.')[0])</CrossCompileAbi>
+      <TargetTriple>$(CrossCompileArch)-linux-$(CrossCompileAbi)</TargetTriple>
+    </PropertyGroup>
+    <ItemGroup>
+      <LinkerArg Include="--target=$(TargetTriple)" />
+    </ItemGroup>
+  </Target>
+  <!--
+    Localization fix for NativeAOT (PublishAot). Remove this workaround in future .NET releases 
+  -->
+  <Target Name="_AddReferencedSatelliteAssembliesToIlc"
+          AfterTargets="_AndroidComputeIlcCompileInputs"
+          Condition="'$(PublishAot)' == 'true'">
+    <ItemGroup>
+      <IlcSatelliteAssembly Include="$(IntermediateLinkDir)*/*.resources.dll" />
+    </ItemGroup>
+  </Target>
+</Project>

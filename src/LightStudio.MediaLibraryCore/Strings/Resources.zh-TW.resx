@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AudioFileAccessFailure" xml:space="preserve"><value>無法存取音軌檔案</value></data>
+  <data name="AudioFileMetadataFailure" xml:space="preserve"><value>無法從音軌檔案取得資訊</value></data>
+  <data name="AudioFileMetadataFailureExceptionMessage" xml:space="preserve"><value>從檔案取得資訊失敗。</value></data>
+  <data name="CueInvalid" xml:space="preserve"><value>CUE 索引為空或不正確</value></data>
+  <data name="DrmExceptionMessage" xml:space="preserve"><value>檔案因 DRM 保護而無法讀取。</value></data>
+  <data name="VariousArtist" xml:space="preserve"><value>多位藝術家</value></data>
+</root>

@@ -29,7 +29,14 @@ public partial class MusicPlaybackItemModel : ObservableObject
     [ObservableProperty]
     private TimeSpan duration;
 
-    public MusicPlaybackItemModel(string title, string artist, string album, TimeSpan duration, string filePath = "", int? startTimeMs = null)
+    public MusicPlaybackItemModel(
+        string title,
+        string artist,
+        string album,
+        TimeSpan duration,
+        string filePath = "",
+        int? startTimeMs = null,
+        LibrarySourceId? sourceId = null)
     {
         this.title = title;
         this.artist = artist;
@@ -37,10 +44,21 @@ public partial class MusicPlaybackItemModel : ObservableObject
         this.duration = duration;
         FilePath = filePath;
         StartTimeMs = startTimeMs;
+        SourceId = sourceId ?? LibrarySourceId.Local;
     }
 
-    /// <summary>Absolute path of the media file backing this queue item.</summary>
+    /// <summary>
+    /// Platform-specific identifier of the media backing this queue item, such as a local path,
+    /// a path on a remote server, or a content URI.
+    /// </summary>
     public string FilePath { get; }
+
+    public LibrarySourceId SourceId { get; }
+
+    public MediaReference Media => new(SourceId, FilePath);
+
+    public bool CanOpenContainingFolder =>
+        SourceId.IsLocal && Services.PlatformServices.SupportsLocalFileAccess;
 
     /// <summary>
     /// Cue start offset, in milliseconds, when this entry is a CUE-sheet track (0 is a valid

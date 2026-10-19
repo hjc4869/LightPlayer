@@ -1,0 +1,235 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="720"
+             d:DesignHeight="760"
+             x:Class="LightStudio.LightPlayer.Views.Pages.RemoteLibrariesSettingsSectionView"
+             x:DataType="vm:RemoteLibrariesSettingsSectionViewModel">
+    <StackPanel HorizontalAlignment="Stretch" Spacing="10">
+        <StackPanel Spacing="4" Margin="0,0,0,4">
+            <TextBlock Text="{Binding SectionTitle}"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Text="{Binding SectionDescription}"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <controls:SettingRow Header="{Binding PreferDuplicatesText}"
+                             Description="{Binding DuplicateDescription}">
+            <controls:SettingRow.ActionContent>
+                <ToggleSwitch IsChecked="{Binding PreferHigherPriorityDuplicates, Mode=TwoWay}"
+                              OnContent=""
+                              OffContent="" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <ItemsControl ItemsSource="{Binding Sources}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:RemoteLibraryRowViewModel">
+                    <!-- One card, like a library folder, with the media categories folded into it. -->
+                    <Border Classes="settingsGroup"
+                            Margin="0,0,0,8">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="16,12">
+                                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   Classes="settingName"
+                                                   FontSize="14" />
+                                        <TextBlock Text="{Binding PriorityText}"
+                                                   FontSize="11"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Address}"
+                                               Classes="settingDescription"
+                                               FontSize="12"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding StatusText}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource AppAccentBrush}" />
+                                    <TextBlock Text="{Binding CategoryStatus}"
+                                               IsVisible="{Binding HasCategoryStatus}"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                    <TextBlock Text="{Binding ErrorText}"
+                                               IsVisible="{Binding HasError}"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource AppFavoriteBrush}" />
+                                    <TextBlock Text="{Binding RefreshResult}"
+                                               IsVisible="{Binding HasRefreshResult}"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1"
+                                            Orientation="Horizontal"
+                                            Spacing="4"
+                                            VerticalAlignment="Center">
+                                    <Button Classes="icon"
+                                            ToolTip.Tip="{Binding MoveUpText}"
+                                            Command="{Binding MoveUpCommand}">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="{StaticResource IconChevronUp}"
+                                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        </Viewbox>
+                                    </Button>
+                                    <Button Classes="icon"
+                                            ToolTip.Tip="{Binding MoveDownText}"
+                                            Command="{Binding MoveDownCommand}">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="{StaticResource IconChevronDown}"
+                                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        </Viewbox>
+                                    </Button>
+                                    <Button Classes="icon"
+                                            ToolTip.Tip="{Binding RefreshText}"
+                                            Command="{Binding RefreshCommand}">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="{StaticResource IconRefresh}"
+                                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        </Viewbox>
+                                    </Button>
+                                    <Button Classes="icon"
+                                            ToolTip.Tip="{Binding RetryText}"
+                                            IsVisible="{Binding ShowRetry}"
+                                            Command="{Binding RetryCommand}">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="{StaticResource IconRefresh}"
+                                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        </Viewbox>
+                                    </Button>
+                                    <Button Classes="icon"
+                                            ToolTip.Tip="{Binding EditText}"
+                                            Command="{Binding EditCommand}">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="{StaticResource IconSettings}"
+                                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        </Viewbox>
+                                    </Button>
+                                    <Button Classes="icon"
+                                            ToolTip.Tip="{Binding Common_Delete, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            Command="{Binding RemoveCommand}">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="{StaticResource IconDelete}"
+                                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        </Viewbox>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+
+                            <Border Classes="settingsDivider" />
+
+                            <Grid ColumnDefinitions="*,Auto" Margin="16,8">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding MusicText}"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                <ToggleSwitch Grid.Column="1"
+                                              OnContent=""
+                                              OffContent=""
+                                              IsEnabled="{Binding !IsSavingCategories}"
+                                              IsChecked="{Binding LoadMusic, Mode=TwoWay}" />
+                            </Grid>
+
+                            <Border Classes="settingsDivider" />
+
+                            <Grid ColumnDefinitions="*,Auto" Margin="16,8">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding VideoText}"
+                                           FontSize="13"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                <ToggleSwitch Grid.Column="1"
+                                              OnContent=""
+                                              OffContent=""
+                                              IsEnabled="{Binding !IsSavingCategories}"
+                                              IsChecked="{Binding LoadVideo, Mode=TwoWay}" />
+                            </Grid>
+
+                            <ItemsControl ItemsSource="{Binding Caches}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:StorageCacheItemViewModel">
+                                        <StackPanel>
+                                            <Border Classes="settingsDivider" />
+
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="16,8">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding Header}"
+                                                           Classes="settingName"
+                                                           FontSize="13"
+                                                           VerticalAlignment="Center" />
+                                                <StackPanel Grid.Column="1"
+                                                            Orientation="Horizontal"
+                                                            Spacing="10"
+                                                            VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding UsageText}"
+                                                               FontSize="12"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                                    <Button Classes="icon"
+                                                            ToolTip.Tip="{Binding StorageSettings_Clear, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                            Command="{Binding ClearCommand}">
+                                                        <Viewbox Width="16" Height="16">
+                                                            <Path Data="{StaticResource IconDelete}"
+                                                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                                        </Viewbox>
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <Border Classes="settingsDivider"
+                                                    IsVisible="{Binding HasLimit}" />
+
+                                            <Grid ColumnDefinitions="*,Auto"
+                                                  ColumnSpacing="10"
+                                                  Margin="16,8"
+                                                  IsVisible="{Binding HasLimit}">
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding StorageSettings_LimitHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                           Classes="settingName"
+                                                           FontSize="13"
+                                                           VerticalAlignment="Center" />
+                                                <controls:NumberEntry Grid.Column="1"
+                                                                      Width="150"
+                                                                      Minimum="{Binding MinimumLimitMebibytes}"
+                                                                      Maximum="{Binding MaximumLimitMebibytes}"
+                                                                      Increment="64"
+                                                                      FormatString="0"
+                                                                      Number="{Binding LimitMebibytes, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Button Classes="accent compact"
+                HorizontalAlignment="Right"
+                Command="{Binding AddCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Viewbox Width="16" Height="16">
+                    <Path Data="{StaticResource IconAdd}"
+                          Fill="{Binding $parent[Button].Foreground}" />
+                </Viewbox>
+                <TextBlock Text="{Binding AddText}" />
+            </StackPanel>
+        </Button>
+    </StackPanel>
+</UserControl>

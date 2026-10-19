@@ -1,35 +1,31 @@
+using System;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.ViewModels.Dialogs;
+using Strings = LightStudio.LightPlayer.Strings;
 
 namespace LightStudio.LightPlayer.Views.Dialogs;
 
 /// <summary>
-/// Lets the user search registered lyric sources, pick a candidate to download,
-/// import an external LRC file, or clear cached lyrics. Closes with a
-/// <see cref="LyricEditResult"/> describing the change, or null when cancelled.
+/// Desktop window host for the lyric search/manage experience. The UI and all actions live in
+/// <see cref="LyricSearchView"/> / <see cref="LyricSearchDialogViewModel"/>; this window only
+/// supplies the file picker (its own top level) and closes with the view model's result.
 /// </summary>
 public partial class LyricSearchDialog : Window
 {
+    private LyricSearchDialogViewModel? viewModel;
     private static readonly FilePickerFileType LrcType = new("Lyrics")
     {
         Patterns = new[] { "*.lrc", "*.txt" },
     };
 
-    private LyricSearchDialogViewModel? viewModel;
-
     public LyricSearchDialog()
     {
         InitializeComponent();
-        SelectButton.Click += OnSelect;
-        CancelButton.Click += OnCancel;
-        ImportButton.Click += OnImport;
-        ClearButton.Click += OnClear;
-        CandidateList.DoubleTapped += OnListDoubleTapped;
     }
 
     public LyricSearchDialog(LyricSearchDialogViewModel viewModel)
@@ -37,65 +33,40 @@ public partial class LyricSearchDialog : Window
     {
         this.viewModel = viewModel;
         DataContext = viewModel;
+        viewModel.LyricContentPicker = PickLyricContentAsync;
+        viewModel.RequestClose += OnRequestClose;
     }
 
-    private async void OnSelect(object? sender, RoutedEventArgs e) => await DownloadAndCloseAsync();
+    private void OnRequestClose(LyricEditResult? result) => Close(result);
 
-    private void OnCancel(object? sender, RoutedEventArgs e) => Close(null);
-
-    private async void OnListDoubleTapped(object? sender, TappedEventArgs e)
+    protected override void OnClosed(EventArgs e)
     {
-        if (viewModel?.CanSelect == true)
+        if (viewModel is not null)
         {
-            await DownloadAndCloseAsync();
+            viewModel.RequestClose -= OnRequestClose;
+            viewModel.Dispose();
+            viewModel = null;
         }
+
+        base.OnClosed(e);
     }
 
-    private async Task DownloadAndCloseAsync()
+    private async Task<string?> PickLyricContentAsync()
     {
-        if (viewModel is null || !viewModel.CanSelect)
-        {
-            return;
-        }
-
-        viewModel.IsBusy = true;
-        var parsed = await viewModel.DownloadSelectedAsync();
-        viewModel.IsBusy = false;
-        Close(new LyricEditResult(parsed is not null, parsed));
-    }
-
-    private async void OnImport(object? sender, RoutedEventArgs e)
-    {
-        if (viewModel is null)
-        {
-            return;
-        }
-
         var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Import lyrics",
+            Title = Strings.Resources.Common_ImportLyrics,
             AllowMultiple = false,
             FileTypeFilter = new[] { LrcType, FilePickerFileTypes.All },
         });
 
-        var path = files.Count > 0 ? files[0].TryGetLocalPath() : null;
-        if (string.IsNullOrEmpty(path))
+        if (files.Count == 0)
         {
-            return;
+            return null;
         }
 
-        var parsed = await viewModel.ImportAsync(path);
-        Close(new LyricEditResult(parsed is not null, parsed));
-    }
-
-    private async void OnClear(object? sender, RoutedEventArgs e)
-    {
-        if (viewModel is null)
-        {
-            return;
-        }
-
-        await viewModel.ClearAsync();
-        Close(new LyricEditResult(true, null));
+        await using var stream = await files[0].OpenReadAsync();
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        return await reader.ReadToEndAsync();
     }
 }

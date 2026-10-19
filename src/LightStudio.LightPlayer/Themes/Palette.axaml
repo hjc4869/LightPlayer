@@ -1,8 +1,34 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:models="using:LightStudio.LightPlayer.Models">
+    <x:Boolean x:Key="AppIsMicaActive">False</x:Boolean>
+    <lmr:BackdropStyle x:Key="AppBackdropStyle">Blur</lmr:BackdropStyle>
+    <lmr:BackdropStyle x:Key="AppContentBackdropStyle">Blur</lmr:BackdropStyle>
+    <x:Boolean x:Key="AppHasBackdropEffects">True</x:Boolean>
+    <x:Boolean x:Key="AppIsLiquidGlass">False</x:Boolean>
+    <x:Boolean x:Key="AppIsContentLiquidGlass">False</x:Boolean>
+    <x:Boolean x:Key="AppIsAppleChrome">False</x:Boolean>
+    <FontFamily x:Key="AppMacControlFontFamily">.AppleSystemUIFont</FontFamily>
+    <x:Double x:Key="AppMacControlLetterSpacing">0</x:Double>
+
     <ResourceDictionary.ThemeDictionaries>
         <!-- Light variant -->
         <ResourceDictionary x:Key="Light">
+            <Color x:Key="AppNavBackdropColor">#EFEDE6</Color>
+            <Color x:Key="AppNavBackdropTintColor">#B0EFEDE6</Color>
+            <Color x:Key="AppQueueBackdropColor">#F6F5F1</Color>
+            <Color x:Key="AppQueueBackdropTintColor">#B0F6F5F1</Color>
+            <Color x:Key="AppPanelBackdropColor">#FFFFFF</Color>
+            <Color x:Key="AppPanelBackdropTintColor">#B0FFFFFF</Color>
+            <Thickness x:Key="AppNavLightSpill">0,0,120,0</Thickness>
+            <Thickness x:Key="AppQueueLightSpill">120,0,0,0</Thickness>
+            <SolidColorBrush x:Key="AppBackdropHoverBrush" Color="#14000000" />
+            <SolidColorBrush x:Key="AppBackdropPressedBrush" Color="#24000000" />
+            <SolidColorBrush x:Key="AppBackdropSelectionBrush" Color="#303C6E57" />
+            <SolidColorBrush x:Key="AppBackdropSelectedHoverBrush" Color="#483C6E57" />
+            <SolidColorBrush x:Key="AppBackdropFieldBrush" Color="#30FFFFFF" />
+            <SolidColorBrush x:Key="AppSidebarHoverBrush" Color="#0C000000" />
+            <SolidColorBrush x:Key="AppSidebarSelectionBrush" Color="#17000000" />
             <Color x:Key="AppAccentColor">#3C6E57</Color>
             <SolidColorBrush x:Key="AppAccentBrush" Color="#3C6E57" />
             <SolidColorBrush x:Key="AppPageBackgroundBrush" Color="#F6F5F1" />
@@ -16,13 +42,42 @@
             <SolidColorBrush x:Key="AppHoverBrush" Color="#E6E3DA" />
             <SolidColorBrush x:Key="AppArtOverlayBrush" Color="#7FC1C2C2" />
             <SolidColorBrush x:Key="AppDividerBrush" Color="#E2DFD5" />
-            <SolidColorBrush x:Key="AppThumbnailPlaceholderBrush" Color="#43484C" />
+            <SolidColorBrush x:Key="AppThumbnailPlaceholderBrush" Color="#E6E3DA" />
             <SolidColorBrush x:Key="AppThumbnailGlyphBrush" Color="#8B9197" />
             <SolidColorBrush x:Key="AppFavoriteBrush" Color="#C72335" />
+
+            <!-- Shell surfaces. AvaloniaThemeService republishes these, turning the chrome ones
+                 transparent and filling the page one when the window sits on a system backdrop
+                 (Mica). These values are the backdrop-less fallback and simply repeat the colors
+                 above, so the shell looks the same as it always has. -->
+            <SolidColorBrush x:Key="AppShellBackgroundBrush" Color="#F6F5F1" />
+            <SolidColorBrush x:Key="AppNavSurfaceBrush" Color="#EFEDE6" />
+            <SolidColorBrush x:Key="AppPlaybackBarSurfaceBrush" Color="#FBFAF7" />
+            <SolidColorBrush x:Key="AppQueueSurfaceBrush" Color="#F6F5F1" />
+            <SolidColorBrush x:Key="AppContentSurfaceBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="AppContentLayerBrush" Color="#F6F5F1" />
+            <SolidColorBrush x:Key="AppChromeDividerBrush" Color="#E2DFD5" />
+            <SolidColorBrush x:Key="AppSubtleHoverBrush" Color="#E6E3DA" />
         </ResourceDictionary>
 
         <!-- Dark variant -->
         <ResourceDictionary x:Key="Dark">
+            <Color x:Key="AppNavBackdropColor">#202425</Color>
+            <Color x:Key="AppNavBackdropTintColor">#B0202425</Color>
+            <Color x:Key="AppQueueBackdropColor">#16191A</Color>
+            <Color x:Key="AppQueueBackdropTintColor">#B016191A</Color>
+            <Color x:Key="AppPanelBackdropColor">#1E2123</Color>
+            <Color x:Key="AppPanelBackdropTintColor">#B01E2123</Color>
+            <!-- Bright page content stands out against the dark material, so it spills a shorter way in. -->
+            <Thickness x:Key="AppNavLightSpill">0,0,60,0</Thickness>
+            <Thickness x:Key="AppQueueLightSpill">60,0,0,0</Thickness>
+            <SolidColorBrush x:Key="AppBackdropHoverBrush" Color="#18FFFFFF" />
+            <SolidColorBrush x:Key="AppBackdropPressedBrush" Color="#28FFFFFF" />
+            <SolidColorBrush x:Key="AppBackdropSelectionBrush" Color="#507FC6A6" />
+            <SolidColorBrush x:Key="AppBackdropSelectedHoverBrush" Color="#687FC6A6" />
+            <SolidColorBrush x:Key="AppBackdropFieldBrush" Color="#301E2123" />
+            <SolidColorBrush x:Key="AppSidebarHoverBrush" Color="#12FFFFFF" />
+            <SolidColorBrush x:Key="AppSidebarSelectionBrush" Color="#22FFFFFF" />
             <Color x:Key="AppAccentColor">#7FC6A6</Color>
             <SolidColorBrush x:Key="AppAccentBrush" Color="#7FC6A6" />
             <SolidColorBrush x:Key="AppPageBackgroundBrush" Color="#16191A" />
@@ -39,6 +94,16 @@
             <SolidColorBrush x:Key="AppThumbnailPlaceholderBrush" Color="#3A3F43" />
             <SolidColorBrush x:Key="AppThumbnailGlyphBrush" Color="#7C838A" />
             <SolidColorBrush x:Key="AppFavoriteBrush" Color="#E2566A" />
+
+            <!-- Shell surfaces; see the light variant above. -->
+            <SolidColorBrush x:Key="AppShellBackgroundBrush" Color="#16191A" />
+            <SolidColorBrush x:Key="AppNavSurfaceBrush" Color="#202425" />
+            <SolidColorBrush x:Key="AppPlaybackBarSurfaceBrush" Color="#1B1E1F" />
+            <SolidColorBrush x:Key="AppQueueSurfaceBrush" Color="#16191A" />
+            <SolidColorBrush x:Key="AppContentSurfaceBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="AppContentLayerBrush" Color="#16191A" />
+            <SolidColorBrush x:Key="AppChromeDividerBrush" Color="#32373A" />
+            <SolidColorBrush x:Key="AppSubtleHoverBrush" Color="#2A2E2F" />
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 </ResourceDictionary>

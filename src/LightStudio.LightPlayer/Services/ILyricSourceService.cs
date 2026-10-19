@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using LightStudio.MediaLibraryCore.Lyrics.RuntimeApi;
 
@@ -12,6 +13,9 @@ namespace LightStudio.LightPlayer.Services;
 /// </summary>
 public interface ILyricSourceService
 {
+    /// <summary>The lyric sources bundled with this application head.</summary>
+    IReadOnlyList<BundledLyricSource> BundledSources { get; }
+
     /// <summary>The names of every registered lyric source, ordered alphabetically.</summary>
     IReadOnlyList<string> SourceNames { get; }
 
@@ -22,20 +26,42 @@ public interface ILyricSourceService
     bool Contains(string name);
 
     /// <summary>Adds or replaces a script, persisting it under the application data folder.</summary>
-    void AddScript(string name, string content);
+    Task AddScriptAsync(string name, string content);
 
     /// <summary>Removes a registered script and deletes it from disk.</summary>
-    void RemoveScript(string name);
+    Task RemoveScriptAsync(string name);
 
     /// <summary>Provisions the bundled third-party sources, skipping any already present.</summary>
-    void ProvisionBundledSources();
+    Task ProvisionBundledSourcesAsync();
+
+    /// <summary>Provisions one bundled source, skipping it when already present or unavailable.</summary>
+    Task ProvisionBundledSourceAsync(string name);
 
     /// <summary>
     /// Queries every registered source for lyric candidates, ordered by how
     /// closely each result matches the requested title and artist.
     /// </summary>
-    Task<IReadOnlyList<ExternalLrcInfo>> LookupAsync(string title, string artist);
+    Task<IReadOnlyList<ExternalLrcInfo>> LookupAsync(
+        string title,
+        string artist,
+        CancellationToken cancellationToken = default);
 
-    /// <summary>Downloads the raw LRC text for a candidate, or null when unavailable.</summary>
-    Task<string?> DownloadAsync(ExternalLrcInfo candidate);
+    /// <summary>Downloads typed lyric content for a candidate, or null when unavailable.</summary>
+    Task<LyricDownload?> DownloadAsync(
+        ExternalLrcInfo candidate,
+        CancellationToken cancellationToken = default);
+}
+
+    /// <summary>A bundled lyric source and the information supplied by its script.</summary>
+public sealed class BundledLyricSource
+{
+    public BundledLyricSource(string name, IReadOnlyList<LyricSourceInfoItem> information)
+    {
+        Name = name;
+        Information = information;
+    }
+
+    public string Name { get; }
+
+    public IReadOnlyList<LyricSourceInfoItem> Information { get; }
 }

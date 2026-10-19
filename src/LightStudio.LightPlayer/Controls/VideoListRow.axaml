@@ -1,0 +1,143 @@
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
+             xmlns:media="using:Avalonia.Media"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             mc:Ignorable="d"
+             d:DesignWidth="360"
+             d:DesignHeight="66"
+             x:Class="LightStudio.LightPlayer.Controls.VideoListRow"
+             x:DataType="models:VideoTileModel">
+    <UserControl.Styles>
+        <!-- Mirrors the library master list's ListBoxItem chrome; the video page hosts its rows in a
+             plain items control, so the row carries that padding and hover treatment itself. -->
+        <Style Selector="Border#RowRoot">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border#RowRoot:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border x:Name="RowRoot"
+            Margin="0,1"
+            Padding="8,6"
+            CornerRadius="6">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" VerticalAlignment="Center">
+            <!-- 16:9 rather than the music list's square: video previews are widescreen frames. -->
+                <Border x:Name="PreviewFrame"
+                    Grid.Column="0"
+                    Width="96"
+                    Height="54"
+                    CornerRadius="4"
+                    ClipToBounds="True"
+                    Background="{DynamicResource AppThumbnailPlaceholderBrush}">
+                <Panel>
+                    <lmr:FastImage Source="{Binding Preview}"
+                                        IsVisible="{Binding Preview, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+                    <ItemsControl IsVisible="{Binding HasCollage}"
+                                  ItemsSource="{Binding CollageImages}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="{Binding CollageColumns}" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="media:IImage">
+                                <lmr:FastImage Source="{Binding}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid IsVisible="{Binding ShowPlaceholder}"
+                          RowDefinitions="*,Auto,*"
+                          ColumnDefinitions="*,Auto,*">
+                        <Viewbox Grid.Row="1"
+                                 Grid.Column="1"
+                                 Width="24"
+                                 Height="24"
+                                 Stretch="Uniform">
+                            <Path x:Name="PlaceholderGlyph"
+                                  Fill="{DynamicResource AppThumbnailGlyphBrush}" />
+                        </Viewbox>
+                    </Grid>
+
+                    <!-- The watched marker of the grid tile, minus the type badge it shares there. -->
+                    <Border HorizontalAlignment="Left"
+                            VerticalAlignment="Top"
+                            Margin="4"
+                            Padding="3"
+                            CornerRadius="5"
+                            IsHitTestVisible="False"
+                            IsVisible="{Binding IsWatched}"
+                            Background="#99000000">
+                        <Viewbox Width="12" Height="12" Stretch="Uniform">
+                            <Path Data="{StaticResource IconCheck}" Fill="White" />
+                        </Viewbox>
+                    </Border>
+
+                    <ProgressBar VerticalAlignment="Bottom"
+                                 Height="3"
+                                 Minimum="0"
+                                 Maximum="1"
+                                 Value="{Binding PlaybackProgressRatio}"
+                                 IsVisible="{Binding HasPlaybackProgress}"
+                                 IsHitTestVisible="False"
+                                 Background="Transparent"
+                                 Foreground="{DynamicResource AppAccentBrush}" />
+                </Panel>
+            </Border>
+
+            <StackPanel Grid.Column="1"
+                        Margin="12,0,0,0"
+                        VerticalAlignment="Center"
+                        Spacing="2">
+                <controls:FixedLineTextBlock Text="{Binding Title}"
+                           FontSize="14"
+                           LineHeight="17"
+                           MaxLines="2"
+                           TextWrapping="Wrap"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <controls:FixedLineTextBlock Text="{Binding DisplaySubtitle}"
+                           IsVisible="{Binding ShowSubtitle}"
+                           FontSize="12"
+                           LineHeight="15"
+                           MaxLines="1"
+                           TextTrimming="CharacterEllipsis"
+                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            </StackPanel>
+
+            <Button Grid.Column="3"
+                    Classes="icon"
+                    VerticalAlignment="Center"
+                    Margin="8,0,0,0"
+                    IsVisible="{Binding CanFavorite}"
+                    Command="{Binding ToggleFavoriteCommand}"
+                    ToolTip.Tip="{Binding FavoriteToolTip}">
+                <Viewbox Width="16" Height="16" Stretch="Uniform">
+                    <Path Data="{Binding FavoriteIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                </Viewbox>
+            </Button>
+
+            <Button Grid.Column="2"
+                    Classes="icon"
+                    VerticalAlignment="Center"
+                    Margin="8,0,0,0"
+                    IsVisible="{Binding CanResume}"
+                    Command="{Binding ResumeCommand}"
+                    ToolTip.Tip="{Binding Video_ResumePlayback, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <Viewbox Width="16" Height="16" Stretch="Uniform">
+                    <Path Data="{StaticResource IconResume}"
+                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                </Viewbox>
+            </Button>
+        </Grid>
+    </Border>
+</UserControl>

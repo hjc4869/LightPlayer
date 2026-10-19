@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
@@ -13,20 +14,23 @@
     <Panel>
         <!-- Tiles (albums / artists) -->
         <ScrollViewer IsVisible="{Binding IsTiles}" Margin="32">
-            <ItemsRepeater ItemsSource="{Binding Tiles}">
-                <ItemsRepeater.Layout>
-                    <UniformGridLayout MinItemWidth="120"
-                                       MinItemHeight="150"
-                                       MinColumnSpacing="6"
-                                       MinRowSpacing="2"
-                                       ItemsStretch="Uniform"/>
-                </ItemsRepeater.Layout>
-                <ItemsRepeater.ItemTemplate>
+            <ItemsControl ItemsSource="{Binding Tiles}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <controls:UniformTileGrid MinItemWidth="130"
+                                                  MinItemHeight="160"
+                                                  MinColumnSpacing="6"
+                                                  MinRowSpacing="2" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:LibraryTileModel">
-                        <controls:LibraryTile />
+                        <Viewbox>
+                            <controls:LibraryTile />
+                        </Viewbox>
                     </DataTemplate>
-                </ItemsRepeater.ItemTemplate>
-            </ItemsRepeater>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </ScrollViewer>
 
         <!-- Tracks (songs) -->
@@ -35,12 +39,12 @@
                   Height="32"
                   Margin="12,0"
                   ColumnDefinitions="1.4*,1*,1*,70,90,60">
-                <TextBlock Grid.Column="0" Text="Title" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock Grid.Column="1" Text="Artist" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock Grid.Column="2" Text="Album" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock Grid.Column="3" Text="Year" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock Grid.Column="4" Text="Genre" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock Grid.Column="5" Text="Length" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="0" Text="{Binding Common_ColumnTitle, Source={x:Static strings:LocalizedStrings.Instance}}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="1" Text="{Binding Common_ColumnArtist, Source={x:Static strings:LocalizedStrings.Instance}}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="2" Text="{Binding Common_ColumnAlbum, Source={x:Static strings:LocalizedStrings.Instance}}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="3" Text="{Binding Common_ColumnYear, Source={x:Static strings:LocalizedStrings.Instance}}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="4" Text="{Binding Common_ColumnGenre, Source={x:Static strings:LocalizedStrings.Instance}}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Grid.Column="5" Text="{Binding Common_ColumnLength, Source={x:Static strings:LocalizedStrings.Instance}}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
             </Grid>
             <ScrollViewer Grid.Row="1">
                 <ItemsControl ItemsSource="{Binding Tracks}">
@@ -56,15 +60,15 @@
         <!-- Settings -->
         <ScrollViewer IsVisible="{Binding IsSettings}" Padding="36,8,36,24">
             <StackPanel MaxWidth="640" HorizontalAlignment="Left">
-                <TextBlock Text="Library folders"
+                <TextBlock Text="{Binding LibrarySettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
                            FontSize="18"
                            FontWeight="SemiBold"
                            Margin="0,0,0,10"
                            Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                <controls:SettingRow Header="Add a folder"
-                                     Description="Choose folders to include in your music library.">
+                <controls:SettingRow Header="{Binding Placeholder_AddAFolderHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                     Description="{Binding Placeholder_AddFolderDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
                     <controls:SettingRow.ActionContent>
-                        <Button Content="Add folder" />
+                        <Button Content="{Binding LibrarySettings_AddFolder, Source={x:Static strings:LocalizedStrings.Instance}}" />
                     </controls:SettingRow.ActionContent>
                 </controls:SettingRow>
                 <ItemsControl ItemsSource="{Binding Folders}">
@@ -72,7 +76,7 @@
                         <DataTemplate x:DataType="models:LibraryFolderModel">
                             <controls:SettingRow Header="{Binding Name}" Description="{Binding Path}">
                                 <controls:SettingRow.ActionContent>
-                                    <Button Classes="icon" ToolTip.Tip="Remove this folder">
+                                    <Button Classes="icon" ToolTip.Tip="{Binding Placeholder_RemoveThisFolder, Source={x:Static strings:LocalizedStrings.Instance}}">
                                         <Viewbox Width="16" Height="16">
                                             <Path Data="{StaticResource IconClose}"
                                                   Fill="{DynamicResource AppSecondaryTextBrush}" />
@@ -84,18 +88,18 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <TextBlock Text="Appearance"
+                <TextBlock Text="{Binding Placeholder_Appearance, Source={x:Static strings:LocalizedStrings.Instance}}"
                            FontSize="18"
                            FontWeight="SemiBold"
                            Margin="0,18,0,10"
                            Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                <controls:SettingRow Header="Theme"
-                                     Description="Choose how the app looks.">
+                <controls:SettingRow Header="{Binding ThemeSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                     Description="{Binding Placeholder_ThemeDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
                     <controls:SettingRow.ActionContent>
                         <ComboBox SelectedIndex="0" MinWidth="140">
-                            <ComboBoxItem Content="Use system setting" />
-                            <ComboBoxItem Content="Light" />
-                            <ComboBoxItem Content="Dark" />
+                            <ComboBoxItem Content="{Binding Common_ThemeSystem, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            <ComboBoxItem Content="{Binding Common_ThemeLight, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            <ComboBoxItem Content="{Binding Common_ThemeDark, Source={x:Static strings:LocalizedStrings.Instance}}" />
                         </ComboBox>
                     </controls:SettingRow.ActionContent>
                 </controls:SettingRow>
@@ -121,7 +125,7 @@
             </StackPanel>
 
             <Border Grid.Row="2" Background="{DynamicResource AppPanelBackgroundBrush}" BorderBrush="{DynamicResource AppDividerBrush}" BorderThickness="1" CornerRadius="8" Padding="28">
-                <TextBlock Text="Placeholder route" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AppSecondaryTextBrush}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding Placeholder_PlaceholderRoute, Source={x:Static strings:LocalizedStrings.Instance}}" FontSize="18" FontWeight="SemiBold" Foreground="{DynamicResource AppSecondaryTextBrush}" VerticalAlignment="Center" HorizontalAlignment="Center" />
             </Border>
         </Grid>
     </Panel>

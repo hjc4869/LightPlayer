@@ -1,0 +1,237 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="using:Avalonia.Controls.Converters"
+        xmlns:services="using:LightStudio.LightPlayer.Services"
+        x:Class="LightStudio.LightPlayer.Services.WinUIMenuStyles">
+    <!--
+        Menus drawn like WinUI's MenuFlyout, with its metrics and theme colors. The acrylic tint is
+        the luminosity layer of WinUI's default acrylic over the compositor's blur; the solid colors are its fallback.
+        Text colors are WinUI's text fills composited over the tint, so they do not depend on the blending space.
+    -->
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="WinUIMenuTextBrush" Color="#1B1B1B" />
+                    <SolidColorBrush x:Key="WinUIMenuSecondaryTextBrush" Color="#606060" />
+                    <SolidColorBrush x:Key="WinUIMenuTertiaryTextBrush" Color="#8B8B8B" />
+                    <SolidColorBrush x:Key="WinUIMenuDisabledTextBrush" Color="#A1A1A1" />
+                    <SolidColorBrush x:Key="WinUIMenuItemPointerOverBrush" Color="#09000000" />
+                    <SolidColorBrush x:Key="WinUIMenuItemPressedBrush" Color="#06000000" />
+                    <SolidColorBrush x:Key="WinUIMenuSeparatorBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="WinUIMenuStrokeBrush" Color="#0F000000" />
+                    <SolidColorBrush x:Key="WinUIMenuAcrylicTintBrush" Color="#D9FCFCFC" />
+                    <SolidColorBrush x:Key="WinUIMenuFallbackBrush" Color="#F9F9F9" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="WinUIMenuTextBrush" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="WinUIMenuSecondaryTextBrush" Color="#CFCFCF" />
+                    <SolidColorBrush x:Key="WinUIMenuTertiaryTextBrush" Color="#9C9C9C" />
+                    <SolidColorBrush x:Key="WinUIMenuDisabledTextBrush" Color="#797979" />
+                    <SolidColorBrush x:Key="WinUIMenuItemPointerOverBrush" Color="#0FFFFFFF" />
+                    <SolidColorBrush x:Key="WinUIMenuItemPressedBrush" Color="#0AFFFFFF" />
+                    <SolidColorBrush x:Key="WinUIMenuSeparatorBrush" Color="#15FFFFFF" />
+                    <SolidColorBrush x:Key="WinUIMenuStrokeBrush" Color="#33000000" />
+                    <SolidColorBrush x:Key="WinUIMenuAcrylicTintBrush" Color="#F52C2C2C" />
+                    <SolidColorBrush x:Key="WinUIMenuFallbackBrush" Color="#2C2C2C" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <Thickness x:Key="MenuFlyoutScrollerMargin">0,2</Thickness>
+            <conv:PlatformKeyGestureConverter x:Key="WinUIMenuKeyGestureConverter" />
+
+            <ControlTheme x:Key="{x:Type MenuItem}" TargetType="MenuItem">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource WinUIMenuTextBrush}" />
+                <Setter Property="Margin" Value="4,2" />
+                <Setter Property="Padding" Value="11,4,11,5" />
+                <!-- WinUI's row height, which the app font's shorter line would otherwise lose. -->
+                <Setter Property="MinHeight" Value="28" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Panel>
+                            <Border Name="PART_LayoutRoot"
+                                    Padding="{TemplateBinding Padding}"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="{TemplateBinding CornerRadius}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="ToggleIcon" />
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIcon" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="MenuItemIGT" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Name="PART_ToggleGlyph"
+                                               Classes="glyph"
+                                               Margin="0,0,16,0"
+                                               Opacity="0"
+                                               IsVisible="False"
+                                               Foreground="{DynamicResource WinUIMenuSecondaryTextBrush}" />
+                                    <Viewbox Name="PART_IconPresenter"
+                                             Grid.Column="1"
+                                             Width="16"
+                                             Height="16"
+                                             Margin="0,0,12,0"
+                                             VerticalAlignment="Center"
+                                             IsVisible="False">
+                                        <ContentPresenter Content="{TemplateBinding Icon}" />
+                                    </Viewbox>
+                                    <ContentPresenter Name="PART_HeaderPresenter"
+                                                      Grid.Column="2"
+                                                      Content="{TemplateBinding Header}"
+                                                      ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                      RecognizesAccessKey="True"
+                                                      VerticalAlignment="Center" />
+                                    <TextBlock Name="PART_InputGestureText"
+                                               Grid.Column="3"
+                                               Margin="24,0,0,0"
+                                               FontSize="12"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource WinUIMenuSecondaryTextBrush}"
+                                               IsVisible="{TemplateBinding InputGesture, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                               Text="{TemplateBinding InputGesture, Converter={StaticResource WinUIMenuKeyGestureConverter}}" />
+                                    <TextBlock Name="PART_ChevronGlyph"
+                                               Grid.Column="4"
+                                               Classes="glyph"
+                                               Margin="24,0,0,-1"
+                                               Text="&#xE974;"
+                                               Foreground="{DynamicResource WinUIMenuSecondaryTextBrush}" />
+                                </Grid>
+                            </Border>
+                            <!-- Opens over the item's right margin, level with the top of its margin. -->
+                            <Popup Name="PART_Popup"
+                                   services:MenuBackdrop.IsMenu="True"
+                                   WindowManagerAddShadowHint="False"
+                                   Placement="RightEdgeAlignedTop"
+                                   VerticalOffset="-2"
+                                   IsLightDismissEnabled="False"
+                                   IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}">
+                                <Border Background="Transparent"
+                                        BorderBrush="{DynamicResource WinUIMenuStrokeBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="{x:Static services:MenuBackdrop.WinUICornerRadius}"
+                                        MinWidth="96"
+                                        MaxWidth="{DynamicResource FlyoutThemeMaxWidth}"
+                                        MinHeight="{DynamicResource MenuFlyoutThemeMinHeight}"
+                                        HorizontalAlignment="Stretch">
+                                    <ScrollViewer Theme="{DynamicResource FluentMenuScrollViewer}">
+                                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                                        ItemsPanel="{TemplateBinding ItemsPanel}"
+                                                        Margin="{DynamicResource MenuFlyoutScrollerMargin}"
+                                                        Grid.IsSharedSizeScope="True" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Panel>
+                    </ControlTemplate>
+                </Setter>
+
+                <Style Selector="^ /template/ TextBlock.glyph">
+                    <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+                    <Setter Property="FontSize" Value="12" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                </Style>
+
+                <Style Selector="^:icon /template/ Viewbox#PART_IconPresenter">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+                <Style Selector="^:toggle /template/ TextBlock#PART_ToggleGlyph">
+                    <Setter Property="IsVisible" Value="True" />
+                    <Setter Property="Text" Value="&#xE73E;" />
+                </Style>
+                <Style Selector="^:radio /template/ TextBlock#PART_ToggleGlyph">
+                    <Setter Property="IsVisible" Value="True" />
+                    <Setter Property="Text" Value="&#xE915;" />
+                </Style>
+                <Style Selector="^:checked /template/ TextBlock#PART_ToggleGlyph">
+                    <Setter Property="Opacity" Value="1" />
+                </Style>
+                <Style Selector="^:empty /template/ TextBlock#PART_ChevronGlyph">
+                    <Setter Property="IsVisible" Value="False" />
+                </Style>
+
+                <Style Selector="^:selected">
+                    <Style Selector="^ /template/ Border#PART_LayoutRoot">
+                        <Setter Property="Background" Value="{DynamicResource WinUIMenuItemPointerOverBrush}" />
+                    </Style>
+                    <Style Selector="^ /template/ TextBlock#PART_ToggleGlyph">
+                        <Setter Property="Foreground" Value="{DynamicResource WinUIMenuTextBrush}" />
+                    </Style>
+                </Style>
+                <!-- Presses inside an open submenu also reach its parent item, which stays in the hover state. -->
+                <Style Selector="^:pressed /template/ Border#PART_LayoutRoot:pointerover">
+                    <Setter Property="Background" Value="{DynamicResource WinUIMenuItemPressedBrush}" />
+                    <Style Selector="^ TextBlock#PART_ChevronGlyph">
+                        <Setter Property="Foreground" Value="{DynamicResource WinUIMenuTertiaryTextBrush}" />
+                    </Style>
+                </Style>
+                <Style Selector="^:disabled">
+                    <Setter Property="Foreground" Value="{DynamicResource WinUIMenuDisabledTextBrush}" />
+                    <Style Selector="^ /template/ TextBlock#PART_ToggleGlyph, ^ /template/ TextBlock#PART_InputGestureText, ^ /template/ TextBlock#PART_ChevronGlyph">
+                        <Setter Property="Foreground" Value="{DynamicResource WinUIMenuDisabledTextBrush}" />
+                    </Style>
+                </Style>
+
+                <Style Selector="^:separator">
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="MinHeight" Value="0" />
+                    <Setter Property="Template">
+                        <ControlTemplate>
+                            <Separator />
+                        </ControlTemplate>
+                    </Setter>
+                </Style>
+            </ControlTheme>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <!-- The window manager rounds the window and casts its shadow; the menu draws its own corners inside. -->
+    <Style Selector="Popup.winUIMenu > PopupRoot">
+        <Setter Property="TransparencyLevelHint" Value="AcrylicBlur, Transparent" />
+        <Setter Property="TransparencyBackgroundFallback" Value="{DynamicResource WinUIMenuFallbackBrush}" />
+        <Setter Property="Background" Value="{x:Null}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <LayoutTransformControl LayoutTransform="{TemplateBinding Transform}">
+                    <Panel>
+                        <Border Name="PART_TransparencyFallback" IsHitTestVisible="False" />
+                        <Border Name="MenuMaterial"
+                                IsHitTestVisible="False"
+                                CornerRadius="{x:Static services:MenuBackdrop.WinUICornerRadius}"
+                                Background="{DynamicResource WinUIMenuFallbackBrush}" />
+                        <VisualLayerManager Name="PART_VisualLayerManager">
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Background="{TemplateBinding Background}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Content="{TemplateBinding Content}"
+                                              Padding="{TemplateBinding Padding}" />
+                        </VisualLayerManager>
+                    </Panel>
+                </LayoutTransformControl>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Popup.winUIMenu > PopupRoot[ActualTransparencyLevel=AcrylicBlur] /template/ Border#MenuMaterial">
+        <Setter Property="Background" Value="{DynamicResource WinUIMenuAcrylicTintBrush}" />
+    </Style>
+
+    <Style Selector="Popup.winUIMenu > MenuFlyoutPresenter, Popup.winUIMenu > ContextMenu">
+        <!-- Opening focuses the menu rather than its first item, which WinUI leaves unhighlighted. -->
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource WinUIMenuStrokeBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{x:Static services:MenuBackdrop.WinUICornerRadius}" />
+        <Setter Property="MinWidth" Value="96" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    </Style>
+
+    <Style Selector="Popup.winUIMenu Separator">
+        <Setter Property="Background" Value="{DynamicResource WinUIMenuSeparatorBrush}" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="Height" Value="1" />
+    </Style>
+</Styles>

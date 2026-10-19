@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:strings="using:LightStudio.LightPlayer.Strings"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:models="using:LightStudio.LightPlayer.Models"
@@ -7,37 +8,52 @@
         d:DesignWidth="460"
         d:DesignHeight="520"
         x:Class="LightStudio.LightPlayer.Views.Dialogs.MediaPropertiesDialog"
-        Width="460"
-        Height="520"
+        Width="560"
+        Height="620"
         CanResize="True"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Title="Properties">
+        Title="{Binding Common_Properties, Source={x:Static strings:LocalizedStrings.Instance}}">
     <Grid RowDefinitions="Auto,*,Auto" Margin="20">
         <TextBlock x:Name="HeaderText" Grid.Row="0" FontSize="16" FontWeight="SemiBold"
                    TextTrimming="CharacterEllipsis" Margin="0,0,0,12" />
         <Border Grid.Row="1" BorderBrush="{DynamicResource AppDividerBrush}" BorderThickness="1" CornerRadius="4">
-            <ScrollViewer>
-                <ItemsControl x:Name="PropertiesList">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="models:MediaPropertyItem">
-                            <Grid ColumnDefinitions="160,*" Margin="10,5" Background="Transparent">
-                                <Grid.ContextFlyout>
-                                    <MenuFlyout>
-                                        <MenuItem Header="Copy" Click="OnCopyValueClick" />
-                                    </MenuFlyout>
-                                </Grid.ContextFlyout>
-                                <TextBlock Grid.Column="0" Text="{Binding Key}" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                                <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap"
-                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
+            <Grid>
+                <StackPanel x:Name="LoadingPanel" Spacing="12"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Common_Loading, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               HorizontalAlignment="Center" />
+                    <ProgressBar x:Name="LoadingProgressBar" IsIndeterminate="True" Width="140" Height="4" />
+                </StackPanel>
+                <ScrollViewer x:Name="PropertiesScrollViewer" IsVisible="False">
+                    <ItemsControl x:Name="PropertiesList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:MediaPropertyItem">
+                                <Panel>
+                                    <TextBlock Text="{Binding Key}" FontWeight="SemiBold" Margin="10,14,10,2"
+                                               Foreground="{DynamicResource AppAccentBrush}"
+                                               IsVisible="{Binding IsSection}" />
+                                    <Grid ColumnDefinitions="160,*" Margin="10,5" Background="Transparent"
+                                          IsVisible="{Binding !IsSection}">
+                                        <Grid.ContextFlyout>
+                                            <MenuFlyout>
+                                                <MenuItem Header="{Binding Common_Copy, Source={x:Static strings:LocalizedStrings.Instance}}" Click="OnCopyValueClick" />
+                                            </MenuFlyout>
+                                        </Grid.ContextFlyout>
+                                        <TextBlock Grid.Column="0" Text="{Binding Key}" FontWeight="SemiBold"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Value}" TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                    </Grid>
+                                </Panel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
         </Border>
-        <Button x:Name="OkButton" Grid.Row="2" Content="OK" IsDefault="True"
+        <Button x:Name="OkButton" Grid.Row="2" Content="{Binding Common_OK, Source={x:Static strings:LocalizedStrings.Instance}}" IsDefault="True"
                 HorizontalAlignment="Right" Margin="0,12,0,0" />
     </Grid>
 </Window>

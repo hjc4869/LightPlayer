@@ -1,12 +1,12 @@
 [Desktop Entry]
 Type=Application
 Name=Light Player
-GenericName=Music Player
-Comment=Play and organize your local music library
-Exec=LightStudio.LightPlayer %U
+GenericName=Media Player
+Comment=Play and organize your music, videos and photos
+Exec=lmp %U
 Icon=im.hjc.LightPlayer
 Terminal=false
-Categories=AudioVideo;Audio;Player;
-Keywords=music;audio;player;library;playlist;
+Categories=AudioVideo;Audio;Video;Player;Graphics;Photography;Viewer;
+Keywords=music;audio;video;player;library;playlist;photo;image;
 StartupNotify=true
-MimeType=audio/mpeg;audio/flac;audio/x-flac;audio/wav;audio/x-wav;audio/mp4;audio/x-m4a;audio/aac;audio/ogg;audio/x-vorbis+ogg;audio/opus;audio/x-opus+ogg;audio/x-ms-wma;audio/aiff;audio/x-aiff;audio/x-ape;application/x-cue;
+MimeType=audio/mpeg;audio/flac;audio/x-flac;audio/wav;audio/x-wav;audio/mp4;audio/x-m4a;audio/aac;audio/ogg;audio/x-vorbis+ogg;audio/opus;audio/x-opus+ogg;audio/x-ms-wma;audio/aiff;audio/x-aiff;audio/x-ape;application/x-cue;video/x-matroska;application/x-matroska;video/mp4;video/x-m4v;video/quicktime;video/x-msvideo;video/webm;video/mp2t;video/mpeg;video/x-ms-wmv;video/x-flv;video/ogg;application/vnd.rn-realmedia-vbr;video/vnd.rn-realvideo;video/3gpp;video/3gpp2;video/dv;video/fli;video/vnd.mpegurl;video/x-ms-asf;video/x-ms-wmx;image/jpeg;image/png;image/webp;image/avif;image/heif;image/heic;image/jxl;image/jxr;image/vnd.ms-photo;image/x-adobe-dng;image/bmp;image/gif;image/tiff;image/x-portable-pixmap;image/x-portable-graymap;image/x-portable-anymap;image/x-targa;image/x-exr;image/vnd.radiance;

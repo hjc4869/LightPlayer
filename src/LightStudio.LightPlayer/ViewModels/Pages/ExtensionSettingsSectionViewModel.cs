@@ -1,11 +1,13 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.Input;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Services;
+using Strings = LightStudio.LightPlayer.Strings;
 
 namespace LightStudio.LightPlayer.ViewModels.Pages;
 
@@ -14,27 +16,30 @@ public partial class ExtensionSettingsSectionViewModel : SettingsSectionViewMode
     private readonly ILyricSourceService lyricSourceService;
 
     public ExtensionSettingsSectionViewModel(ILyricSourceService lyricSourceService)
-        : base("Extensions", "Manage third-party lyric sources.")
+        : base(
+            nameof(Strings.Resources.ExtensionSettings_Title),
+            nameof(Strings.Resources.ExtensionSettings_Subtitle))
     {
         this.lyricSourceService = lyricSourceService;
 
         LyricSources = new ObservableCollection<LyricSourceModel>();
-        RemoveSourceCommand = new RelayCommand<LyricSourceModel>(RemoveSource);
-        ReimportSourcesCommand = new RelayCommand(ReimportSources);
+        RemoveSourceCommand = new AsyncRelayCommand<LyricSourceModel>(
+            source => AppErrorReporter.GuardAsync(() => RemoveSourceAsync(source)));
+        ReimportSourcesCommand = new AsyncRelayCommand(() => AppErrorReporter.GuardAsync(ReimportSourcesAsync));
         Reload();
     }
 
     public ObservableCollection<LyricSourceModel> LyricSources { get; }
 
-    public IRelayCommand<LyricSourceModel> RemoveSourceCommand { get; }
+    public IAsyncRelayCommand<LyricSourceModel> RemoveSourceCommand { get; }
 
-    public IRelayCommand ReimportSourcesCommand { get; }
+    public IAsyncRelayCommand ReimportSourcesCommand { get; }
 
     public bool HasLyricSources => LyricSources.Count > 0;
 
-    private void ReimportSources()
+    private async Task ReimportSourcesAsync()
     {
-        lyricSourceService.ProvisionBundledSources();
+        await lyricSourceService.ProvisionBundledSourcesAsync();
         Reload();
     }
 
@@ -47,33 +52,31 @@ public partial class ExtensionSettingsSectionViewModel : SettingsSectionViewMode
 
         var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Add lyric source",
+            Title = Strings.Resources.ExtensionSettings_AddSourcePickerTitle,
             AllowMultiple = true,
             FileTypeFilter = [new FilePickerFileType("JavaScript") { Patterns = ["*.js"] }],
         });
 
         foreach (var file in files)
         {
-            var path = file.TryGetLocalPath();
-            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-            {
-                continue;
-            }
-
-            lyricSourceService.AddScript(Path.GetFileNameWithoutExtension(path), File.ReadAllText(path));
+            await using var stream = await file.OpenReadAsync();
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            await lyricSourceService.AddScriptAsync(
+                Path.GetFileNameWithoutExtension(file.Name),
+                await reader.ReadToEndAsync());
         }
 
         Reload();
     }
 
-    private void RemoveSource(LyricSourceModel? source)
+    private async Task RemoveSourceAsync(LyricSourceModel? source)
     {
         if (source is null)
         {
             return;
         }
 
-        lyricSourceService.RemoveScript(source.Name);
+        await lyricSourceService.RemoveScriptAsync(source.Name);
         Reload();
     }
 

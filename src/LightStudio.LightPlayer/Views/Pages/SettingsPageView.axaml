@@ -2,12 +2,35 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             xmlns:views="using:LightStudio.LightPlayer.Views.Pages"
              mc:Ignorable="d"
              d:DesignWidth="860"
              d:DesignHeight="640"
              x:Class="LightStudio.LightPlayer.Views.Pages.SettingsPageView"
              x:DataType="vm:SettingsPageViewModel">
+    <UserControl.DataTemplates>
+        <DataTemplate DataType="vm:SettingsContentSectionViewModel">
+            <ScrollViewer>
+                <ContentControl Content="{Binding Content}"
+                                MaxWidth="680"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                Margin="{Binding ContentMargin}" />
+            </ScrollViewer>
+        </DataTemplate>
+        <DataTemplate DataType="vm:PhotoIndexSettingsViewModel">
+            <views:PhotoIndexSettingsView />
+        </DataTemplate>
+        <DataTemplate DataType="vm:CustomFiltersSettingsViewModel">
+            <views:CustomFiltersSettingsView DataContext="{Binding Video}" />
+        </DataTemplate>
+        <DataTemplate DataType="vm:RemoteApiSettingsSectionViewModel">
+            <views:RemoteApiSettingsSectionView />
+        </DataTemplate>
+    </UserControl.DataTemplates>
     <UserControl.Styles>
         <Style Selector="ListBox.sectionsList">
             <Setter Property="Background" Value="Transparent" />
@@ -15,58 +38,159 @@
             <Setter Property="Padding" Value="0" />
         </Style>
         <Style Selector="ListBox.sectionsList ListBoxItem">
-            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="IsEnabled" Value="{Binding !IsCategory, DataType=vm:SettingsNavigationItemViewModel}" />
+            <Setter Property="IsHitTestVisible" Value="{Binding !IsCategory, DataType=vm:SettingsNavigationItemViewModel}" />
+            <Setter Property="Padding" Value="0" />
             <Setter Property="Margin" Value="0,1" />
-            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="CornerRadius" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
+        <Style Selector="ListBox.sectionsList StackPanel.sectionItems">
+            <Setter Property="Margin" Value="0,8,0,16" />
+        </Style>
+        <Style Selector="ListBox.sectionsList Grid.sectionHeader">
+            <Setter Property="Margin" Value="16,8" />
+        </Style>
+        <Style Selector="ListBox.sectionsList Border.sectionRow">
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="16,7" />
+        </Style>
+        <Style Selector="ListBox.sectionsList TextBlock.sectionTitle">
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+        <Style Selector="ListBox.sectionsList Viewbox.sectionIcon">
+            <Setter Property="Width" Value="16" />
+            <Setter Property="Height" Value="16" />
+        </Style>
+        <Style Selector="ListBox.sectionsList Border.sectionDivider">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+        <Style Selector="ListBox.sectionsList.narrow StackPanel.sectionItems">
+            <Setter Property="Margin" Value="16,8,16,16" />
+        </Style>
+        <Style Selector="ListBox.sectionsList.narrow ListBoxItem">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Background" Value="{DynamicResource AppPanelBackgroundBrush}" />
+            <Setter Property="CornerRadius" Value="{Binding GroupCornerRadius, DataType=vm:SettingsNavigationItemViewModel}" />
+        </Style>
+        <Style Selector="ListBox.sectionsList.narrow ListBoxItem:disabled">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Margin" Value="0,12,0,4" />
+        </Style>
+        <Style Selector="ListBox.sectionsList.narrow Border.sectionRow">
+            <Setter Property="MinHeight" Value="50" />
+            <Setter Property="Padding" Value="16,14" />
+        </Style>
+        <Style Selector="ListBox.sectionsList.narrow TextBlock.sectionTitle">
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+        <Style Selector="ListBox.sectionsList.narrow Viewbox.sectionIcon">
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+        </Style>
+        <Style Selector="ListBox.sectionsList.narrow Border.sectionDivider">
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+        <!-- Selected section uses the theme's selection color rather than the Fluent accent. -->
+        <Style Selector="ListBox.sectionsList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+        </Style>
+        <Style Selector="ListBox.sectionsList ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+        </Style>
     </UserControl.Styles>
-    <Grid x:Name="RootGrid"
-          ColumnDefinitions="260,*"
-          Margin="0,32,0,0">
-        <ListBox x:Name="SectionsList"
-                 Grid.Column="0"
-                 Margin="32,0,32,0"
-                 Classes="sectionsList"
-                 ItemsSource="{Binding Sections}"
-                 SelectedItem="{Binding SelectedSection, Mode=TwoWay}"
-                 Background="Transparent"
-                 BorderThickness="0"
-                 Padding="0">
-            <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:SettingsSectionViewModel">
-                    <StackPanel Margin="4,6" Spacing="2">
-                        <TextBlock Text="{Binding Title}"
-                                   FontSize="14"
-                                   FontWeight="SemiBold"
-                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                        <TextBlock Text="{Binding Description}"
-                                   FontSize="12"
-                                   TextWrapping="Wrap"
-                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+    <!--
+        Adaptive master-detail: the section list and the selected section sit side by side on wide
+        layouts (section swaps with the light entrance transition); on narrow layouts the section
+        slides in over the list from the right and back out on return. The built-in detail back button
+        is used only while the shell has no back button of its own; the narrow layout defers to the
+        shell's single global back button, so ShowDetailBackButton is off there. Either back
+        path is handled by the page view model first (collapse to the list) before the shell navigates
+        away.
 
-        <DockPanel x:Name="DetailPane"
-                   Grid.Column="1">
-            <!-- Shown only in the narrow single-pane layout to return to the section list. -->
-            <Button x:Name="BackButton"
-                    DockPanel.Dock="Left"
-                    Classes="icon"
-                    VerticalAlignment="Top"
-                    Margin="12,0,12,0"
-                    IsVisible="False"
-                    Click="OnBackClick"
-                    ToolTip.Tip="Back">
-                <Viewbox Width="20" Height="20">
-                    <Path Data="{StaticResource IconArrowLeft}"
-                          Fill="{DynamicResource AppPrimaryTextBrush}" />
-                </Viewbox>
-            </Button>
+        The detail pane has no padding of its own: each section view margins the content inside its
+        scroll viewer so the scroll bar stays hard against the window edge.
+    -->
+    <Panel>
+        <controls:MasterDetailView CompactThreshold="680"
+                                   MasterLength="250"
+                                   IsVisible="{Binding !IsSidebarLayout}"
+                                   ShowDetailBackButton="{Binding !HasShellBackButton}"
+                                   DetailBackCommand="{Binding BackCommand}"
+                                   IsCompact="{Binding IsCompact, Mode=OneWayToSource}"
+                                   Detail="{Binding ListLayoutDetail}">
+            <controls:MasterDetailView.Master>
+                <ListBox x:Name="SectionsList"
+                         Classes="sectionsList"
+                         Classes.narrow="{Binding IsCompact}"
+                         ItemsSource="{Binding Sections}"
+                         SelectedItem="{Binding SelectedSection, Mode=TwoWay}"
+                         AutoScrollToSelectedItem="False"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="0">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Classes="sectionItems" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SettingsNavigationItemViewModel">
+                            <Panel>
+                                <Grid Classes="sectionHeader" ColumnDefinitions="Auto,*" IsVisible="{Binding IsCategory}">
+                                    <TextBlock Text="{Binding Title}"
+                                               MaxWidth="190"
+                                               FontSize="14"
+                                               FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis"
+                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                    <Border Grid.Column="1"
+                                            Height="1"
+                                            Margin="12,0,0,0"
+                                            VerticalAlignment="Center"
+                                            Background="{DynamicResource AppDividerBrush}" />
+                                </Grid>
+                                <Border Classes="sectionRow" IsVisible="{Binding !IsCategory}">
+                                    <Grid ColumnDefinitions="Auto,*">
+                                        <Viewbox Classes="sectionIcon" VerticalAlignment="Center" Margin="0,0,12,0">
+                                            <Path Data="{Binding IconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                        </Viewbox>
+                                        <TextBlock Grid.Column="1"
+                                                   Classes="sectionTitle"
+                                                   Text="{Binding Title}"
+                                                   FontWeight="Normal"
+                                                   VerticalAlignment="Center"
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                    </Grid>
+                                </Border>
+                                <Border Classes="sectionDivider"
+                                        Height="1"
+                                        Margin="48,0,16,0"
+                                        VerticalAlignment="Bottom"
+                                        IsVisible="{Binding !IsLastInGroup}"
+                                        Background="{DynamicResource AppDividerBrush}" />
+                            </Panel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </controls:MasterDetailView.Master>
 
-            <ContentControl Margin="0,0,32,0" Content="{Binding SelectedSection}" />
-        </DockPanel>
-    </Grid>
+            <!-- Detail placeholder: shown on wide layouts when no section is selected -->
+            <controls:MasterDetailView.DetailPlaceholder>
+                <controls:EmptyState Icon="{StaticResource IconSettings}"
+                                     Header="{Binding DetailPlaceholderHeader}"
+                                     Description="{Binding DetailPlaceholderDescription}" />
+            </controls:MasterDetailView.DetailPlaceholder>
+        </controls:MasterDetailView>
+
+        <!-- Sidebar layout: the host's Apple-style sidebar lists the sections; the page shows the open one. -->
+        <controls:DispatcherTransitioningContentControl x:Name="SidebarDetailHost"
+                                                        IsVisible="{Binding IsSidebarLayout}"
+                                                        Content="{Binding SidebarLayoutDetail}"
+                                                        PageTransition="{x:Null}"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        VerticalContentAlignment="Stretch" />
+    </Panel>
 </UserControl>

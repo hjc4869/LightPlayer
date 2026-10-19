@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+  <!--
+    Remote LightPlayer servers are typically reached by IP or hostname on the user's local
+    network over plain http://, so cleartext must stay permitted. The set of hosts is chosen
+    by the user at runtime and cannot be enumerated here, hence the permissive base config.
+    HTTPS endpoints still validate against the system trust anchors as usual.
+  -->
+  <base-config cleartextTrafficPermitted="true">
+    <trust-anchors>
+      <certificates src="system" />
+    </trust-anchors>
+  </base-config>
+</network-security-config>

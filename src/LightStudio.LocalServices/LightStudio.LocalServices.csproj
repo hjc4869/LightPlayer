@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <PhotoIndexingEnabled>true</PhotoIndexingEnabled>
+    <DefineConstants Condition="'$(PhotoIndexingEnabled)' == 'true'">$(DefineConstants);PHOTO_INDEXING</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LightStudio.LightPlayer\LightStudio.LightPlayer.csproj" />
+    <ProjectReference Include="..\LightStudio.MediaLibraryCore\LightStudio.MediaLibraryCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(PhotoIndexingEnabled)' == 'true'">
+    <PackageReference Include="LightStudio.sqlite-vec" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(PhotoIndexingEnabled)' != 'true'">
+    <Compile Remove="Photos\**\*.cs" />
+  </ItemGroup>
+</Project>

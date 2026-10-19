@@ -1,0 +1,153 @@
+<Project>
+  <!--
+    Shared native FFmpeg acquisition (Windows)
+    =========================================
+    Downloads the pinned BtbN FFmpeg build once into a repository-level cache and drops it next
+    to the produced executable, so a plain `dotnet build`, `dotnet run`, a NativeAOT
+    `dotnet publish` and the MSIX packaging all resolve the exact same native libraries.
+
+    Opt in from a project with:
+
+      <BundleFfmpeg>true</BundleFfmpeg>       LGPL *shared* build; the DLLs the app itself loads
+                                              through generated P/Invoke bindings. Copied next to the exe.
+
+      <BundleFfmpegCli>true</BundleFfmpegCli> GPL *static* ffmpeg.exe / ffprobe.exe, copied into
+                                              the $(FFmpegCliSubdirectory) subfolder. Only for
+                                              internal tooling that shells out to the CLI and
+                                              needs GPL-only encoders; it is never loaded in
+                                              process, so the app under test keeps exercising the
+                                              LGPL shared libraries that ship to users.
+
+    The architecture follows the publish RuntimeIdentifier when present, then the MSBuild
+    Platform, and finally the SDK host architecture, so cross-targeting x64/ARM64 stays correct.
+  -->
+
+  <PropertyGroup>
+    <!-- Pinned upstream build. Keep the tag and the version in sync with each other. -->
+    <FFmpegBuildTag Condition="'$(FFmpegBuildTag)' == ''">autobuild-2026-09-20-13-11</FFmpegBuildTag>
+    <FFmpegBuildVersion Condition="'$(FFmpegBuildVersion)' == ''">n9.0.2-3-ga5923073bf</FFmpegBuildVersion>
+    <FFmpegReleaseSeries Condition="'$(FFmpegReleaseSeries)' == ''">9.0</FFmpegReleaseSeries>
+    <FFmpegDownloadBaseUrl Condition="'$(FFmpegDownloadBaseUrl)' == ''">https://github.com/BtbN/FFmpeg-Builds/releases/download/$(FFmpegBuildTag)</FFmpegDownloadBaseUrl>
+    <!-- One cache for the whole repository so every head downloads each archive at most once. -->
+    <FFmpegCacheDirectory Condition="'$(FFmpegCacheDirectory)' == ''">$(MSBuildThisFileDirectory)..\artifacts\tools\ffmpeg\</FFmpegCacheDirectory>
+    <FFmpegCliSubdirectory Condition="'$(FFmpegCliSubdirectory)' == ''">ffmpeg-gpl\</FFmpegCliSubdirectory>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(BundleFfmpeg)' == 'true' or '$(BundleFfmpegCli)' == 'true'">
+    <_FFmpegArch Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.EndsWith('-arm64'))">arm64</_FFmpegArch>
+    <_FFmpegArch Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.EndsWith('-x64'))">x64</_FFmpegArch>
+    <_FFmpegArch Condition="'$(_FFmpegArch)' == '' and '$(Platform)' == 'ARM64'">arm64</_FFmpegArch>
+    <_FFmpegArch Condition="'$(_FFmpegArch)' == '' and '$(Platform)' == 'x64'">x64</_FFmpegArch>
+    <_FFmpegArch Condition="'$(_FFmpegArch)' == '' and '$(PlatformTarget)' == 'ARM64'">arm64</_FFmpegArch>
+    <_FFmpegArch Condition="'$(_FFmpegArch)' == '' and '$(PlatformTarget)' == 'x64'">x64</_FFmpegArch>
+    <_FFmpegArch Condition="'$(_FFmpegArch)' == '' and '$(NETCoreSdkRuntimeIdentifier)' != '' and $(NETCoreSdkRuntimeIdentifier.EndsWith('-arm64'))">arm64</_FFmpegArch>
+    <_FFmpegArch Condition="'$(_FFmpegArch)' == ''">x64</_FFmpegArch>
+
+    <!-- Upstream names the x64 archives "win64" and the ARM64 archives "winarm64". -->
+    <_FFmpegArchivePlatform Condition="'$(_FFmpegArch)' == 'x64'">win64</_FFmpegArchivePlatform>
+    <_FFmpegArchivePlatform Condition="'$(_FFmpegArch)' == 'arm64'">winarm64</_FFmpegArchivePlatform>
+
+    <_FFmpegSharedArchiveName>ffmpeg-$(FFmpegBuildVersion)-$(_FFmpegArchivePlatform)-lgpl-shared-$(FFmpegReleaseSeries)</_FFmpegSharedArchiveName>
+    <_FFmpegSharedArchivePath>$(FFmpegCacheDirectory)$(_FFmpegSharedArchiveName).zip</_FFmpegSharedArchivePath>
+    <_FFmpegSharedStampPath>$(FFmpegCacheDirectory)$(_FFmpegSharedArchiveName).extracted</_FFmpegSharedStampPath>
+    <_FFmpegSharedBinDirectory>$(FFmpegCacheDirectory)$(_FFmpegSharedArchiveName)\bin\</_FFmpegSharedBinDirectory>
+
+    <_FFmpegCliArchiveName>ffmpeg-$(FFmpegBuildVersion)-$(_FFmpegArchivePlatform)-gpl-$(FFmpegReleaseSeries)</_FFmpegCliArchiveName>
+    <_FFmpegCliArchivePath>$(FFmpegCacheDirectory)$(_FFmpegCliArchiveName).zip</_FFmpegCliArchivePath>
+    <_FFmpegCliStampPath>$(FFmpegCacheDirectory)$(_FFmpegCliArchiveName).extracted</_FFmpegCliStampPath>
+    <_FFmpegCliBinDirectory>$(FFmpegCacheDirectory)$(_FFmpegCliArchiveName)\bin\</_FFmpegCliBinDirectory>
+  </PropertyGroup>
+
+  <Target Name="_ValidateFFmpegPlatform" Condition="'$(BundleFfmpeg)' == 'true' or '$(BundleFfmpegCli)' == 'true'">
+    <Error Condition="'$(_FFmpegArchivePlatform)' == ''"
+           Text="FFmpeg bundling supports the x64 and ARM64 architectures only; resolved architecture: '$(_FFmpegArch)'." />
+  </Target>
+
+  <!-- LGPL shared build: the DLLs the application loads at run time. -->
+  <Target Name="_DownloadFFmpegShared"
+          DependsOnTargets="_ValidateFFmpegPlatform"
+          Condition="'$(BundleFfmpeg)' == 'true' and !Exists('$(_FFmpegSharedArchivePath)')">
+    <MakeDir Directories="$(FFmpegCacheDirectory)" />
+    <DownloadFile SourceUrl="$(FFmpegDownloadBaseUrl)/$(_FFmpegSharedArchiveName).zip"
+                  DestinationFolder="$(FFmpegCacheDirectory)"
+                  DestinationFileName="$(_FFmpegSharedArchiveName).zip"
+                  Retries="3"
+                  RetryDelayMilliseconds="1000" />
+  </Target>
+
+  <Target Name="_ExtractFFmpegShared"
+          DependsOnTargets="_DownloadFFmpegShared"
+          Condition="'$(BundleFfmpeg)' == 'true'"
+          Inputs="$(_FFmpegSharedArchivePath)"
+          Outputs="$(_FFmpegSharedStampPath)">
+    <Unzip SourceFiles="$(_FFmpegSharedArchivePath)"
+           DestinationFolder="$(FFmpegCacheDirectory)"
+           SkipUnchangedFiles="true" />
+    <Touch Files="$(_FFmpegSharedStampPath)" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="ResolveFFmpegSharedLibraries"
+          DependsOnTargets="_ExtractFFmpegShared"
+          Condition="'$(BundleFfmpeg)' == 'true'">
+    <ItemGroup>
+      <FFmpegSharedLibrary Include="$(_FFmpegSharedBinDirectory)*.dll" />
+    </ItemGroup>
+    <Error Condition="'@(FFmpegSharedLibrary)' == ''"
+           Text="No FFmpeg DLLs were found under $(_FFmpegSharedBinDirectory)." />
+  </Target>
+
+  <!-- GPL static command-line build: tooling only, never loaded into the process. -->
+  <Target Name="_DownloadFFmpegCli"
+          DependsOnTargets="_ValidateFFmpegPlatform"
+          Condition="'$(BundleFfmpegCli)' == 'true' and !Exists('$(_FFmpegCliArchivePath)')">
+    <MakeDir Directories="$(FFmpegCacheDirectory)" />
+    <DownloadFile SourceUrl="$(FFmpegDownloadBaseUrl)/$(_FFmpegCliArchiveName).zip"
+                  DestinationFolder="$(FFmpegCacheDirectory)"
+                  DestinationFileName="$(_FFmpegCliArchiveName).zip"
+                  Retries="3"
+                  RetryDelayMilliseconds="1000" />
+  </Target>
+
+  <Target Name="_ExtractFFmpegCli"
+          DependsOnTargets="_DownloadFFmpegCli"
+          Condition="'$(BundleFfmpegCli)' == 'true'"
+          Inputs="$(_FFmpegCliArchivePath)"
+          Outputs="$(_FFmpegCliStampPath)">
+    <Unzip SourceFiles="$(_FFmpegCliArchivePath)"
+           DestinationFolder="$(FFmpegCacheDirectory)"
+           SkipUnchangedFiles="true" />
+    <Touch Files="$(_FFmpegCliStampPath)" AlwaysCreate="true" />
+  </Target>
+
+  <Target Name="ResolveFFmpegCliTools"
+          DependsOnTargets="_ExtractFFmpegCli"
+          Condition="'$(BundleFfmpegCli)' == 'true'">
+    <ItemGroup>
+      <FFmpegCliTool Include="$(_FFmpegCliBinDirectory)ffmpeg.exe;$(_FFmpegCliBinDirectory)ffprobe.exe" />
+    </ItemGroup>
+    <Error Condition="'@(FFmpegCliTool)' == ''"
+           Text="No FFmpeg command-line tools were found under $(_FFmpegCliBinDirectory)." />
+  </Target>
+
+  <!--
+    Publish as ordinary copy-to-output content so the files follow the build output, the publish
+    output and the MSIX payload computed from this project without any per-head duplication.
+  -->
+  <Target Name="IncludeFFmpegInOutput"
+          DependsOnTargets="ResolveFFmpegSharedLibraries;ResolveFFmpegCliTools"
+          BeforeTargets="AssignTargetPaths"
+          Condition="('$(BundleFfmpeg)' == 'true' or '$(BundleFfmpegCli)' == 'true') and '$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <None Include="@(FFmpegSharedLibrary)"
+            Link="%(Filename)%(Extension)"
+            CopyToOutputDirectory="PreserveNewest"
+            CopyToPublishDirectory="PreserveNewest"
+            Visible="false" />
+      <None Include="@(FFmpegCliTool)"
+            Link="$(FFmpegCliSubdirectory)%(Filename)%(Extension)"
+            CopyToOutputDirectory="PreserveNewest"
+            CopyToPublishDirectory="PreserveNewest"
+            Visible="false" />
+    </ItemGroup>
+  </Target>
+</Project>

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Threading.Tasks;
@@ -9,6 +10,8 @@ using CommunityToolkit.Mvvm.Input;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Services;
 using PlaybackController = LightStudio.LightPlayer.Services.Playback.PlaybackController;
+
+using Strings = LightStudio.LightPlayer.Strings;
 
 namespace LightStudio.LightPlayer.ViewModels;
 
@@ -27,6 +30,7 @@ public partial class PlaybackBarViewModel : ObservableObject
     private double volumeBeforeMute = 0.8;
     private MusicPlaybackItemModel? trackedItem;
     private bool isScrubbing;
+    private int artVersion;
 
     [ObservableProperty]
     private IImage? albumImage;
@@ -54,8 +58,13 @@ public partial class PlaybackBarViewModel : ObservableObject
         NextCommand = new RelayCommand(controller.Next);
         PreviousCommand = new RelayCommand(controller.Previous);
         CycleModeCommand = new RelayCommand(controller.CycleMode);
-        ToggleFavoriteCommand = new AsyncRelayCommand(ToggleFavoriteAsync);
-        AddToPlaylistCommand = new AsyncRelayCommand(AddToPlaylistAsync);
+        SetModeCommand = new RelayCommand<PlaybackMode>(mode => controller.SetMode(mode));
+        SelectAudioTrackCommand = new RelayCommand<AudioSeparationTrack>(controller.SelectAudioTrack);
+        SelectAudioSeparationModelCommand = new AsyncRelayCommand<string>(modelId => modelId is not null
+            ? AppErrorReporter.GuardAsync(() => controller.SelectAudioSeparationModelAsync(modelId))
+            : Task.CompletedTask);
+        ToggleFavoriteCommand = new AsyncRelayCommand(() => AppErrorReporter.GuardAsync(ToggleFavoriteAsync));
+        AddToPlaylistCommand = new AsyncRelayCommand(() => AppErrorReporter.GuardAsync(AddToPlaylistAsync));
         ToggleMuteCommand = new RelayCommand(ToggleMute);
         OpenNowPlayingCommand = new RelayCommand(() => OpenNowPlaying?.Invoke());
 
@@ -78,6 +87,12 @@ public partial class PlaybackBarViewModel : ObservableObject
 
     public IRelayCommand CycleModeCommand { get; }
 
+    public IRelayCommand<PlaybackMode> SetModeCommand { get; }
+
+    public IRelayCommand<AudioSeparationTrack> SelectAudioTrackCommand { get; }
+
+    public IAsyncRelayCommand<string> SelectAudioSeparationModelCommand { get; }
+
     public IRelayCommand ToggleFavoriteCommand { get; }
 
     public IRelayCommand AddToPlaylistCommand { get; }
@@ -88,7 +103,14 @@ public partial class PlaybackBarViewModel : ObservableObject
 
     public MusicPlaybackItemModel? CurrentItem => controller.CurrentItem;
 
-    public bool HasItem => controller.CurrentItem is not null;
+    public bool HasItem => controller.HasItem;
+
+    public bool CanSeparateAudio => controller.CanSeparateAudio;
+    public bool IsOriginalAudio => controller.IsOriginalAudio;
+    public bool IsSeparatedTrack1 => controller.IsSeparatedTrack1;
+    public bool IsSeparatedTrack2 => controller.IsSeparatedTrack2;
+    public IReadOnlyList<InferenceInstalledModel> AudioSeparationModels => controller.AudioSeparationModels;
+    public string? AudioSeparationModelId => controller.AudioSeparationModelId;
 
     public string Title => controller.CurrentItem?.Title ?? string.Empty;
 
@@ -105,9 +127,19 @@ public partial class PlaybackBarViewModel : ObservableObject
 
     public bool IsPlaying => controller.State == PlaybackState.Playing;
 
+    public bool IsInitializing => controller.IsInitializing;
+
     public string PlayPauseIconKey => IsPlaying ? "IconPause" : "IconPlay";
 
     public PlaybackMode Mode => controller.Mode;
+
+    public bool IsModePlayInOrder => Mode == PlaybackMode.Sequential;
+
+    public bool IsModeRepeatAll => Mode == PlaybackMode.ListLoop;
+
+    public bool IsModeRepeatOne => Mode == PlaybackMode.SingleTrackLoop;
+
+    public bool IsModeShuffle => Mode == PlaybackMode.Random;
 
     public double Volume
     {
@@ -131,13 +163,16 @@ public partial class PlaybackBarViewModel : ObservableObject
 
     public string ModeLabel => Mode switch
     {
-        PlaybackMode.ListLoop => "Repeat all",
-        PlaybackMode.SingleTrackLoop => "Repeat one",
-        PlaybackMode.Random => "Shuffle",
-        _ => "Play in order",
+        PlaybackMode.ListLoop => Strings.Resources.PlaybackBar_ModeRepeatAll,
+        PlaybackMode.SingleTrackLoop => Strings.Resources.PlaybackBar_ModeRepeatOne,
+        PlaybackMode.Random => Strings.Resources.Common_Shuffle,
+        _ => Strings.Resources.PlaybackBar_ModePlayInOrder,
     };
 
     public string PositionText => FormatTime(PositionMs);
+
+    /// <summary>The track's total length, for surfaces that show elapsed / total rather than remaining.</summary>
+    public string DurationText => FormatTime(DurationMs);
 
     public string RemainingText => "-" + FormatTime(Math.Max(0d, DurationMs - PositionMs));
 
@@ -159,6 +194,15 @@ public partial class PlaybackBarViewModel : ObservableObject
     {
         switch (e.PropertyName)
         {
+            case nameof(PlaybackController.CanSeparateAudio):
+            case nameof(PlaybackController.IsOriginalAudio):
+            case nameof(PlaybackController.IsSeparatedTrack1):
+            case nameof(PlaybackController.IsSeparatedTrack2):
+            case nameof(PlaybackController.AudioSeparationModels):
+            case nameof(PlaybackController.AudioSeparationModelId):
+            case nameof(PlaybackController.IsInitializing):
+                OnPropertyChanged(e.PropertyName);
+                break;
             case nameof(PlaybackController.CurrentItem):
                 TrackCurrentItem(controller.CurrentItem);
                 RefreshArt();
@@ -166,6 +210,9 @@ public partial class PlaybackBarViewModel : ObservableObject
                 OnPropertyChanged(nameof(CurrentItem));
                 OnPropertyChanged(nameof(HasItem));
                 RaiseMetadataChanged();
+                break;
+            case nameof(PlaybackController.IsSuspended):
+                OnPropertyChanged(nameof(HasItem));
                 break;
             case nameof(PlaybackController.State):
                 OnPropertyChanged(nameof(IsPlaying));
@@ -175,6 +222,10 @@ public partial class PlaybackBarViewModel : ObservableObject
                 OnPropertyChanged(nameof(Mode));
                 OnPropertyChanged(nameof(ModeIconKey));
                 OnPropertyChanged(nameof(ModeLabel));
+                OnPropertyChanged(nameof(IsModePlayInOrder));
+                OnPropertyChanged(nameof(IsModeRepeatAll));
+                OnPropertyChanged(nameof(IsModeRepeatOne));
+                OnPropertyChanged(nameof(IsModeShuffle));
                 break;
             case nameof(PlaybackController.Volume):
                 OnPropertyChanged(nameof(Volume));
@@ -183,6 +234,7 @@ public partial class PlaybackBarViewModel : ObservableObject
                 break;
             case nameof(PlaybackController.DurationMs):
                 OnPropertyChanged(nameof(DurationMs));
+                OnPropertyChanged(nameof(DurationText));
                 OnPropertyChanged(nameof(RemainingText));
                 OnPropertyChanged(nameof(PositionText));
                 break;
@@ -281,28 +333,42 @@ public partial class PlaybackBarViewModel : ObservableObject
         OnPropertyChanged(nameof(ArtistAlbum));
         OnPropertyChanged(nameof(NowPlayingLine));
         OnPropertyChanged(nameof(DurationMs));
+        OnPropertyChanged(nameof(DurationText));
         OnPropertyChanged(nameof(RemainingText));
         OnPropertyChanged(nameof(PositionText));
     }
 
     private void RefreshArt()
     {
-        AlbumImage = null;
+        var version = ++artVersion;
         var item = controller.CurrentItem;
         if (item is not null)
         {
-            _ = LoadArtAsync(item);
+            _ = LoadArtAsync(item, version);
+        }
+        else
+        {
+            AlbumImage = null;
         }
     }
 
-    private async Task LoadArtAsync(MusicPlaybackItemModel item)
+    private async Task LoadArtAsync(MusicPlaybackItemModel item, int version)
     {
-        var bitmap = await albumArt.GetTrackArtAsync(item.FilePath);
-        if (bitmap is not null && ReferenceEquals(controller.CurrentItem, item))
+        var bitmap = await albumArt.GetHighQualityTrackArtAsync(item.Media).ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            Dispatcher.UIThread.Post(() => AlbumImage = bitmap);
-        }
+            if (version != artVersion || !ReferenceEquals(controller.CurrentItem, item))
+            {
+                bitmap?.Dispose();
+                return;
+            }
+
+            AlbumImage = bitmap;
+        }, DispatcherPriority.Background);
     }
+
+    partial void OnAlbumImageChanged(IImage? oldValue, IImage? newValue) =>
+        (oldValue as IDisposable)?.Dispose();
 
     private void ToggleMute()
     {

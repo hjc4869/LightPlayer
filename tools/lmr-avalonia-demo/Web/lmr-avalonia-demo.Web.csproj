@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFramework)-browser</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>lmr-web-demo</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <WasmBuildNative>true</WasmBuildNative>
+    <WasmEnableThreads>false</WasmEnableThreads>
+    <WasmEnableSIMD>true</WasmEnableSIMD>
+    <WasmMainJSPath>main.js</WasmMainJSPath>
+    <WasmAllowUndefinedSymbols>true</WasmAllowUndefinedSymbols>
+    <WasmNativeStrip>true</WasmNativeStrip>
+    <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">true</RunAOTCompilation>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Browser" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" />
+    <PackageReference Include="LightStudio.Ffmpeg" />
+    <ProjectReference Include="../../../src/LightMediaRenderer.Avalonia/LightMediaRenderer.Avalonia.csproj" />
+    <ProjectReference Include="../../../src/LightStudio.LightPlayer/LightStudio.LightPlayer.csproj" />
+    <Compile Include="../../../src/LightStudio.LightPlayer.Web/BrowserAssets.cs" Link="Production/BrowserAssets.cs" />
+    <Compile Include="../../../src/LightStudio.LightPlayer.Web/BrowserMainThread.cs;../../../src/LightStudio.LightPlayer.Web/BrowserVideoPlanes.cs;../../../src/LightStudio.LightPlayer.Web/BrowserImageDecoder.Photos.cs;../../../src/LightStudio.LightPlayer.Web/BrowserImageDecoder.Animation.cs;../../../src/LightStudio.LightPlayer.Web/WebAudioPlaybackBackend.cs;../../../src/LightStudio.LightPlayer.Web/MediaWorkerConnection.cs;../../../src/LightStudio.LightPlayer.Web/WorkerMediaEngine.cs;../../../src/LightStudio.LightPlayer.Web/PacketRelay.cs;../../../src/LightStudio.LightPlayer.Web/WorkerSourceHost.cs;../../../src/LightStudio.LightPlayer.Web/BrowserSessionInput.cs;../../../src/LightStudio.LightPlayer.Web/BrowserMediaFrames.cs;../../../src/LightStudio.LightPlayer.Web/BrowserMediaOperations.cs;../../../src/LightStudio.LightPlayer.Web/BrowserFileSystem.cs;../../../src/LightStudio.LightPlayer.Web/BrowserFileStream.cs" Link="Production/%(Filename)%(Extension)" />
+    <Content Include="../../../src/LightStudio.LightPlayer.Web/wwwroot/media/*.js" Link="wwwroot/media/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/LightStudio.LightPlayer.Web/wwwroot/file-system-access.js;../../../src/LightStudio.LightPlayer.Web/wwwroot/web-audio.js;../../../src/LightStudio.LightPlayer.Web/wwwroot/web-audio-worklet.js" Link="wwwroot/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Import Project="../../../build/BrowserMediaWorker.targets" />
+</Project>

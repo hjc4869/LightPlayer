@@ -1,0 +1,20 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OutputType>Bundle</OutputType>
+    <InstallerArchitecture Condition="'$(InstallerArchitecture)' == ''">x64</InstallerArchitecture>
+    <InstallerPlatform>$(InstallerArchitecture)</InstallerPlatform>
+    <BundleUpgradeCode>e222dbde-1f5e-44b1-97b0-cd0ed7028fdd</BundleUpgradeCode>
+    <InstallerVersion Condition="'$(InstallerVersion)' == ''">$(Version)</InstallerVersion>
+    <MsiPath Condition="'$(MsiPath)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\windows-installer\$(InstallerArchitecture)\msi\LightPlayer-$(InstallerArchitecture).msi</MsiPath>
+    <OutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\release\</OutputPath>
+    <IntermediateOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\obj\LightPlayerSetup\bundle\$(InstallerArchitecture)\</IntermediateOutputPath>
+    <OutputName>LightPlayerSetup-$(InstallerArchitecture)</OutputName>
+    <DefaultCompressionLevel>high</DefaultCompressionLevel>
+    <DefineConstants>$(DefineConstants);InstallerVersion=$(InstallerVersion);BundleUpgradeCode=$(BundleUpgradeCode);MsiPath=$(MsiPath);IconPath=$(MSBuildThisFileDirectory)..\..\src\LightStudio.LightPlayer\Assets\light-logo.ico;LicensePath=$(LicensePath)</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Bundle.wxs" />
+    <PackageReference Include="WixToolset.BootstrapperApplications.wixext" />
+  </ItemGroup>
+</Project>

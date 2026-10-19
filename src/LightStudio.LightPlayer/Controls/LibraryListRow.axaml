@@ -1,0 +1,62 @@
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:media="using:Avalonia.Media"
+             mc:Ignorable="d"
+             d:DesignWidth="280"
+             d:DesignHeight="56"
+             x:Class="LightStudio.LightPlayer.Controls.LibraryListRow"
+             x:DataType="models:LibraryTileModel">
+    <Grid ColumnDefinitions="Auto,*"
+          VerticalAlignment="Center"
+          Background="Transparent"
+          ContextFlyout="{StaticResource LibraryRowContextFlyout}">
+
+        <Panel x:Name="ArtHost" Grid.Column="0" Width="48" Height="48">
+            <!-- Single cover (albums) or placeholder glyph (artists without album art). -->
+            <controls:MediaThumbnail CornerRadius="4"
+                                     IsVisible="{Binding !HasCollage}"
+                                     Source="{Binding Image}"
+                                     PlaceholderKind="{Binding ThumbnailKind}" />
+            <!-- Artist album-art collage: 1x1, 2x2, or 3x3 based on how many covers are available. -->
+            <Border IsVisible="{Binding HasCollage}"
+                    CornerRadius="4"
+                    ClipToBounds="True"
+                    Background="{DynamicResource AppThumbnailPlaceholderBrush}">
+                <ItemsControl ItemsSource="{Binding CollageImages}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="{Binding CollageColumns}" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="media:IImage">
+                            <lmr:FastImage Source="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+        </Panel>
+
+        <StackPanel Grid.Column="1"
+                    Margin="12,0,0,0"
+                    VerticalAlignment="Center"
+                    Spacing="2">
+            <controls:FixedLineTextBlock Text="{Binding Title}"
+                       FontSize="14"
+                       LineHeight="17"
+                       MaxLines="1"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <controls:FixedLineTextBlock Text="{Binding Subtitle}"
+                       FontSize="12"
+                       LineHeight="15"
+                       MaxLines="1"
+                       TextTrimming="CharacterEllipsis"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+    </Grid>
+</UserControl>

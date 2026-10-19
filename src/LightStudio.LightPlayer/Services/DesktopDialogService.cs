@@ -1,24 +1,31 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
-using LightStudio.FfmpegShim;
+using LightMediaRenderer.Subtitles;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.ViewModels.Dialogs;
+using LightStudio.LightPlayer.Views;
 using LightStudio.LightPlayer.Views.Dialogs;
+using LightStudio.MediaLibraryCore.IO;
 using LightStudio.MediaLibraryCore.Lyrics.RuntimeApi;
+
+using Strings = LightStudio.LightPlayer.Strings;
 
 namespace LightStudio.LightPlayer.Services;
 
 /// <summary>
 /// Desktop implementation of <see cref="IDialogService"/>. Hosts the About box,
 /// media properties viewer, confirmation prompts, and lyric file picker on the
-/// active main window. Metadata is read off the UI thread via the FFmpeg shim.
+/// active main window. Metadata and file properties are resolved by the active media platform.
 /// </summary>
 public sealed class DesktopDialogService : IDialogService
 {
@@ -27,8 +34,16 @@ public sealed class DesktopDialogService : IDialogService
         Patterns = new[] { "*.lrc", "*.txt" },
     };
 
+    private static readonly FilePickerFileType SubtitleType = new("Subtitles")
+    {
+        Patterns = LightMediaRenderer.Subtitles.SubtitleLoader.Patterns,
+    };
+
+    // An open settings window disables the main window, so dialogs go over the settings window.
     private static Window? Owner =>
-        (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow is { } main
+            ? main.OwnedWindows.OfType<SettingsWindow>().FirstOrDefault() ?? main
+            : null;
 
     public async Task ShowAboutAsync()
     {
@@ -38,19 +53,115 @@ public sealed class DesktopDialogService : IDialogService
         }
     }
 
-    public async Task ShowPropertiesAsync(string filePath, string fallbackTitle)
+    public async Task ShowPropertiesAsync(
+        MediaReference media,
+        string fallbackTitle,
+        IClientMediaResolver mediaResolver)
     {
         if (Owner is not { } owner)
         {
             return;
         }
 
-        var properties = await Task.Run(() => BuildProperties(filePath));
-        var header = string.IsNullOrEmpty(filePath) ? fallbackTitle : Path.GetFileName(filePath);
-        await new MediaPropertiesDialog(header, properties).ShowDialog(owner);
+        var header = string.IsNullOrWhiteSpace(fallbackTitle) ? Strings.Resources.Common_Properties : fallbackTitle;
+        var dialog = new MediaPropertiesDialog(header);
+        var dialogTask = dialog.ShowDialog(owner);
+
+        var (properties, fileName) = await MediaPropertiesBuilder.BuildAsync(media, mediaResolver);
+        if (!string.IsNullOrWhiteSpace(fileName))
+        {
+            header = fileName;
+        }
+
+        dialog.SetProperties(header, properties);
+        await dialogTask;
     }
 
-    public async Task<string?> PickLyricFileAsync()
+    public async Task ShowWarningDetailsAsync(string title, string details)
+    {
+        var dialog = new Window
+        {
+            Title = string.IsNullOrWhiteSpace(title) ? Strings.Resources.Shell_WarningDetailsTitle : title,
+            Width = 620,
+            Height = 420,
+            MinWidth = 420,
+            MinHeight = 260,
+        };
+
+        var copyButton = new Button { Content = Strings.Resources.Common_Copy };
+        copyButton.Click += async (_, _) =>
+        {
+            if (TopLevel.GetTopLevel(dialog)?.Clipboard is { } clipboard)
+            {
+                await clipboard.SetTextAsync(details);
+            }
+        };
+
+        var closeButton = new Button
+        {
+            Content = Strings.Resources.Common_Close,
+            IsDefault = true,
+        };
+        closeButton.Click += (_, _) => dialog.Close();
+
+        var buttons = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 12, 0, 0),
+            Children = { copyButton, closeButton },
+        };
+
+        var content = new DockPanel
+        {
+            Margin = new Thickness(18),
+            LastChildFill = true,
+        };
+        DockPanel.SetDock(buttons, Dock.Bottom);
+        content.Children.Add(buttons);
+        content.Children.Add(new TextBox
+        {
+            Text = details,
+            IsReadOnly = true,
+            AcceptsReturn = true,
+            TextWrapping = global::Avalonia.Media.TextWrapping.Wrap,
+            FontSize = 13,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        });
+        dialog.Content = content;
+
+        if (Owner is { } owner)
+        {
+            await dialog.ShowDialog(owner);
+        }
+        else
+        {
+            dialog.Show();
+        }
+    }
+
+    public async Task<StreamLink?> PromptForStreamUrlAsync()
+    {
+        if (Owner is not { } owner)
+            return null;
+
+        var dialog = new TextPromptDialog(
+            Strings.Resources.StreamLink_Title,
+            Strings.Resources.Common_Open,
+            initialValue: null,
+            value => StreamUrl.TryParseLink(value, out _),
+            Strings.Resources.StreamLink_InvalidAddress,
+            Strings.Resources.StreamLink_Address)
+        {
+            Title = Strings.Resources.StreamLink_Title,
+            AcceptsReturn = true,
+        };
+        string? value = await dialog.ShowDialog<string?>(owner);
+        return StreamUrl.TryParseLink(value, out StreamLink? link) ? link : null;
+    }
+
+    public async Task<string?> PickLyricContentAsync()
     {
         if (Owner is not { } owner)
         {
@@ -59,18 +170,50 @@ public sealed class DesktopDialogService : IDialogService
 
         var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
-            Title = "Import lyrics",
+            Title = Strings.Resources.Common_ImportLyrics,
             AllowMultiple = false,
             FileTypeFilter = new[] { LrcType, FilePickerFileTypes.All },
         });
 
-        return files.Count > 0 ? files[0].TryGetLocalPath() : null;
+        if (files.Count == 0)
+        {
+            return null;
+        }
+
+        await using var stream = await files[0].OpenReadAsync();
+        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        return await reader.ReadToEndAsync();
+    }
+
+    public async Task<PickedFile?> PickSubtitleFileAsync()
+    {
+        if (Owner is not { } owner)
+        {
+            return null;
+        }
+
+        var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = Strings.Resources.VideoPlayer_SubtitlePickerTitle,
+            AllowMultiple = false,
+            FileTypeFilter = new[] { SubtitleType, FilePickerFileTypes.All },
+        });
+
+        return files.Count == 0 ? null : await ReadPickedFileAsync(files[0]);
+    }
+
+    internal static async Task<PickedFile> ReadPickedFileAsync(IStorageFile file)
+    {
+        await using var stream = await file.OpenReadAsync();
+        using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        return new PickedFile(file.Name, buffer.ToArray());
     }
 
     public async Task<LyricEditResult?> ShowLyricSearchAsync(
         string title,
         string artist,
-        LyricsService lyrics,
+        ILyricsService lyrics,
         IReadOnlyList<ExternalLrcInfo> initialCandidates)
     {
         if (Owner is not { } owner)
@@ -90,7 +233,7 @@ public sealed class DesktopDialogService : IDialogService
         }
 
         var confirm = new Button { Content = confirmLabel, IsDefault = true };
-        var cancel = new Button { Content = "Cancel" };
+        var cancel = new Button { Content = Strings.Resources.Common_Cancel };
         var dialog = new Window
         {
             Title = title,
@@ -114,50 +257,21 @@ public sealed class DesktopDialogService : IDialogService
         return await dialog.ShowDialog<bool>(owner);
     }
 
-    private static IReadOnlyList<MediaPropertyItem> BuildProperties(string filePath)
+    public async Task<ColorTheme?> ShowThemeEditorAsync(ThemeEditorViewModel viewModel)
     {
-        var items = new List<MediaPropertyItem>();
-        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
+        if (Owner is not { } owner)
         {
-            return items;
+            return null;
         }
 
-        try
-        {
-            using var stream = File.OpenRead(filePath);
-            var info = FfmpegCodec.GetMediaInfoFromStream(stream, close: false);
-            Add(items, "Title", info.Title);
-            Add(items, "Artist", info.Artist);
-            Add(items, "Album", info.Album);
-            Add(items, "Album artist", info.AlbumArtist);
-            Add(items, "Genre", info.Genre);
-            Add(items, "Date", info.Date);
-            Add(items, "Track", info.TrackNumber);
-            Add(items, "Disc", info.DiscNumber);
-            Add(items, "Composer", info.Composer);
-            if (info.Duration > TimeSpan.Zero)
-            {
-                Add(items, "Duration", info.Duration.ToString(@"hh\:mm\:ss"));
-            }
-        }
-        catch
-        {
-            // Metadata is best-effort; the file rows below always show.
-        }
-
-        var file = new FileInfo(filePath);
-        Add(items, "File name", file.Name);
-        Add(items, "Type", file.Extension.TrimStart('.').ToUpperInvariant());
-        Add(items, "Size", $"{file.Length / 1024.0 / 1024.0:0.00} MB");
-        Add(items, "Location", file.DirectoryName ?? string.Empty);
-        return items;
+        return await new ThemeEditorDialog(viewModel).ShowDialog<ColorTheme?>(owner);
     }
 
-    private static void Add(List<MediaPropertyItem> items, string key, string? value)
+    public async Task ShowRemoteLibraryEditorAsync(ViewModels.Pages.RemoteLibraryEditorViewModel viewModel)
     {
-        if (!string.IsNullOrWhiteSpace(value))
+        if (Owner is { } owner)
         {
-            items.Add(new MediaPropertyItem(key, value));
+            await new RemoteLibraryEditorDialog(viewModel).ShowDialog(owner);
         }
     }
 }

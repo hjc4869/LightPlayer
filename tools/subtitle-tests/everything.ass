@@ -1,0 +1,30 @@
+[Script Info]
+Title: Everything at once
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,46,&H00FFFFFF,&H00FF6060,&H00202020,&H80000000,1,0,0,0,100,100,0,0,1,3,2,5,20,20,20,1
+Style: Small,Arial,24,&H00C0C0C0,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,0,5,20,20,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+
+; A sign: a drawn plate that grows in, with a clipped, sheared, glowing caption over it.
+Dialogue: 0,0:00:00.00,0:00:09.00,Default,,0,0,0,,{\pos(640,220)\bord0\shad0\c&H802020&\alpha&H40&\fscx0\t(0,700,\fscx100)\p1}m 0 0 l 620 0 l 620 150 l 0 150{\p0}
+Dialogue: 1,0:00:00.00,0:00:09.00,Default,,0,0,0,,{\pos(640,170)\fad(700,700)\fax0.25\bord6\blur5\3c&H00A5FF&\clip(330,0,330,720)\t(700,2200,\clip(330,0,950,720))}TYPESET SIGN
+
+; A karaoke line that sweeps, spins about a distant origin and fades out.
+Dialogue: 0,0:00:00.00,0:00:09.00,Small,,0,0,0,,{\pos(640,330)}karaoke, 3D rotation and a fade on one line
+Dialogue: 0,0:00:00.00,0:00:09.00,Default,,0,0,0,,{\pos(640,410)\fad(0,900)\frx0\fry0\t(1000,6000,\frx25\fry-20)}{\kf120}Ev{\kf120}ery{\kf120}thing {\kf120}at {\kf120}once
+
+; A shape that flies across the frame while its colour animates.
+Dialogue: 0,0:00:00.00,0:00:09.00,Default,,0,0,0,,{\move(120,540,1160,540,500,7500)\bord0\shad0\c&H00FFFF&\t(\c&HFF00FF&\frz720)\p1}m 0 0 l 40 0 l 40 40 l 0 40{\p0}
+
+; An inverse clip used as a spotlight, over a blurred, sheared caption.
+Dialogue: 0,0:00:00.00,0:00:09.00,Small,,0,0,0,,{\pos(640,600)}an inverse vector clip leaves a hole in the line
+Dialogue: 0,0:00:00.00,0:00:09.00,Default,,0,0,0,,{\pos(640,660)\be3\iclip(m 560 620 l 720 620 l 720 700 l 560 700)}SPOTLIGHT HOLE

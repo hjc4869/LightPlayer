@@ -45,7 +45,20 @@ public partial class TrackRow : UserControl
 
     private IDataTransfer? BuildDragData()
     {
-        if (DataContext is not TrackRowModel track)
+        if (DataContext is TrackRowModel { IsFolder: true, Folder: { } folder })
+        {
+            var folderData = new DataTransfer();
+            folderData.Add(DataTransferItem.Create(
+                QueueDragFormats.LibraryInsert,
+                new LibraryInsertPayload
+                {
+                    Kind = LibraryInsertKind.MusicFolder,
+                    MusicFolder = folder,
+                }));
+            return folderData;
+        }
+
+        if (DataContext is not TrackRowModel { IsFolder: false } track)
         {
             return null;
         }
@@ -60,7 +73,7 @@ public partial class TrackRow : UserControl
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == BoundsProperty)
+        if (change.Property == BoundsProperty || change.Property == DataContextProperty)
         {
             ApplyAdaptiveLayout(Bounds.Width);
         }
@@ -68,12 +81,17 @@ public partial class TrackRow : UserControl
 
     // Collapse to a stacked two-line layout below 650px, then progressively
     // reveal Album (>=750), Year (>=850) and Genre (>=1000) as the row gains width.
+    // When the album or artist column is suppressed (HideAlbum / HideArtist), the
+    // freed space shifts the remaining breakpoints earlier.
     private void ApplyAdaptiveLayout(double width)
     {
         if (WideRoot is null || NarrowRoot is null || WideRoot.ColumnDefinitions.Count < 6)
         {
             return;
         }
+
+        var hideAlbum  = DataContext is TrackRowModel { HideAlbum:  true };
+        var hideArtist = DataContext is TrackRowModel { HideArtist: true };
 
         var useWide = width >= 650;
         WideRoot.IsVisible = useWide;
@@ -83,16 +101,37 @@ public partial class TrackRow : UserControl
             return;
         }
 
-        var showAlbum = width >= 750;
-        var showYear = width >= 850;
-        var showGenre = width >= 1000;
+        // Artist column -- always hidden in artist context.
+        WideRoot.ColumnDefinitions[1].Width = hideArtist ? new GridLength(0) : GridLength.Star;
+        ArtistText.IsVisible = !hideArtist;
 
+        // Album column -- never shown in album context; in artist context shown immediately
+        // at the wide breakpoint (650); otherwise at 750.
+        var showAlbum = !hideAlbum && width >= (hideArtist ? 650 : 750);
         WideRoot.ColumnDefinitions[2].Width = showAlbum ? GridLength.Star : new GridLength(0);
         AlbumText.IsVisible = showAlbum;
+
+        // Year -- breakpoint shifts earlier for each suppressed flexible column.
+        var yearBreakpoint = hideAlbum ? 700 : hideArtist ? 750 : 850;
+        var showYear = width >= yearBreakpoint;
         WideRoot.ColumnDefinitions[3].Width = showYear ? new GridLength(70) : new GridLength(0);
         YearText.IsVisible = showYear;
+
+        // Genre -- similarly adjusted.
+        var genreBreakpoint = (hideAlbum && hideArtist) ? 700 : hideAlbum ? 800 : hideArtist ? 900 : 1000;
+        var showGenre = width >= genreBreakpoint;
         WideRoot.ColumnDefinitions[4].Width = showGenre ? new GridLength(90) : new GridLength(0);
         GenreText.IsVisible = showGenre;
+    }
+
+    private void OnRowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && DataContext is TrackRowModel { IsFolder: true } folder &&
+            folder.PlayCommand.CanExecute(null))
+        {
+            folder.PlayCommand.Execute(null);
+            e.Handled = true;
+        }
     }
 
     private void OnTapped(object? sender, TappedEventArgs e)

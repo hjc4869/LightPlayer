@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using LightStudio.LightPlayer.Models;
@@ -28,9 +29,19 @@ public partial class SearchBox : UserControl
         }
     }
 
+    private void OnClearClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is SearchBoxViewModel viewModel)
+        {
+            viewModel.Text = string.Empty;
+        }
+
+        FocusInput();
+    }
+
     /// <summary>
     /// Navigates when the user clicks a suggestion row. Reacting to the row's own pointer release
-    /// (rather than the AutoCompleteBox SelectedItem) avoids the control's text-completion behaviour,
+    /// (rather than the AutoCompleteBox SelectedItem) avoids the control's text-completion behavior,
     /// which selects an item whenever the typed text matches a title and would otherwise navigate
     /// while the user is still typing.
     /// </summary>

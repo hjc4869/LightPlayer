@@ -1,0 +1,1161 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:LightStudio.LightPlayer.Controls"
+        xmlns:services="using:LightStudio.LightPlayer.Services"
+        xmlns:views="using:LightStudio.LightPlayer.Views.Pages">
+    <!-- Colors and metrics are measured from AppKit's regular-size controls. -->
+    <Styles.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Default">
+                    <SolidColorBrush x:Key="MacLabelBrush">#D8000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSettingsLabelBrush">#262626</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSettingsSecondaryLabelBrush">#7C7C7C</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacPlaceholderBrush">#7F000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacDisabledLabelBrush">#3F000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacControlFill">#12000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacControlFillPressed">#28000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacControlFillDisabled">#0A000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacFieldFill">#D9FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacFieldBorder">#14000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacUnemphasizedSelection">#DCDCDC</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchOffFill">#18000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchOffFillPressed">#30000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchOffFillDisabled">#10000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchInactiveOnFill">#26000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchInactiveDisabledOnFill">#16000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchThumb">#FFFFFF</SolidColorBrush>
+                    <LinearGradientBrush x:Key="MacSwitchLensBody" StartPoint="0%,50%" EndPoint="100%,50%">
+                        <GradientStop Offset="0" Color="#0F000000" />
+                        <GradientStop Offset="0.16" Color="#00000000" />
+                        <GradientStop Offset="0.84" Color="#00000000" />
+                        <GradientStop Offset="1" Color="#0F000000" />
+                    </LinearGradientBrush>
+                    <ConicGradientBrush x:Key="MacSwitchLensOutline">
+                        <GradientStop Offset="0" Color="#33000000" />
+                        <GradientStop Offset="0.125" Color="#20000000" />
+                        <GradientStop Offset="0.19" Color="#55000000" />
+                        <GradientStop Offset="0.25" Color="#66000000" />
+                        <GradientStop Offset="0.31" Color="#55000000" />
+                        <GradientStop Offset="0.375" Color="#20000000" />
+                        <GradientStop Offset="0.5" Color="#36000000" />
+                        <GradientStop Offset="0.625" Color="#20000000" />
+                        <GradientStop Offset="0.69" Color="#55000000" />
+                        <GradientStop Offset="0.75" Color="#66000000" />
+                        <GradientStop Offset="0.81" Color="#55000000" />
+                        <GradientStop Offset="0.875" Color="#20000000" />
+                        <GradientStop Offset="1" Color="#33000000" />
+                    </ConicGradientBrush>
+                    <!-- Dispersion around each end of the lens: violet, cyan, then amber, clockwise. -->
+                    <ConicGradientBrush x:Key="MacSwitchLensRim">
+                        <GradientStop Offset="0.1" Color="#0090E0FF" />
+                        <GradientStop Offset="0.13" Color="#2090E0FF" />
+                        <GradientStop Offset="0.19" Color="#409F8CF0" />
+                        <GradientStop Offset="0.25" Color="#5030B8CC" />
+                        <GradientStop Offset="0.31" Color="#48F0A060" />
+                        <GradientStop Offset="0.37" Color="#30FFE070" />
+                        <GradientStop Offset="0.42" Color="#00FFE070" />
+                        <GradientStop Offset="0.6" Color="#0090E0FF" />
+                        <GradientStop Offset="0.63" Color="#2090E0FF" />
+                        <GradientStop Offset="0.69" Color="#409F8CF0" />
+                        <GradientStop Offset="0.75" Color="#5030B8CC" />
+                        <GradientStop Offset="0.81" Color="#48F0A060" />
+                        <GradientStop Offset="0.87" Color="#30FFE070" />
+                        <GradientStop Offset="0.92" Color="#00FFE070" />
+                    </ConicGradientBrush>
+                    <LinearGradientBrush x:Key="MacSwitchLensShadow" StartPoint="50%,0%" EndPoint="50%,100%">
+                        <GradientStop Offset="0" Color="#00000000" />
+                        <GradientStop Offset="0.5" Color="#0A000000" />
+                        <GradientStop Offset="1" Color="#50000000" />
+                    </LinearGradientBrush>
+                    <SolidColorBrush x:Key="MacRadioOffFill">#18000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacStepperDivider">#22000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacStepperPressed">#19000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacStepperGlyph">#D8000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioOffFillPressed">#30000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioOffFillDisabled">#0E000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioDisabledOnFill">#14000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioDisabledDot">#50000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioInactiveOnFill">#24000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioInactiveDot">#DF000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxOffFill">#19000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxOffFillPressed">#30000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxOffFillDisabled">#0D000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxDisabledOnFill">#13000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxDisabledGlyph">#50000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxInactiveOnFill">#24000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxInactiveGlyph">#DE000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSliderTrackFill">#19000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSliderValueFillDisabled">#25000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSliderValueFillInactive">#3A000000</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSliderKnob">#FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacMenuFill">#FAFAFA</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacMenuBorder">#22000000</SolidColorBrush>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="MacLabelBrush">#D8FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSettingsLabelBrush">#DEDEDE</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSettingsSecondaryLabelBrush">#999999</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacPlaceholderBrush">#8CFFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacDisabledLabelBrush">#3FFFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacControlFill">#12FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacControlFillPressed">#2AFFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacControlFillDisabled">#08FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacFieldFill">#D8161616</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacFieldBorder">#0DFFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacUnemphasizedSelection">#464646</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchOffFill">#1DE2E2E2</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchOffFillPressed">#31F7F7F7</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchOffFillDisabled">#12B8B8B8</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchInactiveOnFill">#2ADCDCDC</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchInactiveDisabledOnFill">#15D6D6D6</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSwitchThumb">#DDFFFFFF</SolidColorBrush>
+                    <LinearGradientBrush x:Key="MacSwitchLensBody" StartPoint="50%,0%" EndPoint="50%,100%">
+                        <GradientStop Offset="0" Color="#0BFFFFFF" />
+                        <GradientStop Offset="0.45" Color="#00FFFFFF" />
+                        <GradientStop Offset="0.55" Color="#00FFFFFF" />
+                        <GradientStop Offset="1" Color="#06FFFFFF" />
+                    </LinearGradientBrush>
+                    <ConicGradientBrush x:Key="MacSwitchLensOutline">
+                        <GradientStop Offset="0" Color="#91000000" />
+                        <GradientStop Offset="0.125" Color="#85000000" />
+                        <GradientStop Offset="0.25" Color="#D4000000" />
+                        <GradientStop Offset="0.375" Color="#85000000" />
+                        <GradientStop Offset="0.5" Color="#91000000" />
+                        <GradientStop Offset="0.625" Color="#85000000" />
+                        <GradientStop Offset="0.75" Color="#D4000000" />
+                        <GradientStop Offset="0.875" Color="#85000000" />
+                        <GradientStop Offset="1" Color="#91000000" />
+                    </ConicGradientBrush>
+                    <!-- A warm highlight along the long edges, with the dispersion hues near each end. -->
+                    <ConicGradientBrush x:Key="MacSwitchLensRim">
+                        <GradientStop Offset="0" Color="#3CF0E8D0" />
+                        <GradientStop Offset="0.06" Color="#33F0E8D0" />
+                        <GradientStop Offset="0.125" Color="#2870D0D8" />
+                        <GradientStop Offset="0.19" Color="#30C08090" />
+                        <GradientStop Offset="0.25" Color="#3800A0B0" />
+                        <GradientStop Offset="0.31" Color="#30D07060" />
+                        <GradientStop Offset="0.375" Color="#38E0C8B0" />
+                        <GradientStop Offset="0.44" Color="#33F0E8D0" />
+                        <GradientStop Offset="0.5" Color="#3CF0E8D0" />
+                        <GradientStop Offset="0.56" Color="#33F0E8D0" />
+                        <GradientStop Offset="0.625" Color="#2870D0D8" />
+                        <GradientStop Offset="0.69" Color="#30C08090" />
+                        <GradientStop Offset="0.75" Color="#3800A0B0" />
+                        <GradientStop Offset="0.81" Color="#30D07060" />
+                        <GradientStop Offset="0.875" Color="#38E0C8B0" />
+                        <GradientStop Offset="0.94" Color="#33F0E8D0" />
+                        <GradientStop Offset="1" Color="#3CF0E8D0" />
+                    </ConicGradientBrush>
+                    <SolidColorBrush x:Key="MacSwitchLensShadow">Transparent</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioOffFill">#1AF6F6F6</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacStepperDivider">#27FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacStepperPressed">#18FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacStepperGlyph">#E6FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioOffFillPressed">#31F7F7F7</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioOffFillDisabled">#0DF6F6F6</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioDisabledOnFill">#12FEFEFE</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioDisabledDot">#4EFCFCFC</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioInactiveOnFill">#27EFEFEF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacRadioInactiveDot">#DDFFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxOffFill">#19FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxOffFillPressed">#30FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxOffFillDisabled">#0DFFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxDisabledOnFill">#13FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxDisabledGlyph">#4DFFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxInactiveOnFill">#24FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacCheckBoxInactiveGlyph">#DEFFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSliderTrackFill">#19FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSliderValueFillDisabled">#25FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSliderValueFillInactive">#3AFFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacSliderKnob">#D9FFFFFF</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacMenuFill">#292929</SolidColorBrush>
+                    <SolidColorBrush x:Key="MacMenuBorder">#28FFFFFF</SolidColorBrush>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+
+            <!-- Keyboard focus ring: 3.5 DIPs from half a point inside the bezel outward. -->
+            <ControlTheme x:Key="MacFocusRing" TargetType="Border">
+                <Setter Property="Margin" Value="-3" />
+                <Setter Property="BorderThickness" Value="3.5" />
+                <Setter Property="BorderBrush" Value="{DynamicResource AppMacFocusRingBrush}" />
+                <Setter Property="IsHitTestVisible" Value="False" />
+                <Setter Property="IsVisible" Value="False" />
+            </ControlTheme>
+
+            <ControlTheme x:Key="MacSettingsButton" TargetType="Button">
+                <Setter Property="FontFamily" Value="{DynamicResource AppMacControlFontFamily}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="LetterSpacing" Value="{DynamicResource AppMacControlLetterSpacing}" />
+                <Setter Property="MinHeight" Value="24" />
+                <Setter Property="Padding" Value="12,0.5,12,0" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="Background" Value="{DynamicResource MacControlFill}" />
+                <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="FocusAdorner" Value="{x:Null}" />
+                <Setter Property="ClipToBounds" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Panel>
+                            <Border Name="MacFocusRing" Theme="{StaticResource MacFocusRing}" CornerRadius="9" />
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Background="{TemplateBinding Background}"
+                                              CornerRadius="{TemplateBinding CornerRadius}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Padding="{TemplateBinding Padding}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              RecognizesAccessKey="True" />
+                        </Panel>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:pressed">
+                    <Setter Property="Background" Value="{DynamicResource MacControlFillPressed}" />
+                </Style>
+                <Style Selector="^[IsDefault=True]">
+                    <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+                    <Setter Property="Foreground" Value="White" />
+                </Style>
+                <Style Selector="^[IsDefault=True]:pressed">
+                    <Setter Property="Background" Value="{DynamicResource AppMacAccentPressedBrush}" />
+                </Style>
+                <Style Selector="^:focus-visible /template/ Border#MacFocusRing">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+                <Style Selector="^:disabled">
+                    <Setter Property="Background" Value="{DynamicResource MacControlFillDisabled}" />
+                    <Setter Property="Foreground" Value="{DynamicResource MacDisabledLabelBrush}" />
+                </Style>
+            </ControlTheme>
+
+            <ControlTheme x:Key="MacSettingsToggleSwitch" TargetType="ToggleSwitch">
+                <Setter Property="FontFamily" Value="{DynamicResource AppMacControlFontFamily}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="LetterSpacing" Value="{DynamicResource AppMacControlLetterSpacing}" />
+                <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="FocusAdorner" Value="{x:Null}" />
+                <Setter Property="ClipToBounds" Value="False" />
+                <Setter Property="KnobTransitions">
+                    <Transitions>
+                        <DoubleTransition Property="Canvas.Left" Duration="0:0:0.2" Easing="CubicEaseOut" />
+                    </Transitions>
+                </Setter>
+                <Setter Property="Template">
+                    <ControlTemplate x:DataType="ToggleSwitch">
+                        <StackPanel Spacing="4">
+                            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              IsVisible="{TemplateBinding Content, Converter={x:Static views:SettingsPageView.HasSwitchContent}}"
+                                              RecognizesAccessKey="True" />
+                            <Grid ColumnDefinitions="44,Auto" MinHeight="20" Background="Transparent">
+                                <Border Name="MacFocusRing" Theme="{StaticResource MacFocusRing}"
+                                        Width="50" Height="26" CornerRadius="13" />
+                                <controls:MacSwitchTrack Name="MacSwitchTrack" Width="44" Height="20"
+                                                         Background="{DynamicResource MacSwitchOffFill}" VerticalAlignment="Center"
+                                                         KnobOffset="{Binding #PART_MovingKnobs.(Canvas.Left)}">
+                                    <controls:MacSwitchTrack.Transitions>
+                                        <Transitions>
+                                            <BrushTransition Property="Background" Duration="0:0:0.2" />
+                                            <DoubleTransition Property="LensProgress" Duration="0:0:0.12" Easing="CubicEaseOut" />
+                                        </Transitions>
+                                    </controls:MacSwitchTrack.Transitions>
+                                </controls:MacSwitchTrack>
+                                <Canvas Name="PART_SwitchKnob" Width="14" Height="20"
+                                        HorizontalAlignment="Left" Margin="2,0,0,0" VerticalAlignment="Center">
+                                    <Grid Name="PART_MovingKnobs" Width="26" Height="16" Canvas.Top="2"
+                                          Transitions="{TemplateBinding KnobTransitions}">
+                                        <Border Name="MacSwitchThumb" CornerRadius="8"
+                                                Background="{DynamicResource MacSwitchThumb}"
+                                                BoxShadow="0 1 5 0 #1A000000, 0 3.5 42 0 #12000000">
+                                            <Border.Transitions>
+                                                <Transitions>
+                                                    <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                                                </Transitions>
+                                            </Border.Transitions>
+                                        </Border>
+                                        <!-- A pressed thumb swells into a clear lens over the track. -->
+                                        <Panel Name="MacSwitchLens" Margin="-8,-5.5"
+                                               IsHitTestVisible="False" Opacity="0" RenderTransform="scale(0.63)">
+                                            <Panel.Transitions>
+                                                <Transitions>
+                                                    <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                                                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" Easing="CubicEaseOut" />
+                                                </Transitions>
+                                            </Panel.Transitions>
+                                            <!-- Light passes through the clear body, so the shadow comes from the rim. -->
+                                            <Border CornerRadius="13.5" BorderThickness="1.5" Margin="0,5,0,-5"
+                                                    BorderBrush="{DynamicResource MacSwitchLensShadow}">
+                                                <Border.Effect>
+                                                    <BlurEffect Radius="8" />
+                                                </Border.Effect>
+                                            </Border>
+                                            <Border CornerRadius="13.5" BorderThickness="1"
+                                                    Background="{DynamicResource MacSwitchLensBody}"
+                                                    BorderBrush="{DynamicResource MacSwitchLensOutline}">
+                                                <Border CornerRadius="12.5" BorderThickness="1"
+                                                        BorderBrush="{DynamicResource MacSwitchLensRim}" />
+                                            </Border>
+                                        </Panel>
+                                    </Grid>
+                                </Canvas>
+                                <ContentPresenter Name="PART_OffContentPresenter" Grid.Column="1" Margin="8,0,0,0"
+                                                  Content="{TemplateBinding OffContent}"
+                                                  ContentTemplate="{TemplateBinding OffContentTemplate}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                                    <ContentPresenter.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                            <Binding Path="IsChecked" RelativeSource="{RelativeSource TemplatedParent}" Converter="{x:Static BoolConverters.Not}" />
+                                            <Binding Path="OffContent" RelativeSource="{RelativeSource TemplatedParent}" Converter="{x:Static views:SettingsPageView.HasSwitchContent}" />
+                                        </MultiBinding>
+                                    </ContentPresenter.IsVisible>
+                                </ContentPresenter>
+                                <ContentPresenter Name="PART_OnContentPresenter" Grid.Column="1" Margin="8,0,0,0"
+                                                  Content="{TemplateBinding OnContent}"
+                                                  ContentTemplate="{TemplateBinding OnContentTemplate}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                                    <ContentPresenter.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                            <Binding Path="IsChecked" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding Path="OnContent" RelativeSource="{RelativeSource TemplatedParent}" Converter="{x:Static views:SettingsPageView.HasSwitchContent}" />
+                                        </MultiBinding>
+                                    </ContentPresenter.IsVisible>
+                                </ContentPresenter>
+                            </Grid>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:checked /template/ controls|MacSwitchTrack#MacSwitchTrack">
+                    <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+                </Style>
+                <Style Selector="^:pressed">
+                    <Style Selector="^ /template/ controls|MacSwitchTrack#MacSwitchTrack">
+                        <Setter Property="LensProgress" Value="1" />
+                        <Setter Property="Background" Value="{DynamicResource MacSwitchOffFillPressed}" />
+                    </Style>
+                    <Style Selector="^ /template/ Border#MacSwitchThumb">
+                        <Setter Property="Opacity" Value="0" />
+                    </Style>
+                    <Style Selector="^ /template/ Panel#MacSwitchLens">
+                        <Setter Property="Opacity" Value="1" />
+                        <Setter Property="RenderTransform" Value="scale(1)" />
+                    </Style>
+                </Style>
+                <Style Selector="^:pressed:checked /template/ controls|MacSwitchTrack#MacSwitchTrack">
+                    <Setter Property="Background" Value="{DynamicResource AppMacAccentPressedBrush}" />
+                </Style>
+                <Style Selector="^:focus-visible /template/ Border#MacFocusRing">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+                <Style Selector="^:disabled">
+                    <Setter Property="Foreground" Value="{DynamicResource MacDisabledLabelBrush}" />
+                    <Style Selector="^ /template/ controls|MacSwitchTrack#MacSwitchTrack">
+                        <Setter Property="Background" Value="{DynamicResource MacSwitchOffFillDisabled}" />
+                    </Style>
+                </Style>
+                <Style Selector="^:disabled:checked /template/ controls|MacSwitchTrack#MacSwitchTrack">
+                    <Setter Property="Background" Value="{DynamicResource AppMacAccentDisabledBrush}" />
+                </Style>
+            </ControlTheme>
+
+            <ControlTheme x:Key="MacSettingsRadioButton" TargetType="RadioButton">
+                <Setter Property="FontFamily" Value="{DynamicResource AppMacControlFontFamily}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="LetterSpacing" Value="{DynamicResource AppMacControlLetterSpacing}" />
+                <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="MinHeight" Value="16" />
+                <Setter Property="Padding" Value="6,0.5,0,0" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="FocusAdorner" Value="{x:Null}" />
+                <Setter Property="ClipToBounds" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Grid ColumnDefinitions="16,*" Background="{TemplateBinding Background}">
+                            <Panel Width="16" Height="16" VerticalAlignment="Center">
+                                <Border Name="MacFocusRing" Theme="{StaticResource MacFocusRing}" CornerRadius="11" />
+                                <Ellipse Name="MacRadioWell" Fill="{DynamicResource MacRadioOffFill}" />
+                                <Ellipse Name="MacRadioDot" Width="5" Height="5" Fill="White" IsVisible="False" />
+                            </Panel>
+                            <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1"
+                                              Margin="{TemplateBinding Padding}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              RecognizesAccessKey="True" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:checked">
+                    <Style Selector="^ /template/ Ellipse#MacRadioWell">
+                        <Setter Property="Fill" Value="{DynamicResource AppAccentBrush}" />
+                    </Style>
+                    <Style Selector="^ /template/ Ellipse#MacRadioDot">
+                        <Setter Property="IsVisible" Value="True" />
+                    </Style>
+                </Style>
+                <Style Selector="^:pressed /template/ Ellipse#MacRadioWell">
+                    <Setter Property="Fill" Value="{DynamicResource MacRadioOffFillPressed}" />
+                </Style>
+                <Style Selector="^:pressed:checked /template/ Ellipse#MacRadioWell">
+                    <Setter Property="Fill" Value="{DynamicResource AppMacAccentPressedBrush}" />
+                </Style>
+                <Style Selector="^:focus-visible /template/ Border#MacFocusRing">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+                <Style Selector="^:disabled">
+                    <Setter Property="Foreground" Value="{DynamicResource MacDisabledLabelBrush}" />
+                    <Style Selector="^ /template/ Ellipse#MacRadioWell">
+                        <Setter Property="Fill" Value="{DynamicResource MacRadioOffFillDisabled}" />
+                    </Style>
+                </Style>
+                <Style Selector="^:disabled:checked">
+                    <Style Selector="^ /template/ Ellipse#MacRadioWell">
+                        <Setter Property="Fill" Value="{DynamicResource MacRadioDisabledOnFill}" />
+                    </Style>
+                    <Style Selector="^ /template/ Ellipse#MacRadioDot">
+                        <Setter Property="Fill" Value="{DynamicResource MacRadioDisabledDot}" />
+                    </Style>
+                </Style>
+            </ControlTheme>
+
+            <!-- The check mark and the mixed-state dash are round-capped strokes. -->
+            <ControlTheme x:Key="MacCheckBox" TargetType="CheckBox">
+                <Setter Property="FontFamily" Value="{DynamicResource AppMacControlFontFamily}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="LetterSpacing" Value="{DynamicResource AppMacControlLetterSpacing}" />
+                <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="MinHeight" Value="16" />
+                <Setter Property="Padding" Value="6,0.5,0,0" />
+                <Setter Property="HorizontalAlignment" Value="Left" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="FocusAdorner" Value="{x:Null}" />
+                <Setter Property="ClipToBounds" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Grid ColumnDefinitions="16,*" Background="{TemplateBinding Background}">
+                            <Panel Width="16" Height="16" VerticalAlignment="Center">
+                                <Border Name="MacFocusRing" Theme="{StaticResource MacFocusRing}" CornerRadius="8.5" />
+                                <Border Name="MacCheckBoxWell" CornerRadius="5.5" Background="{DynamicResource MacCheckBoxOffFill}" />
+                                <Path Name="MacCheckGlyph" Data="M 4.02,8.72 L 6.92,12.08 L 11.78,4.7"
+                                      Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                      FlowDirection="LeftToRight" IsVisible="False" />
+                                <Path Name="MacMixedGlyph" Data="M 5.75,8 L 10.25,8"
+                                      Stroke="White" StrokeThickness="2" StrokeLineCap="Round"
+                                      IsVisible="False" />
+                            </Panel>
+                            <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1"
+                                              Margin="{TemplateBinding Padding}"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              IsVisible="{TemplateBinding Content, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                              TextWrapping="Wrap"
+                                              RecognizesAccessKey="True" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:checked /template/ Border#MacCheckBoxWell, ^:indeterminate /template/ Border#MacCheckBoxWell">
+                    <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+                </Style>
+                <Style Selector="^:checked /template/ Path#MacCheckGlyph">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+                <Style Selector="^:indeterminate /template/ Path#MacMixedGlyph">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+                <Style Selector="^:pressed /template/ Border#MacCheckBoxWell">
+                    <Setter Property="Background" Value="{DynamicResource MacCheckBoxOffFillPressed}" />
+                </Style>
+                <Style Selector="^:pressed:checked /template/ Border#MacCheckBoxWell, ^:pressed:indeterminate /template/ Border#MacCheckBoxWell">
+                    <Setter Property="Background" Value="{DynamicResource AppMacAccentPressedBrush}" />
+                </Style>
+                <Style Selector="^:focus-visible /template/ Border#MacFocusRing">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+                <Style Selector="^:disabled">
+                    <Setter Property="Foreground" Value="{DynamicResource MacDisabledLabelBrush}" />
+                    <Style Selector="^ /template/ Border#MacCheckBoxWell">
+                        <Setter Property="Background" Value="{DynamicResource MacCheckBoxOffFillDisabled}" />
+                    </Style>
+                    <Style Selector="^ /template/ Path#MacCheckGlyph, ^ /template/ Path#MacMixedGlyph">
+                        <Setter Property="Stroke" Value="{DynamicResource MacCheckBoxDisabledGlyph}" />
+                    </Style>
+                </Style>
+                <Style Selector="^:disabled:checked /template/ Border#MacCheckBoxWell, ^:disabled:indeterminate /template/ Border#MacCheckBoxWell">
+                    <Setter Property="Background" Value="{DynamicResource MacCheckBoxDisabledOnFill}" />
+                </Style>
+            </ControlTheme>
+
+            <!-- One side of the slider track. The inner part keeps the Fluent part name, so view styles
+                 for slider tracks apply in either style. -->
+            <ControlTheme x:Key="MacSliderHorizontalTrackPart" TargetType="RepeatButton">
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Panel Background="Transparent">
+                            <Border Name="TrackBackground" Height="6" VerticalAlignment="Center"
+                                    Margin="{TemplateBinding Padding}"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="{TemplateBinding CornerRadius}" />
+                        </Panel>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <ControlTheme x:Key="MacSliderVerticalTrackPart" TargetType="RepeatButton">
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Panel Background="Transparent">
+                            <Border Name="TrackBackground" Width="6" HorizontalAlignment="Center"
+                                    Margin="{TemplateBinding Padding}"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="{TemplateBinding CornerRadius}" />
+                        </Panel>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <!-- While its slider is pressed, the thumb becomes the same clear lens as a pressed switch thumb. -->
+            <ControlTheme x:Key="MacSliderThumb" TargetType="Thumb">
+                <Setter Property="Background" Value="{DynamicResource MacSliderKnob}" />
+                <Setter Property="ClipToBounds" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Panel>
+                            <Border Name="MacFocusRing" Theme="{StaticResource MacFocusRing}" CornerRadius="11" />
+                            <Border Name="MacSliderKnob" CornerRadius="8"
+                                    Background="{TemplateBinding Background}"
+                                    BoxShadow="0 1 5 0 #1C000000, 0 0 36 0 #18000000">
+                                <Border.Transitions>
+                                    <Transitions>
+                                        <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                                    </Transitions>
+                                </Border.Transitions>
+                            </Border>
+                            <Panel Name="MacSliderLens" Margin="-3"
+                                   IsHitTestVisible="False" Opacity="0" RenderTransform="scale(0.75)">
+                                <Panel.Transitions>
+                                    <Transitions>
+                                        <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                                        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" Easing="CubicEaseOut" />
+                                    </Transitions>
+                                </Panel.Transitions>
+                                <Border CornerRadius="11" BorderThickness="1.5" Margin="0,5,0,-5"
+                                        BorderBrush="{DynamicResource MacSwitchLensShadow}">
+                                    <Border.Effect>
+                                        <BlurEffect Radius="8" />
+                                    </Border.Effect>
+                                </Border>
+                                <Border CornerRadius="11" BorderThickness="1"
+                                        Background="{DynamicResource MacSwitchLensBody}"
+                                        BorderBrush="{DynamicResource MacSwitchLensOutline}">
+                                    <Border CornerRadius="10" BorderThickness="1"
+                                            BorderBrush="{DynamicResource MacSwitchLensRim}" />
+                                </Border>
+                            </Panel>
+                        </Panel>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^[(controls|MacSliderThumbState.ShowsLens)=True]">
+                    <Style Selector="^ /template/ Border#MacSliderKnob">
+                        <Setter Property="Opacity" Value="0" />
+                    </Style>
+                    <Style Selector="^ /template/ Panel#MacSliderLens">
+                        <Setter Property="Opacity" Value="1" />
+                        <Setter Property="RenderTransform" Value="scale(1)" />
+                    </Style>
+                </Style>
+                <Style Selector="^[(controls|MacSliderThumbState.ShowsFocusRing)=True] /template/ Border#MacFocusRing">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+            </ControlTheme>
+
+            <!-- The track halves end square under the thumb. While pressed, the value fill reaches
+                 the thumb center over the other half, beneath the lens. -->
+            <ControlTheme x:Key="MacSlider" TargetType="Slider">
+                <Setter Property="Background" Value="{DynamicResource MacSliderTrackFill}" />
+                <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+                <Setter Property="FocusAdorner" Value="{x:Null}" />
+                <Setter Property="ClipToBounds" Value="False" />
+                <Style Selector="^:horizontal">
+                    <Setter Property="Template">
+                        <ControlTemplate>
+                            <DataValidationErrors ClipToBounds="False">
+                                <Track Name="PART_Track" MinHeight="16" Margin="{TemplateBinding Padding}"
+                                       Minimum="{TemplateBinding Minimum}"
+                                       Maximum="{TemplateBinding Maximum}"
+                                       Value="{TemplateBinding Value, Mode=TwoWay}"
+                                       IsDirectionReversed="{TemplateBinding IsDirectionReversed}"
+                                       Orientation="Horizontal">
+                                    <Track.IncreaseButton>
+                                        <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource MacSliderHorizontalTrackPart}"
+                                                      Background="{TemplateBinding Background}" CornerRadius="0,3,3,0" />
+                                    </Track.IncreaseButton>
+                                    <Track.DecreaseButton>
+                                        <RepeatButton Name="PART_DecreaseButton" Theme="{StaticResource MacSliderHorizontalTrackPart}"
+                                                      Background="{TemplateBinding Foreground}" CornerRadius="3,0,0,3" />
+                                    </Track.DecreaseButton>
+                                    <Thumb Name="MacSliderThumb" Theme="{StaticResource MacSliderThumb}" Width="20" Height="16" />
+                                </Track>
+                            </DataValidationErrors>
+                        </ControlTemplate>
+                    </Setter>
+                </Style>
+                <Style Selector="^:vertical">
+                    <Setter Property="Template">
+                        <ControlTemplate>
+                            <DataValidationErrors ClipToBounds="False">
+                                <Track Name="PART_Track" MinWidth="16" Margin="{TemplateBinding Padding}"
+                                       Minimum="{TemplateBinding Minimum}"
+                                       Maximum="{TemplateBinding Maximum}"
+                                       Value="{TemplateBinding Value, Mode=TwoWay}"
+                                       IsDirectionReversed="{TemplateBinding IsDirectionReversed}"
+                                       Orientation="Vertical">
+                                    <Track.IncreaseButton>
+                                        <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource MacSliderVerticalTrackPart}"
+                                                      Background="{TemplateBinding Background}" CornerRadius="3,3,0,0" />
+                                    </Track.IncreaseButton>
+                                    <Track.DecreaseButton>
+                                        <RepeatButton Name="PART_DecreaseButton" Theme="{StaticResource MacSliderVerticalTrackPart}"
+                                                      Background="{TemplateBinding Foreground}" CornerRadius="0,0,3,3" />
+                                    </Track.DecreaseButton>
+                                    <Thumb Name="MacSliderThumb" Theme="{StaticResource MacSliderThumb}" Width="16" Height="20" />
+                                </Track>
+                            </DataValidationErrors>
+                        </ControlTemplate>
+                    </Setter>
+                </Style>
+                <Style Selector="^:horizontal[IsDirectionReversed=True]">
+                    <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton">
+                        <Setter Property="CornerRadius" Value="3,0,0,3" />
+                    </Style>
+                    <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton">
+                        <Setter Property="CornerRadius" Value="0,3,3,0" />
+                    </Style>
+                </Style>
+                <Style Selector="^:vertical[IsDirectionReversed=True]">
+                    <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton">
+                        <Setter Property="CornerRadius" Value="0,0,3,3" />
+                    </Style>
+                    <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton">
+                        <Setter Property="CornerRadius" Value="3,3,0,0" />
+                    </Style>
+                </Style>
+                <Style Selector="^:pressed">
+                    <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton">
+                        <Setter Property="CornerRadius" Value="3" />
+                    </Style>
+                    <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton">
+                        <Setter Property="CornerRadius" Value="3" />
+                        <Setter Property="Background" Value="{DynamicResource AppMacAccentPressedBrush}" />
+                    </Style>
+                    <Style Selector="^ /template/ Thumb#MacSliderThumb">
+                        <Setter Property="controls:MacSliderThumbState.ShowsLens" Value="True" />
+                    </Style>
+                </Style>
+                <!-- Each half reaches toward the thumb: the fill to its center, the other half past the fill's rounded end. -->
+                <Style Selector="^:pressed:horizontal">
+                    <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton">
+                        <Setter Property="Padding" Value="-13,0,0,0" />
+                    </Style>
+                    <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton">
+                        <Setter Property="Padding" Value="0,0,-10,0" />
+                    </Style>
+                </Style>
+                <Style Selector="^:pressed:horizontal[IsDirectionReversed=True]">
+                    <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton">
+                        <Setter Property="Padding" Value="0,0,-13,0" />
+                    </Style>
+                    <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton">
+                        <Setter Property="Padding" Value="-10,0,0,0" />
+                    </Style>
+                </Style>
+                <Style Selector="^:pressed:vertical">
+                    <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton">
+                        <Setter Property="Padding" Value="0,0,0,-13" />
+                    </Style>
+                    <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton">
+                        <Setter Property="Padding" Value="0,-10,0,0" />
+                    </Style>
+                </Style>
+                <Style Selector="^:pressed:vertical[IsDirectionReversed=True]">
+                    <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton">
+                        <Setter Property="Padding" Value="0,-13,0,0" />
+                    </Style>
+                    <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton">
+                        <Setter Property="Padding" Value="0,0,0,-10" />
+                    </Style>
+                </Style>
+                <Style Selector="^:focus-visible /template/ Thumb#MacSliderThumb">
+                    <Setter Property="controls:MacSliderThumbState.ShowsFocusRing" Value="True" />
+                </Style>
+                <Style Selector="^:disabled /template/ RepeatButton#PART_DecreaseButton">
+                    <Setter Property="Background" Value="{DynamicResource MacSliderValueFillDisabled}" />
+                </Style>
+            </ControlTheme>
+
+            <!-- Field chrome stays within the control bounds, including in clipped content hosts. -->
+            <ControlTheme x:Key="MacSettingsTextBox" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="FontFamily" Value="{DynamicResource AppMacControlFontFamily}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="LetterSpacing" Value="{DynamicResource AppMacControlLetterSpacing}" />
+                <Setter Property="MinHeight" Value="24" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="Padding" Value="6,0.5,6,0" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Background" Value="{DynamicResource MacFieldFill}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource MacFieldBorder}" />
+                <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />
+                <Setter Property="PlaceholderForeground" Value="{DynamicResource MacPlaceholderBrush}" />
+                <Setter Property="CaretBrush" Value="{DynamicResource AppAccentBrush}" />
+                <Setter Property="SelectionBrush" Value="{DynamicResource AppMacTextSelectionBrush}" />
+                <Setter Property="SelectionForegroundBrush" Value="{DynamicResource MacLabelBrush}" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="ClipToBounds" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <DataValidationErrors ClipToBounds="False">
+                            <Panel>
+                                <Border Name="MacFieldOutline"
+                                        Background="{TemplateBinding Background}"
+                                        CornerRadius="{TemplateBinding CornerRadius}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}" />
+                                <Border Name="MacFocusRing" Theme="{StaticResource MacFocusRing}"
+                                        Margin="0" CornerRadius="{TemplateBinding CornerRadius}" />
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <ContentPresenter Grid.Column="0"
+                                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                      Content="{TemplateBinding InnerLeftContent}" />
+                                    <DockPanel Name="PART_InnerDockPanel" Grid.Column="1" Margin="{TemplateBinding Padding}">
+                                        <ScrollViewer Name="PART_ScrollViewer"
+                                                      HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                                      VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
+                                                      IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+                                                      AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
+                                                      BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}">
+                                            <Panel>
+                                                <TextBlock Name="PART_Placeholder"
+                                                           Foreground="{TemplateBinding PlaceholderForeground}"
+                                                           Text="{TemplateBinding PlaceholderText}"
+                                                           TextAlignment="{TemplateBinding TextAlignment}"
+                                                           TextWrapping="{TemplateBinding TextWrapping}"
+                                                           HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                                                    <TextBlock.IsVisible>
+                                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                            <Binding ElementName="PART_TextPresenter" Path="PreeditText" Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                                                            <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Text" Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                                                        </MultiBinding>
+                                                    </TextBlock.IsVisible>
+                                                </TextBlock>
+                                                <TextPresenter Name="PART_TextPresenter"
+                                                               Text="{TemplateBinding Text, Mode=TwoWay}"
+                                                               CaretBlinkInterval="{TemplateBinding CaretBlinkInterval}"
+                                                               CaretIndex="{TemplateBinding CaretIndex}"
+                                                               SelectionStart="{TemplateBinding SelectionStart}"
+                                                               SelectionEnd="{TemplateBinding SelectionEnd}"
+                                                               TextAlignment="{TemplateBinding TextAlignment}"
+                                                               TextWrapping="{TemplateBinding TextWrapping}"
+                                                               LineHeight="{TemplateBinding LineHeight}"
+                                                               LetterSpacing="{TemplateBinding LetterSpacing}"
+                                                               PasswordChar="{TemplateBinding PasswordChar}"
+                                                               RevealPassword="{TemplateBinding RevealPassword}"
+                                                               SelectionBrush="{TemplateBinding SelectionBrush}"
+                                                               SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                                               CaretBrush="{TemplateBinding CaretBrush}"
+                                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                            </Panel>
+                                            <ScrollViewer.Styles>
+                                                <Style Selector="ScrollContentPresenter#PART_ContentPresenter">
+                                                    <Setter Property="Cursor" Value="IBeam" />
+                                                </Style>
+                                            </ScrollViewer.Styles>
+                                        </ScrollViewer>
+                                    </DockPanel>
+                                    <ContentPresenter Grid.Column="2"
+                                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                      Content="{TemplateBinding InnerRightContent}" />
+                                </Grid>
+                            </Panel>
+                        </DataValidationErrors>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:pointerover, ^:focus">
+                    <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />
+                </Style>
+                <Style Selector="^:focus /template/ Border#MacFocusRing">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+                <Style Selector="^:error /template/ Border#MacFieldOutline">
+                    <Setter Property="BorderBrush" Value="{DynamicResource SystemControlErrorTextForegroundBrush}" />
+                </Style>
+                <Style Selector="^:disabled">
+                    <Setter Property="Foreground" Value="{DynamicResource MacDisabledLabelBrush}" />
+                </Style>
+                <Style Selector="^[AcceptsReturn=True]">
+                    <Setter Property="VerticalContentAlignment" Value="Top" />
+                </Style>
+            </ControlTheme>
+
+            <!-- One half of a stepper; each half highlights on its own while pressed. -->
+            <ControlTheme x:Key="MacStepperButton" TargetType="RepeatButton">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource MacStepperGlyph}" />
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                            <ContentPresenter Content="{TemplateBinding Content}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:pressed">
+                    <Setter Property="Background" Value="{DynamicResource MacStepperPressed}" />
+                </Style>
+                <Style Selector="^:disabled">
+                    <Setter Property="Foreground" Value="{DynamicResource MacDisabledLabelBrush}" />
+                </Style>
+            </ControlTheme>
+
+            <!-- A field with a separate stepper beside it, as AppKit pairs NSTextField and NSStepper. -->
+            <ControlTheme x:Key="MacStepper" TargetType="ButtonSpinner">
+                <Setter Property="ClipToBounds" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              VerticalAlignment="Center" />
+                            <Grid Name="MacStepperBody" Grid.Column="1" Width="20" Height="24" Margin="4,0,0,0"
+                                  RowDefinitions="*,*" VerticalAlignment="Center"
+                                  IsVisible="{TemplateBinding ShowButtonSpinner}">
+                                <Border Name="MacStepperFill" Grid.RowSpan="2" CornerRadius="6" Background="{DynamicResource MacControlFill}" />
+                                <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource MacStepperButton}"
+                                              CornerRadius="6,6,0,0">
+                                    <Path Data="M 5,8.7 L 10,3.7 L 15,8.7" StrokeThickness="1.5"
+                                          StrokeLineCap="Round" StrokeJoin="Round"
+                                          Stroke="{Binding $parent[RepeatButton].Foreground}" />
+                                </RepeatButton>
+                                <RepeatButton Name="PART_DecreaseButton" Grid.Row="1" Theme="{StaticResource MacStepperButton}"
+                                              CornerRadius="0,0,6,6">
+                                    <Path Data="M 5,3.7 L 10,8.7 L 15,3.7" StrokeThickness="1.5"
+                                          StrokeLineCap="Round" StrokeJoin="Round"
+                                          Stroke="{Binding $parent[RepeatButton].Foreground}" />
+                                </RepeatButton>
+                                <Border Grid.RowSpan="2" Height="1" Margin="3,0" VerticalAlignment="Center"
+                                        Background="{DynamicResource MacStepperDivider}" IsHitTestVisible="False" />
+                            </Grid>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:disabled /template/ Border#MacStepperFill">
+                    <Setter Property="Background" Value="{DynamicResource MacControlFillDisabled}" />
+                </Style>
+            </ControlTheme>
+
+            <ControlTheme x:Key="MacSettingsNumericUpDown" TargetType="NumericUpDown">
+                <Setter Property="FontFamily" Value="{DynamicResource AppMacControlFontFamily}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="LetterSpacing" Value="{DynamicResource AppMacControlLetterSpacing}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="ClipToBounds" Value="False" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <DataValidationErrors ClipToBounds="False">
+                            <ButtonSpinner Name="PART_Spinner" Theme="{StaticResource MacStepper}"
+                                           IsTabStop="False"
+                                           AllowSpin="{TemplateBinding AllowSpin}"
+                                           ShowButtonSpinner="{TemplateBinding ShowButtonSpinner}"
+                                           ButtonSpinnerLocation="{TemplateBinding ButtonSpinnerLocation}">
+                                <TextBox Name="PART_TextBox" Theme="{StaticResource MacSettingsTextBox}"
+                                         PlaceholderText="{TemplateBinding PlaceholderText}"
+                                         IsReadOnly="{TemplateBinding IsReadOnly}"
+                                         HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                         Text="{TemplateBinding Text}"
+                                         TextAlignment="{TemplateBinding TextAlignment}"
+                                         AcceptsReturn="False"
+                                         TextWrapping="NoWrap"
+                                         InnerLeftContent="{Binding InnerLeftContent, RelativeSource={RelativeSource TemplatedParent}}"
+                                         InnerRightContent="{Binding InnerRightContent, RelativeSource={RelativeSource TemplatedParent}}" />
+                            </ButtonSpinner>
+                        </DataValidationErrors>
+                    </ControlTemplate>
+                </Setter>
+            </ControlTheme>
+
+            <ControlTheme x:Key="MacSettingsComboBoxItem" TargetType="ComboBoxItem">
+                <Setter Property="FontFamily" Value="{DynamicResource AppMacControlFontFamily}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="LetterSpacing" Value="{DynamicResource AppMacControlLetterSpacing}" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="MinHeight" Value="24" />
+                <Setter Property="Padding" Value="6,3" />
+                <Setter Property="CornerRadius" Value="4" />
+                <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <Border Name="MacMenuItem" Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                            <Grid ColumnDefinitions="16,*">
+                                <PathIcon Width="10" Height="10" Data="M 0,5 L 1.5,3.5 L 4,6 L 8.5,0 L 10,1.5 L 4,10 Z"
+                                          IsVisible="{TemplateBinding IsSelected}" />
+                                <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1"
+                                                  Content="{TemplateBinding Content}"
+                                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^:pointerover, ^:selected">
+                    <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+                    <Setter Property="Foreground" Value="White" />
+                </Style>
+                <Style Selector="^:disabled">
+                    <Setter Property="Foreground" Value="{DynamicResource MacDisabledLabelBrush}" />
+                </Style>
+            </ControlTheme>
+
+            <!-- Choices open as the platform's pop-up button menu; the Avalonia drop-down is the fallback. -->
+            <ControlTheme x:Key="MacSettingsComboBox" TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                <Setter Property="FontFamily" Value="{DynamicResource AppMacControlFontFamily}" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="LetterSpacing" Value="{DynamicResource AppMacControlLetterSpacing}" />
+                <Setter Property="MinHeight" Value="24" />
+                <Setter Property="Padding" Value="0,0.5,30,0" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Background" Value="{DynamicResource MacControlFill}" />
+                <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />
+                <Setter Property="PlaceholderForeground" Value="{DynamicResource MacPlaceholderBrush}" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+                <Setter Property="FocusAdorner" Value="{x:Null}" />
+                <Setter Property="ClipToBounds" Value="False" />
+                <Setter Property="ItemContainerTheme" Value="{StaticResource MacSettingsComboBoxItem}" />
+                <Setter Property="services:NativeContextMenu.IsNativeSelection" Value="True" />
+                <Setter Property="Template">
+                    <ControlTemplate>
+                        <DataValidationErrors ClipToBounds="False">
+                            <Panel>
+                                <Border Name="MacFocusRing" Theme="{StaticResource MacFocusRing}" CornerRadius="9" />
+                                <Border Name="MacPopupBezel"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="{TemplateBinding CornerRadius}" />
+                                <TextBlock Name="MacPlaceholder"
+                                           Margin="12,0.5,30,0"
+                                           HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                           Text="{TemplateBinding PlaceholderText}"
+                                           Foreground="{TemplateBinding PlaceholderForeground}"
+                                           TextTrimming="CharacterEllipsis">
+                                    <TextBlock.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                            <Binding Path="SelectionBoxItem" RelativeSource="{RelativeSource TemplatedParent}" Converter="{x:Static ObjectConverters.IsNull}" />
+                                            <Binding Path="!IsEditable" RelativeSource="{RelativeSource TemplatedParent}" />
+                                        </MultiBinding>
+                                    </TextBlock.IsVisible>
+                                </TextBlock>
+                                <controls:PopupTitleDecorator Margin="{TemplateBinding Padding}"
+                                                              IsVisible="{TemplateBinding IsEditable, Converter={x:Static BoolConverters.Not}}">
+                                    <ContentPresenter Name="MacSelection"
+                                                      Content="{TemplateBinding SelectionBoxItem}"
+                                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                      TextTrimming="CharacterEllipsis"
+                                                      TextWrapping="NoWrap" />
+                                </controls:PopupTitleDecorator>
+                                <TextBox Name="PART_EditableTextBox"
+                                         Padding="12,0.5,30,0"
+                                         HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                         VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                         Foreground="{TemplateBinding Foreground}"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         Text="{TemplateBinding Text, Mode=TwoWay}"
+                                         PlaceholderText="{TemplateBinding PlaceholderText}"
+                                         IsVisible="{TemplateBinding IsEditable}" />
+                                <!-- Two stacked chevrons, as on an AppKit pop-up button. -->
+                                <Path Name="MacPopupGlyph" Width="8" Height="11" Margin="0,0,9.75,0"
+                                      HorizontalAlignment="Right" VerticalAlignment="Center"
+                                      IsHitTestVisible="False"
+                                      Stroke="{TemplateBinding Foreground}" StrokeThickness="1.3"
+                                      StrokeLineCap="Round" StrokeJoin="Round"
+                                      Data="M 0.9,3.9 L 4,0.8 L 7.1,3.9 M 0.9,7.1 L 4,10.2 L 7.1,7.1" />
+                                <Popup Name="PART_Popup"
+                                       WindowManagerAddShadowHint="False"
+                                       IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
+                                       MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                                       MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                       PlacementTarget="MacPopupBezel"
+                                       IsLightDismissEnabled="True"
+                                       InheritsTransform="True">
+                                    <Border Name="PopupBorder"
+                                            Background="{DynamicResource MacMenuFill}"
+                                            BorderBrush="{DynamicResource MacMenuBorder}"
+                                            BorderThickness="1"
+                                            Padding="4"
+                                            CornerRadius="7"
+                                            BoxShadow="0 5 16 0 #40000000">
+                                        <ScrollViewer HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}"
+                                                      VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}"
+                                                      IsScrollChainingEnabled="False">
+                                            <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                                        </ScrollViewer>
+                                    </Border>
+                                </Popup>
+                            </Panel>
+                        </DataValidationErrors>
+                    </ControlTemplate>
+                </Setter>
+                <Style Selector="^ /template/ ContentPresenter#MacSelection TextBlock">
+                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                    <Setter Property="TextWrapping" Value="NoWrap" />
+                </Style>
+                <Style Selector="^:pressed /template/ Border#MacPopupBezel">
+                    <Setter Property="Background" Value="{DynamicResource MacControlFillPressed}" />
+                </Style>
+                <Style Selector="^:focus-visible /template/ Border#MacFocusRing">
+                    <Setter Property="IsVisible" Value="True" />
+                </Style>
+                <Style Selector="^:error /template/ Border#MacPopupBezel">
+                    <Setter Property="BorderBrush" Value="{DynamicResource SystemControlErrorTextForegroundBrush}" />
+                    <Setter Property="BorderThickness" Value="1" />
+                </Style>
+                <Style Selector="^:disabled">
+                    <Setter Property="Foreground" Value="{DynamicResource MacDisabledLabelBrush}" />
+                    <Style Selector="^ /template/ Border#MacPopupBezel">
+                        <Setter Property="Background" Value="{DynamicResource MacControlFillDisabled}" />
+                    </Style>
+                </Style>
+            </ControlTheme>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <Style Selector=":is(TopLevel)">
+        <Setter Property="(Classes.appleControls)" Value="{DynamicResource AppIsAppleChrome}" />
+    </Style>
+
+    <Style Selector=":is(TopLevel).appleControls">
+        <Style Selector="^ TextBlock.settingName">
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground" Value="{DynamicResource MacSettingsLabelBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="^ TextBlock.settingDescription">
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Foreground" Value="{DynamicResource MacSettingsSecondaryLabelBrush}" />
+        </Style>
+        <!-- Groups have no outline; dividers stop at the row content inset. -->
+        <Style Selector="^ Border.settingsGroup">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+        <Style Selector="^ Border.settingsGroup.joinedBelow">
+            <Setter Property="CornerRadius" Value="12,12,0,0" />
+        </Style>
+        <Style Selector="^ Border.settingsGroup.joinedAbove">
+            <Setter Property="CornerRadius" Value="0,0,12,12" />
+        </Style>
+        <Style Selector="^ Border.settingsDivider">
+            <Setter Property="Margin" Value="16,0" />
+        </Style>
+        <Style Selector="^ Border.settingsDividedRow">
+            <Setter Property="Margin" Value="16,0" />
+            <Setter Property="Padding" Value="0,12" />
+        </Style>
+        <Style Selector="^ controls|SettingRow ContentControl.settingAction">
+            <Setter Property="ClipToBounds" Value="False" />
+        </Style>
+        <Style Selector="^ ToggleSwitch">
+            <Setter Property="Theme" Value="{StaticResource MacSettingsToggleSwitch}" />
+        </Style>
+        <Style Selector="^ TextBox:not(#PART_TextBox):not(#PART_EditableTextBox)">
+            <Setter Property="Theme" Value="{StaticResource MacSettingsTextBox}" />
+        </Style>
+        <Style Selector="^ ComboBox">
+            <Setter Property="Theme" Value="{StaticResource MacSettingsComboBox}" />
+        </Style>
+        <Style Selector="^ NumericUpDown">
+            <Setter Property="Theme" Value="{StaticResource MacSettingsNumericUpDown}" />
+        </Style>
+        <Style Selector="^ RadioButton">
+            <Setter Property="Theme" Value="{StaticResource MacSettingsRadioButton}" />
+        </Style>
+        <Style Selector="^ CheckBox">
+            <Setter Property="Theme" Value="{StaticResource MacCheckBox}" />
+        </Style>
+        <Style Selector="^ Slider">
+            <Setter Property="Theme" Value="{StaticResource MacSlider}" />
+        </Style>
+        <Style Selector="^ Button:not(.icon):not(.miniIcon):not(.link):not(.accent):not(.tileButton):not(.nav)">
+            <Setter Property="Theme" Value="{StaticResource MacSettingsButton}" />
+        </Style>
+    </Style>
+
+    <!-- Controls in a window that is not key lose their accent emphasis and focus rings. -->
+    <Style Selector=":is(Window).appleControls[IsActive=False]">
+        <Style Selector="^ Button[IsDefault=True]:not(.icon):not(.miniIcon):not(.link):not(.accent):not(.tileButton):not(.nav):not(:disabled)">
+            <Setter Property="Background" Value="{DynamicResource MacControlFill}" />
+            <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />
+        </Style>
+        <Style Selector="^ Button[IsDefault=True]:not(.icon):not(.miniIcon):not(.link):not(.accent):not(.tileButton):not(.nav):pressed">
+            <Setter Property="Background" Value="{DynamicResource MacControlFillPressed}" />
+        </Style>
+        <Style Selector="^ ToggleSwitch:checked /template/ controls|MacSwitchTrack#MacSwitchTrack">
+            <Setter Property="Background" Value="{DynamicResource MacSwitchInactiveOnFill}" />
+        </Style>
+        <Style Selector="^ ToggleSwitch:checked:disabled /template/ controls|MacSwitchTrack#MacSwitchTrack">
+            <Setter Property="Background" Value="{DynamicResource MacSwitchInactiveDisabledOnFill}" />
+        </Style>
+        <Style Selector="^ RadioButton:checked:not(:disabled)">
+            <Style Selector="^ /template/ Ellipse#MacRadioWell">
+                <Setter Property="Fill" Value="{DynamicResource MacRadioInactiveOnFill}" />
+            </Style>
+            <Style Selector="^ /template/ Ellipse#MacRadioDot">
+                <Setter Property="Fill" Value="{DynamicResource MacRadioInactiveDot}" />
+            </Style>
+        </Style>
+        <Style Selector="^ CheckBox:checked:not(:disabled) /template/ Border#MacCheckBoxWell, ^ CheckBox:indeterminate:not(:disabled) /template/ Border#MacCheckBoxWell">
+            <Setter Property="Background" Value="{DynamicResource MacCheckBoxInactiveOnFill}" />
+        </Style>
+        <Style Selector="^ CheckBox:not(:disabled) /template/ Path#MacCheckGlyph, ^ CheckBox:not(:disabled) /template/ Path#MacMixedGlyph">
+            <Setter Property="Stroke" Value="{DynamicResource MacCheckBoxInactiveGlyph}" />
+        </Style>
+        <Style Selector="^ Slider:not(:disabled) /template/ RepeatButton#PART_DecreaseButton">
+            <Setter Property="Background" Value="{DynamicResource MacSliderValueFillInactive}" />
+        </Style>
+        <Style Selector="^ TextBox">
+            <Setter Property="SelectionBrush" Value="{DynamicResource MacUnemphasizedSelection}" />
+        </Style>
+        <Style Selector="^ Button /template/ Border#MacFocusRing, ^ ToggleSwitch /template/ Border#MacFocusRing, ^ RadioButton /template/ Border#MacFocusRing, ^ CheckBox /template/ Border#MacFocusRing, ^ Slider /template/ Thumb /template/ Border#MacFocusRing, ^ TextBox /template/ Border#MacFocusRing, ^ ComboBox /template/ Border#MacFocusRing">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+    </Style>
+</Styles>

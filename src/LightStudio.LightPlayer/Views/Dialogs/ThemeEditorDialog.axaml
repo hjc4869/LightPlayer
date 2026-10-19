@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:strings="using:LightStudio.LightPlayer.Strings"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Dialogs"
+        xmlns:dialogs="using:LightStudio.LightPlayer.Views.Dialogs"
+        mc:Ignorable="d"
+        d:DesignWidth="460"
+        d:DesignHeight="660"
+        x:Class="LightStudio.LightPlayer.Views.Dialogs.ThemeEditorDialog"
+        x:DataType="vm:ThemeEditorViewModel"
+        Width="470"
+        Height="680"
+        MinWidth="420"
+        MinHeight="480"
+        Padding="18"
+        Background="{DynamicResource AppPageBackgroundBrush}"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding ThemeEditor_WindowTitle, Source={x:Static strings:LocalizedStrings.Instance}}">
+    <dialogs:ThemeEditorView />
+</Window>

@@ -2,17 +2,19 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:views="using:LightStudio.LightPlayer.Views.Pages"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
              mc:Ignorable="d"
              d:DesignWidth="620"
              d:DesignHeight="560"
              x:Class="LightStudio.LightPlayer.Views.Pages.AppearanceSettingsSectionView"
              x:DataType="vm:AppearanceSettingsSectionViewModel">
+    <!-- The inset lives on the content, not the scroll viewer, so the scroll bar stays at the pane edge. -->
     <ScrollViewer>
-        <StackPanel Spacing="16">
+        <StackPanel Margin="{Binding ContentMargin}"
+                    Spacing="16">
+            <views:AppearancePreferencesView DataContext="{Binding Preferences}" />
             <ContentControl Content="{Binding Theme}" />
-            <ContentControl Content="{Binding DefaultPage}" />
-            <ContentControl Content="{Binding Language}" />
         </StackPanel>
     </ScrollViewer>
 </UserControl>

@@ -1,19 +1,11 @@
 ﻿namespace LightStudio.MediaLibraryCore.Constants
 {
-    /// <summary>
-    /// Constant values of library.
-    /// </summary>
     static class LibraryConstants
     {
-        /// <summary>
-        /// Migration level that controls database migration.
-        /// DO change this after creating new migration.
-        /// </summary>
-        public const int CurrentMigrationLevel = 1;
+        /// <summary>Current media library schema level.</summary>
+        public const int CurrentMigrationLevel = 3;
 
-        /// <summary>
-        /// Key of the database migration level that will be stored in application configuration.
-        /// </summary>
+        /// <summary>Configuration key for the stored media library schema level.</summary>
         public const string DatabaseMigrationLevel = nameof(DatabaseMigrationLevel);
     }
 }

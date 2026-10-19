@@ -6,19 +6,23 @@ using LightStudio.LightPlayer.ViewModels.Pages;
 namespace LightStudio.LightPlayer.Behaviors;
 
 /// <summary>
-/// Remembers the vertical scroll offset of a library browse page (music / albums / artists) on its
-/// <see cref="ILibraryBrowsePageViewModel"/> and restores it when the view is shown again. Because the
+/// Remembers the vertical scroll offset of a browse or search page on its
+/// <see cref="IScrollPositionPageViewModel"/> and restores it when the view is shown again. Because the
 /// shell keeps browse view models alive on the back stack, navigating back from a detail page returns
 /// to the same grid scrolled to where the user left off instead of jumping back to the top.
 /// </summary>
 internal sealed class BrowseScrollMemory
 {
+    internal static readonly AttachedProperty<bool> IsReadOnlyProperty =
+        AvaloniaProperty.RegisterAttached<BrowseScrollMemory, Control, bool>("IsReadOnly", inherits: true);
+
     // The grid measures its content over a few layout passes after attaching (and may still be
     // loading); cap how long we wait for it to settle before giving up on restoring the offset.
     private const int MaxRestorePasses = 30;
 
     private readonly Control view;
     private readonly ScrollViewer[] scrollViewers;
+    private bool readOnly;
     private bool restoring;
     private int restorePasses;
 
@@ -26,6 +30,7 @@ internal sealed class BrowseScrollMemory
     {
         this.view = view;
         this.scrollViewers = scrollViewers;
+        readOnly = view.GetValue(IsReadOnlyProperty);
 
         view.AttachedToVisualTree += OnAttached;
         view.DetachedFromVisualTree += OnDetached;
@@ -36,13 +41,13 @@ internal sealed class BrowseScrollMemory
     }
 
     /// <summary>
-    /// Wires offset tracking for a browse page view. Pass every scroll viewer the page can show
-    /// (flat and grouped); only the one that is currently visible participates at any time.
+    /// Wires offset tracking for a browse page view. If a page has multiple adaptive scroll viewers,
+    /// only the one that is currently visible participates at any time.
     /// </summary>
     public static void Track(Control view, params ScrollViewer[] scrollViewers) =>
         _ = new BrowseScrollMemory(view, scrollViewers);
 
-    private ILibraryBrowsePageViewModel? ViewModel => view.DataContext as ILibraryBrowsePageViewModel;
+    private IScrollPositionPageViewModel? ViewModel => view.DataContext as IScrollPositionPageViewModel;
 
     private ScrollViewer? VisibleScrollViewer => Array.Find(scrollViewers, s => s.IsEffectivelyVisible);
 
@@ -50,7 +55,8 @@ internal sealed class BrowseScrollMemory
     {
         // Ignore the programmatic offset changes made while restoring so they do not overwrite the
         // saved position with a transient (often zero) value mid-layout.
-        if (restoring || sender is not ScrollViewer scrollViewer || !scrollViewer.IsEffectivelyVisible)
+        if (restoring || readOnly || view.GetValue(IsReadOnlyProperty) ||
+            sender is not ScrollViewer scrollViewer || !scrollViewer.IsEffectivelyVisible)
         {
             return;
         }
@@ -63,6 +69,7 @@ internal sealed class BrowseScrollMemory
 
     private void OnAttached(object? sender, VisualTreeAttachmentEventArgs e)
     {
+        readOnly = view.GetValue(IsReadOnlyProperty);
         // Watch the layout passes that follow attachment and apply the saved offset once the grid
         // has measured enough content to honor it.
         restoring = true;
@@ -119,7 +126,8 @@ internal sealed class BrowseScrollMemory
 
         // Capture the final position when leaving, in case the last scroll change was coalesced
         // away by the navigation transition tearing the view down.
-        if (VisibleScrollViewer is { } scrollViewer && ViewModel is { } viewModel)
+        if (!readOnly && !view.GetValue(IsReadOnlyProperty) &&
+            VisibleScrollViewer is { } scrollViewer && ViewModel is { } viewModel)
         {
             viewModel.ScrollOffset = scrollViewer.Offset.Y;
         }

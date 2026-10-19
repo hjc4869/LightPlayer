@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>lmr-avalonia</AssemblyName>
+    <RootNamespace>LightMediaRenderer.Avalonia</RootNamespace>
+    <Nullable>enable</Nullable>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Skia" />
+    <ProjectReference Include="..\LightMediaRenderer\LightMediaRenderer.csproj" />
+    <ProjectReference Include="..\LightStudio.FfmpegShim\LightStudio.FfmpegShim.csproj" />
+  </ItemGroup>
+</Project>

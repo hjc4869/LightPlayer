@@ -1,0 +1,279 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="500"
+             x:Class="LightStudio.LightPlayer.Views.Pages.VideoSettingsSectionView"
+             x:DataType="vm:VideoSettingsSectionViewModel">
+    <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
+        <StackPanel Spacing="4" Margin="0,0,0,4">
+            <TextBlock Text="{Binding Title}"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Text="{Binding Description}"
+                       FontSize="13"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <Border Classes="settingsGroup">
+            <StackPanel>
+        <controls:SettingRow Header="{Binding BufferHeader}"
+                             IsGrouped="True">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding BufferOptions}"
+                          SelectedItem="{Binding SelectedBuffer, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding DebandingHeader}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding DebandingOptions}"
+                          SelectedItem="{Binding SelectedDebanding, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding ScalingHeader}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding ScalingOptions}"
+                          SelectedItem="{Binding SelectedScaling, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding DownscalingHeader}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding ScalingOptions}"
+                          SelectedItem="{Binding SelectedDownscaling, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding PreferHardwareProcessingHeader}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ToggleSwitch OnContent=""
+                              OffContent=""
+                              IsChecked="{Binding PreferHardwareProcessing, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+            </StackPanel>
+        </Border>
+
+
+        <Border Classes="settingsGroup">
+            <StackPanel>
+        <controls:SettingRow Header="{Binding HdrPassthroughHeader}"
+                     Description="{Binding HdrPassthroughDescription}"
+                     IsVisible="{Binding SupportsAdvancedColorOutput}"
+                     IsGrouped="True">
+            <controls:SettingRow.ActionContent>
+                <ToggleSwitch OnContent=""
+                              OffContent=""
+                              IsChecked="{Binding EnableHdrPassthrough, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding Bt709InterpretationHeader}"
+                             Description="{Binding Bt709InterpretationDescription}"
+                             IsGrouped="True"
+                             HasTopDivider="{Binding SupportsAdvancedColorOutput}">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding Bt709InterpretationOptions}"
+                          SelectedItem="{Binding SelectedBt709Interpretation, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding PanelBitDepthHeader}"
+                             Description="{Binding PanelBitDepthDescription}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding PanelBitDepthOptions}"
+                          SelectedItem="{Binding SelectedPanelBitDepth, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding HardwareEnabledHeader}"
+                             IsVisible="{Binding HasHardwareDecoderSettings}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ToggleSwitch OnContent=""
+                              OffContent=""
+                              IsChecked="{Binding EnableHardwareDecoding, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding HardwareDecoderHeader}"
+                             Description="{Binding HardwareDecoderDescription}"
+                             IsVisible="{Binding HasHardwareDecoderSettings}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          IsEnabled="{Binding EnableHardwareDecoding}"
+                          ItemsSource="{Binding HardwareDecoderOptions}"
+                          SelectedItem="{Binding SelectedHardwareDecoder, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding PhotoDecodePreferenceHeader}"
+                             IsVisible="{Binding SupportsPhotoDecodePreference}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.Styles>
+                <Style Selector="TextBlock">
+                    <Setter Property="TextWrapping" Value="Wrap" />
+                </Style>
+            </controls:SettingRow.Styles>
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding PhotoDecodePreferenceOptions}"
+                          SelectedItem="{Binding SelectedPhotoDecodePreference, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding HardwareDeviceHeader}"
+                             Description="{Binding HardwareDeviceDescription}"
+                             IsVisible="{Binding HasHardwareDevices}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          IsEnabled="{Binding EnableHardwareDecoding}"
+                          ItemsSource="{Binding HardwareDeviceOptions}"
+                          SelectedItem="{Binding SelectedHardwareDevice, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <ItemsControl ItemsSource="{Binding HardwareOptions}"
+                      IsEnabled="{Binding EnableHardwareDecoding}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:HardwareOptionRowViewModel">
+                    <controls:SettingRow Header="{Binding Header}"
+                                         Description="{Binding Description}"
+                                         IsGrouped="True"
+                                         HasTopDivider="True">
+                        <controls:SettingRow.ActionContent>
+                            <Panel>
+                                <ComboBox Width="150"
+                                          IsVisible="{Binding IsChoice}"
+                                          ItemsSource="{Binding Choices}"
+                                          SelectedItem="{Binding SelectedChoice, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                                            <TextBlock Text="{Binding Title}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <TextBox Width="150"
+                                         IsVisible="{Binding IsText}"
+                                         Text="{Binding Text, Mode=TwoWay}" />
+                            </Panel>
+                        </controls:SettingRow.ActionContent>
+                    </controls:SettingRow>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <ItemsControl ItemsSource="{Binding HardwareFlags}"
+                      IsEnabled="{Binding EnableHardwareDecoding}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:HardwareFlagRowViewModel">
+                    <controls:SettingRow Header="{Binding Header}"
+                                         Description="{Binding Description}"
+                                         IsGrouped="True"
+                                         HasTopDivider="True">
+                        <controls:SettingRow.ActionContent>
+                            <ToggleSwitch OnContent=""
+                                          OffContent=""
+                                          IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
+                        </controls:SettingRow.ActionContent>
+                    </controls:SettingRow>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

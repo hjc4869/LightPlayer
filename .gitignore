@@ -236,6 +236,8 @@ ClientBin/
 *.dbproj.schemaview
 *.jfm
 *.pfx
+*.keystore
+*.jks
 *.publishsettings
 orleans.codegen.cs
 
@@ -360,3 +362,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# macOS
+.DS_Store

@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
@@ -9,13 +10,13 @@
              d:DesignHeight="320"
              x:Class="LightStudio.LightPlayer.Controls.AlbumSection"
              x:DataType="models:ArtistAlbumSectionModel">
-    <!-- Album block: cover + year on the left (hidden when narrow), album title with
-         play/queue actions on top-right, and the album's track rows below. -->
+        <!-- Album block: cover + year on the left (hidden when narrow), album title with
+            actions on top-right, and the album's track rows below. -->
     <Grid ColumnDefinitions="Auto,*">
         <StackPanel x:Name="CoverPanel"
                     Grid.Column="0"
                     Width="200"
-                    Margin="0,0,14,0"
+                    Margin="14,0"
                     Spacing="10">
             <controls:MediaThumbnail Width="200"
                                      Height="200"
@@ -28,30 +29,44 @@
                        Foreground="{DynamicResource AppSecondaryTextBrush}" />
         </StackPanel>
 
-        <Grid Grid.Column="1" RowDefinitions="Auto,*">
-            <DockPanel Grid.Row="0" Margin="0,4,0,8">
-                <StackPanel DockPanel.Dock="Right"
+        <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+            <DockPanel x:Name="HeaderBar" Grid.Row="0" Margin="0,4,2,8">
+                <StackPanel x:Name="HeaderActions"
+                            DockPanel.Dock="Right"
                             Orientation="Horizontal"
                             Spacing="2"
                             VerticalAlignment="Center">
                     <Button Classes="icon"
-                            Command="{Binding AddToQueueCommand}"
-                            ToolTip.Tip="Add to queue">
-                        <Viewbox Width="18" Height="18">
-                            <Path Data="{StaticResource IconAdd}"
-                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
-                        </Viewbox>
-                    </Button>
-                    <Button Classes="icon"
                             Command="{Binding PlayCommand}"
-                            ToolTip.Tip="Play">
+                            ToolTip.Tip="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}">
                         <Viewbox Width="18" Height="18">
                             <Path Data="{StaticResource IconPlay}"
                                   Fill="{DynamicResource AppPrimaryTextBrush}" />
                         </Viewbox>
                     </Button>
+                    <Button Classes="icon"
+                            Command="{Binding ShuffleCommand}"
+                            ToolTip.Tip="{Binding Common_Shuffle, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox Width="18" Height="18">
+                            <Path Data="{StaticResource IconShuffleAll}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                    <controls:AddToQueueButton Classes="icon"
+                            IconSize="18"
+                            Command="{Binding AddToQueueCommand}"
+                            ToolTip.Tip="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                    <Button Classes="icon"
+                            Command="{Binding AddToPlaylistCommand}"
+                            ToolTip.Tip="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox Width="18" Height="18">
+                            <Path Data="{StaticResource IconPlaylist}"
+                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
                 </StackPanel>
-                <TextBlock Margin="26,0,0,0"
+                <TextBlock x:Name="HeaderTitle"
+                           Margin="10,0,0,0"
                            Text="{Binding Title}"
                            FontSize="20"
                            FontWeight="SemiBold"
@@ -61,10 +76,27 @@
                            Foreground="{DynamicResource AppPrimaryTextBrush}" />
             </DockPanel>
 
-            <ItemsControl Grid.Row="1" ItemsSource="{Binding Tracks}">
+            <!-- Replaces the cover column while the section is narrow; carries the album
+                 title, year and the album actions over the artwork. -->
+            <controls:AlbumArtBanner x:Name="NarrowArtBanner"
+                                     Grid.Row="1"
+                                     Margin="0,0,0,10"
+                                     IsVisible="False"
+                                     Source="{Binding CoverImage}"
+                                     Title="{Binding Title}"
+                                     Meta="{Binding Year}" />
+
+            <ItemsControl Grid.Row="2" ItemsSource="{Binding Tracks}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel Orientation="Vertical" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="models:TrackRowModel">
-                        <controls:TrackRow />
+                        <controls:SelectionItem>
+                            <controls:TrackRow />
+                        </controls:SelectionItem>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

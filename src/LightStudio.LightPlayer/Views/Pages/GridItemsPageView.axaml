@@ -1,0 +1,107 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="860"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.GridItemsPageView"
+             x:DataType="vm:GridItemsPageViewModelBase"
+             lmr:FastImage.CachePool="{x:Static services:AlbumArtService.ThumbnailCache}">
+    <UserControl.Resources>
+        <DataTemplate x:Key="LibraryItemTemplate" DataType="models:LibraryTileModel" x:DataType="models:LibraryTileModel">
+            <Viewbox>
+                <controls:SelectionItem Classes="tile">
+                    <controls:LibraryTile />
+                </controls:SelectionItem>
+            </Viewbox>
+        </DataTemplate>
+    </UserControl.Resources>
+    <controls:PageSearchHost Search="{Binding PageSearch}">
+    <Grid RowDefinitions="Auto,*">
+        <controls:MultiSelectBar DataContext="{Binding Selection}" />
+        <!-- Loading -->
+        <StackPanel Grid.Row="1" IsVisible="{Binding IsLoading}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+            <ProgressBar IsIndeterminate="{Binding IsLoading}" Width="140" Height="4" />
+            <TextBlock Text="{Binding LoadingText}"
+                       HorizontalAlignment="Center"
+                       FontSize="13"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <!-- Empty -->
+        <controls:EmptyState Grid.Row="1" IsVisible="{Binding ShowEmpty}"
+                             Header="{Binding EmptyHeader}"
+                             Description="{Binding EmptyDescription}" />
+
+        <!-- Grid -->
+        <Grid Grid.Row="1" RowDefinitions="*,Auto">
+            <ScrollViewer x:Name="FlatScrollViewer" IsVisible="{Binding !GroupingEnabled}">
+                <ItemsControl ItemsSource="{Binding Items}"
+                              ItemTemplate="{StaticResource LibraryItemTemplate}"
+                              Margin="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,32,32,32'}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <controls:UniformTileGrid MinItemWidth="130"
+                                                      MinItemHeight="160"
+                                                      MinColumnSpacing="6"
+                                                      MinRowSpacing="2"
+                                                      TotalCount="{Binding TotalItemCount}" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+            <controls:GroupedItemsView x:Name="GroupedView" Model="{Binding Grouping}"
+                                       IsVisible="{Binding GroupingEnabled}"
+                                       HeaderAlignmentTarget="ArtHost"
+                                       ItemTemplate="{StaticResource LibraryItemTemplate}"
+                                       ContentInset="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,32,32,32'}" />
+            <Panel Grid.Row="1" Height="36">
+                <Panel.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                        <Binding Path="IsLoadingMore" />
+                        <Binding Path="HasLoadMoreError" />
+                    </MultiBinding>
+                </Panel.IsVisible>
+                <ProgressBar IsVisible="{Binding IsLoadingMore}"
+                             IsIndeterminate="{Binding IsLoadingMore}"
+                             Width="100"
+                             Height="3"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center" />
+                <Button IsVisible="{Binding HasLoadMoreError}"
+                        Command="{Binding RetryLoadMoreCommand}"
+                        Content="{Binding Common_Retry, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center" />
+            </Panel>
+        </Grid>
+
+        <Border Grid.Row="1" IsVisible="{Binding HasPartialFailures}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                MaxWidth="640"
+                Margin="16,8"
+                Padding="12,8"
+                CornerRadius="6"
+                Background="{DynamicResource AppPanelBackgroundBrush}"
+                BorderBrush="{DynamicResource AppFavoriteBrush}"
+                BorderThickness="1">
+            <TextBlock Text="{Binding PartialFailureText}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource AppFavoriteBrush}" />
+        </Border>
+    </Grid>
+    </controls:PageSearchHost>
+</UserControl>

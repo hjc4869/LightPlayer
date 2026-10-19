@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <Nullable>enable</Nullable>
+    <RootNamespace>LightStudio.VideoValidation.Desktop</RootNamespace>
+    <AssemblyName>LightStudio.VideoValidation.Desktop</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <_TargetOS Condition="$(RuntimeIdentifier.StartsWith('win'))">windows</_TargetOS>
+    <_TargetOS Condition="$(RuntimeIdentifier.StartsWith('linux'))">linux</_TargetOS>
+    <_TargetOS Condition="$(RuntimeIdentifier.StartsWith('osx'))">macos</_TargetOS>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
+    <_TargetOS Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</_TargetOS>
+    <_TargetOS Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</_TargetOS>
+    <_TargetOS Condition="$([MSBuild]::IsOSPlatform('OSX'))">macos</_TargetOS>
+  </PropertyGroup>
+  <PropertyGroup>
+    <IsWindowsTarget Condition="'$(_TargetOS)' == 'windows'">true</IsWindowsTarget>
+    <IsLinuxTarget Condition="'$(_TargetOS)' == 'linux'">true</IsLinuxTarget>
+    <IsMacOSTarget Condition="'$(_TargetOS)' == 'macos'">true</IsMacOSTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsWindowsTarget)' == 'true'">
+    <TargetFramework>$(TargetFramework)-$(WindowsTargetVersion)</TargetFramework>
+    <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsLinuxTarget)' == 'true'">
+    <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(IsMacOSTarget)' == 'true'">
+    <DefineConstants>$(DefineConstants);MACOS</DefineConstants>
+  </PropertyGroup>
+
+  <!--
+    Asset generation shells out to the FFmpeg CLI and needs GPL-only encoders (x264/x265), so
+    build/Ffmpeg.targets also drops the pinned GPL *static* ffmpeg/ffprobe into ffmpeg-gpl/.
+    Those executables are never loaded in process: the validator itself keeps binding the LGPL
+    shared libraries that come with the referenced desktop head, so what is measured here is the
+    same FFmpeg that ships to users.
+  -->
+  <PropertyGroup Condition="'$(IsWindowsTarget)' == 'true'">
+    <BundleFfmpegCli>true</BundleFfmpegCli>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Win32" />
+    <PackageReference Condition="'$(IsLinuxTarget)' == 'true'" Include="Avalonia.Wayland" />
+    <PackageReference Include="LightStudio.Ffmpeg" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ValidationApp/ValidationApp.csproj" />
+    <ProjectReference Include="../../../src/LightStudio.FfmpegShim/LightStudio.FfmpegShim.csproj" />
+    <ProjectReference Include="../../../src/LightStudio.LightPlayer.Desktop/LightStudio.LightPlayer.Desktop.csproj" />
+    <ProjectReference Include="../../../src/LightStudio.Logging/LightStudio.Logging.csproj" />
+  </ItemGroup>
+</Project>

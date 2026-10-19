@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Standalone server head
+    ======================
+    Runs the library index and remote API without any UI, or serves the browser client
+    as a same-origin relay to another Light Player server. Host configuration comes from
+    environment variables or a JSON config file; see Program.cs.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <RootNamespace>LightStudio.LightPlayer.Server</RootNamespace>
+    <AssemblyName>LightStudio.LightPlayer.Server</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <PublishAot>true</PublishAot>
+    <UseWindowsInference Condition="'$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.StartsWith('win'))">true</UseWindowsInference>
+    <UseWindowsInference Condition="'$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">true</UseWindowsInference>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(UseWindowsInference)' == 'true'">
+    <TargetFramework>$(TargetFramework)-$(WindowsTargetVersion)</TargetFramework>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LightStudio.Photos" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
+    <!-- Terminal UI for the "configure" subcommand; see Tui/ServerConfigurationTui.cs. -->
+    <PackageReference Include="Terminal.Gui" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LightStudio.Logging\LightStudio.Logging.csproj" />
+    <ProjectReference Include="..\LightStudio.LocalServices\LightStudio.LocalServices.csproj" />
+    <ProjectReference Condition="'$(UseWindowsInference)' == 'true'" Include="..\LightStudio.Inference.WindowsML\LightStudio.Inference.WindowsML.csproj" />
+    <ProjectReference Condition="'$(UseWindowsInference)' != 'true'" Include="..\LightStudio.Inference.Onnx\LightStudio.Inference.Onnx.csproj" />
+    <ProjectReference Include="..\LightStudio.Lyrics.Jint\LightStudio.Lyrics.Jint.csproj" />
+    <ProjectReference Include="..\LightStudio.LightPlayer\LightStudio.LightPlayer.csproj" />
+    <ProjectReference Include="..\LightStudio.RemoteApi\LightStudio.RemoteApi.csproj" />
+    <ProjectReference Include="..\LightStudio.MediaLibraryCore.Contracts\LightStudio.MediaLibraryCore.Contracts.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <NativeBindingsEnabled>true</NativeBindingsEnabled>
+  </PropertyGroup>
+</Project>

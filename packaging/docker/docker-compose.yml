@@ -1,0 +1,69 @@
+services:
+  lightplayer:
+    build:
+      context: ../..
+      dockerfile: packaging/docker/Dockerfile
+      args:
+        # Set to "true" to build and serve the WebAssembly browser client from this image.
+        # The default image serves the API only.
+        INCLUDE_WEB: "false"
+    image: lightplayer-server
+    restart: unless-stopped
+    # Keep an input stream and a terminal attached so `docker compose exec lightplayer
+    # LightStudio.LightPlayer.Server configure` can draw its terminal UI. See below.
+    stdin_open: true
+    tty: true
+    ports:
+      - "47832:47832"
+    volumes:
+      - /path/to/music:/music:ro
+      - /path/to/video:/video:ro
+      - lightplayer-data:/data
+      # Settings written by the terminal UI. Every value below can be edited there
+      # instead, and anything left out of this file falls back to the defaults:
+      #
+      #   docker compose run --rm lightplayer configure
+      #
+      # Use `run` rather than `exec` so the scan runs while the server is stopped;
+      # both write the same library database. Restart the service afterwards.
+      - lightplayer-config:/config
+    environment:
+      # Environment variables win over /config/lightplayer.json, so anything set here
+      # cannot be changed from the terminal UI. It lists the ones it found. Leave a
+      # setting out entirely to let the file own it.
+      # Set this to "true" to serve only the browser client and same-origin API relay.
+      # Library/data settings and local credentials are not used in proxy-only mode;
+      # the server selected in the browser picker handles authentication instead.
+      # LIGHTPLAYER_PROXY_ONLY: "false"
+      # Authentication is mandatory. Use LIGHTPLAYER_PASSWORD_HASH with the output of
+      # `dotnet LightStudio.LightPlayer.Server.dll hash-password <password>` to keep the
+      # plain password out of the compose file when LIGHTPLAYER_PROXY_ONLY is false.
+      # The terminal UI hashes a password typed into it and writes only the hash, so
+      # dropping both variables here lets it own the credentials instead.
+      LIGHTPLAYER_USERNAME: lightplayer
+      LIGHTPLAYER_PASSWORD: change-me
+      # Websites allowed to call this API from a browser, separated by commas. Pages served
+      # by anything not listed here are blocked by the browser; a client this server hosts
+      # itself is same-origin and needs no entry. Use "*" to allow every website.
+      # LIGHTPLAYER_ALLOWED_ORIGINS: https://lmp.hjc.im
+      # Re-encoding is off unless asked for: it is the one thing this server does that a
+      # machine can be too small for. Enabling it also needs the render node passed in
+      # (uncomment the devices block below) or every stream falls back to the processor,
+      # which LIGHTPLAYER_TRANSCODE_ALLOW_SOFTWARE has to permit separately.
+      # LIGHTPLAYER_TRANSCODE: "false"
+      # LIGHTPLAYER_TRANSCODE_HARDWARE: "true"
+      # LIGHTPLAYER_TRANSCODE_HARDWARE_SCALING: "false"
+      # LIGHTPLAYER_TRANSCODE_DEVICE_TYPE: vaapi
+      # LIGHTPLAYER_TRANSCODE_DEVICE: /dev/dri/renderD128
+      # VA-API rate control: auto, CQP, CBR, VBR, ICQ, QVBR, or AVBR. The default is VBR.
+      # LIGHTPLAYER_TRANSCODE_VAAPI_RATE_CONTROL: VBR
+      # VA-API speed-quality preference: quality, balanced, or speed. The default is balanced.
+      # LIGHTPLAYER_TRANSCODE_VAAPI_QUALITY: balanced
+      # LIGHTPLAYER_TRANSCODE_ALLOW_SOFTWARE: "false"
+      # Set to debug for additional stream-selection details. Information is the default.
+      # LIGHTPLAYER_LOG_LEVEL: debug
+    # devices:
+    #   - /dev/dri:/dev/dri
+
+volumes:
+  lightplayer-data:

@@ -1,15 +1,39 @@
+using System;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 
 namespace LightStudio.LightPlayer.Views.Dialogs;
 
 /// <summary>
-/// A minimal single-line text prompt used to name and rename playlists. Closes
-/// with the trimmed text, or null when cancelled.
+/// A minimal text prompt. Closes with the trimmed text, or null when canceled.
 /// </summary>
 public partial class TextPromptDialog : Window
 {
+    private Func<string, bool>? validation;
+    private string? validationMessage;
+
+    public bool AcceptsReturn
+    {
+        get => InputBox.AcceptsReturn;
+        set
+        {
+            InputBox.AcceptsReturn = value;
+            InputBox.Height = value ? 120 : double.NaN;
+            InputBox.MaxWidth = value ? 520 : double.PositiveInfinity;
+            InputBox.MaxHeight = value ? 120 : double.PositiveInfinity;
+            InputBox.TextWrapping = global::Avalonia.Media.TextWrapping.NoWrap;
+            ScrollViewer.SetHorizontalScrollBarVisibility(
+                InputBox,
+                value ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled);
+            ScrollViewer.SetVerticalScrollBarVisibility(
+                InputBox,
+                value ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled);
+            ConfirmButton.IsDefault = !value;
+        }
+    }
+
     public TextPromptDialog()
     {
         InitializeComponent();
@@ -28,6 +52,20 @@ public partial class TextPromptDialog : Window
         UpdateConfirmState();
     }
 
+    public TextPromptDialog(
+        string header,
+        string confirmLabel,
+        string? initialValue,
+        Func<string, bool> validation,
+        string validationMessage,
+        string? watermark = null)
+        : this(header, confirmLabel, initialValue)
+    {
+        this.validation = validation;
+        this.validationMessage = validationMessage;
+        InputBox.PlaceholderText = watermark;
+    }
+
     protected override void OnOpened(System.EventArgs e)
     {
         base.OnOpened(e);
@@ -37,7 +75,7 @@ public partial class TextPromptDialog : Window
 
     private void OnInputKeyUp(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && IsValid())
+        if (e.Key == Key.Enter && (!AcceptsReturn || e.KeyModifiers.HasFlag(KeyModifiers.Control)))
         {
             Confirm();
         }
@@ -51,17 +89,26 @@ public partial class TextPromptDialog : Window
 
     private void OnCancel(object? sender, RoutedEventArgs e) => Close(null);
 
-    private void OnInputTextChanged(object? sender, TextChangedEventArgs e) => UpdateConfirmState();
+    private void OnInputTextChanged(object? sender, TextChangedEventArgs e)
+    {
+        ValidationText.IsVisible = false;
+        UpdateConfirmState();
+    }
 
     private void Confirm()
     {
-        if (IsValid())
+        string value = InputBox.Text?.Trim() ?? string.Empty;
+        if (value.Length == 0)
+            return;
+        if (validation?.Invoke(value) == false)
         {
-            Close(InputBox.Text!.Trim());
+            ValidationText.Text = validationMessage;
+            ValidationText.IsVisible = true;
+            return;
         }
+
+        Close(value);
     }
 
-    private bool IsValid() => !string.IsNullOrWhiteSpace(InputBox.Text);
-
-    private void UpdateConfirmState() => ConfirmButton.IsEnabled = IsValid();
+    private void UpdateConfirmState() => ConfirmButton.IsEnabled = !string.IsNullOrWhiteSpace(InputBox.Text);
 }

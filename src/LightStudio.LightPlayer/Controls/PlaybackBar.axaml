@@ -1,10 +1,12 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
              xmlns:conv="using:LightStudio.LightPlayer.Converters"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
              mc:Ignorable="d"
              d:DesignWidth="1100"
              d:DesignHeight="80"
@@ -24,11 +26,20 @@
         <Style Selector="Button.trackInfo:pressed /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
         </Style>
+        <Style Selector="Border#BarSurface">
+            <Setter Property="Background" Value="{DynamicResource AppPlaybackBarSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppChromeDividerBrush}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="Height" Value="80" />
+        </Style>
+        <!-- Hosted by a material of the shell's own; the shell supplies the surface. -->
+        <Style Selector="controls|PlaybackBar.floating Border#BarSurface">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Height" Value="72" />
+        </Style>
     </UserControl.Styles>
-    <Border Background="{DynamicResource AppPlaybackBarBackgroundBrush}"
-            BorderBrush="{DynamicResource AppDividerBrush}"
-            BorderThickness="0,1,0,0"
-            Height="80">
+    <Border x:Name="BarSurface">
         <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="24,0" VerticalAlignment="Center">
             <!-- Album art (left) -->
             <Button Grid.Column="0"
@@ -37,7 +48,7 @@
                     BorderThickness="0"
                     Padding="4"
                     VerticalAlignment="Center"
-                    ToolTip.Tip="Open now playing"
+                    ToolTip.Tip="{Binding PlaybackBar_OpenNowPlaying, Source={x:Static strings:LocalizedStrings.Instance}}"
                     Command="{Binding OpenNowPlayingCommand}">
                 <controls:MediaThumbnail Width="60"
                                          Height="60"
@@ -58,7 +69,7 @@
                         HorizontalAlignment="Stretch"
                         HorizontalContentAlignment="Left"
                         VerticalAlignment="Bottom"
-                        ToolTip.Tip="Open now playing"
+                        ToolTip.Tip="{Binding PlaybackBar_OpenNowPlaying, Source={x:Static strings:LocalizedStrings.Instance}}"
                         Command="{Binding OpenNowPlayingCommand}">
                     <TextBlock Text="{Binding NowPlayingLine}"
                                MaxLines="1"
@@ -71,7 +82,7 @@
                     <x:Double x:Key="SliderVerticalThumbWidth">10</x:Double> 
                     <x:Double x:Key="SliderVerticalThumbHeight">10</x:Double> 
                 </Grid.Resources>
-                <Slider Grid.Row="1"
+                <controls:PlaybackProgressSlider Grid.Row="1"
                         x:Name="ProgressSlider"
                         VerticalAlignment="Top"
                         Height="22"
@@ -96,8 +107,19 @@
                         Orientation="Horizontal"
                         Spacing="4"
                         VerticalAlignment="Center">
+                    <Button x:Name="AudioSeparationButton" Classes="icon" IsVisible="{Binding CanSeparateAudio}"
+                            IsEnabled="{Binding HasItem}"
+                            Click="OnAudioSeparationClick"
+                            ToolTip.Tip="{Binding AudioSeparation_Title, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox Width="22" Height="22">
+                            <Path Data="{StaticResource IconAudioSeparation}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                        <services:NativeContextMenu.Menu>
+                            <MenuFlyout Placement="Top" />
+                        </services:NativeContextMenu.Menu>
+                    </Button>
                     <Button Classes="icon"
-                            ToolTip.Tip="Add to playlist"
+                            ToolTip.Tip="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}"
                             IsVisible="{Binding ShowAllControls, RelativeSource={RelativeSource AncestorType=controls:PlaybackBar}}"
                             IsEnabled="{Binding HasItem}"
                             Command="{Binding AddToPlaylistCommand}">
@@ -108,7 +130,7 @@
                     </Button>
 
                     <Button Classes="icon"
-                            ToolTip.Tip="Like"
+                            ToolTip.Tip="{Binding PlaybackBar_Like, Source={x:Static strings:LocalizedStrings.Instance}}"
                             IsVisible="{Binding ShowAllControls, RelativeSource={RelativeSource AncestorType=controls:PlaybackBar}}"
                             IsEnabled="{Binding HasItem}"
                             Command="{Binding ToggleFavoriteCommand}">
@@ -125,7 +147,7 @@
                     </Button>
 
                     <Button Classes="icon"
-                            ToolTip.Tip="Volume"
+                            ToolTip.Tip="{Binding PlaybackBar_Volume, Source={x:Static strings:LocalizedStrings.Instance}}"
                             IsVisible="{Binding ShowAllControls, RelativeSource={RelativeSource AncestorType=controls:PlaybackBar}}">
                         <Viewbox Width="22" Height="22">
                             <Path Data="{Binding VolumeIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
@@ -142,7 +164,7 @@
                     </Button>
 
                     <Button Classes="icon"
-                            ToolTip.Tip="Previous"
+                            ToolTip.Tip="{Binding PlaybackBar_Previous, Source={x:Static strings:LocalizedStrings.Instance}}"
                             IsEnabled="{Binding HasItem}"
                             Command="{Binding PreviousCommand}">
                         <Viewbox Width="24" Height="24">
@@ -152,17 +174,22 @@
                     </Button>
 
                     <Button Classes="icon"
-                            ToolTip.Tip="Play / Pause"
+                            ToolTip.Tip="{Binding PlaybackBar_PlayPause, Source={x:Static strings:LocalizedStrings.Instance}}"
                             IsEnabled="{Binding HasItem}"
                             Command="{Binding PlayPauseCommand}">
-                        <Viewbox Width="26" Height="26">
-                            <Path Data="{Binding PlayPauseIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
-                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
-                        </Viewbox>
+                        <Panel Width="26" Height="26">
+                            <Viewbox IsVisible="{Binding !IsInitializing}">
+                                <Path Data="{Binding PlayPauseIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                            <controls:LoadingSpinner Width="22" Height="22"
+                                                     Stroke="{DynamicResource AppPrimaryTextBrush}"
+                                                     IsVisible="{Binding IsInitializing}" />
+                        </Panel>
                     </Button>
 
                     <Button Classes="icon"
-                            ToolTip.Tip="Next"
+                            ToolTip.Tip="{Binding PlaybackBar_Next, Source={x:Static strings:LocalizedStrings.Instance}}"
                             IsEnabled="{Binding HasItem}"
                             Command="{Binding NextCommand}">
                         <Viewbox Width="24" Height="24">

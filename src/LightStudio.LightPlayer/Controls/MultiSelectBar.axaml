@@ -1,0 +1,59 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             x:Class="LightStudio.LightPlayer.Controls.MultiSelectBar"
+             x:DataType="models:MultiSelectionModel"
+             Focusable="True"
+             IsVisible="{Binding IsActive}">
+    <Border Background="{DynamicResource AppPanelBackgroundBrush}"
+            BorderBrush="{DynamicResource AppDividerBrush}"
+            BorderThickness="0,0,0,1">
+        <Grid RowDefinitions="Auto,2">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="8,4" MinHeight="40">
+                <TextBlock Text="{Binding SelectedCountText}"
+                           ToolTip.Tip="{Binding SelectedCountText}"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"
+                           Margin="8,0"
+                           FontSize="13"
+                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                <Button Grid.Column="1" Classes="icon"
+                        Width="36" Height="36"
+                        Command="{Binding SelectAllCommand}"
+                        ToolTip.Tip="{Binding QueuePane_SelectAll, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Viewbox Width="18" Height="18">
+                        <Path Data="{StaticResource IconCheck}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+                <Button Grid.Column="2" Classes="icon"
+                        Width="36" Height="36"
+                        Command="{Binding SelectNoneCommand}"
+                        ToolTip.Tip="{Binding QueuePane_UnselectAll, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Rectangle Width="14" Height="14" RadiusX="2" RadiusY="2"
+                               StrokeThickness="1.5" Stroke="{DynamicResource AppPrimaryTextBrush}" />
+                </Button>
+                <Button Grid.Column="3" Classes="icon"
+                        Width="36" Height="36"
+                        IsEnabled="{Binding HasActions}"
+                        Click="OnMenuClick"
+                        ToolTip.Tip="{Binding Shell_More, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Viewbox Width="18" Height="18">
+                        <Path Data="{StaticResource IconMore}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+                <Button Grid.Column="4" Classes="icon"
+                        Width="36" Height="36"
+                        Command="{Binding ExitCommand}"
+                        ToolTip.Tip="{Binding Selection_Exit, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Viewbox Width="18" Height="18">
+                        <Path Data="{StaticResource IconClose}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+            </Grid>
+            <ProgressBar Grid.Row="1" Height="2"
+                         IsVisible="{Binding IsBusy}"
+                         IsIndeterminate="{Binding $self.IsEffectivelyVisible}" />
+        </Grid>
+    </Border>
+</UserControl>

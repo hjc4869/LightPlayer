@@ -63,8 +63,7 @@ public partial class MediaThumbnail : UserControl
 
         var hasImage = Source is not null;
         ArtworkImage.Source = Source;
-        ArtworkImage.IsVisible = hasImage;
-        PlaceholderHost.IsVisible = !hasImage;
+        PlaceholderHost.Opacity = hasImage ? 0 : 1;
 
         var key = PlaceholderKind == ThumbnailKind.Artist ? "IconPerson" : "IconDisc";
         if (this.TryFindResource(key, out var resource) && resource is Geometry geometry)

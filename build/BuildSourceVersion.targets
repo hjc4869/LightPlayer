@@ -1,0 +1,68 @@
+<Project>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="BuildSourceVersion" />
+  </ItemGroup>
+
+  <Target Name="GenerateBuildSourceVersion" BeforeTargets="GenerateMSBuildEditorConfigFileCore">
+    <PropertyGroup>
+      <BuildSourceVersion>$(Version)-$([System.DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ'))</BuildSourceVersion>
+    </PropertyGroup>
+
+    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; rev-parse --show-toplevel"
+          ConsoleToMSBuild="true" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true"
+          StandardOutputImportance="Low" StandardErrorImportance="Low">
+      <Output TaskParameter="ExitCode" PropertyName="_BuildGitRepositoryExitCode" />
+    </Exec>
+
+    <Exec Condition="'$(_BuildGitRepositoryExitCode)' == '0'"
+          Command="git -C &quot;$(MSBuildProjectDirectory)&quot; tag --merged HEAD"
+          ConsoleToMSBuild="true" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true"
+          StandardOutputImportance="Low">
+      <Output TaskParameter="ConsoleOutput" ItemName="_BuildGitMergedTags" />
+      <Output TaskParameter="ExitCode" PropertyName="_BuildGitTagsExitCode" />
+    </Exec>
+    <Error Condition="'$(_BuildGitRepositoryExitCode)' == '0' and '$(_BuildGitTagsExitCode)' != '0'"
+           Text="Cannot read reachable Git tags (exit code $(_BuildGitTagsExitCode)): @(_BuildGitMergedTags)" />
+
+    <Exec Condition="'@(_BuildGitMergedTags)' != ''"
+          Command="git -C &quot;$(MSBuildProjectDirectory)&quot; describe --tags --abbrev=0"
+          ConsoleToMSBuild="true" StandardOutputImportance="Low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_BuildGitTag" />
+    </Exec>
+    <Exec Condition="'@(_BuildGitMergedTags)' != ''"
+          Command="git -C &quot;$(MSBuildProjectDirectory)&quot; rev-list --count &quot;$(_BuildGitTag)..HEAD&quot;"
+          ConsoleToMSBuild="true" StandardOutputImportance="Low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_BuildGitCommitCount" />
+    </Exec>
+    <PropertyGroup Condition="'@(_BuildGitMergedTags)' != ''">
+      <BuildSourceVersion>$(_BuildGitTag)+$(_BuildGitCommitCount)</BuildSourceVersion>
+    </PropertyGroup>
+
+    <Exec Condition="'$(_BuildGitRepositoryExitCode)' == '0' and '@(_BuildGitMergedTags)' == ''"
+          Command="git -C &quot;$(MSBuildProjectDirectory)&quot; symbolic-ref --short -q HEAD"
+          ConsoleToMSBuild="true" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true"
+          StandardOutputImportance="Low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_BuildGitBranch" />
+      <Output TaskParameter="ExitCode" PropertyName="_BuildGitBranchExitCode" />
+    </Exec>
+    <Error Condition="'$(_BuildGitRepositoryExitCode)' == '0' and '@(_BuildGitMergedTags)' == '' and '$(_BuildGitBranchExitCode)' != '0' and '$(_BuildGitBranchExitCode)' != '1'"
+           Text="Cannot read the Git branch (exit code $(_BuildGitBranchExitCode)): $(_BuildGitBranch)" />
+    <PropertyGroup Condition="'$(_BuildGitBranchExitCode)' == '1'">
+      <_BuildGitBranch>HEAD</_BuildGitBranch>
+    </PropertyGroup>
+    <Exec Condition="'$(_BuildGitRepositoryExitCode)' == '0' and '@(_BuildGitMergedTags)' == ''"
+          Command="git -C &quot;$(MSBuildProjectDirectory)&quot; rev-parse --short HEAD"
+          ConsoleToMSBuild="true" StandardOutputImportance="Low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_BuildGitCommit" />
+    </Exec>
+    <Exec Condition="'$(_BuildGitRepositoryExitCode)' == '0' and '@(_BuildGitMergedTags)' == ''"
+          Command="git -C &quot;$(MSBuildProjectDirectory)&quot; status --porcelain"
+          ConsoleToMSBuild="true" StandardOutputImportance="Low">
+      <Output TaskParameter="ConsoleOutput" ItemName="_BuildGitChanges" />
+    </Exec>
+    <PropertyGroup Condition="'$(_BuildGitRepositoryExitCode)' == '0' and '@(_BuildGitMergedTags)' == ''">
+      <BuildSourceVersion>$(_BuildGitBranch)-$(_BuildGitCommit)</BuildSourceVersion>
+      <BuildSourceVersion Condition="'@(_BuildGitChanges)' != ''">$(BuildSourceVersion)-dirty</BuildSourceVersion>
+    </PropertyGroup>
+  </Target>
+</Project>

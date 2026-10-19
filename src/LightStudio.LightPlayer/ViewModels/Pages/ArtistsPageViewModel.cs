@@ -1,14 +1,17 @@
+using LightMediaRenderer.Avalonia.Controls;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
+using LightStudio.LightPlayer.Controls;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Services;
 using LightStudio.MediaLibraryCore.Database;
+
+using Strings = LightStudio.LightPlayer.Strings;
 
 namespace LightStudio.LightPlayer.ViewModels.Pages;
 
@@ -17,7 +20,7 @@ namespace LightStudio.LightPlayer.ViewModels.Pages;
 /// Each tile composites up to nine of the artist's album covers into a square
 /// collage (1x1, 2x2, or 3x3) in place of the generic artist placeholder.
 /// </summary>
-public sealed class ArtistsPageViewModel : LibraryBrowsePageViewModelBase<LibraryTileModel, LibraryTileGroupModel>
+public sealed class ArtistsPageViewModel : GridItemsPageViewModelBase
 {
     // Covers to attempt per artist. A little above the 3x3 ceiling so a full grid
     // can still form when a few of an artist's albums have no extractable art.
@@ -25,159 +28,142 @@ public sealed class ArtistsPageViewModel : LibraryBrowsePageViewModelBase<Librar
 
     private readonly TileActionCallbacks tileActions;
     private readonly AlbumArtService albumArt;
+    private readonly IUnifiedLibraryQueryService libraryQuery;
 
-    public ArtistsPageViewModel(TileActionCallbacks tileActions, AlbumArtService albumArt)
+    public ArtistsPageViewModel(
+        TileActionCallbacks tileActions,
+        AlbumArtService albumArt,
+        IUnifiedLibraryQueryService libraryQuery)
         : base(LibraryItemKind.Artist)
     {
         this.tileActions = tileActions;
         this.albumArt = albumArt;
-        Title = "Artists";
-        EmptyHeader = "No artists yet";
-        EmptyDescription = "Add a library folder and scan to see your artists.";
+        this.libraryQuery = libraryQuery;
+        TitleKey = nameof(Strings.Resources.Nav_Artists);
+        LoadingTextKey = nameof(Strings.Resources.Artists_Loading);
+        EmptyHeaderKey = nameof(Strings.Resources.Artists_EmptyHeader);
+        EmptyDescriptionKey = PlatformServices.NativeMediaLibrary?.SupportsMusic == true
+            ? nameof(Strings.Resources.Library_EmptySourcesDescription) : nameof(Strings.Resources.Artists_EmptyDescription);
     }
 
-    protected override async Task<IReadOnlyList<LibraryTileModel>> QueryItemsAsync()
+    protected override bool SupportsIncrementalLoading => true;
+
+    protected override async Task<GroupedLibraryQuery<LibraryTileModel>> QueryGroupsAsync(
+        LibraryViewSettings settings, CancellationToken cancellationToken) =>
+        (await libraryQuery.GetGroupedArtistsAsync(settings, cancellationToken)).Select(CreateTile);
+
+    protected override async Task<PagedResult<LibraryTileModel>> QueryPageAsync(
+        string? cursor,
+        CancellationToken cancellationToken)
     {
-        if (GlobalLibraryCache.CachedDbArtist is null)
+        var page = await libraryQuery.GetArtistsPageAsync(
+            new ArtistPageRequest(Ascending, Cursor: cursor),
+            cancellationToken);
+        ApplyUnifiedMetadata(page);
+        foreach (var removal in page.VisibilityRemovals ?? [])
         {
-            await GlobalLibraryCache.LoadArtistAsync();
+            var existing = Items.FirstOrDefault(item =>
+                item.Identifier is LibraryItemReference { UnifiedArtist: { } artist } &&
+                string.Equals(
+                    artist.NormalizedName,
+                    removal.Path,
+                    StringComparison.OrdinalIgnoreCase));
+            if (existing is not null)
+            {
+                Items.Remove(existing);
+            }
         }
-
-        // The collage reuses the album cache, so make sure the album list is loaded.
-        if (GlobalLibraryCache.CachedDbAlbum is null)
-        {
-            await GlobalLibraryCache.LoadAlbumAsync();
-        }
-
-        var artists = GlobalLibraryCache.CachedDbArtist ?? [];
-        var albumsByArtist = BuildAlbumsByArtist(GlobalLibraryCache.CachedDbAlbum ?? []);
-        return artists.Select(artist => CreateTile(artist, albumsByArtist)).ToList();
+        return new PagedResult<LibraryTileModel>(
+            page.Items.Select(CreateTile).ToArray(),
+            page.NextCursor,
+            page.TotalCount);
     }
 
     protected override IComparer<LibraryTileModel> CreateComparer(LibrarySortField field, bool ascending) =>
         new LibraryTileComparer(field, ascending);
 
-    protected override string GetGroupKey(LibraryTileModel item, LibrarySortField field) =>
-        LibrarySortKeys.AlphaKey(item.Title);
-
-    protected override LibraryTileGroupModel CreateGroup(string key, IReadOnlyList<LibraryTileModel> items) =>
-        new(key, items);
-
-    // Maps every artist name to their albums, keyed on both the album-artist tag
-    // and the album's computed display artist, so covers are found whether or not
-    // the files carry an explicit album-artist tag.
-    private static Dictionary<string, List<MediaLibraryAlbum>> BuildAlbumsByArtist(IReadOnlyList<MediaLibraryAlbum> albums)
+    private LibraryTileModel CreateTile(UnifiedArtistBrowseItem value)
     {
-        var map = new Dictionary<string, List<MediaLibraryAlbum>>(StringComparer.CurrentCultureIgnoreCase);
-        foreach (var album in albums)
-        {
-            Add(map, album.ArtistForQuery, album);
-            if (!string.Equals(album.ArtistForQuery, album.Artist, StringComparison.CurrentCultureIgnoreCase))
-            {
-                Add(map, album.Artist, album);
-            }
-        }
-
-        return map;
-
-        static void Add(Dictionary<string, List<MediaLibraryAlbum>> map, string? key, MediaLibraryAlbum album)
-        {
-            if (string.IsNullOrWhiteSpace(key))
-            {
-                return;
-            }
-
-            if (!map.TryGetValue(key, out var list))
-            {
-                list = [];
-                map[key] = list;
-            }
-
-            list.Add(album);
-        }
-    }
-
-    private LibraryTileModel CreateTile(MediaLibraryArtist artist, Dictionary<string, List<MediaLibraryAlbum>> albumsByArtist)
-    {
-        var name = LibrarySortKeys.Fallback(artist.Name, "Unknown Artist");
-        var subtitle = artist.AlbumCount == 1 ? "1 album" : $"{artist.AlbumCount} albums";
+        var name = LibrarySortKeys.Fallback(value.Reference.DisplayName, Strings.Resources.Common_UnknownArtist);
+        var subtitle = value.AlbumCount == 1
+            ? Strings.Resources.Common_OneAlbum
+            : string.Format(Strings.Resources.Common_AlbumsFormat, value.AlbumCount);
 
         var tile = new LibraryTileModel(name, subtitle, ThumbnailKind.Artist)
         {
             ArtistName = name,
-            Identifier = artist,
+            Identifier = LibraryItemReference.Artist(value.Reference),
         };
         tile.OpenCommand = new RelayCommand(() => tileActions.Open?.Invoke(tile));
         tile.PlayCommand = new RelayCommand(() => tileActions.Play?.Invoke(tile));
+        tile.PlayNextCommand = new RelayCommand(() => tileActions.PlayNext?.Invoke(tile));
         tile.AddToQueueCommand = new RelayCommand(() => tileActions.AddToQueue?.Invoke(tile));
+        tile.AddToPlaylistCommand = new RelayCommand(() => tileActions.AddToPlaylist?.Invoke(tile));
+        tile.OpenFolderCommand = new RelayCommand(() => tileActions.OpenContainingFolder?.Invoke(tile));
 
-        var collageAlbums = SelectCollageAlbums(artist, albumsByArtist);
-        if (collageAlbums.Count > 0)
+        if (value.ArtworkPaths.Count > 0)
         {
-            tile.ArtLoader = target => LoadCollageAsync(target, collageAlbums);
+            tile.ArtLoader = (target, token) => LoadCollageAsync(target, value.ArtworkPaths, token);
         }
 
         return tile;
     }
 
-    // Picks up to MaxCollageCandidates distinct albums for the artist, newest first.
-    private static List<MediaLibraryAlbum> SelectCollageAlbums(
-        MediaLibraryArtist artist,
-        Dictionary<string, List<MediaLibraryAlbum>> albumsByArtist)
+    // Loads the candidate covers (throttled inside AlbumArtService) and composites the largest
+    // fully filled square they support: >=9 covers -> 3x3, >=4 -> 2x2, >=1 -> 1x1. Fewer than one
+    // keeps the placeholder glyph.
+    private async Task LoadCollageAsync(
+        LibraryTileModel tile,
+        IReadOnlyList<Sourced<string>> artworkPaths,
+        CancellationToken cancellationToken)
     {
-        if (artist.Name is null || !albumsByArtist.TryGetValue(artist.Name, out var albums))
-        {
-            return [];
-        }
+        var candidates = Math.Min(artworkPaths.Count, MaxCollageCandidates);
+        var fifoWindowSize = tile.ArtLoadFifoWindowSize * candidates;
 
-        return albums
-            .GroupBy(album => (album.Title ?? string.Empty, album.ArtistForQuery ?? string.Empty))
-            .Select(group => group.First())
-            .OrderByDescending(album => LibrarySortKeys.ParseLeadingInt(album.Date))
-            .ThenBy(album => album.Title, StringComparer.CurrentCultureIgnoreCase)
-            .Take(MaxCollageCandidates)
-            .ToList();
-    }
-
-    // Loads the candidate covers (throttled and cached inside AlbumArtService) and
-    // composites the largest fully filled square they support: >=9 covers -> 3x3,
-    // >=4 -> 2x2, >=1 -> 1x1. Fewer than one keeps the placeholder glyph.
-    private async Task LoadCollageAsync(LibraryTileModel tile, IReadOnlyList<MediaLibraryAlbum> albums)
-    {
-        var bitmaps = await Task.WhenAll(albums.Select(LoadAlbumArtAsync));
+        // Each cover fills one cell of the collage the candidates are expected to complete.
+        var expectedColumns = CollageColumns(candidates);
+        var pixelSize = (tile.ArtPixelSize + expectedColumns - 1) / expectedColumns;
+        var bitmaps = await Task.WhenAll(
+            artworkPaths.Take(MaxCollageCandidates).Select(
+                path => LoadAlbumArtAsync(path, fifoWindowSize, pixelSize, cancellationToken, tile.ArtCachePool)))
+            .ConfigureAwait(false);
         var covers = bitmaps.OfType<IImage>().ToList();
         if (covers.Count == 0)
         {
             return;
         }
 
-        var columns = covers.Count >= 9 ? 3 : covers.Count >= 4 ? 2 : 1;
+        var columns = CollageColumns(covers.Count);
         var collage = covers.Take(columns * columns).ToList();
 
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            Apply(tile, collage, columns);
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(() => Apply(tile, collage, columns));
-        }
+        // Candidates beyond the square the collage can fill are never shown.
+        AlbumArtService.ReleaseImages(covers.Skip(collage.Count));
 
-        static void Apply(LibraryTileModel target, IReadOnlyList<IImage> images, int columns)
-        {
-            target.CollageColumns = columns;
-            target.CollageImages = images;
-        }
+        AlbumArtService.ApplyOnUiThread(
+            collage,
+            images =>
+            {
+                tile.CollageColumns = columns;
+                tile.CollageImages = images;
+            },
+            cancellationToken);
     }
 
-    private Task<Bitmap?> LoadAlbumArtAsync(MediaLibraryAlbum album)
+    private static int CollageColumns(int covers) => covers >= 9 ? 3 : covers >= 4 ? 2 : 1;
+
+    private Task<FastImageSource?> LoadAlbumArtAsync(
+        Sourced<string> path,
+        int fifoWindowSize,
+        int pixelSize,
+        CancellationToken cancellationToken,
+        FastImageCache? cachePool)
     {
-        // Mirror AlbumTileFactory's cache keys so covers already extracted on the
-        // albums page are reused instead of re-decoded.
-        var artist = LibrarySortKeys.Fallback(album.Artist, "Unknown Artist");
-        var artistKey = album.ArtistForQuery ?? artist;
-        var albumKey = album.Title ?? "Unknown Album";
-        return albumArt.GetAlbumArtAsync(artistKey, albumKey, album.FirstFileInAlbum);
+        return albumArt.GetLowQualityTrackArtAsync(
+            new MediaReference(path.SourceId, path.Value),
+            fifoWindowSize,
+            pixelSize,
+            cancellationToken,
+            cachePool);
     }
 }
 

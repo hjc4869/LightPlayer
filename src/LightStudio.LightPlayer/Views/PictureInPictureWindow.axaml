@@ -1,0 +1,14 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="LightStudio.LightPlayer.Views.PictureInPictureWindow"
+        Title="Light Player"
+        Background="Black"
+        WindowDecorations="BorderOnly"
+        ShowInTaskbar="False"
+        Topmost="True"
+        CanResize="True"
+        MinWidth="192"
+        MinHeight="108"
+        WindowStartupLocation="Manual">
+    <Panel x:Name="Host" />
+</Window>

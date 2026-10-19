@@ -1,0 +1,127 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
+             xmlns:views="using:LightStudio.LightPlayer.Views.Pages"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             xmlns:lyrics="using:LightStudio.MediaLibraryCore.Lyrics.RuntimeApi"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="840" d:DesignHeight="720"
+             x:Class="LightStudio.LightPlayer.Views.InitialSetupView"
+             x:DataType="vm:InitialSetupViewModel"
+             Background="{DynamicResource AppPageBackgroundBrush}">
+    <Grid x:Name="SetupRoot">
+        <Grid RowDefinitions="*,Auto">
+            <ScrollViewer Grid.Row="0">
+                <!--
+                    Star columns rather than a centered panel: the content column then keeps the same
+                    width whatever the library section grows to.
+                -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="24" />
+                        <ColumnDefinition Width="1000*" MaxWidth="680" />
+                        <ColumnDefinition Width="*" MinWidth="24" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="1" Margin="0,28,0,16" Spacing="16">
+                        <TextBlock Text="{Binding InitialSetup_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                   FontSize="26"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                        <TextBlock Text="{Binding InitialSetup_Intro, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                   FontSize="14"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+
+                        <views:AppearancePreferencesView DataContext="{Binding Preferences}" />
+                        <ContentControl Content="{Binding Library}" />
+
+                        <controls:SettingRow Header="{Binding InitialSetup_EnableThirdPartyLyrics, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                             Description="{Binding InitialSetup_ThirdPartyTerms, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <controls:SettingRow.RowsContent>
+                                <ItemsControl ItemsSource="{Binding LyricSources}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:InitialSetupLyricSourceViewModel">
+                                            <Border BorderBrush="{DynamicResource AppDividerBrush}"
+                                                    BorderThickness="0,1,0,0"
+                                                    Padding="16,12">
+                                                <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                                    <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Name}"
+                                                                   Classes="settingName"
+                                                                   FontSize="14" />
+                                                        <ItemsControl ItemsSource="{Binding Information}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate x:DataType="lyrics:LyricSourceInfoItem">
+                                                                    <Grid>
+                                                                        <TextBlock Text="{Binding Text}"
+                                                                                   Classes="settingDescription"
+                                                                                   IsVisible="{Binding !IsLink}"
+                                                                                   FontSize="12"
+                                                                                   TextWrapping="Wrap" />
+                                                                        <Button Classes="link"
+                                                                                IsVisible="{Binding IsLink}"
+                                                                                FontSize="12"
+                                                                            HorizontalAlignment="Stretch"
+                                                                            HorizontalContentAlignment="Left"
+                                                                                Tag="{Binding Url}"
+                                                                            Click="OnLyricSourceInfoLinkClick">
+                                                                            <TextBlock Text="{Binding Text}"
+                                                                                   TextWrapping="Wrap" />
+                                                                        </Button>
+                                                                    </Grid>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </StackPanel>
+                                                    <CheckBox Grid.Column="1"
+                                                              Margin="16,0,0,0"
+                                                              VerticalAlignment="Center"
+                                                              IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </controls:SettingRow.RowsContent>
+                        </controls:SettingRow>
+
+                        <ContentControl Content="{Binding Appearance}" />
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+
+            <Border x:Name="SetupFooter" Grid.Row="1"
+                    Background="{DynamicResource AppPanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource AppDividerBrush}"
+                    BorderThickness="0,1,0,0"
+                    Padding="32,14">
+                <Button Content="{Binding Common_Continue, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        Classes="accent"
+                        HorizontalAlignment="Right"
+                        MinWidth="120"
+                        Command="{Binding ContinueCommand}" />
+            </Border>
+        </Grid>
+
+        <!-- Modal overlay host, mirroring the shell's: setup runs before any shell exists, and
+             single-view platforms cannot open a second window for these dialogs. -->
+        <Grid x:Name="OverlayRoot" IsVisible="{Binding IsOverlayOpen}">
+            <Border Background="#99000000" />
+            <Border Background="{DynamicResource AppNavBackgroundBrush}"
+                    BorderBrush="{DynamicResource AppDividerBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Margin="20"
+                    Padding="20"
+                    MaxWidth="560"
+                    MaxHeight="{Binding #OverlayRoot.Bounds.Height}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+                <ContentControl Content="{Binding OverlayContent}" />
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -3,14 +3,11 @@ using System.Text;
 
 namespace LightStudio.MediaLibraryCore.CueIndex
 {
-    /// <summary>
-    /// Track that contains either data or audio. It can contain Indices and comment information.
-    /// </summary>
+    /// <summary>Represents one data or audio track in a CUE sheet.</summary>
     struct Track
     {
         #region Private Variables
         private string[] m_Comments;
-        // strings that don't belong or were mistyped in the global part of the cue
         private AudioFile m_DataFile;
         private string[] m_Garbage;
         private Index[] m_Indices;
@@ -28,11 +25,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
         #region Properties
 
-        /// <summary>
-        /// Returns/Sets Index in this track.
-        /// </summary>
-        /// <param name="indexnumber">Index in the track.</param>
-        /// <returns>Index at indexnumber.</returns>
+        /// <summary>Gets or sets an index by its zero-based position.</summary>
         public Index this[int indexnumber]
         {
             get
@@ -59,9 +52,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             set { m_DataFile = value; }
         }
 
-        /// <summary>
-        /// Lines in the cue file that don't belong or have other general syntax errors.
-        /// </summary>
+        /// <summary>Gets or sets unrecognized lines associated with this track.</summary>
         public string[] Garbage
         {
             get { return m_Garbage; }
@@ -104,9 +95,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             set { m_Songwriter = value; }
         }
 
-        /// <summary>
-        /// If the TITLE command appears before any TRACK commands, then the string will be encoded as the title of the entire disc.
-        /// </summary>
         public string Title
         {
             get { return m_Title; }
@@ -132,7 +120,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
         }
         #endregion
 
-        #region Contructors
+        #region Constructors
 
         public Track(int tracknumber, string datatype)
         {
@@ -205,8 +193,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
         #region Methods
         public void AddFlag(Flags flag)
         {
-            //if it's not a none tag
-            //and if the tags hasn't already been added
             if (flag != Flags.NONE && NewFlag(flag) == true)
             {
                 m_TrackFlags = (Flags[])CueSheet.ResizeArray(m_TrackFlags, m_TrackFlags.Length + 1);
@@ -272,11 +258,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             m_Indices = (Index[])CueSheet.ResizeArray(m_Indices, m_Indices.Length - 1);
         }
 
-        /// <summary>
-        /// Checks if the flag is indeed new in this track.
-        /// </summary>
-        /// <param name="flag">The new flag to be added to the track.</param>
-        /// <returns>True if this flag doesn't already exist.</returns>
         private bool NewFlag(Flags new_flag)
         {
             foreach (Flags flag in m_TrackFlags)
@@ -293,7 +274,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
         {
             StringBuilder output = new StringBuilder();
 
-            //write file
             if (m_DataFile.Filename != null && m_DataFile.Filename.Trim() != "")
             {
                 output.Append("FILE \"" + m_DataFile.Filename.Trim() + "\" " + m_DataFile.Filetype.ToString() + Environment.NewLine);
@@ -301,7 +281,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
 
             output.Append("  TRACK " + m_TrackNumber.ToString().PadLeft(2, '0') + " " + m_TrackDataType.ToString().Replace('_', '/'));
 
-            //write comments
             foreach (string comment in m_Comments)
             {
                 output.Append(Environment.NewLine + "    REM " + comment);
@@ -322,7 +301,6 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                 output.Append(Environment.NewLine + "    TITLE \"" + m_Title + "\"");
             }
 
-            //write flags
             if (m_TrackFlags.Length > 0)
             {
                 output.Append(Environment.NewLine + "    FLAGS");
@@ -333,25 +311,21 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                 output.Append(" " + flag.ToString().Replace("CH4", "4CH"));
             }
 
-            //write isrc
             if (m_ISRC.Trim() != "")
             {
                 output.Append(Environment.NewLine + "    ISRC " + m_ISRC.Trim());
             }
 
-            //write pregap
             if (m_PreGap.Number != -1)
             {
                 output.Append(Environment.NewLine + "    PREGAP " + m_PreGap.Minutes.ToString().PadLeft(2, '0') + ":" + m_PreGap.Seconds.ToString().PadLeft(2, '0') + ":" + m_PreGap.Frames.ToString().PadLeft(2, '0'));
             }
 
-            //write Indices
             for (int j = 0; j < m_Indices.Length; j++)
             {
                 output.Append(Environment.NewLine + "    INDEX " + this[j].Number.ToString().PadLeft(2, '0') + " " + this[j].Minutes.ToString().PadLeft(2, '0') + ":" + this[j].Seconds.ToString().PadLeft(2, '0') + ":" + this[j].Frames.ToString().PadLeft(2, '0'));
             }
 
-            //write postgap
             if (m_PostGap.Number != -1)
             {
                 output.Append(Environment.NewLine + "    POSTGAP " + m_PostGap.Minutes.ToString().PadLeft(2, '0') + ":" + m_PostGap.Seconds.ToString().PadLeft(2, '0') + ":" + m_PostGap.Frames.ToString().PadLeft(2, '0'));

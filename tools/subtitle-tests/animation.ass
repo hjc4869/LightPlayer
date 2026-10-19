@@ -1,0 +1,45 @@
+[Script Info]
+Title: Animation tags - \t, \move, \fad, \fade
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,42,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,1,5,20,20,20,1
+Style: Small,Arial,28,&H00C0C0C0,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,0,5,20,20,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+
+; --- \t : simple transition, whole event duration
+Dialogue: 0,0:00:00.00,0:00:06.00,Small,,0,0,0,,{\pos(640,40)}t: font scale and colour over the whole event
+Dialogue: 0,0:00:00.00,0:00:06.00,Default,,0,0,0,,{\pos(640,110)\fscx60\fscy60\c&H00FFFF&\t(\fscx160\fscy160\c&H0000FF&)}GROW
+
+; --- \t : explicit start/end, plus acceleration
+Dialogue: 0,0:00:00.00,0:00:06.00,Small,,0,0,0,,{\pos(640,190)}t: 1s-5s with acceleration 3 (slow, then fast)
+Dialogue: 0,0:00:00.00,0:00:06.00,Default,,0,0,0,,{\pos(640,250)\frz0\t(1000,5000,3,\frz360)}SPIN
+
+; --- \t : chained transitions
+Dialogue: 0,0:00:00.00,0:00:06.00,Small,,0,0,0,,{\pos(640,330)}t: two chained transitions grow then shrink the border
+Dialogue: 0,0:00:00.00,0:00:06.00,Default,,0,0,0,,{\pos(640,390)\bord0\3c&H00FF00&\t(0,3000,\bord8)\t(3000,6000,\bord0)}PULSE
+
+; --- \move : whole duration
+Dialogue: 0,0:00:00.00,0:00:06.00,Small,,0,0,0,,{\pos(640,460)}move: left to right over the whole event
+Dialogue: 0,0:00:00.00,0:00:06.00,Default,,0,0,0,,{\move(160,510,1120,510)}SLIDE
+
+; --- \move : with its own timing
+Dialogue: 0,0:00:00.00,0:00:06.00,Small,,0,0,0,,{\pos(640,570)}move: waits 2s, arrives at 4s, then holds
+Dialogue: 0,0:00:00.00,0:00:06.00,Default,,0,0,0,,{\move(160,620,1120,620,2000,4000)}TIMED
+
+; --- \fad and \fade
+Dialogue: 0,0:00:06.20,0:00:12.00,Small,,0,0,0,,{\pos(640,40)}fad and fade
+Dialogue: 0,0:00:06.20,0:00:12.00,Default,,0,0,0,,{\pos(360,240)\fad(1500,1500)}fad(1500,1500)
+Dialogue: 0,0:00:06.20,0:00:12.00,Default,,0,0,0,,{\pos(920,240)\fade(255,0,255,0,1500,4000,5800)}fade seven argument
+Dialogue: 0,0:00:06.20,0:00:12.00,Default,,0,0,0,,{\pos(640,400)\fade(0,255,0,1000,2000,3500,4500)}fade to transparent and back
+
+; --- everything at once
+Dialogue: 0,0:00:06.20,0:00:12.00,Small,,0,0,0,,{\pos(640,560)}move plus fade plus transition together
+Dialogue: 0,0:00:06.20,0:00:12.00,Default,,0,0,0,,{\move(200,640,1080,640)\fad(800,800)\c&HFFFF00&\t(\c&H00A5FF&\fscy180)}COMBINED

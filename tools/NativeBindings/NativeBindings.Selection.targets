@@ -1,0 +1,48 @@
+<Project>
+  <!--
+    Resolves the native binding selection of each project. Imported through BeforeMicrosoftNETSdkTargets, after the
+    project file and before the SDK computes output paths. Referenced projects receive the selection of the project
+    that builds them as global properties (see NativeBindings.targets).
+  -->
+  <Import Project="$(_NativeBindingsChainedBeforeSdkTargets)" Condition="'$(_NativeBindingsChainedBeforeSdkTargets)' != ''" />
+
+  <PropertyGroup>
+    <_NativeBindingsHostRuntime>$(NETCoreSdkPortableRuntimeIdentifier)</_NativeBindingsHostRuntime>
+    <_NativeBindingsHostRuntime Condition="'$(_NativeBindingsHostRuntime)' == ''">$(NETCoreSdkRuntimeIdentifier)</_NativeBindingsHostRuntime>
+    <_NativeBindingsPlatformArchitecture Condition="'$(PlatformTarget)' == 'ARM64' or ('$(PlatformTarget)' == '' and '$(Platform)' == 'ARM64')">arm64</_NativeBindingsPlatformArchitecture>
+    <_NativeBindingsPlatformArchitecture Condition="'$(PlatformTarget)' == 'x64' or ('$(PlatformTarget)' == '' and '$(Platform)' == 'x64')">x64</_NativeBindingsPlatformArchitecture>
+    <!-- Multi-RID outer builds compile shared IL against their first runtime; each inner build uses its own. -->
+    <NativeBindingsRuntime Condition="'$(NativeBindingsRuntime)' == '' and '$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</NativeBindingsRuntime>
+    <NativeBindingsRuntime Condition="'$(NativeBindingsRuntime)' == '' and '$(RuntimeIdentifiers)' != ''">$(RuntimeIdentifiers.Split(';')[0])</NativeBindingsRuntime>
+    <NativeBindingsRuntime Condition="'$(NativeBindingsRuntime)' == '' and '$(_NativeBindingsPlatformArchitecture)' != ''">$(_NativeBindingsHostRuntime.Substring(0, $(_NativeBindingsHostRuntime.LastIndexOf('-'))))-$(_NativeBindingsPlatformArchitecture)</NativeBindingsRuntime>
+    <NativeBindingsRuntime Condition="'$(NativeBindingsRuntime)' == ''">$(_NativeBindingsHostRuntime)</NativeBindingsRuntime>
+    <NativeBindingsDeploymentTarget Condition="'$(NativeBindingsDeploymentTarget)' == '' and $(NativeBindingsRuntime.StartsWith('ios'))">$(SupportedOSPlatformVersion)</NativeBindingsDeploymentTarget>
+    <NativeBindingsNdkDirectory Condition="'$(NativeBindingsNdkDirectory)' == ''">$(AndroidNdkDirectory)</NativeBindingsNdkDirectory>
+    <NativeBindingsNdkDirectory Condition="'$(NativeBindingsNdkDirectory)' == ''">$(ANDROID_NDK_ROOT)</NativeBindingsNdkDirectory>
+    <NativeBindingsNdkDirectory Condition="'$(NativeBindingsNdkDirectory)' == ''">$(ANDROID_NDK_HOME)</NativeBindingsNdkDirectory>
+    <AndroidNdkDirectory Condition="'$(AndroidNdkDirectory)' == '' and $(NativeBindingsRuntime.StartsWith('android-'))">$(NativeBindingsNdkDirectory)</AndroidNdkDirectory>
+  </PropertyGroup>
+
+  <!-- Repository policy: providers, profiles, and link modes of the native libraries an application uses. -->
+  <Import Project="$(NativeBindingsPolicy)" Condition="'$(NativeBindingsPolicy)' != ''" />
+
+  <PropertyGroup>
+    <NativeBindingsStatic Condition="'$(NativeBindingsStatic)' == '' and '$(NativeBindingsRuntime)' == 'browser-wasm'">true</NativeBindingsStatic>
+    <NativeBindingsStatic Condition="'$(NativeBindingsStatic)' == ''">false</NativeBindingsStatic>
+    <NativeBindingsEmitImports Condition="'$(NativeBindingsEmitImports)' == ''">true</NativeBindingsEmitImports>
+    <NativeBindingsImportName Condition="'$(NativeBindingsImportName)' == '' and '$(NativeBindingsStatic)' == 'true' and '$(NativeBindingsRuntime)' != 'browser-wasm'">__Internal</NativeBindingsImportName>
+    <NativeBindingsTypeNamespace Condition="'$(NativeBindingsTypeNamespace)' == ''">LightStudio.NativeBindings.Types</NativeBindingsTypeNamespace>
+
+    <_NativeBindingsSelection>$(NativeBindingsRuntime)</_NativeBindingsSelection>
+    <_NativeBindingsSelection Condition="'$(NativeBindingsProfile)' != '' and '$(NativeBindingsProfile)' != '$(NativeBindingsRuntime)'">$(_NativeBindingsSelection)_$(NativeBindingsProfile)</_NativeBindingsSelection>
+    <_NativeBindingsSelection Condition="'$(NativeBindingsStatic)' == 'true'">$(_NativeBindingsSelection)_static</_NativeBindingsSelection>
+    <_NativeBindingsSelection Condition="'$(NativeBindingsEmitImports)' != 'true'">$(_NativeBindingsSelection)_stubs</_NativeBindingsSelection>
+    <_NativeBindingsSeparateOutputs Condition="'$(NativeBindingsSelectionPivots)' != 'false' and !('$(RuntimeIdentifier)' == '' and '$(RuntimeIdentifiers)' != '')">true</_NativeBindingsSeparateOutputs>
+    <_NativeBindingsPivot>$(Configuration.ToLowerInvariant())_$(_NativeBindingsSelection.ToLowerInvariant())</_NativeBindingsPivot>
+    <_NativeBindingsPivot Condition="'$(TargetFrameworks)' != '' and '$(TargetFramework)' != ''">$(_NativeBindingsPivot)_$(TargetFramework.ToLowerInvariant())</_NativeBindingsPivot>
+    <ArtifactsPivots Condition="'$(ArtifactsPivots)' == '' and '$(_NativeBindingsSeparateOutputs)' == 'true'">$(_NativeBindingsPivot)</ArtifactsPivots>
+    <!-- Outside the artifacts output layout, the selection separates the default output directories instead. -->
+    <OutputPath Condition="'$(OutputPath)' == '' and '$(_NativeBindingsSeparateOutputs)' == 'true' and '$(UseArtifactsOutput)' != 'true' and '$(ArtifactsPath)' == ''">$([MSBuild]::EnsureTrailingSlash($([MSBuild]::ValueOrDefault('$(BaseOutputPath)', 'bin'))))$(Configuration)/$(_NativeBindingsSelection)/</OutputPath>
+    <IntermediateOutputPath Condition="'$(IntermediateOutputPath)' == '' and '$(_NativeBindingsSeparateOutputs)' == 'true' and '$(UseArtifactsIntermediateOutput)' != 'true'">$([MSBuild]::EnsureTrailingSlash($([MSBuild]::ValueOrDefault('$(BaseIntermediateOutputPath)', 'obj'))))$(Configuration)/$(_NativeBindingsSelection)/</IntermediateOutputPath>
+  </PropertyGroup>
+</Project>

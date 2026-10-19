@@ -1,0 +1,106 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="180"
+             x:Class="LightStudio.LightPlayer.Views.Pages.AppearancePreferencesView"
+             x:DataType="vm:AppearancePreferencesViewModel">
+    <Border Classes="settingsGroup"
+            MaxWidth="680"
+            HorizontalAlignment="Stretch">
+        <StackPanel>
+            <Grid ColumnDefinitions="*,Auto" Margin="16,12">
+                <TextBlock Text="{Binding DefaultPageSettings_StartupPageHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingName"
+                           FontSize="14"
+                           VerticalAlignment="Center" />
+                <ComboBox Grid.Column="1"
+                          Width="110"
+                          Margin="16,0,0,0"
+                          ItemsSource="{Binding DefaultPage.PageOptions}"
+                          SelectedItem="{Binding DefaultPage.SelectedPage, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DefaultPageOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+
+            <Border Classes="settingsDivider" />
+
+            <Grid ColumnDefinitions="*,Auto" Margin="16,12">
+                <TextBlock Text="{Binding LanguageSettings_InterfaceLanguageHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingName"
+                           FontSize="14"
+                           VerticalAlignment="Center" />
+                <ComboBox Grid.Column="1"
+                          Width="110"
+                          Margin="16,0,0,0"
+                          ItemsSource="{Binding Language.LanguageOptions}"
+                          SelectedItem="{Binding Language.SelectedLanguage, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:LanguageOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+
+            <Border Classes="settingsDivider"
+                    IsVisible="{Binding ShowBackdropStyle}" />
+
+            <Grid ColumnDefinitions="2*,3*"
+                  Margin="16,12"
+                  IsVisible="{Binding ShowBackdropStyle}">
+                <TextBlock Text="{Binding ThemeColor_BackdropHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingName"
+                           FontSize="14"
+                           TextWrapping="Wrap"
+                           VerticalAlignment="Center" />
+                <ComboBox x:Name="BackdropStylePicker"
+                          Grid.Column="1"
+                          Width="110"
+                          HorizontalAlignment="Right"
+                          Margin="16,0,0,0"
+                          ItemsSource="{Binding BackdropStyleOptions}"
+                          SelectedIndex="{Binding BackdropStyleIndex, Mode=TwoWay}"
+                          AutomationProperties.Name="{Binding ThemeColor_BackdropHeader, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:BackdropStyleOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+
+            <Border Classes="settingsDivider"
+                    IsVisible="{x:Static services:PlatformServices.SupportsWaylandSettings}" />
+
+            <Grid ColumnDefinitions="*,Auto"
+                  Margin="16,12"
+                  IsVisible="{x:Static services:PlatformServices.SupportsWaylandSettings}">
+                <TextBlock Text="{Binding WaylandSettings_EnableHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingName"
+                           FontSize="14"
+                           VerticalAlignment="Center" />
+                <ComboBox Grid.Column="1"
+                          Width="110"
+                          Margin="16,0,0,0"
+                          ItemsSource="{Binding Wayland.ModeOptions}"
+                          SelectedItem="{Binding Wayland.SelectedMode, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:WaylandModeOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -20,6 +20,8 @@ static public class StringExtensions
 
     static public double Similarity(this string original, string target)
     {
+        original ??= string.Empty;
+        target ??= string.Empty;
         int row = original.Length + 1, column = target.Length + 1;
         var matrix = new int[row, column];
         for (var i = 0; i < column; i++)

@@ -1,0 +1,149 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="520"
+             d:DesignHeight="620"
+             x:Class="LightStudio.LightPlayer.Views.Pages.RemoteLibraryEditorView"
+             x:DataType="vm:RemoteLibraryEditorViewModel">
+    <!-- The host supplies the frame: a modal window on desktop, the shell overlay card elsewhere. -->
+    <!--
+      The browser head does not show this view at all: canvas text boxes are invisible to a password
+      manager, so it draws the same form in HTML from
+      src/LightStudio.LightPlayer.Web/wwwroot/remote-library-editor.js (driven by
+      BrowserRemoteLibraryEditor.cs). Every field, label and rule here has a twin there - change both.
+    -->
+    <DockPanel LastChildFill="True">
+        <TextBlock DockPanel.Dock="Top"
+                   Text="{Binding Header}"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,12"
+                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+
+        <StackPanel DockPanel.Dock="Bottom"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8"
+                    Margin="0,12,0,0">
+            <Button Content="{Binding Common_Cancel, Source={x:Static strings:LocalizedStrings.Instance}}"
+                    Command="{Binding CancelCommand}" />
+            <Button Content="{Binding SaveOfflineText}"
+                    IsVisible="{Binding CanSaveOffline}"
+                    Command="{Binding SaveOfflineCommand}" />
+            <Button Classes="accent compact"
+                    Content="{Binding Common_Save, Source={x:Static strings:LocalizedStrings.Instance}}"
+                    Command="{Binding SaveCommand}" />
+        </StackPanel>
+
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="12" Margin="0,0,12,0">
+                <TextBlock Text="{Binding ErrorMessage}"
+                           IsVisible="{Binding HasError}"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource AppFavoriteBrush}" />
+
+                <TextBlock Text="{Binding NameText}" FontWeight="SemiBold" />
+                <TextBox Text="{Binding Name, Mode=TwoWay}"
+                         PlaceholderText="{Binding NamePlaceholderText}">
+                    <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding SaveCommand}" />
+                    </TextBox.KeyBindings>
+                </TextBox>
+
+                <TextBlock Text="{Binding ProviderText}" FontWeight="SemiBold" />
+                <ComboBox ItemsSource="{Binding ProviderOptions}"
+                          SelectedIndex="{Binding SelectedProviderIndex, Mode=TwoWay}" />
+
+                <TextBlock Text="{Binding AddressText}" FontWeight="SemiBold" />
+                <TextBox Text="{Binding Address, Mode=TwoWay}"
+                         PlaceholderText="https://server.example">
+                    <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding SaveCommand}" />
+                    </TextBox.KeyBindings>
+                </TextBox>
+
+                <StackPanel Spacing="4" IsVisible="{Binding ShowWebProxy}">
+                    <CheckBox Content="{Binding WebProxyText}"
+                              IsChecked="{Binding UseWebProxy, Mode=TwoWay}" />
+                    <TextBlock Text="{Binding WebProxyHintText}"
+                               TextWrapping="Wrap"
+                               FontSize="12"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                </StackPanel>
+
+                <WrapPanel Orientation="Horizontal" ItemSpacing="16">
+                    <CheckBox Content="{Binding LoadMusicText}"
+                              IsChecked="{Binding LoadMusic, Mode=TwoWay}" />
+                    <CheckBox Content="{Binding LoadVideoText}"
+                              IsVisible="{Binding CanLoadVideo}"
+                              IsChecked="{Binding LoadVideo, Mode=TwoWay}" />
+                    <CheckBox Content="{Binding RefreshAtStartupText}"
+                              IsVisible="{Binding CanRefreshAtStartup}"
+                              IsChecked="{Binding RefreshAtStartup, Mode=TwoWay}" />
+                </WrapPanel>
+
+                <StackPanel Spacing="8" IsVisible="{Binding IsNextcloudMusic}">
+                    <Button Classes="accent compact"
+                            HorizontalAlignment="Left"
+                            IsVisible="{Binding CanAuthenticateWithBrowser}"
+                            Content="{Binding ConnectWithNextcloudText}"
+                            Command="{Binding AuthenticateWithBrowserCommand}" />
+                    <TextBlock Text="{Binding AuthenticationStatus}"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    <TextBlock Text="{Binding ApiKeyText}" FontWeight="SemiBold" />
+                    <TextBox Text="{Binding ApiKey, Mode=TwoWay}" PasswordChar="•">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding SaveCommand}" />
+                        </TextBox.KeyBindings>
+                    </TextBox>
+                    <TextBlock Text="{Binding ApiKeyHintText}"
+                               TextWrapping="Wrap"
+                               FontSize="12"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                </StackPanel>
+
+                <ToggleSwitch Content="{Binding AdvancedText}"
+                              IsVisible="{Binding IsLightPlayer}"
+                              IsChecked="{Binding ShowAdvanced, Mode=TwoWay}"
+                              OnContent=""
+                              OffContent="" />
+
+                <StackPanel Spacing="10" IsVisible="{Binding ShowCredentials}">
+                    <TextBlock Text="{Binding ApiProxyText}"
+                               FontWeight="SemiBold"
+                               IsVisible="{Binding ShowApiProxy}" />
+                    <TextBox Text="{Binding ApiProxy, Mode=TwoWay}"
+                             IsVisible="{Binding ShowApiProxy}"
+                             PlaceholderText="{Binding ApiProxyPlaceholderText}">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding SaveCommand}" />
+                        </TextBox.KeyBindings>
+                    </TextBox>
+                    <TextBlock Text="{Binding UserNameText}" FontWeight="SemiBold" />
+                    <TextBox Text="{Binding UserName, Mode=TwoWay}">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding SaveCommand}" />
+                        </TextBox.KeyBindings>
+                    </TextBox>
+                    <TextBlock Text="{Binding PasswordText}" FontWeight="SemiBold" />
+                    <TextBox Text="{Binding Password, Mode=TwoWay}" PasswordChar="•">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding SaveCommand}" />
+                        </TextBox.KeyBindings>
+                    </TextBox>
+                    <CheckBox Content="{Binding RememberPasswordText}"
+                              IsChecked="{Binding RememberPassword, Mode=TwoWay}" />
+                </StackPanel>
+
+                <ProgressBar IsVisible="{Binding IsBusy}"
+                             IsIndeterminate="{Binding IsBusy}"
+                             Height="3" />
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

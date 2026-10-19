@@ -8,7 +8,7 @@ namespace LightStudio.LightPlayer.Models;
 /// <summary>
 /// In-process drag-and-drop formats used by the now-playing queue. The payloads
 /// carry live CLR object references (never serialized), so they only flow within
-/// this process — exactly what the queue reorder and library-to-queue drags need.
+/// this process -- exactly what the queue reorder and library-to-queue drags need.
 /// </summary>
 public static class QueueDragFormats
 {
@@ -52,13 +52,14 @@ public enum LibraryInsertKind
     Artist,
     Track,
     Playlist,
+    MusicFolder,
 }
 
 /// <summary>
 /// Identifies a library item being dragged into the queue. The shell resolves it
 /// to the ordered playback items to insert (album/artist tracks come from the
-/// database in disc/track order; a playlist uses its stored order; a track is a
-/// single item).
+/// database in disc/track order; folders expand recursively within bounds;
+/// playlists use their stored order; individual tracks insert singly).
 /// </summary>
 public sealed class LibraryInsertPayload
 {
@@ -72,4 +73,7 @@ public sealed class LibraryInsertPayload
 
     /// <summary>The dragged playlist (for <see cref="LibraryInsertKind.Playlist"/>).</summary>
     public PlaylistModel? Playlist { get; init; }
+
+    /// <summary>The music folder being dragged into the queue.</summary>
+    public MusicFolderReference? MusicFolder { get; init; }
 }

@@ -1,14 +1,24 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace LightStudio.LightPlayer.Models;
 
 /// <summary>
 /// A configured library source folder, used by the settings row sample list.
 /// </summary>
-public sealed class LibraryFolderModel
+public sealed partial class LibraryFolderModel : ObservableObject
 {
-    public LibraryFolderModel(string name, string path)
+    /// <summary>
+    /// Whether the platform has to ask the user for this folder again before it can be read.
+    /// A browser drops the grant on a picked directory at the end of every session.
+    /// </summary>
+    [ObservableProperty]
+    private bool needsAccess;
+
+    public LibraryFolderModel(string name, string path, bool needsAccess = false)
     {
         Name = name;
         Path = path;
+        this.needsAccess = needsAccess;
     }
 
     public string Name { get; }

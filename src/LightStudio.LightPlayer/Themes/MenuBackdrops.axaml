@@ -1,0 +1,94 @@
+<Styles xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Class="LightStudio.LightPlayer.Services.MenuBackdropStyles"
+        xmlns:controls="using:LightStudio.LightPlayer.Controls"
+        xmlns:services="using:LightStudio.LightPlayer.Services">
+    <Style Selector="MenuItem /template/ Popup#PART_Popup">
+        <Setter Property="services:MenuBackdrop.IsMenu" Value="True" />
+    </Style>
+
+    <Style Selector="Popup.nativeMenuBackdrop > PopupRoot">
+        <Setter Property="TransparencyLevelHint" Value="AcrylicBlur, Blur, Transparent" />
+        <Setter Property="Background" Value="{DynamicResource AppPanelBackgroundBrush}" />
+    </Style>
+    <Style Selector="Popup.nativeMenuBackdrop > PopupRoot[ActualTransparencyLevel=AcrylicBlur], Popup.nativeMenuBackdrop > PopupRoot[ActualTransparencyLevel=Blur]">
+        <Setter Property="Background">
+            <SolidColorBrush Color="{DynamicResource AppPanelBackdropTintColor}" />
+        </Setter>
+    </Style>
+    <Style Selector="Popup.nativeMenuBackdrop > PopupRoot /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
+    </Style>
+
+    <Style Selector="Popup.overlayMenuBackdrop > OverlayPopupHost">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <LayoutTransformControl LayoutTransform="{TemplateBinding Transform}">
+                    <VisualLayerManager Name="PART_VisualLayerManager">
+                        <Grid lmr:BackdropBorder.ForegroundSource="{Binding #MenuBackdrop}">
+                            <lmr:BackdropBorder Name="MenuBackdrop"
+                                                     Classes.enabled="{DynamicResource AppHasBackdropEffects}"
+                                                     IsHitTestVisible="False"
+                                                     CornerRadius="{DynamicResource OverlayCornerRadius}"
+                                                     FallbackColor="{DynamicResource AppPanelBackdropColor}"
+                                                     TintColor="{DynamicResource AppPanelBackdropTintColor}" />
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Background="{TemplateBinding Background}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Content="{TemplateBinding Content}"
+                                              Padding="{TemplateBinding Padding}" />
+                        </Grid>
+                    </VisualLayerManager>
+                </LayoutTransformControl>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Popup.overlayMenuBackdrop > OverlayPopupHost /template/ lmr|BackdropBorder#MenuBackdrop">
+        <Setter Property="BackdropStyle" Value="Off" />
+    </Style>
+    <Style Selector="Popup.overlayMenuBackdrop > OverlayPopupHost /template/ lmr|BackdropBorder#MenuBackdrop.enabled">
+        <Setter Property="BackdropStyle" Value="Blur" />
+    </Style>
+
+    <Style Selector="MenuItem">
+        <Setter Property="Foreground" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutItemForeground}" />
+        <Style Selector="^ /template/ TextBlock#PART_InputGestureText">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutItemKeyboardAcceleratorTextForeground}" />
+        </Style>
+        <Style Selector="^ /template/ Path#PART_ChevronPath">
+            <Setter Property="Fill" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutSubItemChevron}" />
+        </Style>
+        <Style Selector="^:selected /template/ ContentPresenter#PART_HeaderPresenter">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutItemForegroundPointerOver}" />
+        </Style>
+        <Style Selector="^:selected /template/ TextBlock#PART_InputGestureText">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutItemKeyboardAcceleratorTextForegroundPointerOver}" />
+        </Style>
+        <Style Selector="^:selected /template/ Path#PART_ChevronPath">
+            <Setter Property="Fill" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutSubItemChevronPointerOver}" />
+        </Style>
+        <Style Selector="^:pressed /template/ Border#PART_LayoutRoot:pointerover">
+            <Style Selector="^ ContentPresenter#PART_HeaderPresenter">
+                <Setter Property="Foreground" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutItemForegroundPressed}" />
+            </Style>
+            <Style Selector="^ TextBlock#PART_InputGestureText">
+                <Setter Property="Foreground" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutItemKeyboardAcceleratorTextForegroundPressed}" />
+            </Style>
+            <Style Selector="^ Path#PART_ChevronPath">
+                <Setter Property="Fill" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutSubItemChevronPressed}" />
+            </Style>
+        </Style>
+        <Style Selector="^:disabled /template/ ContentPresenter#PART_HeaderPresenter">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutItemForegroundDisabled}" />
+        </Style>
+        <Style Selector="^:disabled /template/ TextBlock#PART_InputGestureText">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutItemKeyboardAcceleratorTextForegroundDisabled}" />
+        </Style>
+        <Style Selector="^:disabled /template/ Path#PART_ChevronPath">
+            <Setter Property="Fill" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutSubItemChevronDisabled}" />
+        </Style>
+        <Style Selector="^:open /template/ Path#PART_ChevronPath">
+            <Setter Property="Fill" Value="{lmr:BackdropForeground ResourceKey=MenuFlyoutSubItemChevronSubMenuOpened}" />
+        </Style>
+    </Style>
+</Styles>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Folders the app may hand a file out of. Another application cannot be given a file:// path on
+    Android 7 and later, so anything shared leaves through the provider as a content URI carrying a
+    read grant that lasts only as long as the intent.
+
+    The cache entry covers the copies made of remote-library pictures; the volume entries cover the
+    library folders themselves, which the app already holds read permission for and is only ever
+    asked to share one file at a time out of.
+-->
+<paths>
+    <cache-path name="shared" path="shared/" />
+    <external-path name="external" path="." />
+    <root-path name="volumes" path="/storage/" />
+</paths>

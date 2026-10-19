@@ -1,8 +1,10 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
              xmlns:models="using:LightStudio.LightPlayer.Models"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
              mc:Ignorable="d"
@@ -22,49 +24,97 @@
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
         </Style>
+        <!-- Selected playlist uses the theme's selection color rather than the Fluent accent. -->
+        <Style Selector="ListBox.playlistList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+        </Style>
+        <Style Selector="ListBox.playlistList ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSelectionBrush}" />
+        </Style>
     </UserControl.Styles>
 
-    <Grid x:Name="RootGrid" ColumnDefinitions="300,*">
+    <!--
+        Adaptive master-detail: the playlist list and the selected playlist sit side by side on wide
+        layouts (detail swaps with the light entrance transition); on narrow layouts the detail slides
+        in over the list from the right and back out on return. The back gesture / Android back is
+        handled by the page view model first (collapse to the list) before the shell navigates away.
+    -->
+    <controls:MasterDetailView CompactThreshold="680"
+                               MasterLength="320"
+                               IsCompact="{Binding IsCompact, Mode=OneWayToSource}"
+                               Detail="{Binding SelectedDetail}">
         <!-- Master: playlist list + create/import actions -->
-        <DockPanel x:Name="MasterPane" Grid.Column="0">
-            <StackPanel DockPanel.Dock="Bottom"
-                        Orientation="Horizontal"
-                        Spacing="8"
-                        HorizontalAlignment="Center"
-                        Margin="14,10,14,16">
-                <Button Classes="icon"
-                        ToolTip.Tip="New playlist"
-                        Command="{Binding NewPlaylistCommand}">
-                    <Viewbox Width="16" Height="16">
-                        <Path Data="{StaticResource IconAdd}" Fill="{DynamicResource AppPrimaryTextBrush}" />
-                    </Viewbox>
-                </Button>
-                <Button Classes="icon"
-                        ToolTip.Tip="Import playlist"
-                        Command="{Binding ImportPlaylistCommand}">
-                    <Viewbox Width="16" Height="16">
-                        <Path Data="{StaticResource IconImport}" Fill="{DynamicResource AppPrimaryTextBrush}" />
-                    </Viewbox>
-                </Button>
-            </StackPanel>
+        <controls:MasterDetailView.Master>
+            <controls:PageSearchHost Search="{Binding PageSearch}">
+            <DockPanel x:Name="MasterPane">
+                <StackPanel DockPanel.Dock="Bottom"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            HorizontalAlignment="Center"
+                            Margin="14,10,14,16">
+                    <Button Classes="icon"
+                            ToolTip.Tip="{Binding Playlists_NewPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            Command="{Binding NewPlaylistCommand}">
+                        <Viewbox Width="16" Height="16">
+                            <Path Data="{StaticResource IconAdd}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                    <Button Classes="icon"
+                            ToolTip.Tip="{Binding Playlists_ImportPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            Command="{Binding ImportPlaylistCommand}">
+                        <Viewbox Width="16" Height="16">
+                            <Path Data="{StaticResource IconImport}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Button>
+                </StackPanel>
 
-            <Panel Margin="14,32,14,0">
-                <ScrollViewer IsVisible="{Binding ShowList}">
+                <Panel>
                     <ListBox x:Name="PlaylistsList"
-                             Classes="playlistList"
-                             ItemsSource="{Binding Playlists}"
-                             SelectedItem="{Binding SelectedPlaylist, Mode=TwoWay}">
+                                Classes="playlistList"
+                                IsVisible="{Binding ShowList}"
+                                ItemsSource="{Binding Playlists}"
+                                SelectedItem="{Binding SelectedPlaylist, Mode=TwoWay}"
+                                Padding="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='14,22,14,22'}"
+                                AutoScrollToSelectedItem="False">
                         <ListBox.ItemTemplate>
                             <DataTemplate x:DataType="models:PlaylistModel">
-                                <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                                <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center" Background="Transparent">
+                                    <Grid.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuItem Header="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                        Command="{Binding $parent[UserControl].DataContext.PlayCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        IsVisible="{Binding IsMusic}" />
+                                            <MenuItem Header="{Binding Common_PlayNext, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                        Command="{Binding $parent[UserControl].DataContext.PlayNextCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        IsVisible="{Binding IsMusic}" />
+                                            <MenuItem Header="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                        Command="{Binding $parent[UserControl].DataContext.AddToQueueCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        IsVisible="{Binding IsMusic}" />
+                                            <Separator IsVisible="{Binding IsMusic}" />
+                                            <MenuItem Header="{Binding Common_Rename, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                        Command="{Binding $parent[UserControl].DataContext.RenameCommand}"
+                                                        CommandParameter="{Binding}" />
+                                            <MenuItem Header="{Binding PlaylistDetail_Export, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                        Command="{Binding $parent[UserControl].DataContext.ExportCommand}"
+                                                        CommandParameter="{Binding}" />
+                                            <Separator IsVisible="{Binding !IsBuiltIn}" />
+                                            <MenuItem Header="{Binding Common_Delete, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                        Command="{Binding $parent[UserControl].DataContext.DeleteCommand}"
+                                                        CommandParameter="{Binding}"
+                                                        IsVisible="{Binding !IsBuiltIn}" />
+                                        </MenuFlyout>
+                                    </Grid.ContextFlyout>
                                     <Border Grid.Column="0"
                                             Width="44"
                                             Height="44"
                                             CornerRadius="4"
                                             Background="{DynamicResource AppNavBackgroundBrush}">
                                         <Viewbox Width="22" Height="22">
-                                            <Path Data="{StaticResource IconPlaylist}"
-                                                  Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                            <Path Data="{Binding IconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                                    Fill="{DynamicResource AppSecondaryTextBrush}" />
                                         </Viewbox>
                                     </Border>
                                     <StackPanel Grid.Column="1"
@@ -72,37 +122,33 @@
                                                 VerticalAlignment="Center"
                                                 Spacing="2">
                                         <TextBlock Text="{Binding Title}"
-                                                   FontSize="15"
-                                                   MaxLines="1"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                                    FontSize="15"
+                                                    MaxLines="1"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    Foreground="{DynamicResource AppPrimaryTextBrush}" />
                                         <TextBlock Text="{Binding Subtitle}"
-                                                   FontSize="12"
-                                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                                    FontSize="12"
+                                                    Foreground="{DynamicResource AppSecondaryTextBrush}" />
                                     </StackPanel>
                                 </Grid>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
-                </ScrollViewer>
 
-                <TextBlock Text="No playlists yet"
-                           IsVisible="{Binding ShowEmpty}"
-                           Margin="10,6,0,0"
-                           FontSize="13"
-                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
-            </Panel>
-        </DockPanel>
+                    <TextBlock Text="{Binding Playlists_NoPlaylists, Source={x:Static strings:LocalizedStrings.Instance}}"
+                               IsVisible="{Binding ShowEmpty}"
+                               Margin="10,6,0,0"
+                               FontSize="13"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                </Panel>
+            </DockPanel>
+            </controls:PageSearchHost>
+        </controls:MasterDetailView.Master>
 
-        <!-- Detail: the selected playlist, or a placeholder -->
-        <DockPanel x:Name="DetailPane" Grid.Column="1" Margin="10,0,0,0">
-            <Panel>
-                <ContentControl Content="{Binding SelectedDetail}"
-                                IsVisible="{Binding ShowDetail}" />
-                <controls:EmptyState IsVisible="{Binding ShowDetailPlaceholder}"
-                                     Header="{Binding DetailPlaceholderHeader}"
-                                     Description="{Binding DetailPlaceholderDescription}" />
-            </Panel>
-        </DockPanel>
-    </Grid>
+        <!-- Detail placeholder: shown on wide layouts when no playlist is selected -->
+        <controls:MasterDetailView.DetailPlaceholder>
+            <controls:EmptyState Header="{Binding DetailPlaceholderHeader}"
+                                 Description="{Binding DetailPlaceholderDescription}" />
+        </controls:MasterDetailView.DetailPlaceholder>
+    </controls:MasterDetailView>
 </UserControl>

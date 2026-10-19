@@ -1,0 +1,79 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Navigation pane entries, shared by the shell's navigation pane and the settings window's sidebar. -->
+    <Style Selector="DockPanel.navPane TextBlock.navLabel">
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="Margin" Value="14,0,0,0" />
+    </Style>
+    <Style Selector="DockPanel.navPane.expanded TextBlock.navLabel">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="DockPanel.navPane StackPanel.navContent, DockPanel.navPane DockPanel.navContent">
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Margin" Value="12,0,0,0" />
+    </Style>
+    <!-- Status rows trim their captions, so they keep clear of the row's right edge. -->
+    <Style Selector="DockPanel.navPane DockPanel.navContent">
+        <Setter Property="Margin" Value="12,0,12,0" />
+    </Style>
+    <Style Selector="DockPanel.navPane Viewbox.navGlyph">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+    </Style>
+    <Style Selector="DockPanel.navPane Path.navIcon">
+        <Setter Property="Fill" Value="{DynamicResource AppPrimaryTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.navSection">
+        <Setter Property="IsVisible" Value="False" />
+    </Style>
+
+    <!-- Apple layout sidebar: compact, accent-tinted entries with rounded hover and selection fills. -->
+    <Style Selector="DockPanel.navPane.apple">
+        <Style Selector="^ Panel.railSearch, ^ Button.navMore, ^ Button.navQueue, ^ Border.navDivider">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^ Button.nav">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Margin" Value="10,1" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="^ Border.navIndicator">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="^ StackPanel.navContent">
+            <Setter Property="Margin" Value="8,0,0,0" />
+        </Style>
+        <Style Selector="^ DockPanel.navContent">
+            <Setter Property="Margin" Value="8,0,8,0" />
+        </Style>
+        <Style Selector="^ Viewbox.navGlyph">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+        </Style>
+        <Style Selector="^ Path.navIcon">
+            <Setter Property="Fill" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+        <Style Selector="^ TextBlock.navLabel">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Margin" Value="10,0,0,0" />
+        </Style>
+        <Style Selector="^ Button.nav.selected TextBlock.navLabel">
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="^ Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSidebarHoverBrush}" />
+        </Style>
+        <Style Selector="^ Button.nav.selected /template/ ContentPresenter#PART_ContentPresenter, ^ Button:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSidebarSelectionBrush}" />
+        </Style>
+    </Style>
+    <Style Selector="TextBlock.navSection">
+        <Setter Property="Margin" Value="20,14,10,4" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
+    </Style>
+    <Style Selector="DockPanel.navPane.apple.expanded TextBlock.navSection">
+        <Setter Property="IsVisible" Value="True" />
+    </Style>
+</Styles>

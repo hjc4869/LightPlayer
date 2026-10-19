@@ -1,0 +1,1124 @@
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:chrome="using:Avalonia.Controls.Chrome"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
+             xmlns:media="using:LightStudio.FfmpegShim.Media"
+             xmlns:pipeline="using:LightMediaRenderer.Avalonia.Pipeline"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:video="using:LightMediaRenderer.Avalonia.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="960"
+             d:DesignHeight="620"
+             Focusable="True"
+             Classes.liquidGlass="{DynamicResource AppIsContentLiquidGlass}"
+             Classes.apple="{DynamicResource AppIsAppleChrome}"
+             Classes.live="{Binding IsLiveStream}"
+             x:Class="LightStudio.LightPlayer.Views.Pages.VideoPlayerPageView"
+             x:DataType="vm:VideoPlayerPageViewModel">
+    <UserControl.Resources>
+        <LinearGradientBrush x:Key="VideoTopScrimBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#A0000000" Offset="0" />
+            <GradientStop Color="#00000000" Offset="1" />
+        </LinearGradientBrush>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="lmr|BackdropBorder">
+            <Setter Property="IsForegroundBoostEnabled" Value="True" />
+        </Style>
+        <Style Selector="Border#TitleBar">
+            <Setter Property="Background" Value="{StaticResource VideoTopScrimBrush}" />
+        </Style>
+        <Style Selector=":is(UserControl).apple Border#TitleBar">
+            <Setter Property="chrome:WindowDecorationProperties.ElementRole" Value="TitleBar" />
+        </Style>
+        <Style Selector="Border#TitleBar Button">
+            <Setter Property="chrome:WindowDecorationProperties.ElementRole" Value="User" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder#CloseBackdrop">
+            <Setter Property="Grid.Column" Value="3" />
+        </Style>
+        <Style Selector="Button#CloseButton">
+            <Style Selector="^ Path">
+                <Setter Property="Data" Value="{StaticResource IconClose}" />
+            </Style>
+        </Style>
+        <Style Selector=":is(UserControl).apple lmr|BackdropBorder#CloseBackdrop">
+            <Setter Property="Grid.Column" Value="0" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
+        <Style Selector=":is(UserControl).apple Button#CloseButton">
+            <Style Selector="^ Path">
+                <Setter Property="Data" Value="{StaticResource IconChevronLeft}" />
+            </Style>
+        </Style>
+        <Style Selector="lmr|BackdropBorder.videoHeaderGlass">
+            <Setter Property="BackdropStyle" Value="Off" />
+            <Setter Property="FallbackColor" Value="Transparent" />
+            <Setter Property="TintColor" Value="#50000000" />
+            <Setter Property="CornerRadius" Value="999" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder#VideoTitleBackdrop">
+            <Setter Property="Margin" Value="6,0,8,0" />
+        </Style>
+        <Style Selector=":is(UserControl).liquidGlass Border#TitleBar">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector=":is(UserControl).liquidGlass lmr|BackdropBorder.videoHeaderGlass">
+            <Setter Property="BackdropStyle" Value="{DynamicResource AppContentBackdropStyle}" />
+            <Setter Property="FallbackColor" Value="#B0000000" />
+        </Style>
+        <Style Selector=":is(UserControl).liquidGlass lmr|BackdropBorder#VideoTitleBackdrop">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Padding" Value="14,0" />
+        </Style>
+        <Style Selector="Border#ControlDeck">
+            <Setter Property="Margin" Value="12" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder#DeckBackdrop">
+            <Setter Property="BackdropStyle" Value="{DynamicResource AppContentBackdropStyle}" />
+            <Setter Property="FallbackColor" Value="#B0000000" />
+            <Setter Property="TintColor" Value="#50000000" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderBrush" Value="#0CFFFFFF" />
+        </Style>
+        <Style Selector=":is(UserControl).liquidGlass lmr|BackdropBorder#DeckBackdrop">
+            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="BorderBrush" Value="{x:Null}" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder#StatisticsPanel">
+            <Setter Property="BackdropStyle" Value="Off" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Style Selector="^ > Border">
+                <Setter Property="BorderBrush" Value="#40FFFFFF" />
+            </Style>
+        </Style>
+        <Style Selector=":is(UserControl).liquidGlass lmr|BackdropBorder#StatisticsPanel">
+            <Setter Property="BackdropStyle" Value="{DynamicResource AppContentBackdropStyle}" />
+            <Setter Property="CornerRadius" Value="24" />
+            <Style Selector="^ > Border">
+                <Setter Property="BorderBrush" Value="{x:Null}" />
+            </Style>
+        </Style>
+        <Style Selector="controls|MediaSeekBar#SeekBar">
+            <Setter Property="TrackBrush" Value="{lmr:BackdropForeground Color=#59FFFFFF}" />
+            <Setter Property="BufferedBrush" Value="{lmr:BackdropForeground Color=#A6D6D6D6}" />
+            <Setter Property="ProgressBrush" Value="{lmr:BackdropForeground ResourceKey=AppAccentBrush}" />
+            <Setter Property="ThumbBrush" Value="{lmr:BackdropForeground ResourceKey=AppAccentBrush}" />
+        </Style>
+        <Style Selector="TextBlock.timeText">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="MinWidth" Value="64" />
+            <Setter Property="TextAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground}" />
+        </Style>
+        <Style Selector="TextBlock.positionText">
+            <Setter Property="Text" Value="{Binding PositionText}" />
+        </Style>
+        <Style Selector=":is(UserControl).live TextBlock.positionText">
+            <Setter Property="Text" Value="{Binding TimeText}" />
+        </Style>
+        <!-- Transport buttons: flat, large hit targets so they work with a finger as well as a mouse. -->
+        <Style Selector="Button.transport">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10" />
+            <Setter Property="MinWidth" Value="44" />
+            <Setter Property="MinHeight" Value="44" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.transport:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#33FFFFFF" />
+        </Style>
+        <Style Selector=":is(UserControl).liquidGlass Button.transport:not(.listItem):pointerover /template/ ContentPresenter#PART_ContentPresenter, :is(UserControl).liquidGlass Button.transport:not(.listItem):pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#55000000" />
+        </Style>
+        <!-- Each geometry is drawn on a 24x24 canvas but covers only part of it, and at an offset
+             that differs from icon to icon. Stretching each to its own extent and centering it is
+             what keeps every glyph on the middle of its button; the Viewbox around it then sets
+             how large that glyph is drawn. -->
+        <Style Selector="Button.transport > Viewbox Path">
+            <Setter Property="Fill" Value="White" />
+            <Setter Property="Stretch" Value="Uniform" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.transport TextBlock">
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.transport.primary">
+            <Setter Property="MinWidth" Value="56" />
+            <Setter Property="MinHeight" Value="56" />
+        </Style>
+        <Style Selector=":is(UserControl).liquidGlass Button.transport:not(.listItem)">
+            <Setter Property="CornerRadius" Value="999" />
+        </Style>
+        <Style Selector="Button.transport.videoStep">
+            <Setter Property="IsVisible" Value="{Binding IsPlaylistAvailable}" />
+        </Style>
+        <Style Selector="Button.transport.chapterStep">
+            <Setter Property="IsVisible" Value="{Binding HasChapters}" />
+        </Style>
+        <Style Selector="Button.transport.seekStep">
+            <Setter Property="IsVisible" Value="{Binding CanSeek}" />
+        </Style>
+        <Style Selector="StackPanel.hideVideoSteps > Button.videoStep, StackPanel.hideChapterSteps > Button.chapterStep, StackPanel.hideSeekSteps > Button.seekStep">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector=":is(UserControl).compactDeck Border#ControlDeck Button.transport">
+            <Setter Property="MinWidth" Value="36" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="7" />
+        </Style>
+        <Style Selector=":is(UserControl).tightDeck Border#ControlDeck Button.transport">
+            <Setter Property="MinWidth" Value="32" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Padding" Value="5" />
+        </Style>
+        <Style Selector=":is(UserControl).liquidGlass lmr|BackdropBorder.videoHeaderGlass > Button > Viewbox Path, Border#ControlDeck Button.transport > Viewbox Path">
+            <Setter Property="Fill" Value="{lmr:BackdropForeground}" />
+        </Style>
+        <Style Selector="StackPanel.menuSection">
+            <Setter Property="Width" Value="280" />
+            <Setter Property="Spacing" Value="8" />
+        </Style>
+        <!-- One line of the shortcut list: the keys in a column of their own, what they do beside. -->
+        <Style Selector="TextBlock.shortcutKey">
+            <Setter Property="Width" Value="126" />
+            <Setter Property="FontFamily" Value="Consolas,Menlo,DejaVu Sans Mono,monospace" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#B0FFFFFF" />
+        </Style>
+        <Style Selector="TextBlock.shortcutAction">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="StackPanel.shortcutColumn">
+            <Setter Property="Spacing" Value="7" />
+        </Style>
+        <!-- The list entry playing now. Declared after the transport styles so it wins over the
+             white foreground they set on every label inside such a button. -->
+        <Style Selector="Button.transport.current TextBlock.playlistTitle">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground ResourceKey=AppAccentBrush}" />
+            <Setter Property="FontWeight" Value="Bold" />
+        </Style>
+        <Style Selector="Border#PlaylistPanel Button.transport TextBlock">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground}" />
+        </Style>
+        <Style Selector="Border#PlaylistPanel Button.transport.current TextBlock.playlistTitle">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground ResourceKey=AppAccentBrush}" />
+        </Style>
+        <Style Selector="Border#PlaylistPanel.liquidGlass">
+            <Setter Property="Margin" Value="12" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Style Selector="^ lmr|BackdropBorder">
+                <Setter Property="Padding" Value="6" />
+            </Style>
+        </Style>
+    </UserControl.Styles>
+
+    <!-- The page is a picture with white controls over it whatever the app's theme is, so it pins
+         itself to dark: the menus and drop-downs opened from the deck follow suit instead of coming
+         up as light panels against the video. -->
+    <ThemeVariantScope RequestedThemeVariant="Dark">
+        <!-- Stage: the picture plus everything drawn over it. -->
+        <Border x:Name="Stage"
+                Background="Black"
+                ClipToBounds="True"
+                PointerPressed="OnStagePointerPressed"
+                PointerMoved="OnStagePointerMoved"
+                PointerExited="OnStagePointerExited"
+                PointerReleased="OnStagePointerReleased"
+                PointerCaptureLost="OnStagePointerCaptureLost"
+                Tapped="OnStageTapped"
+                DoubleTapped="OnStageDoubleTapped">
+            <Border.ContextFlyout>
+                <MenuFlyout>
+                    <MenuItem Header="{Binding PlaybackBar_PlayPause, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding PlayPauseCommand}" />
+                    <Separator IsVisible="{Binding #ChapterMenu.IsVisible}" />
+                    <MenuItem x:Name="ChapterMenu"
+                              Header="{Binding VideoPlayer_Chapters, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              IsVisible="False" />
+                    <Separator IsVisible="{Binding HasLocationActions}" />
+                    <MenuItem Header="{Binding Common_GoToLocation, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding GoToLocationCommand}" IsVisible="{Binding CanGoToLocation}" />
+                    <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding OpenContainingFolderCommand}" IsVisible="{Binding CanOpenContainingFolder}" />
+                    <Separator IsVisible="{Binding HasFileActions}" />
+                    <MenuItem Header="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding AddToPlaylistCommand}" IsVisible="{Binding CanAddToPlaylist}" />
+                    <MenuItem Header="{Binding Common_Properties, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding PropertiesCommand}" IsVisible="{Binding CanShowProperties}" />
+                </MenuFlyout>
+            </Border.ContextFlyout>
+            <Panel>
+                <video:VideoView x:Name="Video"
+                                 Player="{Binding Player}"
+                                 Stretch="{Binding Stretch}"
+                                 DebandingQuality="{Binding DebandingQuality}"
+                                 ScalingQuality="{Binding ScalingQuality}"
+                                 DownscalingQuality="{Binding DownscalingQuality}"
+                                 PreferHardwareProcessing="{Binding PreferHardwareProcessing}"
+                                 ShaderPackageOverride="{Binding ShaderPackageOverride}"
+                                 EnableHdrPassthrough="{Binding EnableHdrPassthrough}"
+                                 DisplayPanelBitDepth="{Binding DisplayPanelBitDepth}"
+                                 SubtitleBrightnessMode="{Binding SubtitleBrightnessMode}"
+                                 IsExtendedRangeOutput="{Binding IsExtendedRangeOutput, Mode=OneWayToSource}"
+                                 Background="Black" />
+
+                <!-- While the picture is in a window of its own the page has nothing to show, and
+                     the frame left on the surface would read as a stall. -->
+                <Border x:Name="PictureInPicturePanel"
+                        IsVisible="{Binding IsPictureDetached}"
+                        Background="#FF0B0B0B">
+                    <StackPanel HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Spacing="14">
+                        <Viewbox Width="48" Height="48" Opacity="0.55">
+                            <Path Data="{StaticResource IconPictureInPicture}" Fill="White" />
+                        </Viewbox>
+                        <TextBlock HorizontalAlignment="Center"
+                                   Foreground="#C0FFFFFF"
+                                   Text="{Binding VideoPlayer_PictureInPictureActive, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                        <Button HorizontalAlignment="Center"
+                                Command="{Binding TogglePictureInPictureCommand}"
+                                Content="{Binding VideoPlayer_PictureInPictureExit, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Stream loading / buffering indicator -->
+                <Border IsVisible="{Binding IsPlaybackBusy}"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Padding="18,14"
+                        CornerRadius="10"
+                        Background="#B0000000">
+                    <StackPanel Spacing="10">
+                        <ProgressBar IsIndeterminate="{Binding IsPlaybackBusy}" Width="180" Height="4" />
+                        <TextBlock IsVisible="{Binding IsStreamLoading}"
+                                   MaxWidth="280"
+                                   HorizontalAlignment="Center"
+                                   Text="{Binding StreamLoadingText}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Foreground="White" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Diagnostics. Clear of the title bar, and selectable so a report can be pasted. -->
+                <lmr:BackdropBorder x:Name="StatisticsPanel"
+                                         IsVisible="{Binding IsStatisticsPanelVisible}"
+                                         HorizontalAlignment="Left"
+                                         VerticalAlignment="Top"
+                                         Margin="12,56,12,12"
+                                         MaxWidth="620"
+                                         FallbackColor="#C0000000"
+                                         TintColor="#50000000">
+                    <Border Padding="12,8"
+                            CornerRadius="{Binding #StatisticsPanel.CornerRadius}"
+                            BorderThickness="1">
+                        <ScrollViewer MaxHeight="420" HorizontalScrollBarVisibility="Auto">
+                            <SelectableTextBlock Text="{Binding StatisticsText}"
+                                                 FontFamily="Consolas,Menlo,DejaVu Sans Mono,monospace"
+                                                 FontSize="12"
+                                                 Foreground="{lmr:BackdropForeground Color=#E0FFE0}" />
+                        </ScrollViewer>
+                    </Border>
+                </lmr:BackdropBorder>
+
+                <!-- Errors are dismissible so a failed sidecar does not block the picture. -->
+                <Border x:Name="ErrorPanel"
+                        IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        MaxWidth="460"
+                        Padding="18,14"
+                        CornerRadius="10"
+                        Background="#D0000000">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="{Binding ErrorMessage}"
+                                   TextWrapping="Wrap"
+                                   Foreground="White" />
+                        <Button HorizontalAlignment="Right"
+                                Command="{Binding DismissErrorCommand}"
+                                Content="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Title bar over the picture, YouTube style. The sheet is dropped to its corner
+                     card with the arrow on the left and ended outright with the cross on the right,
+                     so both are there on hosts without a hardware or system back key as well. -->
+                <Border x:Name="TitleBar"
+                        VerticalAlignment="Top"
+                        IsVisible="{Binding AreDeckControlsVisible}"
+                        Padding="{Binding $self.(controls:ShellChrome.WindowControlsInset)}">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="8,6">
+                        <lmr:BackdropBorder Grid.Column="1" Classes="videoHeaderGlass" IsVisible="{Binding CanMinimize}">
+                        <Button
+                                Classes="transport"
+                                Command="{Binding MinimizeCommand}">
+                            <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconChevronDown}" /></Viewbox>
+                        </Button>
+                        </lmr:BackdropBorder>
+                        <lmr:BackdropBorder Grid.Column="2" x:Name="VideoTitleBackdrop" Classes="videoHeaderGlass">
+                        <TextBlock
+                                   VerticalAlignment="Center"
+                                   Text="{Binding MediaTitle}"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   MaxLines="1"
+                                   TextTrimming="CharacterEllipsis"
+                                Foreground="{lmr:BackdropForeground}" />
+                            </lmr:BackdropBorder>
+                            <lmr:BackdropBorder x:Name="CloseBackdrop" Classes="videoHeaderGlass">
+                            <Button x:Name="CloseButton"
+                                Classes="transport"
+                                Command="{Binding CloseCommand}">
+                            <Viewbox Width="20" Height="20"><Path /></Viewbox>
+                        </Button>
+                        </lmr:BackdropBorder>
+                    </Grid>
+                </Border>
+
+                <!-- Control deck -->
+                <Border x:Name="ControlDeck"
+                        VerticalAlignment="Bottom"
+                        IsVisible="{Binding AreDeckControlsVisible}">
+                    <lmr:BackdropBorder x:Name="DeckBackdrop">
+                    <Grid x:Name="DeckLayout" RowDefinitions="Auto,Auto" Margin="12,8">
+                        <Grid Grid.Row="0" x:Name="TimelineRow" Grid.IsSharedSizeScope="True">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="VideoTime" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" SharedSizeGroup="VideoTime" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Classes="timeText positionText" />
+                        <!-- Seek bar. Chapter boundaries break the rail, and the pointer names the
+                             chapter it is over (see OnSeekPointerMoved). -->
+                        <Panel Grid.Column="1" x:Name="SeekHost" Margin="4,0">
+                            <controls:MediaSeekBar x:Name="SeekBar"
+                                                   VerticalAlignment="Center"
+                                                   Position="{Binding PositionSeconds}"
+                                                   Buffered="{Binding BufferedSeconds}"
+                                                   Minimum="{Binding SeekMinimumSeconds}"
+                                                   Duration="{Binding SeekMaximumSeconds}"
+                                                   Chapters="{Binding Chapters}"
+                                                   IsEnabled="{Binding CanSeek}" />
+                            <!-- Rides above the thumb while it is held: the picture stays where it
+                                 is until the thumb is let go, so this is the only sight of where
+                                 the release will land. Placed from code-behind. -->
+                            <Canvas IsHitTestVisible="False">
+                                <Border x:Name="SeekPreview"
+                                        IsVisible="False"
+                                        IsHitTestVisible="False"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Top"
+                                        Padding="8,3"
+                                        CornerRadius="4"
+                                        Background="#D0000000"
+                                        BorderBrush="#40FFFFFF"
+                                        BorderThickness="1">
+                                    <TextBlock x:Name="SeekPreviewText"
+                                               FontFamily="Consolas,Menlo,DejaVu Sans Mono,monospace"
+                                               FontSize="13"
+                                               Foreground="White" />
+                                </Border>
+                            </Canvas>
+                        </Panel>
+                            <Panel Grid.Column="2">
+                                <TextBlock Classes="timeText" Text="{Binding DurationText}" IsVisible="{Binding !IsLiveStream}" />
+                                <Button x:Name="GoLiveButton" Classes="transport"
+                                        IsVisible="{Binding IsLiveStream}"
+                                        Command="{Binding GoLiveCommand}">
+                                    <Panel>
+                                        <TextBlock Text="{Binding VideoPlayer_Live, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{lmr:BackdropForeground ResourceKey=AppAccentBrush}"
+                                                   IsVisible="{Binding IsAtLiveEdge}" />
+                                        <TextBlock Text="{Binding VideoPlayer_Live, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{lmr:BackdropForeground Color=#99FFFFFF}"
+                                                   IsVisible="{Binding !IsAtLiveEdge}" />
+                                    </Panel>
+                                </Button>
+                            </Panel>
+                        </Grid>
+
+                        <Grid Grid.Row="1" x:Name="DeckControlsRow" ColumnDefinitions="*,Auto,*" Margin="0,2,0,0">
+                                    <StackPanel Grid.Column="1" x:Name="PlaybackButtons" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                    <Button Classes="transport navigation videoStep"
+                                            Command="{Binding PreviousVideoCommand}">
+                                        <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconPrevious}" /></Viewbox>
+                                    </Button>
+                                    <Button Classes="transport navigation chapterStep"
+                                            Command="{Binding PreviousChapterCommand}">
+                                        <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconRewind}" /></Viewbox>
+                                    </Button>
+                                    <Button Classes="transport navigation seekStep"
+                                            Command="{Binding SkipBackCommand}">
+                                        <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconSkipBack10}" /></Viewbox>
+                                    </Button>
+                                    <Button x:Name="PlayPauseButton"
+                                            Classes="transport primary"
+                                            Command="{Binding PlayPauseCommand}">
+                                        <Viewbox x:Name="PlayPauseGlyph" Width="30" Height="30">
+                                            <Panel>
+                                                <Path Data="{StaticResource IconPlay}" IsVisible="{Binding !IsPlaying}" />
+                                                <Path Data="{StaticResource IconPause}" IsVisible="{Binding IsPlaying}" />
+                                            </Panel>
+                                        </Viewbox>
+                                    </Button>
+                                    <Button Classes="transport navigation seekStep"
+                                            Command="{Binding SkipForwardCommand}">
+                                        <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconSkipForward10}" /></Viewbox>
+                                    </Button>
+                                    <Button Classes="transport navigation chapterStep"
+                                            Command="{Binding NextChapterCommand}">
+                                        <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconFastForward}" /></Viewbox>
+                                    </Button>
+                                    <Button Classes="transport navigation videoStep"
+                                            Command="{Binding NextVideoCommand}">
+                                        <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconNext}" /></Viewbox>
+                                    </Button>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="0" x:Name="LeftButtons" Orientation="Horizontal" Spacing="2"
+                                            HorizontalAlignment="Left" VerticalAlignment="Center">
+                                    <Button x:Name="VolumeButton" Classes="transport">
+                                        <Viewbox Width="22" Height="22">
+                                            <Path Data="{Binding VolumeIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}" />
+                                        </Viewbox>
+                                        <Button.Flyout>
+                                            <Flyout Placement="Top">
+                                                <Slider Width="200"
+                                                        Minimum="0"
+                                                        Maximum="1"
+                                                        Value="{Binding Volume, Mode=TwoWay}" />
+                                            </Flyout>
+                                        </Button.Flyout>
+                                    </Button>
+
+                                        <Button x:Name="PlaylistButton" Classes="transport"
+                                            Command="{Binding TogglePlaylistCommand}"
+                                            IsVisible="{Binding IsPlaylistAvailable}">
+                                        <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconQueue}" /></Viewbox>
+                                    </Button>
+
+                                <!-- Always on the deck, even for a video that carries no subtitles:
+                                     it is also the way to load one from elsewhere. -->
+                                <Button Classes="transport"
+                                        x:Name="SubtitleMenuButton">
+                                    <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconSubtitles}" /></Viewbox>
+                                    <Button.Flyout>
+                                        <Flyout Placement="Top">
+                                            <StackPanel Classes="menuSection">
+                                                <TextBlock Text="{Binding VideoPlayer_SubtitleTrack, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                           IsVisible="{Binding HasSubtitles}"
+                                                           FontWeight="SemiBold" />
+                                                <ComboBox HorizontalAlignment="Stretch"
+                                                          IsVisible="{Binding HasSubtitles}"
+                                                          ItemsSource="{Binding SubtitleOptions}"
+                                                          SelectedItem="{Binding SelectedSubtitleOption, Mode=TwoWay}">
+                                                    <ComboBox.ItemTemplate>
+                                                        <DataTemplate x:DataType="vm:SubtitleOption">
+                                                            <TextBlock Text="{Binding DisplayName}" />
+                                                        </DataTemplate>
+                                                    </ComboBox.ItemTemplate>
+                                                </ComboBox>
+
+                                                <Separator IsVisible="{Binding HasSubtitles}" />
+
+                                                <StackPanel Spacing="8"
+                                                            IsVisible="{Binding IsExtendedRangeOutput}">
+                                                    <TextBlock Text="{Binding SubtitleBrightnessHeader}"
+                                                               FontWeight="SemiBold" />
+                                                    <ComboBox HorizontalAlignment="Stretch"
+                                                              ItemsSource="{Binding SubtitleBrightnessOptions}"
+                                                              SelectedItem="{Binding SelectedSubtitleBrightnessOption, Mode=TwoWay}">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:SubtitleBrightnessOption">
+                                                                <TextBlock Text="{Binding DisplayName}" />
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+
+                                                    <Separator />
+                                                </StackPanel>
+
+                                                <TextBlock Text="{Binding VideoPlayer_AddSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                           FontWeight="SemiBold" />
+                                                <!-- One button on this device, two when the video is
+                                                     the server's: the file may be at either end. -->
+                                                <Button HorizontalAlignment="Stretch"
+                                                        HorizontalContentAlignment="Left"
+                                                        Click="OnSubtitleSourceClick"
+                                                        Command="{Binding AddLocalSubtitleCommand}"
+                                                        Content="{Binding VideoPlayer_SubtitleFromDevice, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                <Button HorizontalAlignment="Stretch"
+                                                        HorizontalContentAlignment="Left"
+                                                        IsVisible="{Binding CanBrowseServerSubtitles}"
+                                                        Click="OnSubtitleSourceClick"
+                                                        Command="{Binding OpenSubtitleBrowserCommand}"
+                                                        Content="{Binding VideoPlayer_SubtitleFromServer, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                            </StackPanel>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
+                                </StackPanel>
+
+                            <StackPanel x:Name="RightButtons" Grid.Column="2"
+                                        Orientation="Horizontal"
+                                        Spacing="2"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Center">
+                                <!-- Everything set once and then left alone: the audio track, the
+                                     rate, what happens at the end, and the server's terms. -->
+                                <Button Classes="transport"
+                                        x:Name="SettingsMenuButton">
+                                    <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconSettings}" /></Viewbox>
+                                    <Button.Flyout>
+                                        <Flyout Placement="Top">
+                                            <ScrollViewer MaxHeight="460" HorizontalScrollBarVisibility="Disabled">
+                                                <StackPanel Classes="menuSection">
+                                                    <StackPanel Spacing="8" IsVisible="{Binding HasChapters}">
+                                                        <TextBlock Text="{Binding VideoPlayer_Chapters, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                   FontWeight="SemiBold" />
+                                                        <ComboBox HorizontalAlignment="Stretch"
+                                                                  ItemsSource="{Binding Chapters}"
+                                                                  SelectedItem="{Binding SelectedChapter, Mode=TwoWay}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate x:DataType="media:MediaChapter">
+                                                                    <TextBlock Text="{Binding DisplayName}" />
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+                                                    </StackPanel>
+                                                    <TextBlock Text="{Binding VideoPlayer_AudioTrack, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                               FontWeight="SemiBold"
+                                                               IsVisible="{Binding HasMultipleAudioTracks}" />
+                                                    <ComboBox HorizontalAlignment="Stretch"
+                                                              IsVisible="{Binding HasMultipleAudioTracks}"
+                                                              ItemsSource="{Binding AudioTracks}"
+                                                              SelectedItem="{Binding SelectedAudioTrack, Mode=TwoWay}">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate x:DataType="pipeline:AudioTrack">
+                                                                <TextBlock Text="{Binding DisplayName}" />
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+
+                                                    <StackPanel Spacing="6"
+                                                                IsVisible="{Binding HasVideoQualityChoices}">
+                                                        <TextBlock Text="{Binding VideoPlayer_Resolution, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                   FontWeight="SemiBold" />
+                                                        <ComboBox HorizontalAlignment="Stretch"
+                                                                  ItemsSource="{Binding VideoQualityOptions}"
+                                                                  SelectedItem="{Binding SelectedVideoQualityOption, Mode=TwoWay}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:VideoQualityOption">
+                                                                    <TextBlock Text="{Binding DisplayName}" />
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+                                                    </StackPanel>
+
+                                                    <StackPanel Spacing="6"
+                                                                IsVisible="{Binding HasCameraAngleChoices}">
+                                                        <TextBlock Text="{Binding VideoPlayer_VideoRendition, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                   FontWeight="SemiBold" />
+                                                        <ComboBox HorizontalAlignment="Stretch"
+                                                                  ItemsSource="{Binding CameraAngleOptions}"
+                                                                  SelectedItem="{Binding SelectedCameraAngleOption, Mode=TwoWay}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:VideoAngleOption">
+                                                                    <TextBlock Text="{Binding Name}" />
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+                                                    </StackPanel>
+
+                                                    <Grid ColumnDefinitions="*,Auto">
+                                                        <TextBlock Grid.Column="0"
+                                                                   VerticalAlignment="Center"
+                                                                   Text="{Binding VideoPlayer_Speed, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                        <ComboBox Grid.Column="1"
+                                                                  MinWidth="96"
+                                                                  ItemsSource="{Binding SpeedOptions}"
+                                                                  SelectedItem="{Binding SelectedSpeedOption, Mode=TwoWay}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:SpeedOption">
+                                                                    <TextBlock Text="{Binding DisplayName}" />
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+                                                    </Grid>
+
+                                                    <CheckBox IsChecked="{Binding IsAutoPlayNextEnabled, Mode=TwoWay}"
+                                                              Content="{Binding VideoPlayer_AutoPlayNext, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                    <CheckBox IsChecked="{Binding AreStatisticsVisible, Mode=TwoWay}"
+                                                              Content="{Binding VideoPlayer_Statistics, Source={x:Static strings:LocalizedStrings.Instance}}" />
+
+                                                    <StackPanel Spacing="8"
+                                                                IsVisible="{Binding HasShaderPackageChoices}">
+                                                        <Separator />
+                                                        <TextBlock Text="{Binding ShaderPackageHeader}"
+                                                                   FontWeight="SemiBold" />
+                                                        <ComboBox HorizontalAlignment="Stretch"
+                                                                  ItemsSource="{Binding ShaderPackageOptions}"
+                                                                  SelectedItem="{Binding SelectedShaderPackage, Mode=TwoWay}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:VideoShaderPackageOption">
+                                                                    <TextBlock Text="{Binding Title}"
+                                                                               TextWrapping="Wrap" />
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+                                                    </StackPanel>
+
+                                                    <Button HorizontalAlignment="Stretch"
+                                                            HorizontalContentAlignment="Left"
+                                                            Click="OnShortcutsClick"
+                                                            Command="{Binding ToggleShortcutsCommand}"
+                                                            Content="{Binding VideoPlayer_Shortcuts, Source={x:Static strings:LocalizedStrings.Instance}}" />
+
+                                                    <!-- Re-encoding cannot change on a stream in flight, so this reopens it. -->
+                                                    <StackPanel Spacing="8"
+                                                                IsVisible="{Binding IsTranscodeOffered}">
+                                                        <Separator />
+                                                        <TextBlock Text="{Binding VideoPlayer_Transcode, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                   FontWeight="SemiBold" />
+
+                                                        <TextBlock Text="{Binding VideoPlayer_TranscodeVideoMode, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                   FontSize="12" />
+                                                        <ComboBox HorizontalAlignment="Stretch"
+                                                                  ItemsSource="{Binding VideoTranscodeOptions}"
+                                                                  SelectedItem="{Binding SelectedVideoTranscode, Mode=TwoWay}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:VideoSettingsOption">
+                                                                    <TextBlock Text="{Binding Title}" />
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+
+                                                        <TextBlock Text="{Binding VideoPlayer_TranscodeVideoHeight, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                   FontSize="12" />
+                                                        <NumericUpDown Minimum="1"
+                                                                       Maximum="8192"
+                                                                       Increment="1"
+                                                                       FormatString="0"
+                                                                       ClipValueToMinMax="True"
+                                                                       Value="{Binding TranscodeVideoHeight, Mode=TwoWay}" />
+
+                                                        <TextBlock Text="{Binding VideoPlayer_TranscodeVideoBitrate, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                   FontSize="12" />
+                                                        <controls:NumberEntry Minimum="0"
+                                                                              Maximum="200"
+                                                                              Increment="0.5"
+                                                                              FormatString="0.#"
+                                                                              Number="{Binding TranscodeVideoBitrate, Mode=TwoWay}" />
+
+                                                        <TextBlock Text="{Binding VideoPlayer_TranscodeAudioMode, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                   FontSize="12" />
+                                                        <ComboBox HorizontalAlignment="Stretch"
+                                                                  ItemsSource="{Binding AudioTranscodeOptions}"
+                                                                  SelectedItem="{Binding SelectedAudioTranscode, Mode=TwoWay}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:VideoSettingsOption">
+                                                                    <TextBlock Text="{Binding Title}" />
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+
+                                                        <TextBlock Text="{Binding VideoPlayer_TranscodeAudioBitrate, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                   FontSize="12" />
+                                                        <controls:NumberEntry Minimum="0"
+                                                                              Maximum="4000"
+                                                                              Increment="32"
+                                                                              FormatString="0"
+                                                                              Number="{Binding TranscodeAudioBitrate, Mode=TwoWay}" />
+
+                                                        <TextBlock Text="{Binding VideoPlayer_TranscodeRestartNotice, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                   FontSize="11"
+                                                                   TextWrapping="Wrap"
+                                                                   Opacity="0.7" />
+
+                                                        <!-- The terms above are only sent when this is pressed, so the
+                                                             stream is not reopened on every keystroke in a bitrate box. -->
+                                                        <Button HorizontalAlignment="Right"
+                                                                Command="{Binding ApplyTranscodeCommand}"
+                                                                Content="{Binding VideoPlayer_TranscodeApply, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                    </StackPanel>
+                                                </StackPanel>
+                                            </ScrollViewer>
+                                        </Flyout>
+                                    </Button.Flyout>
+                                </Button>
+
+                                <Button Classes="transport"
+                                        IsVisible="{Binding CanUsePictureInPicture}"
+                                        Command="{Binding TogglePictureInPictureCommand}">
+                                    <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconPictureInPicture}" /></Viewbox>
+                                </Button>
+
+                                <Button Classes="transport"
+                                        Command="{Binding ToggleFullScreenCommand}">
+                                    <Viewbox Width="22" Height="22">
+                                        <Panel>
+                                            <Path Data="{StaticResource IconFullScreen}" IsVisible="{Binding !IsFullScreen}" />
+                                            <Path Data="{StaticResource IconExitFullScreen}" IsVisible="{Binding IsFullScreen}" />
+                                        </Panel>
+                                    </Viewbox>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                    </lmr:BackdropBorder>
+                </Border>
+
+                <!-- Where a swipe across the picture would land. The seek itself is issued on release. -->
+                <Border x:Name="SwipeSeekIndicator"
+                        IsVisible="False"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Padding="18,12"
+                        CornerRadius="8"
+                        Background="#C0000000">
+                    <StackPanel Spacing="2">
+                        <TextBlock x:Name="SwipeSeekTargetText"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="Consolas,Menlo,DejaVu Sans Mono,monospace"
+                                   FontSize="20"
+                                   Foreground="White" />
+                        <TextBlock x:Name="SwipeSeekDeltaText"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="Consolas,Menlo,DejaVu Sans Mono,monospace"
+                                   FontSize="13"
+                                   Foreground="#C0FFFFFF" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Shown while a finger is held on the picture, which runs it fast. -->
+                <Border IsVisible="{Binding IsSpeedBoosted}"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top"
+                        Margin="0,72,0,0"
+                        Padding="14,6"
+                        CornerRadius="16"
+                        Background="#C0000000">
+                    <TextBlock Text="2×"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               Foreground="White" />
+                </Border>
+
+                <!-- What a key just did. Volume, mute and speed leave no other sign when the deck
+                     is down or the menu holding them is shut. Placed from code-behind. -->
+                <Border x:Name="StatusToast"
+                        IsVisible="False"
+                        IsHitTestVisible="False"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top"
+                        Margin="0,120,0,0"
+                        Padding="16,8"
+                        CornerRadius="16"
+                        Background="#C0000000">
+                    <TextBlock x:Name="StatusToastText"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               Foreground="White" />
+                </Border>
+
+                <!-- The page's own video list. Never the music queue. Visibility and the slide in
+                     from the right edge are driven from code-behind. -->
+                <Border x:Name="PlaylistPanel"
+                        Classes.liquidGlass="{DynamicResource AppIsContentLiquidGlass}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Stretch"
+                        Width="300"
+                        IsVisible="False"
+                        Background="Transparent">
+                    <lmr:BackdropBorder CornerRadius="{Binding #PlaylistPanel.CornerRadius}"
+                                             BackdropStyle="{DynamicResource AppContentBackdropStyle}"
+                                             FallbackColor="#E0000000"
+                                             TintColor="#B0000000">
+                        <Grid RowDefinitions="Auto,*">
+                            <TextBlock Grid.Row="0"
+                                       Margin="14,14,14,8"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="{lmr:BackdropForeground}"
+                                       Text="{Binding VideoPlayer_UpNext, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            <ScrollViewer Grid.Row="1" x:Name="PlaylistScroll">
+                                <ItemsControl x:Name="PlaylistItems" ItemsSource="{Binding Playlist}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:VideoListItemViewModel">
+                                            <Button Classes="transport listItem"
+                                                    Classes.current="{Binding IsCurrent}"
+                                                    HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Left"
+                                                    CornerRadius="0"
+                                                    Padding="14,8"
+                                                    Command="{Binding PlayCommand}"
+                                                    CommandParameter="{Binding Video}">
+                                                <StackPanel Spacing="1">
+                                                    <TextBlock Classes="playlistTitle"
+                                                               Text="{Binding Title}"
+                                                               FontSize="13"
+                                                               MaxLines="2"
+                                                               TextWrapping="Wrap" />
+                                                    <TextBlock Text="{Binding Duration}"
+                                                               FontSize="11"
+                                                               Opacity="0.7" />
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </lmr:BackdropBorder>
+                </Border>
+
+                <!-- Picking a subtitle off the server. Drawn over the picture rather than in a
+                     window, because the phone and the browser have none to open. -->
+                <Border x:Name="SubtitleBrowser"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Center"
+                        Margin="24"
+                        MaxWidth="480"
+                        MaxHeight="440"
+                        IsVisible="{Binding IsSubtitleBrowserOpen}"
+                        CornerRadius="8"
+                        Background="#F0101010"
+                        BorderBrush="#40FFFFFF"
+                        BorderThickness="1">
+                    <Grid RowDefinitions="Auto,Auto,*">
+                        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="14,10,6,4">
+                            <TextBlock Grid.Column="0"
+                                       VerticalAlignment="Center"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="White"
+                                       Text="{Binding VideoPlayer_SubtitleBrowserTitle, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            <Button Grid.Column="1"
+                                    Classes="transport"
+                                    Command="{Binding CloseSubtitleBrowserCommand}">
+                                <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconClose}" /></Viewbox>
+                            </Button>
+                        </Grid>
+
+                        <!-- Same shape as the video page's path: the root, then a button per folder. -->
+                        <ScrollViewer Grid.Row="1"
+                                      Margin="10,0,10,6"
+                                      HorizontalScrollBarVisibility="Auto"
+                                      VerticalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding SubtitleBrowserPath}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:SubtitleBrowserCrumbViewModel">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="›" Margin="2,0" Foreground="#A0FFFFFF" />
+                                            <Button Background="Transparent"
+                                                    BorderThickness="0"
+                                                    Padding="6,2"
+                                                    Command="{Binding Command}"
+                                                    CommandParameter="{Binding Path}">
+                                                <TextBlock Text="{Binding Name}" FontSize="12" Foreground="White" />
+                                            </Button>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <ProgressBar Grid.Row="2"
+                                     IsIndeterminate="{Binding IsSubtitleBrowserLoading}"
+                                     IsVisible="{Binding IsSubtitleBrowserLoading}"
+                                     VerticalAlignment="Top"
+                                     Height="3" />
+
+                        <TextBlock Grid.Row="2"
+                                   Margin="16,20"
+                                   HorizontalAlignment="Center"
+                                   Foreground="#A0FFFFFF"
+                                   FontSize="12"
+                                   IsVisible="{Binding IsSubtitleBrowserEmpty}"
+                                   Text="{Binding VideoPlayer_SubtitleBrowserEmpty, Source={x:Static strings:LocalizedStrings.Instance}}" />
+
+                        <ScrollViewer Grid.Row="2" Margin="0,4,0,8">
+                            <ItemsControl ItemsSource="{Binding SubtitleBrowserItems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:SubtitleBrowserItemViewModel">
+                                        <Button Classes="transport listItem"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Left"
+                                                CornerRadius="0"
+                                                Padding="14,7"
+                                                MinHeight="0"
+                                                Command="{Binding Command}"
+                                                CommandParameter="{Binding Entry}">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <Viewbox Width="16" Height="16" IsVisible="{Binding IsFolder}">
+                                                    <Path Data="{StaticResource IconFolder}" />
+                                                </Viewbox>
+                                                <Viewbox Width="16" Height="16" IsVisible="{Binding !IsFolder}">
+                                                    <Path Data="{StaticResource IconSubtitles}" />
+                                                </Viewbox>
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontSize="13"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+
+                <!-- The keys the page answers to. Opened with ? or from the settings menu, and put
+                     away by Escape, the close button or a click anywhere off the card. -->
+                <Border x:Name="ShortcutsPanel"
+                        IsVisible="{Binding AreShortcutsVisible}"
+                        Background="#B0000000"
+                        Tapped="OnShortcutsBackgroundTapped">
+                    <Border HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Margin="24"
+                            MaxWidth="720"
+                            Padding="18,12,18,16"
+                            CornerRadius="8"
+                            Background="#F0101010"
+                            BorderBrush="#40FFFFFF"
+                            BorderThickness="1">
+                        <Grid RowDefinitions="Auto,*">
+                            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                                <TextBlock Grid.Column="0"
+                                           VerticalAlignment="Center"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="White"
+                                           Text="{Binding VideoPlayer_Shortcuts, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                <Button Grid.Column="1"
+                                        Classes="transport"
+                                        MinWidth="0"
+                                        MinHeight="0"
+                                        Padding="8"
+                                        Command="{Binding ToggleShortcutsCommand}">
+                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconClose}" /></Viewbox>
+                                </Button>
+                            </Grid>
+
+                            <ScrollViewer Grid.Row="1" MaxHeight="380" HorizontalScrollBarVisibility="Disabled">
+                                <Grid ColumnDefinitions="*,28,*">
+                                    <StackPanel Grid.Column="0" Classes="shortcutColumn">
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="Space  K" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding PlaybackBar_PlayPause, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="←  →" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutSeek5, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="J  L" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutSeek10, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="Shift + ←  →" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutSeek60, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="Home  End" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutStartEnd, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="Ctrl + ←  →" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutChapters, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="Shift + P  N" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutVideos, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="&lt;  &gt;" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutSpeed, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Classes="shortcutColumn">
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="↑  ↓" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutVolume, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="M" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutMute, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="A" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutAudioTrack, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="C" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_Subtitles, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="Shift + C" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutSubtitleTrack, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="F" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_FullScreen, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel IsVisible="{Binding CanUsePictureInPicture}">
+                                            <TextBlock Classes="shortcutKey" Text="P" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_PictureInPicture, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="Q" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_Playlist, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="I" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_Statistics, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="Esc" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutClose, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="?" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutHelp, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </ScrollViewer>
+                        </Grid>
+                    </Border>
+                </Border>
+            </Panel>
+        </Border>
+    </ThemeVariantScope>
+</UserControl>

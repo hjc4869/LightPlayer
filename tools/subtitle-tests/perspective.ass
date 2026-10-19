@@ -1,0 +1,45 @@
+[Script Info]
+Title: 3D rotation and shear - \frx, \fry, \frz, \fax, \fay, \org
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,48,&H00FFFFFF,&H000000FF,&H00303030,&H80000000,1,0,0,0,100,100,0,0,1,3,2,5,20,20,20,1
+Style: Small,Arial,24,&H00C0C0C0,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,0,5,20,20,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+
+; --- one axis at a time
+Dialogue: 0,0:00:00.00,0:00:08.00,Small,,0,0,0,,{\pos(280,80)}frx 50
+Dialogue: 0,0:00:00.00,0:00:08.00,Default,,0,0,0,,{\pos(280,150)\frx50}TILT X
+Dialogue: 0,0:00:00.00,0:00:08.00,Small,,0,0,0,,{\pos(640,80)}fry 50
+Dialogue: 0,0:00:00.00,0:00:08.00,Default,,0,0,0,,{\pos(640,150)\fry50}TILT Y
+Dialogue: 0,0:00:00.00,0:00:08.00,Small,,0,0,0,,{\pos(1000,80)}frz 20
+Dialogue: 0,0:00:00.00,0:00:08.00,Default,,0,0,0,,{\pos(1000,150)\frz20}TILT Z
+
+; --- all three together
+Dialogue: 0,0:00:00.00,0:00:08.00,Small,,0,0,0,,{\pos(640,250)}frx, fry and frz together - the axes apply Z, then X, then Y
+Dialogue: 0,0:00:00.00,0:00:08.00,Default,,0,0,0,,{\pos(640,330)\frx35\fry35\frz15}THREE AXES
+
+; --- shear
+Dialogue: 0,0:00:00.00,0:00:08.00,Small,,0,0,0,,{\pos(360,430)}fax 0.6 - horizontal shear
+Dialogue: 0,0:00:00.00,0:00:08.00,Default,,0,0,0,,{\pos(360,500)\fax0.6}SHEAR X
+Dialogue: 0,0:00:00.00,0:00:08.00,Small,,0,0,0,,{\pos(920,430)}fay 0.3 - vertical shear
+Dialogue: 0,0:00:00.00,0:00:08.00,Default,,0,0,0,,{\pos(920,500)\fay0.3}SHEAR Y
+
+; --- \org moves the centre of rotation
+Dialogue: 0,0:00:00.00,0:00:08.00,Small,,0,0,0,,{\pos(640,600)}org: both lines are rotated 25 degrees, the second one about a point far above
+Dialogue: 0,0:00:00.00,0:00:08.00,Default,,0,0,0,,{\pos(340,660)\frz25}OWN CENTRE
+Dialogue: 0,0:00:00.00,0:00:08.00,Default,,0,0,0,,{\pos(940,660)\frz25\org(940,300)}ORG CENTRE
+
+; --- animated: a full turn about each axis
+Dialogue: 0,0:00:08.20,0:00:16.00,Small,,0,0,0,,{\pos(640,120)}the same rotations animated with t
+Dialogue: 0,0:00:08.20,0:00:16.00,Default,,0,0,0,,{\pos(640,240)\frx0\t(\frx360)}X SPIN
+Dialogue: 0,0:00:08.20,0:00:16.00,Default,,0,0,0,,{\pos(640,380)\fry0\t(\fry360)}Y SPIN
+Dialogue: 0,0:00:08.20,0:00:16.00,Default,,0,0,0,,{\pos(640,520)\frz0\org(640,380)\t(\frz360)}ORBIT
+Dialogue: 0,0:00:08.20,0:00:16.00,Default,,0,0,0,,{\pos(640,650)\fax0\t(\fax1)}SHEARING

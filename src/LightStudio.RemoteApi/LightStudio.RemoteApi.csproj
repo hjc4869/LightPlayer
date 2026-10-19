@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <RootNamespace>LightStudio.RemoteApi</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Shared HTTP host for the remote API
+    ===================================
+    The desktop head and the standalone (Docker) server head both serve the same
+    routes from this project; only the hosting options differ. Nothing here depends
+    on a UI toolkit or on a particular head, so a headless container can reference
+    it without pulling desktop-only concerns in.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\LightStudio.Logging\LightStudio.Logging.csproj" />
+    <ProjectReference Include="..\LightStudio.LightPlayer\LightStudio.LightPlayer.csproj" />
+    <ProjectReference Include="..\LightStudio.MediaLibraryCore\LightStudio.MediaLibraryCore.csproj" />
+  </ItemGroup>
+</Project>

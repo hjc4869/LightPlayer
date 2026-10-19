@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -13,6 +15,8 @@ using LightStudio.LightPlayer.Services;
 using LightStudio.LightPlayer.Services.Playback;
 using LightStudio.MediaLibraryCore.Lyrics;
 using LightStudio.MediaLibraryCore.Lyrics.RuntimeApi;
+
+using Strings = LightStudio.LightPlayer.Strings;
 
 namespace LightStudio.LightPlayer.ViewModels.Pages;
 
@@ -28,13 +32,16 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
 
     private readonly PlaybackController playback;
     private readonly AlbumArtService albumArt;
-    private readonly LyricsService lyrics;
+    private readonly ILyricsService lyrics;
     private readonly IDialogService? dialogService;
-    private readonly Action<string>? openArtist;
-    private readonly Action<string>? openAlbum;
+    private readonly Action<MusicPlaybackItemModel>? openArtist;
+    private readonly Action<MusicPlaybackItemModel>? openAlbum;
+    private readonly MusicTileRow upcomingRow;
     private ParsedLrc? current;
     private int lineIndex = -1;
+    private int artVersion;
     private bool disposed;
+    private CancellationTokenSource? lyricSearchCts;
     private IReadOnlyList<ExternalLrcInfo> lastCandidates = Array.Empty<ExternalLrcInfo>();
 
     [ObservableProperty]
@@ -48,6 +55,9 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
 
     [ObservableProperty]
     private IImage? albumImage;
+
+    [ObservableProperty]
+    private MediaReference? artworkKey;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NoLyrics))]
@@ -67,10 +77,10 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
     public NowPlayingPageViewModel(
         PlaybackController playback,
         AlbumArtService albumArt,
-        LyricsService lyrics,
+        ILyricsService lyrics,
         IDialogService? dialogService,
-        Action<string>? openArtist,
-        Action<string>? openAlbum)
+        Action<MusicPlaybackItemModel>? openArtist,
+        Action<MusicPlaybackItemModel>? openAlbum)
     {
         this.playback = playback;
         this.albumArt = albumArt;
@@ -78,13 +88,13 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
         this.dialogService = dialogService;
         this.openArtist = openArtist;
         this.openAlbum = openAlbum;
-        Title = "Now Playing";
+        upcomingRow = new MusicTileRow(CreateUpcomingTile);
+        TitleKey = nameof(Strings.Resources.Nav_NowPlaying);
 
         Lines = new ObservableCollection<LyricLineModel>();
-        Upcoming = new ObservableCollection<LibraryTileModel>();
-        SearchLyricsCommand = new AsyncRelayCommand(SearchLyricsAsync, () => playback.CurrentItem is not null && dialogService is not null);
-        OffsetEarlierCommand = new RelayCommand(() => AdjustOffset(OffsetStepMs), () => HasLyrics);
-        OffsetLaterCommand = new RelayCommand(() => AdjustOffset(-OffsetStepMs), () => HasLyrics);
+        SearchLyricsCommand = new AsyncRelayCommand(() => AppErrorReporter.GuardAsync(SearchLyricsAsync), () => playback.CurrentItem is not null && dialogService is not null);
+        OffsetEarlierCommand = new RelayCommand(() => AdjustOffset(OffsetStepMs), () => current?.IsSynced == true);
+        OffsetLaterCommand = new RelayCommand(() => AdjustOffset(-OffsetStepMs), () => current?.IsSynced == true);
         OpenArtistCommand = new RelayCommand(OpenArtist, CanOpenArtist);
         OpenAlbumCommand = new RelayCommand(OpenAlbum, CanOpenAlbum);
 
@@ -96,15 +106,17 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
 
     public ObservableCollection<LyricLineModel> Lines { get; }
 
-    public ObservableCollection<LibraryTileModel> Upcoming { get; }
+    public ObservableCollection<LibraryTileModel> Upcoming => upcomingRow.Tiles;
+
+    internal MediaReference? CurrentMedia => playback.CurrentItem?.Media;
 
     public bool NoLyrics => !HasLyrics;
 
     public bool ShowNoLyricsMessage => !HasLyrics && !LrcSearchBusy;
 
     public string NoLyricsMessage => lyrics.HasSources
-        ? "No lyrics found. Use Search or Import to add an .lrc file."
-        : "No lyrics found. Add a lyric source in Settings, or import an .lrc file.";
+        ? Strings.Resources.NowPlaying_NoLyricsSearchImport
+        : Strings.Resources.NowPlaying_NoLyricsAddSource;
 
     public IAsyncRelayCommand SearchLyricsCommand { get; }
 
@@ -130,34 +142,56 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
 
     private void RefreshTrack()
     {
+        lyricSearchCts?.Cancel();
+        lyricSearchCts?.Dispose();
+        lyricSearchCts = new CancellationTokenSource();
+
         var item = playback.CurrentItem;
+        if (AlbumImage is null)
+            ArtworkKey = item?.Media;
         TrackTitle = item?.Title ?? string.Empty;
         Artist = item?.Artist ?? string.Empty;
         Album = item?.Album ?? string.Empty;
-        AlbumImage = null;
+        var version = ++artVersion;
+        if (item is null)
+        {
+            ArtworkKey = null;
+            AlbumImage = null;
+        }
+
         SearchLyricsCommand.NotifyCanExecuteChanged();
         OpenArtistCommand.NotifyCanExecuteChanged();
         OpenAlbumCommand.NotifyCanExecuteChanged();
-        _ = LoadArtAsync(item);
-        _ = LoadLyricsAsync(item);
+        _ = LoadArtAsync(item, version);
+        _ = LoadLyricsAsync(item, lyricSearchCts.Token);
         RefreshUpcoming();
     }
 
-    private async Task LoadArtAsync(MusicPlaybackItemModel? item)
+    private async Task LoadArtAsync(MusicPlaybackItemModel? item, int version)
     {
         if (item is null)
         {
             return;
         }
 
-        var bitmap = await albumArt.GetTrackArtAsync(item.FilePath);
-        if (bitmap is not null && ReferenceEquals(playback.CurrentItem, item))
+        var bitmap = await albumArt.GetHighQualityTrackArtAsync(item.Media).ConfigureAwait(false);
+        await Dispatcher.UIThread.InvokeAsync(() =>
         {
-            Dispatcher.UIThread.Post(() => AlbumImage = bitmap);
-        }
+            if (disposed || version != artVersion || !ReferenceEquals(playback.CurrentItem, item))
+            {
+                bitmap?.Dispose();
+                return;
+            }
+
+            ArtworkKey = bitmap is not null ? item.Media : null;
+            AlbumImage = bitmap;
+        }, DispatcherPriority.Background);
     }
 
-    private async Task LoadLyricsAsync(MusicPlaybackItemModel? item)
+    partial void OnAlbumImageChanged(IImage? oldValue, IImage? newValue) =>
+        (oldValue as IDisposable)?.Dispose();
+
+    private async Task LoadLyricsAsync(MusicPlaybackItemModel? item, CancellationToken cancellationToken)
     {
         SetLyrics(null);
         lastCandidates = Array.Empty<ExternalLrcInfo>();
@@ -169,7 +203,7 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
         LrcSearchBusy = true;
         try
         {
-            var result = await lyrics.AutoSearchAsync(item.Title, item.Artist, item.FilePath);
+            var result = await lyrics.AutoSearchAsync(item.Title, item.Artist, item.Media, cancellationToken);
             if (!ReferenceEquals(playback.CurrentItem, item))
             {
                 return;
@@ -177,6 +211,13 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
 
             lastCandidates = result.Candidates;
             SetLyrics(result.Lyrics);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex)
+        {
+            AppErrorReporter.Report(Strings.Resources.NowPlaying_LyricsHeader, ex);
         }
         finally
         {
@@ -207,7 +248,7 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
 
         // Highlight the line for the current position right away rather than
         // waiting for the next position tick.
-        if (HasLyrics)
+        if (HasLyrics && parsed?.IsSynced == true)
         {
             SyncLine(playback.PositionMs);
         }
@@ -221,6 +262,11 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
         }
 
         var index = current.GetPositionFromTime((long)positionMs + current.Offset);
+        if (index < 0)
+        {
+            return;
+        }
+
         if (index == lineIndex)
         {
             return;
@@ -249,7 +295,7 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
 
         current.Offset += deltaMs;
         SyncLine(playback.PositionMs);
-        _ = lyrics.SaveAsync(current);
+        _ = AppErrorReporter.GuardAsync(() => lyrics.SaveAsync(current));
     }
 
     private async Task SearchLyricsAsync()
@@ -273,14 +319,9 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
 
     private void RefreshUpcoming()
     {
-        Upcoming.Clear();
         var item = playback.CurrentItem;
         var start = item is null ? 0 : playback.QueueItems.IndexOf(item) + 1;
-        for (var i = start; i < playback.QueueItems.Count && Upcoming.Count < 15; i++)
-        {
-            Upcoming.Add(CreateUpcomingTile(playback.QueueItems[i]));
-        }
-
+        upcomingRow.Update(playback.QueueItems.Skip(start).Take(16));
         HasUpcoming = Upcoming.Count > 0;
     }
 
@@ -288,40 +329,40 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
     {
         var tile = new LibraryTileModel(item.Title, item.Artist, ThumbnailKind.Album)
         {
+            EnableTileActions = false,
             OpenCommand = new RelayCommand(() => playback.PlayQueueItem(item)),
         };
-        tile.ArtLoader = t => LoadTileArtAsync(t, item.FilePath);
+        tile.ArtLoader = (t, token) => LoadTileArtAsync(t, item.Media, token);
 
         // The upcoming list is short and uses a plain template, so request artwork eagerly.
         tile.RequestArt();
         return tile;
     }
 
-    private async Task LoadTileArtAsync(LibraryTileModel tile, string filePath)
+    private async Task LoadTileArtAsync(
+        LibraryTileModel tile,
+        MediaReference media,
+        CancellationToken cancellationToken)
     {
-        var bitmap = await albumArt.GetTrackArtAsync(filePath);
-        if (bitmap is null)
+        var image = await albumArt
+            .GetLowQualityTrackArtAsync(media, tile.ArtLoadFifoWindowSize, tile.ArtPixelSize, cancellationToken, tile.ArtCachePool)
+            .ConfigureAwait(false);
+        if (image is null)
         {
             return;
         }
 
-        if (Dispatcher.UIThread.CheckAccess())
-        {
-            tile.Image = bitmap;
-        }
-        else
-        {
-            Dispatcher.UIThread.Post(() => tile.Image = bitmap);
-        }
+        AlbumArtService.ApplyOnUiThread(image, art => tile.Image = art, cancellationToken);
     }
 
-    private bool CanOpenArtist() => openArtist is not null && !string.IsNullOrWhiteSpace(Artist);
+    private bool CanOpenArtist() =>
+        openArtist is not null && playback.CurrentItem is { Artist.Length: > 0 };
 
     private void OpenArtist()
     {
         if (CanOpenArtist())
         {
-            openArtist!(Artist);
+            openArtist!(playback.CurrentItem!);
         }
     }
 
@@ -335,7 +376,7 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
         var item = playback.CurrentItem;
         if (openAlbum is not null && !string.IsNullOrWhiteSpace(Album) && !string.IsNullOrWhiteSpace(item?.FilePath))
         {
-            openAlbum(item!.FilePath);
+            openAlbum(item!);
         }
     }
 
@@ -347,8 +388,18 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
         }
 
         disposed = true;
+        lyricSearchCts?.Cancel();
+        lyricSearchCts?.Dispose();
+        lyricSearchCts = null;
         playback.PropertyChanged -= OnPlaybackChanged;
         playback.QueueItems.CollectionChanged -= OnQueueChanged;
         playback.QueueItemsMetadataChanged -= OnQueueMetadataChanged;
+
+        foreach (var tile in Upcoming)
+        {
+            tile.ReleaseArt();
+        }
+
+        AlbumImage = null;
     }
 }

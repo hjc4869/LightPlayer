@@ -1,0 +1,20 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <InstallerArchitecture Condition="'$(InstallerArchitecture)' == ''">x64</InstallerArchitecture>
+    <InstallerPlatform>$(InstallerArchitecture)</InstallerPlatform>
+    <PackageUpgradeCode>4b98f85c-b2aa-470e-abff-b2820ab71817</PackageUpgradeCode>
+    <MsiVersion Condition="'$(MsiVersion)' == ''">2.0.0</MsiVersion>
+    <PublishDirectory Condition="'$(PublishDirectory)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\windows-installer\$(InstallerArchitecture)\publish</PublishDirectory>
+    <OutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\windows-installer\$(InstallerArchitecture)\msi\</OutputPath>
+    <IntermediateOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\obj\LightPlayerSetup\package\$(InstallerArchitecture)\</IntermediateOutputPath>
+    <OutputName>LightPlayer-$(InstallerArchitecture)</OutputName>
+    <DefaultCompressionLevel>high</DefaultCompressionLevel>
+    <!-- ICE09 and ICE32 require optional VBScript; ICE61 flags deliberate same-version upgrades. -->
+    <SuppressIces>$(SuppressIces);ICE09;ICE32;ICE61</SuppressIces>
+    <DefineConstants>$(DefineConstants);MsiVersion=$(MsiVersion);PackageUpgradeCode=$(PackageUpgradeCode);PublishDirectory=$(PublishDirectory);IconPath=$(MSBuildThisFileDirectory)..\..\src\LightStudio.LightPlayer\Assets\light-logo.ico;LicensePath=$(MSBuildThisFileDirectory)..\..\LICENSE;ThirdPartyPath=$(MSBuildThisFileDirectory)..\..\THIRDPARTY.txt</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Package.wxs" />
+  </ItemGroup>
+</Project>

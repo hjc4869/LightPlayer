@@ -1,8 +1,10 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
              xmlns:models="using:LightStudio.LightPlayer.Models"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
              mc:Ignorable="d"
@@ -10,63 +12,161 @@
              d:DesignHeight="640"
              x:Class="LightStudio.LightPlayer.Views.Pages.SearchPageView"
              x:DataType="vm:SearchPageViewModel">
-    <Panel>
+    <UserControl.Styles>
+           <!-- Photo and video results follow the video library: a grid of preview tiles when there is room for
+             legible captions, a list of rows when there is not. -->
+           <Style Selector="ItemsControl.mediaResults">
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <controls:UniformTileGrid MinItemWidth="270"
+                                              MinItemHeight="165"
+                                              MinColumnSpacing="4"
+                                              MinRowSpacing="4" />
+                </ItemsPanelTemplate>
+            </Setter>
+            <Setter Property="ItemTemplate">
+                <DataTemplate x:DataType="models:VideoTileModel">
+                    <Viewbox>
+                        <controls:VideoTile />
+                    </Viewbox>
+                </DataTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="ItemsControl.mediaResults.narrow">
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <StackPanel />
+                </ItemsPanelTemplate>
+            </Setter>
+            <Setter Property="ItemTemplate">
+                <DataTemplate x:DataType="models:VideoTileModel">
+                    <controls:VideoListRow />
+                </DataTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.moreResults">
+            <Setter Property="MaxWidth" Value="200" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="Auto,Auto,*">
+        <Grid x:Name="SearchHeader" ColumnDefinitions="Auto,*" MaxWidth="1160" HorizontalAlignment="Stretch"
+              Margin="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='42,24,42,12|18,16,18,12'}">
+            <Button Classes="icon" Command="{Binding BackCommand}" IsVisible="{Binding ShowBackButton}"
+                    Margin="0,0,12,0" VerticalAlignment="Center"
+                    ToolTip.Tip="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconArrowLeft}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+            </Button>
+            <TextBlock Grid.Column="1" Text="{Binding HeaderText}"
+                       FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" VerticalAlignment="Center"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+        </Grid>
         <!-- Loading -->
-        <ProgressBar IsVisible="{Binding IsBusy}"
-                     IsIndeterminate="True"
+        <ProgressBar Grid.Row="2" IsVisible="{Binding IsBusy}"
+                     IsIndeterminate="{Binding IsBusy}"
                      Width="140"
                      Height="4"
                      HorizontalAlignment="Center"
                      VerticalAlignment="Center" />
 
         <!-- No results -->
-        <controls:EmptyState IsVisible="{Binding ShowNoResults}"
-                             Header="No results"
-                             Description="Try a different search term." />
+        <controls:EmptyState Grid.Row="2" IsVisible="{Binding ShowNoResults}"
+                             Header="{Binding Search_NoResultsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             Description="{Binding Search_NoResultsDescription, Source={x:Static strings:LocalizedStrings.Instance}}" />
+
+        <Border Grid.Row="1" IsVisible="{Binding HasPartialFailures}"
+                HorizontalAlignment="Stretch" MaxWidth="1160"
+                Margin="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='42,0,42,8|18,0,18,8'}"
+                Padding="12,8" CornerRadius="6"
+                Background="{DynamicResource AppPanelBackgroundBrush}"
+                BorderBrush="{DynamicResource AppFavoriteBrush}" BorderThickness="1">
+            <TextBlock Text="{Binding PartialFailureText}" FontSize="12" TextWrapping="Wrap"
+                       Foreground="{DynamicResource AppFavoriteBrush}" />
+        </Border>
 
         <!-- Results -->
-        <ScrollViewer IsVisible="{Binding ShowResults}">
-            <StackPanel Margin="32" Spacing="20">
-                <TextBlock Text="{Binding HeaderText}"
-                           FontSize="20"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+        <ScrollViewer Grid.Row="2" x:Name="ResultsScrollViewer" IsVisible="{Binding ShowResults}">
+            <StackPanel x:Name="ResultsContent" MaxWidth="1180" HorizontalAlignment="Stretch" SizeChanged="OnResultsSizeChanged"
+                        Margin="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,12,32,32|8,8,8,24'}" Spacing="20">
+                <StackPanel Margin="5,0" Spacing="8" IsVisible="{Binding HasPhotos}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="5,0">
+                        <TextBlock Text="{Binding Search_PhotosHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                   FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                        <Button Grid.Column="1" Classes="moreResults" Command="{Binding ShowMorePhotosCommand}" IsVisible="{Binding HasMorePhotos}">
+                            <TextBlock Text="{Binding Search_MorePhotos, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                        </Button>
+                    </Grid>
+                    <ItemsControl Classes="mediaResults"
+                                  Classes.narrow="{Binding IsNarrow}"
+                                  ItemsSource="{Binding PhotoPreview}" />
+                </StackPanel>
 
-                <!-- Albums -->
-                <StackPanel Spacing="8" IsVisible="{Binding HasAlbums}">
-                    <TextBlock Text="{Binding AlbumsHeader}"
+                <!-- Videos -->
+                <StackPanel Margin="5,0" Spacing="8" IsVisible="{Binding HasVideos}">
+                    <TextBlock Margin="5,0"
+                               Text="{Binding VideosHeader}"
                                FontSize="17"
                                FontWeight="SemiBold"
                                Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                    <ItemsControl ItemsSource="{Binding AlbumResults}">
+                    <ItemsControl Classes="mediaResults"
+                                  Classes.narrow="{Binding IsNarrow}"
+                                  ItemsSource="{Binding VideoResults}" />
+                </StackPanel>
+
+                <!-- Albums -->
+                <StackPanel Margin="5,0" Spacing="8" IsVisible="{Binding HasAlbums}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="5,0">
+                        <TextBlock Text="{Binding AlbumsHeader}" FontSize="17" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                        <Button Grid.Column="1" Classes="moreResults" Command="{Binding ShowMoreAlbumsCommand}" IsVisible="{Binding HasMoreAlbums}">
+                            <TextBlock Text="{Binding Search_MoreAlbums, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                        </Button>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding AlbumPreview}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
+                                <controls:UniformTileGrid MinItemWidth="130"
+                                                          MinItemHeight="160"
+                                                          MinColumnSpacing="6"
+                                                          MinRowSpacing="2" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:LibraryTileModel">
-                                <controls:LibraryTile Margin="0,0,14,16" />
+                                <Viewbox>
+                                    <controls:LibraryTile />
+                                </Viewbox>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
 
                 <!-- Artists -->
-                <StackPanel Spacing="8" IsVisible="{Binding HasArtists}">
-                    <TextBlock Text="{Binding ArtistsHeader}"
-                               FontSize="17"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                    <ItemsControl ItemsSource="{Binding ArtistResults}">
+                <StackPanel Margin="5,0" Spacing="8" IsVisible="{Binding HasArtists}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="5,0">
+                        <TextBlock Text="{Binding ArtistsHeader}" FontSize="17" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                        <Button Grid.Column="1" Classes="moreResults" Command="{Binding ShowMoreArtistsCommand}" IsVisible="{Binding HasMoreArtists}">
+                            <TextBlock Text="{Binding Search_MoreArtists, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                        </Button>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding ArtistPreview}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal" />
+                                <controls:UniformTileGrid MinItemWidth="130"
+                                                          MinItemHeight="160"
+                                                          MinColumnSpacing="6"
+                                                          MinRowSpacing="2" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:LibraryTileModel">
-                                <controls:LibraryTile Margin="0,0,14,16" />
+                                <Viewbox>
+                                    <controls:LibraryTile />
+                                </Viewbox>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -74,11 +174,14 @@
 
                 <!-- Songs -->
                 <StackPanel Spacing="8" IsVisible="{Binding HasSongs}">
-                    <TextBlock Text="{Binding SongsHeader}"
-                               FontSize="17"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                    <ItemsControl ItemsSource="{Binding SongResults}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="10,0">
+                        <TextBlock Text="{Binding SongsHeader}" FontSize="17" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                        <Button Grid.Column="1" Classes="moreResults" Command="{Binding ShowMoreSongsCommand}" IsVisible="{Binding HasMoreSongs}">
+                            <TextBlock Text="{Binding Search_MoreSongs, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                        </Button>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding SongPreview}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:TrackRowModel">
                                 <controls:TrackRow />
@@ -86,7 +189,8 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
+
             </StackPanel>
         </ScrollViewer>
-    </Panel>
+    </Grid>
 </UserControl>

@@ -6,12 +6,12 @@ using LightStudio.LightPlayer.Models;
 namespace LightStudio.LightPlayer.ViewModels.Pages;
 
 /// <summary>
-/// Shared sort/group key helpers for the library browse pages.
+/// Shared sorting helpers for the library browse pages.
 /// </summary>
 internal static class LibrarySortKeys
 {
     public static int CompareText(string? a, string? b) =>
-        string.Compare(a ?? string.Empty, b ?? string.Empty, StringComparison.CurrentCultureIgnoreCase);
+        string.Compare(a ?? string.Empty, b ?? string.Empty, StringComparison.OrdinalIgnoreCase);
 
     public static int CompareYear(string? a, string? b) =>
         ParseLeadingInt(a).CompareTo(ParseLeadingInt(b));
@@ -30,17 +30,6 @@ internal static class LibrarySortKeys
         }
 
         return length > 0 && int.TryParse(value.AsSpan(0, length), out var parsed) ? parsed : 0;
-    }
-
-    public static string AlphaKey(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "#";
-        }
-
-        var first = char.ToUpper(value.Trim()[0], CultureInfo.CurrentCulture);
-        return char.IsLetter(first) ? first.ToString() : "#";
     }
 
     public static string Fallback(string? value, string fallback) =>

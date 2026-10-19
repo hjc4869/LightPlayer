@@ -1,0 +1,2087 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <title>Light Player | Diagnostics</title>
+  <style>
+    :root {
+      font-family: system-ui, sans-serif;
+      color: #202529;
+      background: #f8f9fa;
+      color-scheme: light dark;
+      --surface: #fff;
+      --muted: #59636c;
+      --line: #dce1e5;
+      --accent: #006a8b;
+      --good: #137049;
+      --warning: #946000;
+      --error: #b52d40;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color: #e7eaee;
+        background: #181c20;
+        --surface: #20262b;
+        --muted: #adb7c0;
+        --line: #394249;
+        --accent: #4cc2ff;
+        --good: #73d7ad;
+        --warning: #f0c46b;
+        --error: #ff8fa0;
+      }
+    }
+    * { box-sizing: border-box; letter-spacing: 0; }
+    body { margin: 0; }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    button, input, select { font: inherit; color: inherit; }
+    button, input, select {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: var(--surface);
+      padding: 7px 11px;
+      max-width: 100%;
+    }
+    button { cursor: pointer; font-weight: 600; }
+    button:hover { border-color: var(--accent); }
+    button:disabled { cursor: default; opacity: .5; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    header { border-bottom: 1px solid var(--line); background: var(--surface); }
+    .header-inner, main, footer { max-width: 1460px; margin: auto; padding: 24px 32px; }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .brand img { width: 40px; height: 40px; flex: none; }
+    h1 { font-size: 22px; line-height: 1.3; margin: 0; }
+    .subtitle { color: var(--muted); font-size: 14px; margin-top: 3px; }
+    .heading { display: flex; gap: 20px; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+    .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+    .toolbar input { flex: 1 1 240px; min-width: 0; }
+    #progress, #notice, #action-status, .note { color: var(--muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+    #progress { min-height: 21px; margin: 12px 0 0; }
+    #action-status:empty { display: none; }
+    main { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 32px; align-items: start; }
+    nav { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 2px; }
+    nav a { padding: 8px 0; font-size: 14px; overflow-wrap: anywhere; text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    #results { min-width: 0; }
+    section { scroll-margin-top: 20px; margin-bottom: 30px; }
+    h2 { font-size: 17px; margin: 0; padding: 0 0 12px; border-bottom: 2px solid var(--line); }
+    .result, .feature { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(0, 2fr); border-bottom: 1px solid var(--line); }
+    .feature p { margin: 6px 0; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+    .evidence { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; }
+    .evidence a { font-size: 12px; overflow-wrap: anywhere; }
+    .hdr-sample { margin: 14px 0; }
+    .hdr-sample canvas { display: block; width: 100%; height: 180px; background: #000; }
+    .hdr-sample-levels { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: end; gap: 4px; margin: 10px 0 5px; font-size: 12px; text-align: center; overflow-wrap: anywhere; }
+    .hdr-sample-controls { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-top: 8px; }
+    .hdr-sample-controls button { font-size: 12px; }
+    .feature[data-state="likely"] .state { color: var(--good); }
+    .feature[data-state="limited"] .state, .feature[data-state="unknown"] .state { color: var(--warning); }
+    .feature[data-state="blocked"] .state { color: var(--error); }
+    .result { scroll-margin-top: 20px; }
+    .result:target { outline: 2px solid var(--accent); outline-offset: -2px; }
+    .key, .value { min-width: 0; padding: 11px 12px; }
+    .key { font-size: 13px; overflow-wrap: anywhere; font-weight: 600; }
+    .value { border-left: 1px solid var(--line); }
+    .state { font-size: 12px; font-weight: 600; }
+    [data-state="supported"] .state { color: var(--good); }
+    [data-state="unsupported"] .state, [data-state="pending"] .state { color: var(--muted); }
+    [data-state="timeout"] .state { color: var(--warning); }
+    [data-state="error"] .state { color: var(--error); }
+    pre { font: 12px/1.6 ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace; margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    details { margin-top: 6px; }
+    summary { cursor: pointer; color: var(--accent); font-size: 12px; }
+    [hidden] { display: none !important; }
+    footer { border-top: 1px solid var(--line); padding-top: 14px; }
+    footer p { margin: 0; }
+    @media (max-width: 760px) {
+      .header-inner, main, footer { padding: 20px 16px; }
+      main { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+      nav { position: static; flex-direction: row; flex-wrap: wrap; gap: 4px 18px; }
+      nav a { padding: 4px 0; }
+    }
+    @media (max-width: 480px) {
+      .result, .feature { grid-template-columns: minmax(0, 1fr); padding: 9px 0; }
+      .key, .value { padding: 3px 0; }
+      .value { border-left: 0; }
+      .toolbar button { flex: 1 1 auto; }
+      .toolbar input { flex-basis: 100%; }
+    }
+    @media print {
+      .toolbar, nav, .heading select, footer { display: none; }
+      main { display: block; }
+      details > * { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="heading">
+        <div class="brand">
+          <img src="icons/icon-192.png" alt="" width="40" height="40">
+          <div><h1>Light Player</h1><div class="subtitle" data-text="title">Diagnostics</div></div>
+        </div>
+        <select id="language" aria-label="Language"></select>
+      </div>
+      <div class="toolbar">
+        <input id="filter" type="search" data-label="filter" autocomplete="off" spellcheck="false">
+        <button id="rerun" type="button" data-text="rerun">Run again</button>
+        <button id="check-audio" type="button" data-text="audio">Check audio</button>
+        <button id="copy" type="button" data-text="copy">Copy JSON</button>
+        <button id="download" type="button" data-text="download">Download JSON</button>
+      </div>
+      <p id="progress" role="status" aria-live="polite"></p>
+      <pre id="action-status" role="status" aria-live="polite"></pre>
+    </div>
+  </header>
+  <main>
+    <nav id="sections" aria-label="Diagnostics"><a href="#feature-summary" data-text="featureSummary">Light Player readiness</a></nav>
+    <div id="results">
+      <section id="feature-summary" aria-labelledby="feature-summary-title">
+        <h2 id="feature-summary-title" data-text="featureSummary">Light Player readiness</h2>
+        <p class="note" data-text="summaryNote"></p>
+        <div id="feature-assessments"></div>
+      </section>
+    </div>
+  </main>
+  <footer><p id="notice" data-text="notice"></p></footer>
+  <noscript><p>JavaScript is required. WebAssembly is not required.</p></noscript>
+  <script>
+    "use strict";
+
+    const textKeys = ["title", "filter", "rerun", "audio", "copy", "download", "running", "complete", "supported", "unsupported", "error", "timeout", "pending", "details", "copied", "notice", "environment", "hosting", "workers", "display", "media", "storage", "language", "audioNote", "codecNote"];
+    const translations = {
+      "en-US": ["Environment diagnostics", "Filter results", "Run again", "Check audio", "Copy JSON", "Download JSON", "Collecting", "Complete", "Supported", "Unavailable / unsupported", "Error", "Timed out", "Not run", "Details", "Copied", "This report contains browser and device details. Probes run locally; exporting is optional.", "Browser & device", "Security & hosting", "Workers & threading", "Display & canvas", "Media capabilities", "Storage & integration", "Language", "Audio processing requires a user gesture. The check is silent.", "Configuration support is advisory. Acceleration preferences do not prove hardware decoding; no media stream is decoded."],
+      "de-DE": ["Umgebungsdiagnose", "Ergebnisse filtern", "Erneut prüfen", "Audio prüfen", "JSON kopieren", "JSON herunterladen", "Wird erfasst", "Abgeschlossen", "Unterstützt", "Nicht verfügbar / nicht unterstützt", "Fehler", "Zeitüberschreitung", "Nicht ausgeführt", "Details", "Kopiert", "Dieser Bericht enthält Browser- und Gerätedaten. Die Prüfungen erfolgen lokal; der Export ist optional.", "Browser und Gerät", "Sicherheit und Hosting", "Worker und Threads", "Anzeige und Canvas", "Medienfunktionen", "Speicher und Integration", "Sprache", "Die Audioprüfung erfordert eine Benutzeraktion und bleibt lautlos.", "Konfigurationsangaben sind unverbindlich. Beschleunigungspräferenzen belegen keine Hardwaredekodierung; es wird kein Medienstrom dekodiert."],
+      "es-ES": ["Diagnóstico del entorno", "Filtrar resultados", "Volver a comprobar", "Comprobar audio", "Copiar JSON", "Descargar JSON", "Recopilando", "Completado", "Compatible", "No disponible / no compatible", "Error", "Tiempo agotado", "Sin ejecutar", "Detalles", "Copiado", "Este informe contiene datos del navegador y del dispositivo. Las comprobaciones son locales; exportarlo es opcional.", "Navegador y dispositivo", "Seguridad y alojamiento", "Workers e hilos", "Pantalla y canvas", "Capacidades multimedia", "Almacenamiento e integración", "Idioma", "La comprobación de audio requiere una acción del usuario y es silenciosa.", "La compatibilidad de configuración es orientativa. Las preferencias de aceleración no confirman decodificación por hardware; no se decodifica ningún flujo multimedia."],
+      "fr-FR": ["Diagnostic de l'environnement", "Filtrer les résultats", "Relancer", "Vérifier l'audio", "Copier le JSON", "Télécharger le JSON", "Collecte en cours", "Terminé", "Pris en charge", "Indisponible / non pris en charge", "Erreur", "Délai dépassé", "Non exécuté", "Détails", "Copié", "Ce rapport contient des informations sur le navigateur et l'appareil. Les vérifications sont locales ; l'export est facultatif.", "Navigateur et appareil", "Sécurité et hébergement", "Workers et threads", "Écran et canvas", "Capacités multimédias", "Stockage et intégration", "Langue", "La vérification audio nécessite une action de l'utilisateur et reste silencieuse.", "La prise en charge des configurations est indicative. Les préférences d'accélération ne prouvent pas le décodage matériel ; aucun flux multimédia n'est décodé."],
+      "ja-JP": ["環境診断", "結果を絞り込む", "再実行", "音声を確認", "JSONをコピー", "JSONをダウンロード", "収集中", "完了", "対応", "利用不可 / 非対応", "エラー", "タイムアウト", "未実行", "詳細", "コピーしました", "このレポートにはブラウザーとデバイスの情報が含まれます。確認はローカルで行われ、エクスポートは任意です。", "ブラウザーとデバイス", "セキュリティとホスティング", "ワーカーとスレッド", "画面とキャンバス", "メディア機能", "ストレージと連携", "言語", "音声の確認にはユーザー操作が必要です。音は出ません。", "構成の対応状況は参考情報です。アクセラレーションの設定はハードウェアデコードを保証しません。メディアストリームのデコードは行いません。"],
+      "zh-CN": ["环境诊断", "筛选结果", "重新运行", "检查音频", "复制 JSON", "下载 JSON", "正在收集", "已完成", "支持", "不可用 / 不支持", "错误", "超时", "未运行", "详细信息", "已复制", "此报告包含浏览器和设备信息。检查在本地运行，导出为可选操作。", "浏览器与设备", "安全与托管", "工作线程与多线程", "显示与画布", "媒体能力", "存储与集成", "语言", "音频检查需要用户操作，检查过程不会发出声音。", "配置支持情况仅供参考。加速偏好不能证明硬件解码可用，检查不会解码媒体流。"],
+      "zh-TW": ["環境診斷", "篩選結果", "重新執行", "檢查音訊", "複製 JSON", "下載 JSON", "正在收集", "已完成", "支援", "無法使用 / 不支援", "錯誤", "逾時", "尚未執行", "詳細資訊", "已複製", "此報告包含瀏覽器與裝置資訊。檢查在本機執行，匯出為選用操作。", "瀏覽器與裝置", "安全性與主機", "工作執行緒與多執行緒", "顯示與畫布", "媒體能力", "儲存與整合", "語言", "音訊檢查需要使用者操作，檢查過程不會發出聲音。", "設定支援狀況僅供參考。加速偏好不能證明硬體解碼可用，檢查不會解碼媒體串流。"]
+    };
+    translations["en-GB"] = translations["en-US"];
+    const summaryTranslations = {
+      "en-US": {
+        featureSummary: "Light Player readiness", likely: "Likely to work", limited: "Limited / fallback", blocked: "Unavailable", unknown: "Not established",
+        summaryNote: "Estimates from this browser's probes, not a player startup or playback test. All player features depend on successful startup.",
+        summaryPending: "Capability checks are still running.", startup: "App startup",
+        mediaServices: "Media services",
+        mediaReady: "Independent media workers can use shared memory. Playback and native probes still need a real media check.",
+        mediaBlocked: "Media workers require cross-origin isolation and shared memory, independently of the single-threaded .NET runtime. Playback and native media probes are unavailable.",
+        mediaUnknown: "The independent media-worker requirements are not confirmed. App startup does not establish playback availability.",
+        startupReady: "The single-threaded SIMD WebAssembly, worker, and storage prerequisites are present. The app download, .NET initialization, and available memory remain untested.",
+        startupBlocked: "A required browser capability is unavailable or failed. The player is unlikely to start until the linked requirements pass.",
+        startupUnknown: "Some startup prerequisites could not be confirmed. A timed-out or blocked synthetic probe does not prove the app cannot start.",
+        startupProtocol: "The player requires an HTTP(S) host. Opening this diagnostic as a local file does not start the web app."
+      },
+      "de-DE": {
+        featureSummary: "Light Player: Funktionsbereitschaft", likely: "Voraussichtlich verfügbar", limited: "Eingeschränkt / Ersatzlösung", blocked: "Nicht verfügbar", unknown: "Nicht bestätigt",
+        summaryNote: "Einschätzungen anhand der Browserprüfungen, kein Start- oder Wiedergabetest. Alle Playerfunktionen setzen einen erfolgreichen Start voraus.",
+        summaryPending: "Die Funktionsprüfungen laufen noch.", startup: "App-Start",
+        mediaServices: "Mediendienste",
+        mediaReady: "Unabhängige Medien-Worker können gemeinsamen Speicher nutzen. Wiedergabe und native Medienprüfungen müssen noch mit echten Medien getestet werden.",
+        mediaBlocked: "Medien-Worker benötigen ursprungsübergreifende Isolation und gemeinsamen Speicher, unabhängig von der Single-Thread-.NET-Laufzeit. Wiedergabe und native Medienprüfungen sind nicht verfügbar.",
+        mediaUnknown: "Die Voraussetzungen der unabhängigen Medien-Worker sind unbestätigt. Ein erfolgreicher App-Start bestätigt keine Wiedergabefunktion.",
+        startupReady: "Die Voraussetzungen für Single-Thread-WebAssembly mit SIMD, Worker und Speicher sind vorhanden. App-Download, .NET-Initialisierung und verfügbarer Arbeitsspeicher sind nicht geprüft.",
+        startupBlocked: "Eine erforderliche Browserfunktion fehlt oder ist fehlgeschlagen. Der Player startet voraussichtlich erst, wenn die verknüpften Anforderungen erfüllt sind.",
+        startupUnknown: "Einige Startvoraussetzungen konnten nicht bestätigt werden. Ein Zeitlimit oder eine blockierte synthetische Prüfung beweist nicht, dass die App nicht starten kann.",
+        startupProtocol: "Der Player benötigt einen HTTP(S)-Host. Das Öffnen dieser Diagnose als lokale Datei startet die Web-App nicht."
+      },
+      "es-ES": {
+        featureSummary: "Disponibilidad de Light Player", likely: "Probablemente disponible", limited: "Limitado / alternativa", blocked: "No disponible", unknown: "Sin confirmar",
+        summaryNote: "Estimaciones basadas en las comprobaciones del navegador, no en una prueba de inicio o reproducción. Todas las funciones requieren que el reproductor se inicie.",
+        summaryPending: "Las comprobaciones siguen en curso.", startup: "Inicio de la aplicación",
+        mediaServices: "Servicios multimedia",
+        mediaReady: "Los workers multimedia independientes pueden usar memoria compartida. La reproducción y las comprobaciones nativas aún requieren medios reales.",
+        mediaBlocked: "Los workers multimedia necesitan aislamiento entre orígenes y memoria compartida, independientemente del entorno .NET de un solo hilo. La reproducción y las comprobaciones multimedia nativas no están disponibles.",
+        mediaUnknown: "No se han confirmado los requisitos de los workers multimedia independientes. El inicio de la aplicación no confirma que la reproducción esté disponible.",
+        startupReady: "Se cumplen los requisitos de WebAssembly de un solo hilo con SIMD, workers y almacenamiento. No se han probado la descarga, la inicialización de .NET ni la memoria disponible.",
+        startupBlocked: "Una capacidad necesaria no está disponible o ha fallado. Es poco probable que el reproductor se inicie hasta que se cumplan los requisitos enlazados.",
+        startupUnknown: "No se pudieron confirmar algunos requisitos de inicio. Una comprobación sintética bloqueada o agotada no demuestra que la aplicación no pueda iniciarse.",
+        startupProtocol: "El reproductor requiere un servidor HTTP(S). Abrir este diagnóstico como archivo local no inicia la aplicación web."
+      },
+      "fr-FR": {
+        featureSummary: "Disponibilité de Light Player", likely: "Probablement disponible", limited: "Limité / solution de repli", blocked: "Indisponible", unknown: "Non confirmé",
+        summaryNote: "Estimations issues des vérifications du navigateur, sans test de démarrage ni de lecture. Toutes les fonctions nécessitent le démarrage du lecteur.",
+        summaryPending: "Les vérifications sont en cours.", startup: "Démarrage de l'application",
+        mediaServices: "Services multimédias",
+        mediaReady: "Les workers multimédias indépendants peuvent utiliser la mémoire partagée. La lecture et les analyses natives restent à tester avec de vrais médias.",
+        mediaBlocked: "Les workers multimédias nécessitent l'isolation entre origines et la mémoire partagée, indépendamment du runtime .NET monothread. La lecture et les analyses multimédias natives sont indisponibles.",
+        mediaUnknown: "Les prérequis des workers multimédias indépendants ne sont pas confirmés. Le démarrage de l'application ne confirme pas la disponibilité de la lecture.",
+        startupReady: "Les prérequis WebAssembly monothread avec SIMD, workers et stockage sont présents. Le téléchargement, l'initialisation .NET et la mémoire disponible ne sont pas testés.",
+        startupBlocked: "Une capacité requise est absente ou a échoué. Le lecteur risque de ne pas démarrer tant que les exigences liées ne sont pas satisfaites.",
+        startupUnknown: "Certains prérequis n'ont pas pu être confirmés. Une vérification synthétique bloquée ou expirée ne prouve pas que l'application ne peut pas démarrer.",
+        startupProtocol: "Le lecteur nécessite un hébergement HTTP(S). Ouvrir ce diagnostic comme fichier local ne démarre pas l'application web."
+      },
+      "ja-JP": {
+        featureSummary: "Light Player の利用見込み", likely: "利用できる見込み", limited: "制限あり / 代替手段", blocked: "利用不可", unknown: "未確認",
+        summaryNote: "ブラウザーの確認結果に基づく推定です。起動や再生のテストではありません。すべての機能はプレーヤーが正常に起動することが前提です。",
+        summaryPending: "機能の確認を実行中です。", startup: "アプリの起動",
+        mediaServices: "メディアサービス",
+        mediaReady: "独立したメディアワーカーで共有メモリを利用できます。再生とネイティブ解析は実際のメディアで確認する必要があります。",
+        mediaBlocked: "メディアワーカーには、単一スレッドの .NET ランタイムとは別に、クロスオリジン分離と共有メモリが必要です。再生とネイティブのメディア解析は利用できません。",
+        mediaUnknown: "独立したメディアワーカーの要件は未確認です。アプリの起動だけでは再生の可用性を確認できません。",
+        startupReady: "単一スレッドの SIMD 対応 WebAssembly、ワーカー、ストレージの前提条件を満たしています。アプリのダウンロード、.NET の初期化、空きメモリは未確認です。",
+        startupBlocked: "必要なブラウザー機能が利用できないか失敗しました。リンク先の条件を満たすまで、起動できない可能性があります。",
+        startupUnknown: "一部の起動条件を確認できませんでした。合成チェックのタイムアウトやブロックだけでは、起動できないとは断定できません。",
+        startupProtocol: "プレーヤーには HTTP(S) ホストが必要です。この診断をローカルファイルとして開いても Web アプリは起動しません。"
+      },
+      "zh-CN": {
+        featureSummary: "Light Player 功能可用性", likely: "预计可用", limited: "受限 / 回退方案", blocked: "不可用", unknown: "尚未确认",
+        summaryNote: "根据浏览器检查结果估计，并非实际启动或播放测试。所有功能均以播放器成功启动为前提。",
+        summaryPending: "正在检查浏览器能力。", startup: "应用启动",
+        mediaServices: "媒体服务",
+        mediaReady: "独立媒体工作线程可以使用共享内存。播放和原生媒体分析仍需使用实际媒体进行检查。",
+        mediaBlocked: "独立媒体工作线程需要跨源隔离和共享内存，与单线程 .NET 运行时无关。播放和原生媒体分析不可用。",
+        mediaUnknown: "尚未确认独立媒体工作线程的要求。应用成功启动不代表可以播放媒体。",
+        startupReady: "已具备单线程 SIMD WebAssembly、工作线程和存储前提条件。尚未测试应用下载、.NET 初始化或可用内存。",
+        startupBlocked: "一项必要的浏览器能力不可用或检查失败。在满足所链接的条件之前，播放器可能无法启动。",
+        startupUnknown: "部分启动条件尚未确认。合成检查超时或被阻止并不意味着应用一定无法启动。",
+        startupProtocol: "播放器需要 HTTP(S) 主机。以本地文件方式打开此诊断页面不会启动 Web 应用。"
+      },
+      "zh-TW": {
+        featureSummary: "Light Player 功能可用性", likely: "預計可用", limited: "受限 / 備用方案", blocked: "無法使用", unknown: "尚未確認",
+        summaryNote: "根據瀏覽器檢查結果推估，並非實際啟動或播放測試。所有功能均以播放器成功啟動為前提。",
+        summaryPending: "正在檢查瀏覽器能力。", startup: "應用程式啟動",
+        mediaServices: "媒體服務",
+        mediaReady: "獨立媒體工作執行緒可以使用共用記憶體。播放與原生媒體分析仍需使用實際媒體進行檢查。",
+        mediaBlocked: "獨立媒體工作執行緒需要跨來源隔離和共用記憶體，與單執行緒 .NET 執行階段無關。播放與原生媒體分析無法使用。",
+        mediaUnknown: "尚未確認獨立媒體工作執行緒的要求。應用程式成功啟動不代表可以播放媒體。",
+        startupReady: "已具備單執行緒 SIMD WebAssembly、工作執行緒和儲存先決條件。尚未測試應用程式下載、.NET 初始化或可用記憶體。",
+        startupBlocked: "一項必要的瀏覽器能力無法使用或檢查失敗。在滿足所連結的條件之前，播放器可能無法啟動。",
+        startupUnknown: "部分啟動條件尚未確認。合成檢查逾時或遭封鎖並不代表應用程式一定無法啟動。",
+        startupProtocol: "播放器需要 HTTP(S) 主機。以本機檔案方式開啟此診斷頁面不會啟動 Web 應用程式。"
+      }
+    };
+    summaryTranslations["en-GB"] = summaryTranslations["en-US"];
+    Object.assign(summaryTranslations["en-US"], {
+      graphics: "Graphics and video rendering", hardware: "Hardware video decoding", hdr: "WCG/HDR video and photos", playback: "Audio playback",
+      localLibrary: "Local media library", localFiles: "Open individual files", persistence: "Settings, library index and caches",
+      remote: "Remote libraries", offline: "Installation and offline app",
+      fullscreen: "Fullscreen", pip: "Picture-in-Picture", mediaControls: "System media controls", wakeLock: "Keep the screen on",
+      graphicsReady: "The main-page canvas rendered correctly. The player's GPU rendering path is likely usable; sustained performance is not measured.",
+      graphicsPartial: "Worker rendering works, but main-page rendering was not confirmed. The player's rendering path still needs a real app check.",
+      graphicsUnknown: "No successful rendering path was established. Browser graphics policy, drivers, or missing APIs may prevent the UI and video output.",
+      hardwareReady: "{count} of {total} sampled profiles accept prefer-hardware, and VideoDecoder is exposed in the worker. Actual hardware use and support for a particular file remain unverified.",
+      hardwareFallback: "Hardware decoding is not established. The player can retry WebCodecs without a hardware preference or use FFmpeg in WebAssembly; software decoding may be slower.",
+      hardwareWorker: "VideoDecoder is unavailable in the render worker. The player needs its WebAssembly software decoder even if the main page reports codec support.",
+      hardwareUnknown: "The decoder queries or worker capabilities are inconclusive. Neither hardware acceleration nor support for a particular stream is confirmed.",
+      hdrReady: "The main-page float HDR surface probe passed and the display reports high dynamic range. Actual monitor output and brightness remain unverified.",
+      hdrFallback: "The extended-range WebGL output path is unavailable. HDR media may still play using SDR tone mapping, subject to decoder support.",
+      hdrDisplay: "The browser does not report a high-dynamic-range display. HDR output is not established for the current monitor and OS settings; SDR tone mapping remains available.",
+      hdrUnknown: "The main-page HDR path is unconfirmed. A float canvas alone does not prove that the player's HDR output works.",
+      hdrChromium: "WCG/HDR output requires Chrome/Chromium 122 or later. Enable \"Experimental Web Platform features\" at the address below, then relaunch the browser. If the link is blocked, paste the address into the address bar. HDR also requires a compatible display and OS settings.",
+      playbackReady: "The user-activated audio context and silent AudioWorklet both ran. The output pipeline works, but audible playback, device routing, and long-term stability were not tested.",
+      playbackGesture: "AudioContext and AudioWorklet are available. Playback needs a user gesture; the silent worklet check has not completed yet.",
+      playbackBlocked: "The AudioContext or AudioWorklet path required for playback is unavailable. HTML audio codec support cannot replace this output path.",
+      playbackUnknown: "The audio context or worklet check failed, timed out, or did not establish support. Audible playback is not confirmed.",
+      libraryReady: "The directory picker and IndexedDB are exposed. Folder access requires your permission, often again after reload; picker access and database writes are not tested here.",
+      libraryTemporary: "Directory selection and IndexedDB are exposed. Local folders can be indexed, but each folder must be selected again after every page reload. Actual selection and indexing are not tested here.",
+      libraryBlocked: "Directory selection or IndexedDB is unavailable. Local library folders cannot be added; individual-file opening is a separate fallback.",
+      libraryUnknown: "Directory access or IndexedDB could not be confirmed. Saved folder permissions and actual database writes remain untested.",
+      filesReady: "The file picker and Blob APIs are present. Selected files can be opened for this session without adding them to a persistent library.",
+      filesFallback: "The native file picker is absent, but the standard file input and Blob APIs are available. Individual files can still be opened for this session.",
+      filesUnknown: "The file input or Blob reading path is unavailable or unconfirmed. Opening a real file has not been tested.",
+      storageReady: "IndexedDB and the origin-private filesystem are accessible, and persistent storage is granted. Settings and cached data should survive reloads; writes and free space still matter.",
+      storageEvictable: "IndexedDB and the origin-private filesystem are accessible, but persistence is not granted or confirmed. Browser eviction or private-session cleanup may remove saved data.",
+      storagePartial: "Some storage needed for settings, library restoration, and caches is unavailable or unconfirmed. Persistence across reloads cannot be relied on.",
+      storageFull: "The reported storage quota has no free space. Saving settings, library data, or caches may fail.",
+      remoteConditional: "Browser networking is available, but no library server was contacted. Server reachability, CORS, mixed-content rules, credentials, and local-network permission or relay support decide whether a connection works.",
+      remoteOffline: "The browser reports being offline. Remote library access is unlikely until connectivity returns; the online flag does not itself verify any server.",
+      remoteUnknown: "The browser networking APIs are unavailable or unconfirmed. No remote server connection has been tested.",
+      offlineReady: "Service workers and Cache Storage are exposed on a secure host. The app can cache fetched assets after an online visit; installation still depends on browser policy and the manifest. Media is not automatically cached.",
+      offlineBlocked: "A secure HTTP(S) host, service workers, or Cache Storage is unavailable. Installation and offline app loading should not be relied on.",
+      offlineUnknown: "Service-worker or cache access is unconfirmed. This standalone diagnostic does not establish installation eligibility or offline availability.",
+      fullscreenReady: "Fullscreen is exposed and enabled. Entering it still requires a recent user gesture and browser permission.",
+      fullscreenBlocked: "Fullscreen is unavailable or disabled by policy. Playback can remain in the regular page.",
+      pipReady: "Document Picture-in-Picture is exposed. The player can request a separate window after a user gesture; window creation is not tested.",
+      pipBlocked: "Document Picture-in-Picture is unavailable. The player does not use ordinary HTML video Picture-in-Picture, even when that API is present.",
+      controlsReady: "Media Session and MediaMetadata are exposed. Playback metadata and media-key controls are likely available, but supported actions vary by browser and OS.",
+      controlsBlocked: "Media Session or MediaMetadata is unavailable. The player's own playback controls remain usable; system controls are not established.",
+      wakeReady: "Screen Wake Lock is exposed and is not known to be denied. It can keep the display awake while the page is visible; the browser may release or reject it.",
+      wakeBlocked: "Screen Wake Lock is missing or permission is denied. The display keeps the system's normal idle behavior.",
+      integrationUnknown: "The relevant browser integration could not be confirmed. No permission request or platform action was performed."
+    });
+    Object.assign(summaryTranslations["de-DE"], {
+      graphics: "Grafik- und Videodarstellung", hardware: "Hardware-Videodekodierung", hdr: "WCG/HDR-Videos und -Fotos", playback: "Audiowiedergabe",
+      localLibrary: "Lokale Medienbibliothek", localFiles: "Einzelne Dateien öffnen", persistence: "Einstellungen, Bibliotheksindex und Cache",
+      remote: "Remote-Bibliotheken", offline: "Installation und Offline-App",
+      fullscreen: "Vollbild", pip: "Bild-im-Bild", mediaControls: "System-Mediensteuerung", wakeLock: "Bildschirm eingeschaltet lassen",
+      graphicsReady: "Die Zeichenfläche der Hauptseite wurde korrekt dargestellt. Die GPU-Darstellung des Players ist voraussichtlich nutzbar; die Dauerleistung wurde nicht gemessen.",
+      graphicsPartial: "Die Worker-Darstellung funktioniert, die Darstellung auf der Hauptseite ist jedoch unbestätigt. Der Darstellungspfad muss noch in der App geprüft werden.",
+      graphicsUnknown: "Kein erfolgreicher Darstellungspfad wurde bestätigt. Browserrichtlinien, Treiber oder fehlende APIs können Oberfläche und Videoausgabe verhindern.",
+      hardwareReady: "{count} von {total} geprüften Profilen akzeptieren prefer-hardware, und VideoDecoder ist im Worker vorhanden. Tatsächliche Hardwarenutzung und die Unterstützung einer bestimmten Datei bleiben ungeprüft.",
+      hardwareFallback: "Hardwaredekodierung ist nicht bestätigt. Der Player kann WebCodecs ohne Hardwarepräferenz erneut versuchen oder FFmpeg in WebAssembly verwenden; Softwaredekodierung kann langsamer sein.",
+      hardwareWorker: "VideoDecoder fehlt im Render-Worker. Der Player benötigt den WebAssembly-Softwaredecoder, auch wenn die Hauptseite Codec-Unterstützung meldet.",
+      hardwareUnknown: "Decoderabfragen oder Worker-Funktionen sind nicht eindeutig. Weder Hardwarebeschleunigung noch die Unterstützung eines bestimmten Datenstroms sind bestätigt.",
+      hdrReady: "Die Float-HDR-Oberflächenprüfung der Hauptseite war erfolgreich und die Anzeige meldet hohen Dynamikumfang. Monitorausgabe und Helligkeit bleiben ungeprüft.",
+      hdrFallback: "Der WebGL-Ausgabepfad mit erweitertem Dynamikumfang ist nicht verfügbar. HDR-Medien können je nach Decoder weiterhin mit SDR-Tone-Mapping wiedergegeben werden.",
+      hdrDisplay: "Der Browser meldet keine Anzeige mit hohem Dynamikumfang. HDR-Ausgabe ist für die aktuellen Monitor- und Systemeinstellungen nicht bestätigt; SDR-Tone-Mapping bleibt verfügbar.",
+      hdrUnknown: "Der HDR-Pfad der Hauptseite ist unbestätigt. Eine Float-Zeichenfläche allein belegt keine funktionierende HDR-Ausgabe des Players.",
+      hdrChromium: "WCG/HDR-Ausgabe erfordert Chrome/Chromium 122 oder neuer. Aktivieren Sie \"Experimental Web Platform features\" unter der folgenden Adresse und starten Sie den Browser neu. Falls der Link blockiert wird, fügen Sie die Adresse in die Adressleiste ein. HDR erfordert außerdem eine kompatible Anzeige und passende Systemeinstellungen.",
+      playbackReady: "Der durch Benutzeraktion aktivierte Audiokontext und der lautlose AudioWorklet liefen erfolgreich. Der Ausgabepfad funktioniert; hörbare Wiedergabe, Geräteauswahl und Dauerstabilität wurden nicht geprüft.",
+      playbackGesture: "AudioContext und AudioWorklet sind verfügbar. Die Wiedergabe benötigt eine Benutzeraktion; die lautlose Worklet-Prüfung ist noch nicht abgeschlossen.",
+      playbackBlocked: "Der erforderliche AudioContext- oder AudioWorklet-Pfad ist nicht verfügbar. HTML-Audiocodecs können diesen Ausgabepfad nicht ersetzen.",
+      playbackUnknown: "Die Audiokontext- oder Worklet-Prüfung ist fehlgeschlagen, abgelaufen oder nicht eindeutig. Hörbare Wiedergabe ist nicht bestätigt.",
+      libraryReady: "Ordnerauswahl und IndexedDB sind vorhanden. Ordnerzugriff benötigt Ihre Erlaubnis, häufig erneut nach dem Laden; Auswahl und Datenbankschreibzugriffe wurden nicht geprüft.",
+      libraryTemporary: "Ordnerauswahl und IndexedDB sind vorhanden. Lokale Ordner können indexiert werden, müssen aber nach jedem Neuladen erneut ausgewählt werden. Auswahl und Indexierung wurden hier nicht geprüft.",
+      libraryBlocked: "Ordnerauswahl oder IndexedDB fehlen. Lokale Bibliotheksordner können nicht hinzugefügt werden; das Öffnen einzelner Dateien ist eine separate Ersatzlösung.",
+      libraryUnknown: "Ordnerzugriff oder IndexedDB konnten nicht bestätigt werden. Gespeicherte Berechtigungen und tatsächliche Datenbankschreibzugriffe bleiben ungeprüft.",
+      filesReady: "Dateiauswahl und Blob-APIs sind vorhanden. Ausgewählte Dateien können für diese Sitzung geöffnet werden, ohne sie einer dauerhaften Bibliothek hinzuzufügen.",
+      filesFallback: "Die native Dateiauswahl fehlt, aber Standard-Dateieingabe und Blob-APIs sind vorhanden. Einzelne Dateien können für diese Sitzung geöffnet werden.",
+      filesUnknown: "Dateieingabe oder Blob-Lesezugriff fehlen oder sind unbestätigt. Das Öffnen einer echten Datei wurde nicht geprüft.",
+      storageReady: "IndexedDB und das private Dateisystem des Ursprungs sind zugänglich, dauerhafter Speicher ist gewährt. Einstellungen und Cache sollten Neuladen überstehen; Schreibzugriffe und freier Platz bleiben wichtig.",
+      storageEvictable: "IndexedDB und das private Dateisystem des Ursprungs sind zugänglich, dauerhafter Speicher ist jedoch nicht gewährt oder bestätigt. Browserbereinigung oder private Sitzungen können gespeicherte Daten entfernen.",
+      storagePartial: "Ein Teil des Speichers für Einstellungen, Bibliothekswiederherstellung und Cache fehlt oder ist unbestätigt. Auf die Speicherung über Neuladen hinweg ist kein Verlass.",
+      storageFull: "Das gemeldete Speicherkontingent ist ausgeschöpft. Einstellungen, Bibliotheksdaten oder Cache lassen sich möglicherweise nicht speichern.",
+      remoteConditional: "Browsernetzwerk ist verfügbar, aber kein Bibliotheksserver wurde kontaktiert. Erreichbarkeit, CORS, Mixed-Content-Regeln, Zugangsdaten und lokaler Netzwerkzugriff oder Relay-Unterstützung entscheiden über die Verbindung.",
+      remoteOffline: "Der Browser meldet Offlinebetrieb. Remote-Zugriff ist bis zur Wiederherstellung der Verbindung unwahrscheinlich; der Online-Status prüft selbst keinen Server.",
+      remoteUnknown: "Die Netzwerk-APIs fehlen oder sind unbestätigt. Keine Verbindung zu einem Remote-Server wurde geprüft.",
+      offlineReady: "Service Worker und Cache Storage sind auf einem sicheren Host vorhanden. Die App kann nach einem Onlinebesuch geladene Dateien zwischenspeichern; Installation hängt von Browserrichtlinien und Manifest ab. Medien werden nicht automatisch gespeichert.",
+      offlineBlocked: "Sicherer HTTP(S)-Host, Service Worker oder Cache Storage fehlen. Auf Installation und Offline-Laden sollte nicht vertraut werden.",
+      offlineUnknown: "Service-Worker- oder Cache-Zugriff ist unbestätigt. Diese Diagnose belegt weder Installierbarkeit noch Offline-Verfügbarkeit.",
+      fullscreenReady: "Vollbild ist vorhanden und aktiviert. Der Wechsel benötigt weiterhin eine aktuelle Benutzeraktion und Browsererlaubnis.",
+      fullscreenBlocked: "Vollbild fehlt oder ist durch Richtlinien deaktiviert. Die Wiedergabe kann in der normalen Seite bleiben.",
+      pipReady: "Document Picture-in-Picture ist vorhanden. Der Player kann nach einer Benutzeraktion ein separates Fenster anfordern; das Öffnen wurde nicht geprüft.",
+      pipBlocked: "Document Picture-in-Picture fehlt. Der Player verwendet kein gewöhnliches HTML-Video-Bild-im-Bild, auch wenn diese API vorhanden ist.",
+      controlsReady: "Media Session und MediaMetadata sind vorhanden. Wiedergabemetadaten und Medientasten sind voraussichtlich verfügbar; unterstützte Aktionen hängen von Browser und System ab.",
+      controlsBlocked: "Media Session oder MediaMetadata fehlen. Die eigenen Wiedergabesteuerungen bleiben nutzbar; Systemsteuerungen sind nicht bestätigt.",
+      wakeReady: "Screen Wake Lock ist vorhanden und nicht als verweigert bekannt. Es kann die Anzeige bei sichtbarer Seite wach halten; der Browser kann es lösen oder ablehnen.",
+      wakeBlocked: "Screen Wake Lock fehlt oder die Berechtigung wurde verweigert. Die Anzeige folgt dem normalen Leerlaufverhalten des Systems.",
+      integrationUnknown: "Die betreffende Browserintegration konnte nicht bestätigt werden. Es wurde keine Berechtigung angefordert oder Plattformaktion ausgeführt."
+    });
+    Object.assign(summaryTranslations["es-ES"], {
+      graphics: "Gráficos y vídeo", hardware: "Decodificación de vídeo por hardware", hdr: "Vídeos y fotos WCG/HDR", playback: "Reproducción de audio",
+      localLibrary: "Biblioteca multimedia local", localFiles: "Abrir archivos individuales", persistence: "Ajustes, índice de biblioteca y cachés",
+      remote: "Bibliotecas remotas", offline: "Instalación y aplicación sin conexión",
+      fullscreen: "Pantalla completa", pip: "Imagen en imagen", mediaControls: "Controles multimedia del sistema", wakeLock: "Mantener la pantalla encendida",
+      graphicsReady: "El lienzo de la página principal se dibujó correctamente. La ruta gráfica del reproductor probablemente funciona; no se ha medido el rendimiento sostenido.",
+      graphicsPartial: "El dibujo en el worker funciona, pero no se confirmó en la página principal. La ruta gráfica requiere una prueba con la aplicación.",
+      graphicsUnknown: "No se confirmó ninguna ruta gráfica funcional. Las políticas, los controladores o la ausencia de APIs pueden impedir la interfaz y la salida de vídeo.",
+      hardwareReady: "{count} de {total} perfiles consultados aceptan prefer-hardware y VideoDecoder está disponible en el worker. No se ha verificado el uso real de hardware ni la compatibilidad de un archivo concreto.",
+      hardwareFallback: "No se confirmó la decodificación por hardware. El reproductor puede reintentar WebCodecs sin preferencia de hardware o usar FFmpeg en WebAssembly; la decodificación por software puede ser más lenta.",
+      hardwareWorker: "VideoDecoder no está disponible en el worker gráfico. El reproductor necesita su decodificador por software en WebAssembly aunque la página principal indique compatibilidad.",
+      hardwareUnknown: "Las consultas de decodificación o las capacidades del worker no son concluyentes. No se confirma la aceleración por hardware ni la compatibilidad de un flujo concreto.",
+      hdrReady: "La prueba de superficie HDR flotante de la página principal pasó y la pantalla indica alto rango dinámico. La salida real y el brillo del monitor no se han verificado.",
+      hdrFallback: "La salida WebGL de rango extendido no está disponible. Los medios HDR podrían reproducirse con mapeo de tonos SDR, según el decodificador.",
+      hdrDisplay: "El navegador no indica una pantalla de alto rango dinámico. No se confirma HDR con la configuración actual del monitor y del sistema; sigue disponible el mapeo a SDR.",
+      hdrUnknown: "La ruta HDR de la página principal no está confirmada. Un lienzo flotante por sí solo no demuestra que funcione la salida HDR del reproductor.",
+      hdrChromium: "La salida WCG/HDR requiere Chrome/Chromium 122 o posterior. Active \"Experimental Web Platform features\" en la dirección siguiente y reinicie el navegador. Si el enlace está bloqueado, pegue la dirección en la barra de direcciones. HDR también requiere una pantalla compatible y ajustes adecuados del sistema.",
+      playbackReady: "El contexto activado por el usuario y el AudioWorklet silencioso funcionaron. La ruta de salida funciona, pero no se probaron sonido audible, selección de dispositivo ni estabilidad prolongada.",
+      playbackGesture: "AudioContext y AudioWorklet están disponibles. La reproducción requiere una acción del usuario; la prueba silenciosa aún no se ha completado.",
+      playbackBlocked: "La ruta AudioContext o AudioWorklet necesaria no está disponible. La compatibilidad de audio HTML no sustituye esta salida.",
+      playbackUnknown: "La prueba de contexto o worklet falló, agotó el tiempo o no confirmó compatibilidad. No se confirma la reproducción audible.",
+      libraryReady: "El selector de carpetas e IndexedDB están disponibles. El acceso necesita permiso, a menudo de nuevo tras recargar; no se prueban el selector ni las escrituras en la base de datos.",
+      libraryTemporary: "La selección de carpetas e IndexedDB están disponibles. Se pueden indexar carpetas locales, pero hay que seleccionarlas de nuevo al recargar la página. La selección y la indexación reales no se prueban aquí.",
+      libraryBlocked: "Faltan la selección de carpetas o IndexedDB. No se pueden añadir carpetas de biblioteca locales; abrir archivos individuales es una alternativa independiente.",
+      libraryUnknown: "No se confirmaron el acceso a carpetas o IndexedDB. Los permisos guardados y las escrituras reales siguen sin probarse.",
+      filesReady: "El selector de archivos y las APIs Blob están disponibles. Los archivos seleccionados se pueden abrir durante esta sesión sin añadirlos a una biblioteca persistente.",
+      filesFallback: "No hay selector nativo, pero están disponibles la entrada estándar de archivos y Blob. Los archivos individuales pueden abrirse durante esta sesión.",
+      filesUnknown: "La entrada de archivos o la lectura Blob falta o no se confirmó. No se ha probado abrir un archivo real.",
+      storageReady: "IndexedDB y el sistema de archivos privado del origen son accesibles y hay almacenamiento persistente concedido. Los ajustes y la caché deberían sobrevivir a la recarga; importan las escrituras y el espacio libre.",
+      storageEvictable: "IndexedDB y el sistema de archivos privado son accesibles, pero la persistencia no está concedida o confirmada. El navegador o el fin de una sesión privada pueden eliminar los datos.",
+      storagePartial: "Parte del almacenamiento para ajustes, restauración y cachés falta o no se confirmó. No se puede confiar en conservar los datos al recargar.",
+      storageFull: "La cuota indicada no tiene espacio libre. Guardar ajustes, biblioteca o cachés puede fallar.",
+      remoteConditional: "La red del navegador está disponible, pero no se contactó con ningún servidor. La conexión depende del acceso al servidor, CORS, contenido mixto, credenciales y permiso de red local o retransmisión.",
+      remoteOffline: "El navegador indica que no hay conexión. El acceso remoto es improbable hasta recuperarla; el indicador en línea no verifica ningún servidor.",
+      remoteUnknown: "Las APIs de red faltan o no se confirmaron. No se probó ninguna conexión con un servidor remoto.",
+      offlineReady: "Service workers y Cache Storage están disponibles en un host seguro. La aplicación puede guardar recursos tras una visita en línea; instalarla depende del navegador y del manifiesto. Los medios no se guardan automáticamente.",
+      offlineBlocked: "Faltan un host HTTP(S) seguro, service workers o Cache Storage. No debe confiarse en la instalación o carga sin conexión.",
+      offlineUnknown: "No se confirmó el acceso al service worker o a la caché. Este diagnóstico no demuestra que la aplicación pueda instalarse o funcionar sin conexión.",
+      fullscreenReady: "La pantalla completa está disponible y habilitada. Entrar sigue requiriendo una acción reciente del usuario y permiso del navegador.",
+      fullscreenBlocked: "La pantalla completa falta o está deshabilitada por políticas. La reproducción puede seguir en la página normal.",
+      pipReady: "Document Picture-in-Picture está disponible. El reproductor puede solicitar una ventana separada tras una acción del usuario; no se prueba su creación.",
+      pipBlocked: "Document Picture-in-Picture no está disponible. El reproductor no usa la imagen en imagen del vídeo HTML normal, aunque esa API exista.",
+      controlsReady: "Media Session y MediaMetadata están disponibles. Es probable que funcionen los metadatos y las teclas multimedia; las acciones varían según el navegador y el sistema.",
+      controlsBlocked: "Faltan Media Session o MediaMetadata. Los controles del reproductor siguen disponibles; los del sistema no están confirmados.",
+      wakeReady: "Screen Wake Lock está disponible y no consta como denegado. Puede mantener la pantalla activa con la página visible; el navegador puede liberarlo o rechazarlo.",
+      wakeBlocked: "Screen Wake Lock falta o su permiso está denegado. La pantalla mantiene el comportamiento de reposo normal del sistema.",
+      integrationUnknown: "No se pudo confirmar la integración correspondiente. No se solicitó ningún permiso ni se ejecutó ninguna acción de plataforma."
+    });
+    Object.assign(summaryTranslations["fr-FR"], {
+      graphics: "Affichage graphique et vidéo", hardware: "Décodage vidéo matériel", hdr: "Vidéos et photos WCG/HDR", playback: "Lecture audio",
+      localLibrary: "Bibliothèque multimédia locale", localFiles: "Ouvrir des fichiers individuels", persistence: "Réglages, index et caches",
+      remote: "Bibliothèques distantes", offline: "Installation et application hors ligne",
+      fullscreen: "Plein écran", pip: "Image dans l'image", mediaControls: "Commandes multimédias du système", wakeLock: "Garder l'écran allumé",
+      graphicsReady: "Le canvas de la page principale a été rendu correctement. Le rendu GPU du lecteur devrait fonctionner ; les performances prolongées ne sont pas mesurées.",
+      graphicsPartial: "Le rendu du worker fonctionne, mais celui de la page principale n'est pas confirmé. Le chemin de rendu reste à tester dans l'application.",
+      graphicsUnknown: "Aucun chemin de rendu fonctionnel n'est confirmé. Les politiques du navigateur, les pilotes ou les API manquantes peuvent empêcher l'interface et la vidéo.",
+      hardwareReady: "{count} profils sur {total} acceptent prefer-hardware, et VideoDecoder est disponible dans le worker. L'utilisation réelle du matériel et la compatibilité d'un fichier précis restent non vérifiées.",
+      hardwareFallback: "Le décodage matériel n'est pas confirmé. Le lecteur peut réessayer WebCodecs sans préférence matérielle ou utiliser FFmpeg en WebAssembly ; le décodage logiciel peut être plus lent.",
+      hardwareWorker: "VideoDecoder est absent du worker de rendu. Le lecteur doit utiliser son décodeur logiciel WebAssembly, même si la page principale annonce une compatibilité.",
+      hardwareUnknown: "Les requêtes de décodage ou les capacités du worker sont indécises. Ni l'accélération matérielle ni la compatibilité d'un flux précis ne sont confirmées.",
+      hdrReady: "La surface HDR flottante de la page principale a passé la vérification et l'écran annonce une plage dynamique élevée. La sortie physique et la luminosité restent non vérifiées.",
+      hdrFallback: "La sortie WebGL à plage étendue n'est pas disponible. Les médias HDR peuvent encore être lus avec un mappage de tons SDR selon le décodeur.",
+      hdrDisplay: "Le navigateur n'annonce pas d'écran HDR. La sortie HDR n'est pas confirmée avec les réglages actuels de l'écran et du système ; le mappage SDR reste disponible.",
+      hdrUnknown: "Le chemin HDR de la page principale n'est pas confirmé. Un canvas flottant seul ne prouve pas que la sortie HDR du lecteur fonctionne.",
+      hdrChromium: "La sortie WCG/HDR nécessite Chrome/Chromium 122 ou une version ultérieure. Activez \"Experimental Web Platform features\" à l'adresse ci-dessous, puis relancez le navigateur. Si le lien est bloqué, collez l'adresse dans la barre d'adresse. Le HDR nécessite aussi un écran compatible et des réglages système adaptés.",
+      playbackReady: "Le contexte activé par l'utilisateur et l'AudioWorklet silencieux ont fonctionné. Le chemin de sortie fonctionne, sans test du son audible, du routage ni de la stabilité prolongée.",
+      playbackGesture: "AudioContext et AudioWorklet sont disponibles. La lecture nécessite une action de l'utilisateur ; la vérification silencieuse n'est pas encore terminée.",
+      playbackBlocked: "Le chemin AudioContext ou AudioWorklet requis n'est pas disponible. Les codecs audio HTML ne remplacent pas cette sortie.",
+      playbackUnknown: "La vérification du contexte ou du worklet a échoué, expiré ou n'est pas concluante. La lecture audible n'est pas confirmée.",
+      libraryReady: "Le sélecteur de dossiers et IndexedDB sont présents. L'accès nécessite votre autorisation, souvent renouvelée après rechargement ; le sélecteur et les écritures ne sont pas testés.",
+      libraryTemporary: "La sélection de dossiers et IndexedDB sont disponibles. Les dossiers locaux peuvent être indexés, mais doivent être sélectionnés à nouveau après chaque rechargement. La sélection et l'indexation réelles ne sont pas testées ici.",
+      libraryBlocked: "La sélection de dossiers ou IndexedDB est indisponible. Les dossiers de bibliothèque locaux ne peuvent pas être ajoutés ; l'ouverture de fichiers individuels est une autre possibilité.",
+      libraryUnknown: "L'accès aux dossiers ou IndexedDB n'est pas confirmé. Les autorisations enregistrées et les écritures réelles restent non testées.",
+      filesReady: "Le sélecteur de fichiers et les API Blob sont présents. Les fichiers choisis peuvent être ouverts pour cette session sans ajout à une bibliothèque persistante.",
+      filesFallback: "Le sélecteur natif est absent, mais le champ de fichier standard et Blob sont disponibles. Des fichiers individuels peuvent être ouverts pour cette session.",
+      filesUnknown: "Le champ de fichier ou la lecture Blob est absent ou non confirmé. Aucun fichier réel n'a été ouvert pour vérification.",
+      storageReady: "IndexedDB et le système de fichiers privé de l'origine sont accessibles, avec stockage persistant accordé. Réglages et caches devraient survivre au rechargement ; les écritures et l'espace libre restent déterminants.",
+      storageEvictable: "IndexedDB et le système de fichiers privé sont accessibles, mais la persistance n'est pas accordée ou confirmée. Le navigateur ou la fin d'une session privée peut supprimer les données.",
+      storagePartial: "Une partie du stockage des réglages, de la bibliothèque ou des caches est absente ou non confirmée. La conservation après rechargement n'est pas fiable.",
+      storageFull: "Le quota annoncé ne contient plus d'espace libre. L'enregistrement des réglages, de la bibliothèque ou des caches peut échouer.",
+      remoteConditional: "Le réseau du navigateur est disponible, mais aucun serveur n'a été contacté. Accessibilité, CORS, contenu mixte, identifiants et autorisation réseau local ou relais déterminent la connexion.",
+      remoteOffline: "Le navigateur indique être hors ligne. L'accès distant est peu probable avant le retour de la connexion ; l'indicateur en ligne ne vérifie aucun serveur.",
+      remoteUnknown: "Les API réseau sont absentes ou non confirmées. Aucune connexion à un serveur distant n'a été testée.",
+      offlineReady: "Service workers et Cache Storage sont présents sur un hôte sécurisé. L'application peut mettre en cache les ressources après une visite en ligne ; l'installation dépend du navigateur et du manifeste. Les médias ne sont pas automatiquement mis en cache.",
+      offlineBlocked: "Un hôte HTTP(S) sécurisé, les service workers ou Cache Storage sont absents. L'installation et le chargement hors ligne ne sont pas fiables.",
+      offlineUnknown: "L'accès au service worker ou au cache n'est pas confirmé. Ce diagnostic ne prouve ni l'installabilité ni la disponibilité hors ligne.",
+      fullscreenReady: "Le plein écran est présent et activé. Son ouverture exige encore une action récente de l'utilisateur et l'autorisation du navigateur.",
+      fullscreenBlocked: "Le plein écran est absent ou interdit par la politique. La lecture peut rester dans la page normale.",
+      pipReady: "Document Picture-in-Picture est disponible. Le lecteur peut demander une fenêtre séparée après une action de l'utilisateur ; sa création n'est pas testée.",
+      pipBlocked: "Document Picture-in-Picture est absent. Le lecteur n'utilise pas le mode image dans l'image de la vidéo HTML ordinaire, même si cette API est présente.",
+      controlsReady: "Media Session et MediaMetadata sont présents. Les métadonnées et touches multimédias devraient fonctionner ; les actions varient selon le navigateur et le système.",
+      controlsBlocked: "Media Session ou MediaMetadata est absent. Les commandes du lecteur restent utilisables ; celles du système ne sont pas confirmées.",
+      wakeReady: "Screen Wake Lock est disponible et n'est pas signalé comme refusé. Il peut garder l'écran actif si la page est visible ; le navigateur peut le libérer ou le refuser.",
+      wakeBlocked: "Screen Wake Lock est absent ou son autorisation est refusée. L'écran conserve la mise en veille normale du système.",
+      integrationUnknown: "L'intégration correspondante n'a pas pu être confirmée. Aucune demande d'autorisation ni action de plateforme n'a été effectuée."
+    });
+    Object.assign(summaryTranslations["ja-JP"], {
+      graphics: "グラフィックスと動画の描画", hardware: "動画のハードウェアデコード", hdr: "WCG/HDR 動画と写真", playback: "音声再生",
+      localLibrary: "ローカルメディアライブラリ", localFiles: "個別ファイルを開く", persistence: "設定、ライブラリ索引、キャッシュ",
+      remote: "リモートライブラリ", offline: "インストールとオフライン動作",
+      fullscreen: "全画面表示", pip: "ピクチャーインピクチャー", mediaControls: "システムのメディア操作", wakeLock: "画面をオンに保つ",
+      graphicsReady: "メインページのキャンバスを正常に描画できました。プレーヤーの GPU 描画は利用できる見込みですが、継続的な性能は未測定です。",
+      graphicsPartial: "ワーカーの描画は成功しましたが、メインページでの描画は未確認です。描画経路を実際のアプリで確認する必要があります。",
+      graphicsUnknown: "正常な描画経路を確認できませんでした。ブラウザーのポリシー、ドライバー、API の不足により UI や動画を表示できない可能性があります。",
+      hardwareReady: "確認した {total} プロファイル中 {count} 個が prefer-hardware を受け入れ、ワーカーに VideoDecoder があります。実際のハードウェア使用や特定のファイルへの対応は未確認です。",
+      hardwareFallback: "ハードウェアデコードは未確認です。プレーヤーはハードウェア指定なしで WebCodecs を再試行するか、WebAssembly の FFmpeg を使用できます。ソフトウェアデコードは低速になる場合があります。",
+      hardwareWorker: "描画ワーカーに VideoDecoder がありません。メインページがコーデック対応を報告しても、WebAssembly のソフトウェアデコーダーが必要です。",
+      hardwareUnknown: "デコーダーの問い合わせやワーカーの能力は不明確です。ハードウェアアクセラレーションや特定のストリームへの対応は確認できません。",
+      hdrReady: "メインページの浮動小数点 HDR サーフェスの確認に成功し、画面も高ダイナミックレンジを報告しています。実際の画面出力と輝度は未確認です。",
+      hdrFallback: "拡張ダイナミックレンジの WebGL 出力は利用できません。デコーダーが対応していれば、HDR メディアを SDR にトーンマッピングして再生できる場合があります。",
+      hdrDisplay: "ブラウザーは高ダイナミックレンジ画面を報告していません。現在のモニターと OS 設定では HDR 出力は未確認です。SDR トーンマッピングは引き続き利用できます。",
+      hdrUnknown: "メインページの HDR 経路が未確認です。浮動小数点キャンバスだけではプレーヤーの HDR 出力を保証できません。",
+      hdrChromium: "WCG/HDR 出力には Chrome/Chromium 122 以降が必要です。以下のアドレスで「Experimental Web Platform features」を有効にし、ブラウザーを再起動してください。リンクがブロックされる場合は、アドレスをアドレスバーに貼り付けてください。HDR には対応する画面と OS 設定も必要です。",
+      playbackReady: "ユーザー操作で有効化した音声コンテキストと無音の AudioWorklet が動作しました。出力経路は動きますが、実際の音、デバイス経路、長時間の安定性は未確認です。",
+      playbackGesture: "AudioContext と AudioWorklet が利用できます。再生にはユーザー操作が必要です。無音のワーカーレット確認はまだ完了していません。",
+      playbackBlocked: "再生に必要な AudioContext または AudioWorklet が利用できません。HTML 音声コーデックへの対応ではこの出力経路を代替できません。",
+      playbackUnknown: "音声コンテキストやワーカーレットの確認が失敗、タイムアウト、または不明確でした。実際の音声再生は未確認です。",
+      libraryReady: "フォルダー選択と IndexedDB が利用できます。アクセスには許可が必要で、再読み込み後に再許可が必要な場合があります。選択操作とデータベース書き込みは未確認です。",
+      libraryTemporary: "フォルダー選択と IndexedDB が利用できます。ローカルフォルダーを登録できますが、ページを再読み込みするたびに各フォルダーの再選択が必要です。実際の選択とインデックス作成は未確認です。",
+      libraryBlocked: "フォルダー選択または IndexedDB がありません。ローカルライブラリのフォルダーは追加できません。個別ファイルを開く方法は別に利用できます。",
+      libraryUnknown: "フォルダーアクセスまたは IndexedDB を確認できませんでした。保存済みの権限と実際のデータベース書き込みは未確認です。",
+      filesReady: "ファイル選択と Blob API が利用できます。永続ライブラリに追加せず、このセッションで選択したファイルを開けます。",
+      filesFallback: "ネイティブファイル選択はありませんが、標準のファイル入力と Blob API が利用できます。このセッションで個別ファイルを開けます。",
+      filesUnknown: "ファイル入力または Blob 読み込みが利用できないか未確認です。実際のファイルを開く確認は行っていません。",
+      storageReady: "IndexedDB とオリジン専用ファイルシステムにアクセスでき、永続ストレージが許可されています。設定やキャッシュは再読み込み後も残る見込みですが、書き込みと空き容量は重要です。",
+      storageEvictable: "IndexedDB とオリジン専用ファイルシステムにアクセスできますが、永続化は未許可または未確認です。ブラウザーの削除処理やプライベートセッション終了でデータが失われる場合があります。",
+      storagePartial: "設定、ライブラリ復元、キャッシュに必要なストレージの一部が利用できないか未確認です。再読み込み後の保持は保証できません。",
+      storageFull: "報告されたストレージ容量に空きがありません。設定、ライブラリ、キャッシュの保存に失敗する可能性があります。",
+      remoteConditional: "ブラウザーのネットワーク機能はありますが、ライブラリサーバーには接続していません。到達性、CORS、混在コンテンツ、認証情報、ローカルネットワーク権限やリレーの対応で接続可否が決まります。",
+      remoteOffline: "ブラウザーはオフライン状態を報告しています。接続回復まではリモートアクセスが難しい見込みです。オンライン表示だけではサーバーの到達性は確認できません。",
+      remoteUnknown: "ネットワーク API が利用できないか未確認です。リモートサーバーへの接続は確認していません。",
+      offlineReady: "安全なホストで Service Worker と Cache Storage が利用できます。オンラインで取得したアプリ資産を保存できますが、インストールはブラウザーとマニフェストに依存します。メディアは自動では保存されません。",
+      offlineBlocked: "安全な HTTP(S) ホスト、Service Worker、Cache Storage のいずれかが利用できません。インストールやオフライン起動は期待できません。",
+      offlineUnknown: "Service Worker またはキャッシュへのアクセスが未確認です。この診断だけではインストールやオフライン動作を確認できません。",
+      fullscreenReady: "全画面機能があり、有効です。移行には直前のユーザー操作とブラウザーの許可が必要です。",
+      fullscreenBlocked: "全画面機能がないかポリシーで無効です。通常のページ内で再生を続けられます。",
+      pipReady: "Document Picture-in-Picture が利用できます。ユーザー操作後に別ウィンドウを要求できますが、ウィンドウ作成は未確認です。",
+      pipBlocked: "Document Picture-in-Picture がありません。通常の HTML 動画用ピクチャーインピクチャーが存在しても、プレーヤーは使用しません。",
+      controlsReady: "Media Session と MediaMetadata が利用できます。再生情報とメディアキー操作は使える見込みですが、対応操作はブラウザーと OS によって異なります。",
+      controlsBlocked: "Media Session または MediaMetadata がありません。プレーヤー内の操作は利用できますが、システム操作は未確認です。",
+      wakeReady: "Screen Wake Lock があり、拒否は報告されていません。ページ表示中に画面をオンに保てますが、ブラウザーが解除または拒否する場合があります。",
+      wakeBlocked: "Screen Wake Lock がないか権限が拒否されています。画面はシステムの通常のスリープ設定に従います。",
+      integrationUnknown: "該当するブラウザー連携を確認できませんでした。権限の要求やプラットフォーム操作は行っていません。"
+    });
+    Object.assign(summaryTranslations["zh-CN"], {
+      graphics: "图形与视频渲染", hardware: "视频硬件解码", hdr: "WCG/HDR 视频与照片", playback: "音频播放",
+      localLibrary: "本地媒体库", localFiles: "打开单个文件", persistence: "设置、媒体库索引与缓存",
+      remote: "远程媒体库", offline: "安装与离线应用",
+      fullscreen: "全屏", pip: "画中画", mediaControls: "系统媒体控制", wakeLock: "保持屏幕常亮",
+      graphicsReady: "主页面画布已成功渲染。播放器的 GPU 渲染路径预计可用，但尚未测量持续性能。",
+      graphicsPartial: "工作线程渲染成功，但尚未确认主页面渲染。仍需在实际应用中检查渲染路径。",
+      graphicsUnknown: "尚未确认可用的渲染路径。浏览器图形策略、驱动或缺失的 API 可能阻止界面和视频输出。",
+      hardwareReady: "抽查的 {total} 个配置中有 {count} 个接受 prefer-hardware，且工作线程提供 VideoDecoder。尚未确认实际硬件使用或特定文件的兼容性。",
+      hardwareFallback: "尚未确认硬件解码。播放器可不指定硬件偏好重新尝试 WebCodecs，或使用 WebAssembly 中的 FFmpeg；软件解码可能较慢。",
+      hardwareWorker: "渲染工作线程中没有 VideoDecoder。即使主页面报告支持相关编解码器，播放器仍需使用 WebAssembly 软件解码器。",
+      hardwareUnknown: "解码器查询或工作线程能力尚无定论。无法确认硬件加速或特定媒体流的兼容性。",
+      hdrReady: "主页面浮点 HDR 表面检查通过，且显示器报告高动态范围。尚未验证实际显示输出和亮度。",
+      hdrFallback: "扩展动态范围 WebGL 输出不可用。如果解码器支持，HDR 媒体仍可通过 SDR 色调映射播放。",
+      hdrDisplay: "浏览器未报告高动态范围显示器。当前显示器和系统设置下的 HDR 输出尚未确认，仍可使用 SDR 色调映射。",
+      hdrUnknown: "主页面 HDR 路径尚未确认。仅支持浮点画布不能证明播放器的 HDR 输出可用。",
+      hdrChromium: "WCG/HDR 输出需要 Chrome/Chromium 122 或更高版本。请在下方地址启用“Experimental Web Platform features”，然后重新启动浏览器。如果链接被阻止，请将地址粘贴到地址栏。HDR 还需要兼容的显示器和系统设置。",
+      playbackReady: "用户激活的音频上下文和静音 AudioWorklet 均已运行。输出路径可用，但未测试实际声音、设备路由或长期稳定性。",
+      playbackGesture: "AudioContext 和 AudioWorklet 可用。播放需要用户操作；静音工作线程检查尚未完成。",
+      playbackBlocked: "播放所需的 AudioContext 或 AudioWorklet 路径不可用。HTML 音频编解码器支持不能替代该输出路径。",
+      playbackUnknown: "音频上下文或工作线程检查失败、超时或结果不明确。尚未确认可听音频播放。",
+      libraryReady: "目录选择器和 IndexedDB 可用。访问文件夹需要授权，重新加载后通常需再次授权；此处未测试选择器访问或数据库写入。",
+      libraryTemporary: "目录选择和 IndexedDB 可用。可以建立本地文件夹索引，但每次重新加载页面后都需要重新选择各个文件夹。此处未测试实际选择和索引。",
+      libraryBlocked: "目录选择或 IndexedDB 不可用，无法添加本地媒体库文件夹。打开单个文件是独立的回退方案。",
+      libraryUnknown: "无法确认目录访问或 IndexedDB。保存的文件夹权限和实际数据库写入尚未测试。",
+      filesReady: "文件选择器和 Blob API 可用。选中的文件可在当前会话中打开，无需加入持久媒体库。",
+      filesFallback: "原生文件选择器不可用，但标准文件输入和 Blob API 可用。仍可在当前会话中打开单个文件。",
+      filesUnknown: "文件输入或 Blob 读取路径不可用或尚未确认。未测试打开真实文件。",
+      storageReady: "IndexedDB 和源私有文件系统可访问，且已获准持久存储。设置与缓存预计可在重新加载后保留，但仍取决于写入成功和剩余空间。",
+      storageEvictable: "IndexedDB 和源私有文件系统可访问，但持久存储未获准或尚未确认。浏览器清理或隐私会话结束可能删除保存的数据。",
+      storagePartial: "设置、媒体库恢复或缓存所需的部分存储不可用或尚未确认，不能保证重新加载后保留数据。",
+      storageFull: "报告的存储配额已无剩余空间。保存设置、媒体库数据或缓存可能失败。",
+      remoteConditional: "浏览器网络 API 可用，但未联系任何媒体库服务器。能否连接取决于服务器可达性、CORS、混合内容规则、凭据以及本地网络权限或中继支持。",
+      remoteOffline: "浏览器报告离线。恢复连接前可能无法访问远程媒体库；在线标志本身也不能验证服务器可达性。",
+      remoteUnknown: "浏览器网络 API 不可用或尚未确认。未测试任何远程服务器连接。",
+      offlineReady: "安全主机下提供 Service Worker 和 Cache Storage。在线访问后可缓存已获取的应用资源；能否安装仍取决于浏览器策略和清单。媒体不会自动缓存。",
+      offlineBlocked: "安全 HTTP(S) 主机、Service Worker 或 Cache Storage 不可用。不应依赖安装或离线加载能力。",
+      offlineUnknown: "Service Worker 或缓存访问尚未确认。此独立诊断不能证明应用可安装或可离线使用。",
+      fullscreenReady: "全屏 API 可用且已启用。进入全屏仍需近期用户操作和浏览器许可。",
+      fullscreenBlocked: "全屏不可用或被策略禁用。仍可在普通页面中播放。",
+      pipReady: "Document Picture-in-Picture 可用。用户操作后播放器可请求独立窗口，但尚未测试窗口创建。",
+      pipBlocked: "Document Picture-in-Picture 不可用。即使普通 HTML 视频画中画 API 存在，播放器也不使用该路径。",
+      controlsReady: "Media Session 和 MediaMetadata 可用。预计可提供播放元数据和媒体键控制，但支持的操作因浏览器和系统而异。",
+      controlsBlocked: "Media Session 或 MediaMetadata 不可用。播放器自身的控制仍可使用，但系统媒体控制尚未确认。",
+      wakeReady: "Screen Wake Lock 可用，且未发现权限被拒绝。页面可见时可保持屏幕常亮，但浏览器可能释放或拒绝锁定。",
+      wakeBlocked: "Screen Wake Lock 不可用或权限被拒绝。屏幕将遵循系统的正常休眠行为。",
+      integrationUnknown: "尚未确认相关浏览器集成能力。未请求权限或执行平台操作。"
+    });
+    Object.assign(summaryTranslations["zh-TW"], {
+      graphics: "圖形與影片繪製", hardware: "影片硬體解碼", hdr: "WCG/HDR 影片與照片", playback: "音訊播放",
+      localLibrary: "本機媒體庫", localFiles: "開啟個別檔案", persistence: "設定、媒體庫索引與快取",
+      remote: "遠端媒體庫", offline: "安裝與離線應用程式",
+      fullscreen: "全螢幕", pip: "子母畫面", mediaControls: "系統媒體控制", wakeLock: "保持螢幕開啟",
+      graphicsReady: "主頁面畫布已成功繪製。播放器的 GPU 繪製路徑預計可用，但尚未測量持續效能。",
+      graphicsPartial: "工作執行緒繪製成功，但尚未確認主頁面繪製。仍需在實際應用程式中檢查繪製路徑。",
+      graphicsUnknown: "尚未確認可用的繪製路徑。瀏覽器圖形原則、驅動程式或缺少的 API 可能阻止介面與影片輸出。",
+      hardwareReady: "抽查的 {total} 個設定中有 {count} 個接受 prefer-hardware，且工作執行緒提供 VideoDecoder。尚未確認實際硬體使用或特定檔案的相容性。",
+      hardwareFallback: "尚未確認硬體解碼。播放器可不指定硬體偏好重新嘗試 WebCodecs，或使用 WebAssembly 中的 FFmpeg；軟體解碼可能較慢。",
+      hardwareWorker: "繪製工作執行緒中沒有 VideoDecoder。即使主頁面回報支援相關編解碼器，播放器仍需使用 WebAssembly 軟體解碼器。",
+      hardwareUnknown: "解碼器查詢或工作執行緒能力尚無定論。無法確認硬體加速或特定媒體串流的相容性。",
+      hdrReady: "主頁面浮點 HDR 表面檢查通過，且顯示器回報高動態範圍。尚未驗證實際顯示輸出與亮度。",
+      hdrFallback: "擴充動態範圍 WebGL 輸出無法使用。如果解碼器支援，HDR 媒體仍可透過 SDR 色調映射播放。",
+      hdrDisplay: "瀏覽器未回報高動態範圍顯示器。目前顯示器與系統設定下的 HDR 輸出尚未確認，仍可使用 SDR 色調映射。",
+      hdrUnknown: "主頁面 HDR 路徑尚未確認。僅支援浮點畫布不能證明播放器的 HDR 輸出可用。",
+      hdrChromium: "WCG/HDR 輸出需要 Chrome/Chromium 122 或更新版本。請在下方位址啟用「Experimental Web Platform features」，然後重新啟動瀏覽器。如果連結遭封鎖，請將位址貼到網址列。HDR 還需要相容的顯示器與系統設定。",
+      playbackReady: "使用者啟用的音訊內容與靜音 AudioWorklet 均已執行。輸出路徑可用，但未測試實際聲音、裝置路由或長期穩定性。",
+      playbackGesture: "AudioContext 與 AudioWorklet 可用。播放需要使用者操作；靜音工作執行緒檢查尚未完成。",
+      playbackBlocked: "播放所需的 AudioContext 或 AudioWorklet 路徑無法使用。HTML 音訊編解碼器支援不能取代該輸出路徑。",
+      playbackUnknown: "音訊內容或工作執行緒檢查失敗、逾時或結果不明確。尚未確認可聽音訊播放。",
+      libraryReady: "目錄選擇器與 IndexedDB 可用。存取資料夾需要授權，重新載入後通常需再次授權；此處未測試選擇器存取或資料庫寫入。",
+      libraryTemporary: "目錄選取與 IndexedDB 可用。可以建立本機資料夾索引，但每次重新載入頁面後都需要重新選取各個資料夾。此處未測試實際選取與索引。",
+      libraryBlocked: "目錄選取或 IndexedDB 無法使用，無法新增本機媒體庫資料夾。開啟個別檔案是獨立的備用方案。",
+      libraryUnknown: "無法確認目錄存取或 IndexedDB。儲存的資料夾權限與實際資料庫寫入尚未測試。",
+      filesReady: "檔案選擇器與 Blob API 可用。選取的檔案可在目前工作階段開啟，不必加入持續保留的媒體庫。",
+      filesFallback: "原生檔案選擇器無法使用，但標準檔案輸入與 Blob API 可用。仍可在目前工作階段開啟個別檔案。",
+      filesUnknown: "檔案輸入或 Blob 讀取路徑無法使用或尚未確認。未測試開啟真實檔案。",
+      storageReady: "IndexedDB 與來源私有檔案系統可存取，且已獲准永久儲存。設定與快取預計可在重新載入後保留，但仍取決於寫入成功與剩餘空間。",
+      storageEvictable: "IndexedDB 與來源私有檔案系統可存取，但永久儲存未獲准或尚未確認。瀏覽器清理或私密工作階段結束可能刪除儲存的資料。",
+      storagePartial: "設定、媒體庫還原或快取所需的部分儲存無法使用或尚未確認，不能保證重新載入後保留資料。",
+      storageFull: "回報的儲存配額已無剩餘空間。儲存設定、媒體庫資料或快取可能失敗。",
+      remoteConditional: "瀏覽器網路 API 可用，但未聯絡任何媒體庫伺服器。能否連線取決於伺服器可達性、CORS、混合內容規則、認證資訊，以及本機網路權限或轉送支援。",
+      remoteOffline: "瀏覽器回報離線。恢復連線前可能無法存取遠端媒體庫；在線標記本身也不能驗證伺服器可達性。",
+      remoteUnknown: "瀏覽器網路 API 無法使用或尚未確認。未測試任何遠端伺服器連線。",
+      offlineReady: "安全主機下提供 Service Worker 與 Cache Storage。在線存取後可快取已取得的應用程式資源；能否安裝仍取決於瀏覽器原則與資訊清單。媒體不會自動快取。",
+      offlineBlocked: "安全 HTTP(S) 主機、Service Worker 或 Cache Storage 無法使用。不應依賴安裝或離線載入能力。",
+      offlineUnknown: "Service Worker 或快取存取尚未確認。此獨立診斷不能證明應用程式可安裝或可離線使用。",
+      fullscreenReady: "全螢幕 API 可用且已啟用。進入全螢幕仍需近期使用者操作與瀏覽器許可。",
+      fullscreenBlocked: "全螢幕無法使用或遭原則停用。仍可在普通頁面中播放。",
+      pipReady: "Document Picture-in-Picture 可用。使用者操作後播放器可要求獨立視窗，但尚未測試視窗建立。",
+      pipBlocked: "Document Picture-in-Picture 無法使用。即使普通 HTML 影片子母畫面 API 存在，播放器也不使用該路徑。",
+      controlsReady: "Media Session 與 MediaMetadata 可用。預計可提供播放中繼資料與媒體鍵控制，但支援的操作因瀏覽器與系統而異。",
+      controlsBlocked: "Media Session 或 MediaMetadata 無法使用。播放器自身的控制仍可使用，但系統媒體控制尚未確認。",
+      wakeReady: "Screen Wake Lock 可用，且未發現權限遭拒。頁面可見時可保持螢幕開啟，但瀏覽器可能解除或拒絕鎖定。",
+      wakeBlocked: "Screen Wake Lock 無法使用或權限遭拒。螢幕將遵循系統的正常休眠行為。",
+      integrationUnknown: "尚未確認相關瀏覽器整合能力。未要求權限或執行平台操作。"
+    });
+    Object.assign(summaryTranslations["en-US"], {
+      hdrSampleIntro: "HDR: 0.5 should be dimmer than 1.0 (SDR white). Steps above 1.0 should be brighter when HDR works; steps beyond your display's limit may look alike.",
+      hdrSampleGamut: "WCG: the lower rows contain P3 red and green bars on sRGB backgrounds. More saturated bars indicate wide-gamut output; if they blend into the background, output may be limited to sRGB.",
+      hdrSampleHeadroom: "Read display headroom", hdrSampleMax: "Display max", hdrSampleUnknown: "Unknown",
+      hdrSamplePermission: "The last step uses the current display's reported headroom, which requires display permission. Hatching means the maximum is unknown.",
+      hdrSampleReady: "Pattern rendered. Check the screen visually; pixel readback does not verify display output.",
+      hdrSampleSdr: "SDR fallback: the player's WCG/HDR canvas is unavailable. See details.",
+      hdrSampleError: "The sample could not be rendered. See details.",
+      hdrSampleLabel: "Brightness steps followed by P3 red and green bars on sRGB backgrounds."
+    });
+    Object.assign(summaryTranslations["de-DE"], {
+      hdrSampleIntro: "HDR: 0,5 sollte dunkler als 1,0 (SDR-Weiß) sein. Stufen über 1,0 sollten bei funktionierendem HDR heller sein; oberhalb der Anzeigegrenze können sie gleich aussehen.",
+      hdrSampleGamut: "WCG: Die unteren Reihen zeigen rote und grüne P3-Balken auf sRGB-Hintergründen. Stärker gesättigte Balken weisen auf einen erweiterten Farbraum hin; verschwinden sie im Hintergrund, ist die Ausgabe möglicherweise auf sRGB begrenzt.",
+      hdrSampleHeadroom: "Helligkeitsspielraum abfragen", hdrSampleMax: "Max.", hdrSampleUnknown: "Unbekannt",
+      hdrSamplePermission: "Die letzte Stufe nutzt den gemeldeten Helligkeitsspielraum der aktuellen Anzeige und benötigt die Anzeigeberechtigung. Schraffierung bedeutet, dass das Maximum unbekannt ist.",
+      hdrSampleReady: "Muster dargestellt. Prüfen Sie die Anzeige visuell; das Auslesen von Pixeln bestätigt die Monitorausgabe nicht.",
+      hdrSampleSdr: "SDR-Ersatz: Die WCG/HDR-Zeichenfläche des Players ist nicht verfügbar. Siehe Details.",
+      hdrSampleError: "Das Muster konnte nicht dargestellt werden. Siehe Details.",
+      hdrSampleLabel: "Helligkeitsstufen, gefolgt von roten und grünen P3-Balken auf sRGB-Hintergründen."
+    });
+    Object.assign(summaryTranslations["es-ES"], {
+      hdrSampleIntro: "HDR: 0,5 debe verse más oscuro que 1,0 (blanco SDR). Los niveles superiores a 1,0 deben brillar más si HDR funciona; los que superen el límite de la pantalla pueden parecer iguales.",
+      hdrSampleGamut: "WCG: las filas inferiores muestran barras P3 rojas y verdes sobre fondos sRGB. Una mayor saturación indica una gama amplia; si las barras se confunden con el fondo, la salida puede estar limitada a sRGB.",
+      hdrSampleHeadroom: "Consultar margen de brillo", hdrSampleMax: "Máximo de pantalla", hdrSampleUnknown: "Desconocido",
+      hdrSamplePermission: "El último nivel usa el margen de brillo indicado por la pantalla actual y requiere permiso de pantalla. El rayado indica que se desconoce el máximo.",
+      hdrSampleReady: "Patrón dibujado. Compruebe la pantalla visualmente; leer los píxeles no verifica la salida física.",
+      hdrSampleSdr: "Alternativa SDR: el lienzo WCG/HDR del reproductor no está disponible. Consulte los detalles.",
+      hdrSampleError: "No se pudo dibujar el patrón. Consulte los detalles.",
+      hdrSampleLabel: "Niveles de brillo seguidos de barras P3 rojas y verdes sobre fondos sRGB."
+    });
+    Object.assign(summaryTranslations["fr-FR"], {
+      hdrSampleIntro: "HDR : 0,5 doit être plus sombre que 1,0 (blanc SDR). Les niveaux supérieurs à 1,0 doivent être plus lumineux si le HDR fonctionne ; au-delà de la limite de l'écran, ils peuvent sembler identiques.",
+      hdrSampleGamut: "WCG : les rangées inférieures montrent des barres P3 rouges et vertes sur des fonds sRGB. Des barres plus saturées indiquent un gamut étendu ; si elles se fondent dans le fond, la sortie peut être limitée au sRGB.",
+      hdrSampleHeadroom: "Lire la réserve de luminosité", hdrSampleMax: "Maximum de l'écran", hdrSampleUnknown: "Inconnu",
+      hdrSamplePermission: "Le dernier niveau utilise la réserve de luminosité annoncée par l'écran actuel et nécessite l'autorisation d'accès aux écrans. Les hachures indiquent un maximum inconnu.",
+      hdrSampleReady: "Motif affiché. Vérifiez visuellement l'écran ; la lecture des pixels ne confirme pas la sortie physique.",
+      hdrSampleSdr: "Repli SDR : le canvas WCG/HDR du lecteur est indisponible. Consultez les détails.",
+      hdrSampleError: "Le motif n'a pas pu être affiché. Consultez les détails.",
+      hdrSampleLabel: "Niveaux de luminosité suivis de barres P3 rouges et vertes sur des fonds sRGB."
+    });
+    Object.assign(summaryTranslations["ja-JP"], {
+      hdrSampleIntro: "HDR: 0.5 は 1.0（SDR の白）より暗く見えます。HDR が機能していれば、1.0 を超える段階はより明るく見えます。画面の上限を超える段階は同じ明るさに見える場合があります。",
+      hdrSampleGamut: "WCG: 下の 2 行は sRGB の背景上に P3 の赤と緑のバーを表示します。バーの彩度が高く見えれば広色域出力の目安になります。背景と区別できない場合、出力が sRGB に制限されている可能性があります。",
+      hdrSampleHeadroom: "画面の輝度余裕を取得", hdrSampleMax: "画面の最大値", hdrSampleUnknown: "不明",
+      hdrSamplePermission: "最後の段階には現在の画面が報告する輝度余裕を使用し、画面へのアクセス許可が必要です。斜線は最大値が不明であることを示します。",
+      hdrSampleReady: "パターンを描画しました。画面を目視で確認してください。ピクセルの読み取りだけでは実際の出力を確認できません。",
+      hdrSampleSdr: "SDR にフォールバック: プレーヤーの WCG/HDR キャンバスは利用できません。詳細を確認してください。",
+      hdrSampleError: "パターンを描画できませんでした。詳細を確認してください。",
+      hdrSampleLabel: "明るさの段階と、sRGB の背景上にある P3 の赤と緑のバー。"
+    });
+    Object.assign(summaryTranslations["zh-CN"], {
+      hdrSampleIntro: "HDR：0.5 应比 1.0（SDR 白色）暗。HDR 正常工作时，大于 1.0 的色块应更亮；超过屏幕亮度上限的色块可能看起来一样。",
+      hdrSampleGamut: "WCG：下方两行是在 sRGB 背景上的 P3 红色和绿色条纹。条纹颜色更饱和表示广色域输出可能正常；若条纹与背景融为一体，输出可能受限于 sRGB。",
+      hdrSampleHeadroom: "读取屏幕亮度余量", hdrSampleMax: "屏幕最大值", hdrSampleUnknown: "未知",
+      hdrSamplePermission: "最后一个色块使用当前屏幕报告的亮度余量，需要屏幕访问权限。斜线表示最大值未知。",
+      hdrSampleReady: "已绘制图案。请目视检查屏幕；像素回读不能验证实际显示输出。",
+      hdrSampleSdr: "SDR 回退：播放器的 WCG/HDR 画布不可用，请查看详细信息。",
+      hdrSampleError: "无法绘制示例，请查看详细信息。",
+      hdrSampleLabel: "不同亮度的色块，以及 sRGB 背景上的 P3 红色和绿色条纹。"
+    });
+    Object.assign(summaryTranslations["zh-TW"], {
+      hdrSampleIntro: "HDR：0.5 應比 1.0（SDR 白色）暗。HDR 正常運作時，大於 1.0 的色塊應更亮；超過螢幕亮度上限的色塊可能看起來一樣。",
+      hdrSampleGamut: "WCG：下方兩行是在 sRGB 背景上的 P3 紅色和綠色條紋。條紋顏色更飽和表示廣色域輸出可能正常；若條紋與背景融為一體，輸出可能受限於 sRGB。",
+      hdrSampleHeadroom: "讀取螢幕亮度餘裕", hdrSampleMax: "螢幕最大值", hdrSampleUnknown: "未知",
+      hdrSamplePermission: "最後一個色塊使用目前螢幕回報的亮度餘裕，需要螢幕存取權限。斜線表示最大值未知。",
+      hdrSampleReady: "已繪製圖案。請目視檢查螢幕；像素回讀不能驗證實際顯示輸出。",
+      hdrSampleSdr: "SDR 備用：播放器的 WCG/HDR 畫布無法使用，請查看詳細資訊。",
+      hdrSampleError: "無法繪製範例，請查看詳細資訊。",
+      hdrSampleLabel: "不同亮度的色塊，以及 sRGB 背景上的 P3 紅色和綠色條紋。"
+    });
+    const languageNames = { "en-US": "English (US)", "en-GB": "English (UK)", "de-DE": "Deutsch", "es-ES": "Español", "fr-FR": "Français", "ja-JP": "日本語", "zh-CN": "简体中文", "zh-TW": "繁體中文" };
+    const sectionNames = { environment: "environment", hosting: "hosting", wasm: "WebAssembly", workers: "workers", webgl: "WebGL", webgpu: "WebGPU", display: "display", codecs: "WebCodecs", media: "media", audio: "Web Audio", storage: "storage" };
+    const results = document.getElementById("results");
+    const language = document.getElementById("language");
+    const records = new Map();
+    const sections = new Map();
+    let locale = "en-US";
+    let report = {};
+    let running = false;
+    let audioRunning = false;
+    let renderedSummary = "";
+
+    for (const [tag, name] of Object.entries(languageNames)) language.add(new Option(name, tag));
+    for (const preferred of navigator.languages ?? [navigator.language]) {
+      const exact = Object.keys(translations).find(tag => tag.toLowerCase() === preferred?.toLowerCase());
+      const prefix = preferred?.startsWith("zh")
+        ? /Hant|TW|HK|MO/i.test(preferred) ? "zh-TW" : "zh-CN"
+        : Object.keys(translations).find(tag => tag.split("-")[0] === preferred?.split("-")[0]);
+      if (exact || prefix) { locale = exact ?? prefix; break; }
+    }
+
+    function text(key) {
+      const index = textKeys.indexOf(key);
+      return index < 0 ? summaryTranslations[locale][key] ?? key : translations[locale][index];
+    }
+
+    function describe(error) {
+      const url = new URL(location.href);
+      const fullUrl = url.href;
+      url.hash = "";
+      const sourceUrl = url.href;
+      url.search = "";
+      url.username = "";
+      url.password = "";
+      const clean = value => value == null ? null : String(value).replaceAll(fullUrl, url.href).replaceAll(sourceUrl, url.href);
+      return { name: clean(error?.name ?? "Error"), message: clean(error?.message ?? String(error)), stack: clean(error?.stack) };
+    }
+
+    function json(value) {
+      return JSON.stringify(value, (_key, item) => typeof item === "bigint" ? item.toString() : item, 2);
+    }
+
+    function supported(value, details) {
+      return { state: value ? "supported" : "unsupported", value: details ?? Boolean(value) };
+    }
+
+    function add(section, key, state, value) {
+      const identity = `${section}/${key}`;
+      let record = records.get(identity);
+      if (!record) {
+        const row = document.createElement("div");
+        row.className = "result";
+        row.id = `probe-${encodeURIComponent(identity)}`;
+        row.tabIndex = -1;
+        const label = document.createElement("div");
+        label.className = "key";
+        label.textContent = key;
+        const content = document.createElement("div");
+        content.className = "value";
+        row.append(label, content);
+        sections.get(section).append(row);
+        record = { row, content };
+        records.set(identity, record);
+      }
+      record.data = { section, key, state, value: value ?? null };
+      renderRecord(record);
+      filterResults();
+      updateProgress();
+    }
+
+    function renderRecord(record) {
+      const { state, value } = record.data;
+      record.row.dataset.state = state;
+      record.content.replaceChildren();
+      if (state !== "info") {
+        const label = document.createElement("span");
+        label.className = "state";
+        label.textContent = text(state);
+        record.content.append(label);
+      }
+      if ((typeof value === "boolean" || value === null) && state !== "info") return;
+      const body = document.createElement("pre");
+      body.textContent = typeof value === "string" ? value : json(value);
+      if (body.textContent.length > 420 || body.textContent.split("\n").length > 8) {
+        const details = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = text("details");
+        details.append(summary, body);
+        record.content.append(details);
+      } else {
+        record.content.append(body);
+      }
+    }
+
+    function filterResults() {
+      const query = document.getElementById("filter").value.toLowerCase().trim();
+      for (const { row, data } of records.values()) row.hidden = query !== "" && !`${text(sectionNames[data.section])} ${json(data)} ${text(data.state)}`.toLowerCase().includes(query);
+      for (const [section, element] of sections) {
+        element.hidden = query !== "" && !Array.from(element.querySelectorAll(".result")).some(row => !row.hidden);
+        document.querySelector(`nav a[href="#${section}"]`).hidden = element.hidden;
+      }
+    }
+
+    function updateProgress() {
+      const counts = {};
+      for (const { data } of records.values()) if (data.state !== "info") counts[data.state] = (counts[data.state] ?? 0) + 1;
+      document.getElementById("progress").textContent = `${text(running || audioRunning ? "running" : "complete")} | ${records.size} | ${Object.entries(counts).map(([state, count]) => `${text(state)}: ${count}`).join(" | ")}`;
+      document.getElementById("rerun").disabled = running || audioRunning;
+      document.getElementById("check-audio").disabled = running || audioRunning;
+      document.body.dataset.state = running || audioRunning ? "running" : "complete";
+      renderFeatureSummary();
+    }
+
+    function assessFeatures(data, complete) {
+      const evidence = (section, key) => ({ section, key });
+      const get = item => data.get(`${item.section}/${item.key}`);
+      const passed = item => {
+        const state = get(item)?.state;
+        return state === "supported" ? true : state === "unsupported" ? false : null;
+      };
+      const property = (item, name, expected) => {
+        const record = get(item);
+        if (record?.state === "unsupported") return false;
+        if (!["info", "supported"].includes(record?.state) || record.value?.[name] == null) return null;
+        return record.value[name] === expected;
+      };
+      const all = values => values.includes(false) ? false : values.every(value => value === true) ? true : null;
+      const verdict = value => value === true ? "likely" : value === false ? "blocked" : "unknown";
+      const featureIds = ["startup", "mediaServices", "graphics", "hardware", "hdr", "playback", "localLibrary", "localFiles", "persistence", "remote", "offline", "fullscreen", "pip", "mediaControls", "wakeLock"];
+      if (!complete) return featureIds.map(id => ({ id, state: "pending", reasons: ["summaryPending"], evidence: [] }));
+      const required = [
+        evidence("hosting", "isSecureContext"),
+        evidence("wasm", "WebAssembly"), evidence("wasm", "compile / instantiate / execute"),
+        evidence("wasm", "SIMD (validation)"), evidence("wasm", "unshared WebAssembly.Memory"),
+        evidence("storage", "indexedDB (access)"), evidence("storage", "localStorage (access)"),
+        evidence("storage", "OPFS root (read-only access)")
+      ];
+      const worker = evidence("workers", "Dedicated worker / transferable ArrayBuffer");
+      const protocol = evidence("hosting", "protocol");
+      const protocolValue = get(protocol)?.value;
+      const protocolBlocked = typeof protocolValue === "string" && !["https:", "http:"].includes(protocolValue);
+      const failures = required.filter(item => ["unsupported", "error"].includes(get(item)?.state));
+      const missing = required.some(item => get(item)?.state !== "supported") || get(worker)?.state !== "supported" || !protocolValue;
+      const state = protocolBlocked || failures.length ? "blocked" : missing ? "unknown" : "likely";
+      const features = [{
+        id: "startup", state,
+        reasons: [protocolBlocked ? "startupProtocol" : state === "blocked" ? "startupBlocked" : state === "unknown" ? "startupUnknown" : "startupReady"],
+        evidence: protocolBlocked ? [protocol, ...failures] : failures.length ? failures : [...required, worker, protocol]
+      }];
+      const append = (id, state, reasons, evidence, values) => features.push({ id, state, reasons, evidence, ...(values ? { values } : {}) });
+      const mediaRequirements = [evidence("hosting", "crossOriginIsolated"), evidence("wasm", "Threads / atomic instructions (validation)"),
+        evidence("wasm", "shared WebAssembly.Memory"), evidence("workers", "Shared WebAssembly.Memory / Atomics round trip")];
+      const mediaReady = all(mediaRequirements.map(passed));
+      append("mediaServices", verdict(mediaReady), [mediaReady === true ? "mediaReady" : mediaReady === false ? "mediaBlocked" : "mediaUnknown"], mediaRequirements);
+      const workerEnvironment = evidence("workers", "Worker environment");
+      const workerData = get(workerEnvironment)?.value;
+      const workerApi = name => typeof workerData?.APIs?.[name] === "string" ? workerData.APIs[name] === "function" : null;
+      const workerGraphics = evidence("workers", "OffscreenCanvas transfer / WebGL2 readback");
+      const gl2 = evidence("webgl", "webgl2 / compile, draw, readPixels");
+      const gl1 = evidence("webgl", "webgl / compile, draw, readPixels");
+      const workerRendered = passed(workerGraphics);
+      const mainRendered = passed(gl2) === true || passed(gl1) === true;
+      append("graphics", mainRendered ? "likely" : workerRendered === true ? "limited" : "unknown",
+        [mainRendered ? "graphicsReady" : workerRendered === true ? "graphicsPartial" : "graphicsUnknown"], [gl2, gl1, workerGraphics]);
+
+      const videoDecoder = evidence("codecs", "VideoDecoder");
+      const hardwareQueries = Array.from(data.values()).filter(record => record.section === "codecs" && record.key.startsWith("VideoDecoder.isConfigSupported / ") && record.key.endsWith(" / prefer-hardware"));
+      const acceptedHardware = hardwareQueries.filter(record => record.state === "supported" && record.value?.accepted?.hardwareAcceleration === "prefer-hardware");
+      const hardwareUncertain = hardwareQueries.length === 0 || hardwareQueries.some(record => ["error", "timeout", "pending"].includes(record.state) || (record.state === "supported" && record.value?.accepted?.hardwareAcceleration !== "prefer-hardware"));
+      const decoderWorker = workerApi("VideoDecoder");
+      const decoderAvailable = passed(videoDecoder);
+      const hardwareState = decoderWorker === false || decoderAvailable === false ? "limited" : decoderWorker === true && acceptedHardware.length > 0 ? "likely" : hardwareUncertain || decoderWorker === null ? "unknown" : "limited";
+      append("hardware", hardwareState, [decoderWorker === false ? "hardwareWorker" : hardwareState === "likely" ? "hardwareReady" : hardwareState === "unknown" ? "hardwareUnknown" : "hardwareFallback"],
+        [videoDecoder, workerEnvironment, ...(acceptedHardware.length ? acceptedHardware : hardwareQueries).slice(0, 2).map(record => evidence(record.section, record.key))],
+        { count: acceptedHardware.length, total: hardwareQueries.length });
+
+      const hdrSurface = evidence("webgl", "webgl2 / Light Player HDR surface");
+      const displayQueries = evidence("display", "CSS media queries");
+      const hdrSurfacePassed = passed(hdrSurface);
+      const hdrDisplay = property(displayQueries, "(dynamic-range: high)", true);
+      const hdrState = hdrSurfacePassed === false || hdrDisplay === false ? "limited" : hdrSurfacePassed === true && hdrDisplay === true ? "likely" : "unknown";
+      const chromium = navigator.userAgentData?.brands?.some(item => item.brand === "Chromium") || /\b(?:Chrome|Chromium)\//.test(navigator.userAgent);
+      const hdrReasons = [hdrSurfacePassed === false ? "hdrFallback" : hdrDisplay === false ? "hdrDisplay" : hdrState === "likely" ? "hdrReady" : "hdrUnknown"];
+      if (chromium && hdrState !== "likely") hdrReasons.push("hdrChromium");
+      append("hdr", hdrState, hdrReasons, [hdrSurface, displayQueries]);
+
+      const audioApis = evidence("audio", "APIs");
+      const defaultAudio = evidence("audio", "AudioContext / sampleRate=default");
+      const audioResume = evidence("audio", "AudioContext.resume / user gesture");
+      const audioWorklet = evidence("audio", "AudioWorklet / module + silent processing");
+      const audioAvailable = all([property(audioApis, "AudioContext", "function"), property(audioApis, "AudioWorkletNode", "function"), property(defaultAudio, "audioWorklet", "function"), passed(defaultAudio)]);
+      const activeAudio = all([passed(audioResume), passed(audioWorklet)]);
+      const audioFailed = [audioResume, audioWorklet].some(item => ["error", "timeout"].includes(get(item)?.state));
+      const audioState = audioAvailable === false || activeAudio === false ? "blocked" : activeAudio === true ? "likely" : audioAvailable === true && !audioFailed ? "likely" : "unknown";
+      append("playback", audioState, [audioState === "blocked" ? "playbackBlocked" : activeAudio === true ? "playbackReady" : audioState === "likely" ? "playbackGesture" : "playbackUnknown"], [audioApis, defaultAudio, audioResume, audioWorklet]);
+
+      const fileApis = evidence("storage", "File System Access APIs");
+      const database = evidence("storage", "indexedDB (access)");
+      const opfs = evidence("storage", "OPFS root (read-only access)");
+      const nativeDirectory = property(fileApis, "showDirectoryPicker", "function");
+      const directoryInput = all([property(fileApis, "webkitdirectory", true), property(fileApis, "fileInput", true), property(fileApis, "File", "function"), property(fileApis, "blobArrayBuffer", "function")]);
+      const directoryAvailable = nativeDirectory === true || directoryInput === true ? true : nativeDirectory === false && directoryInput === false ? false : null;
+      const localLibrary = all([directoryAvailable, passed(database)]);
+      append("localLibrary", localLibrary === true && nativeDirectory !== true ? "limited" : verdict(localLibrary),
+        [localLibrary === true ? nativeDirectory === true ? "libraryReady" : "libraryTemporary" : localLibrary === false ? "libraryBlocked" : "libraryUnknown"], [fileApis, database, opfs]);
+      const files = all([property(fileApis, "fileInput", true), property(fileApis, "File", "function"), property(fileApis, "blobArrayBuffer", "function")]);
+      const nativePicker = property(fileApis, "showOpenFilePicker", "function");
+      append("localFiles", files === true ? nativePicker === true ? "likely" : "limited" : verdict(files),
+        [files === true ? nativePicker === true ? "filesReady" : "filesFallback" : "filesUnknown"], [fileApis]);
+
+      const persisted = evidence("storage", "navigator.storage.persisted");
+      const quota = evidence("storage", "navigator.storage.estimate (bytes)");
+      const estimate = get(quota)?.value;
+      const storageFull = Number.isFinite(estimate?.quota) && Number.isFinite(estimate?.usage) && estimate.quota <= estimate.usage;
+      const storageAvailable = all([passed(database), passed(opfs)]);
+      const durable = get(persisted)?.state === "info" && get(persisted)?.value === true;
+      append("persistence", passed(database) === false ? "blocked" : storageFull || storageAvailable !== true || !durable ? "limited" : "likely",
+        [storageFull ? "storageFull" : storageAvailable !== true ? "storagePartial" : durable ? "storageReady" : "storageEvictable"], [database, opfs, persisted, quota]);
+
+      const integration = evidence("storage", "Media / platform integration APIs");
+      const network = evidence("environment", "JavaScript APIs");
+      const online = evidence("environment", "navigator.onLine");
+      const offline = get(online)?.state === "info" && get(online)?.value === false;
+      const canFetch = property(network, "fetch", "function");
+      append("remote", offline ? "limited" : canFetch === false ? "blocked" : "unknown",
+        [offline ? "remoteOffline" : canFetch === true ? "remoteConditional" : "remoteUnknown"], [online, network, evidence("hosting", "Permissions Policy"), evidence("storage", "Permissions.query / local-network-access")]);
+      const secure = evidence("hosting", "isSecureContext");
+      const cache = evidence("storage", "caches (access)");
+      const canInstall = all([passed(secure), protocolValue ? !protocolBlocked : null, property(integration, "serviceWorker", true), passed(cache)]);
+      append("offline", verdict(canInstall), [canInstall === true ? "offlineReady" : canInstall === false ? "offlineBlocked" : "offlineUnknown"], [secure, integration, cache, evidence("hosting", "serviceWorker.controller")]);
+      const canFullscreen = all([property(integration, "fullscreenEnabled", true), property(integration, "requestFullscreen", "function")]);
+      append("fullscreen", verdict(canFullscreen), [canFullscreen === true ? "fullscreenReady" : canFullscreen === false ? "fullscreenBlocked" : "integrationUnknown"], [integration, evidence("hosting", "Permissions Policy")]);
+      const canPip = property(integration, "documentPictureInPicture", true);
+      append("pip", verdict(canPip), [canPip === true ? "pipReady" : canPip === false ? "pipBlocked" : "integrationUnknown"], [integration]);
+      const canMediaControls = all([property(integration, "mediaSession", true), property(integration, "MediaMetadata", "function")]);
+      append("mediaControls", verdict(canMediaControls), [canMediaControls === true ? "controlsReady" : canMediaControls === false ? "controlsBlocked" : "integrationUnknown"], [integration]);
+      const wakePermission = evidence("storage", "Permissions.query / screen-wake-lock");
+      const canWake = get(wakePermission)?.value?.permission === "denied" ? false : property(integration, "wakeLock", "function");
+      append("wakeLock", verdict(canWake), [canWake === true ? "wakeReady" : canWake === false ? "wakeBlocked" : "integrationUnknown"], [integration, wakePermission]);
+      return features;
+    }
+
+    function featureAssessments() {
+      return assessFeatures(new Map(Array.from(records, ([identity, record]) => [identity, record.data])), !running);
+    }
+
+    function renderFeatureSummary() {
+      const features = featureAssessments();
+      const signature = `${locale}:${json(features)}`;
+      if (signature === renderedSummary) return;
+      renderedSummary = signature;
+      const content = document.getElementById("feature-assessments");
+      content.replaceChildren();
+      for (const feature of features) {
+        const row = document.createElement("div");
+        row.className = "feature";
+        row.id = `feature-${feature.id}`;
+        row.dataset.state = feature.state;
+        const label = document.createElement("div");
+        label.className = "key";
+        label.textContent = text(feature.id);
+        const value = document.createElement("div");
+        value.className = "value";
+        const state = document.createElement("span");
+        state.className = "state";
+        state.textContent = text(feature.state === "pending" ? "running" : feature.state);
+        const reason = document.createElement("p");
+        reason.textContent = feature.reasons.map(key => text(key).replace(/\{(\w+)\}/g, (_match, name) => feature.values?.[name] ?? "")).join(" ");
+        const links = document.createElement("div");
+        links.className = "evidence";
+        for (const item of feature.evidence) {
+          const record = records.get(`${item.section}/${item.key}`);
+          const link = document.createElement("a");
+          link.href = `#${encodeURIComponent(record?.row.id ?? item.section)}`;
+          link.textContent = `${item.key}${record && record.data.state !== "info" ? ` (${text(record.data.state)})` : ""}`;
+          link.addEventListener("click", () => {
+            document.getElementById("filter").value = "";
+            filterResults();
+            for (const details of record?.row.querySelectorAll("details") ?? []) details.open = true;
+            record?.row.focus({ preventScroll: true });
+          });
+          links.append(link);
+        }
+        value.append(state, reason, links);
+        if (feature.id === "hdr") {
+          if (feature.reasons.includes("hdrChromium")) {
+            const flag = document.createElement("a");
+            flag.href = "chrome://flags/#enable-experimental-web-platform-features";
+            flag.textContent = flag.href;
+            const hint = document.createElement("p");
+            hint.append(flag);
+            value.insertBefore(hint, links);
+          }
+          value.insertBefore(hdrSample.element, links);
+          hdrSample.localize();
+        }
+        row.append(label, value);
+        content.append(row);
+      }
+    }
+
+    function hdrSampleWorker() {
+      let canvas, gl, program, colorLocation, hatchLocation;
+      let hdr = false;
+      let hdrError = null;
+      const describeError = error => ({ name: error.name, message: error.message, stack: error.stack });
+      self.onmessage = event => {
+        try {
+          const { width, height, maximum } = event.data;
+          if (event.data.canvas) {
+            canvas = event.data.canvas;
+            let creationError;
+            canvas.addEventListener("webglcontextcreationerror", event => { creationError = event.statusMessage; });
+            gl = canvas.getContext("webgl2", {
+              alpha: true, depth: true, stencil: true, antialias: false,
+              premultipliedAlpha: true, preserveDrawingBuffer: false, failIfMajorPerformanceCaveat: true
+            });
+            if (!gl) throw new Error(creationError || "WebGL2 context creation failed.");
+            canvas.addEventListener("webglcontextlost", () => {
+              self.postMessage({ error: describeError(new Error("WebGL context lost. Run the diagnostics again.")) });
+            });
+            const toneMap = mode => typeof gl.drawingBufferToneMapping === "function"
+              ? gl.drawingBufferToneMapping({ mode }) : canvas.configureHighDynamicRange({ mode });
+            try {
+              if (typeof gl.drawingBufferStorage !== "function" ||
+                  (typeof gl.drawingBufferToneMapping !== "function" && typeof canvas.configureHighDynamicRange !== "function") ||
+                  !gl.getExtension("EXT_color_buffer_float")) {
+                throw new Error("The worker's extended-range WebGL APIs are unavailable.");
+              }
+              gl.drawingBufferColorSpace = "srgb-linear";
+              if (gl.drawingBufferColorSpace !== "srgb-linear") throw new Error("Linear sRGB output is unavailable.");
+              gl.drawingBufferStorage(gl.RGBA16F, canvas.width, canvas.height);
+              toneMap("extended");
+              if (gl.getError() !== gl.NO_ERROR || gl.getParameter(gl.RED_BITS) !== 16) {
+                throw new Error("The browser did not allocate a float16 drawing buffer.");
+              }
+              hdr = true;
+            } catch (error) {
+              hdrError = describeError(error);
+              gl.drawingBufferColorSpace = "srgb";
+              gl.drawingBufferStorage?.(gl.RGBA8, canvas.width, canvas.height);
+              if (typeof gl.drawingBufferToneMapping === "function" || typeof canvas.configureHighDynamicRange === "function") toneMap("standard");
+            }
+            const compile = (type, source) => {
+              const shader = gl.createShader(type);
+              gl.shaderSource(shader, source);
+              gl.compileShader(shader);
+              if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader) || "Shader compilation failed.");
+              return shader;
+            };
+            const vertex = compile(gl.VERTEX_SHADER, `#version 300 es
+              void main() {
+                vec2 p = vec2((gl_VertexID << 1) & 2, gl_VertexID & 2);
+                gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);
+              }`);
+            const fragment = compile(gl.FRAGMENT_SHADER, `#version 300 es
+              precision highp float;
+              uniform vec3 uColor;
+              uniform bool uHatch;
+              out vec4 color;
+              void main() {
+                vec3 rgb = uHatch ? vec3(mod(gl_FragCoord.x + gl_FragCoord.y, 16.0) < 8.0 ? 0.08 : 0.18) : uColor;
+                ${hdr ? "" : "rgb = clamp(rgb, 0.0, 1.0); rgb = mix(12.92 * rgb, 1.055 * pow(rgb, vec3(1.0 / 2.4)) - 0.055, step(vec3(0.0031308), rgb));"}
+                color = vec4(rgb, 1.0);
+              }`);
+            program = gl.createProgram();
+            gl.attachShader(program, vertex);
+            gl.attachShader(program, fragment);
+            gl.linkProgram(program);
+            gl.deleteShader(vertex);
+            gl.deleteShader(fragment);
+            if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) || "Shader linking failed.");
+            colorLocation = gl.getUniformLocation(program, "uColor");
+            hatchLocation = gl.getUniformLocation(program, "uHatch");
+          }
+          if (gl.isContextLost()) throw new Error("WebGL context lost.");
+          if (canvas.width !== width) canvas.width = width;
+          if (canvas.height !== height) canvas.height = height;
+          gl.viewport(0, 0, width, height);
+          gl.useProgram(program);
+          gl.enable(gl.SCISSOR_TEST);
+          const rectangle = (x, y, w, h, color, hatch = false) => {
+            gl.scissor(Math.round(x * width), Math.round((1 - y - h) * height), Math.round(w * width), Math.round(h * height));
+            gl.uniform3fv(colorLocation, color);
+            gl.uniform1i(hatchLocation, hatch ? 1 : 0);
+            gl.drawArrays(gl.TRIANGLES, 0, 3);
+          };
+          rectangle(0, 0, 1, 1, [0, 0, 0]);
+          const levels = [0.5, 1, 2, 4, maximum];
+          levels.forEach((level, index) => rectangle(index / 5 + 0.012, 0.03, 0.176, 0.49, [level ?? 0, level ?? 0, level ?? 0], level === null));
+          // D65 Display-P3 primaries in linear sRGB, normalized to avoid above-white components in the gamut comparison.
+          const p3Red = [1, -0.042056955 / 1.224940176, -0.019637555 / 1.224940176];
+          const p3Green = [-0.224940176 / 1.042056955, 1, -0.078636046 / 1.042056955];
+          for (const [y, background, bars] of [[0.6, [1, 0, 0], p3Red], [0.82, [0, 1, 0], p3Green]]) {
+            rectangle(0.012, y, 0.976, 0.16, background);
+            for (let i = 0; i < 4; i++) rectangle(0.12 + i * 0.2, y + 0.02, 0.1, 0.12, bars);
+          }
+          const pixel = (x, y) => {
+            const data = hdr ? new Float32Array(4) : new Uint8Array(4);
+            gl.readPixels(Math.floor(x * width), Math.floor((1 - y) * height), 1, 1, gl.RGBA, hdr ? gl.FLOAT : gl.UNSIGNED_BYTE, data);
+            return Array.from(data);
+          };
+          const samples = levels.map((_level, index) => pixel((index + 0.5) / 5, 0.25));
+          const gamutSamples = { srgbRed: pixel(0.06, 0.68), p3Red: pixel(0.16, 0.68), srgbGreen: pixel(0.06, 0.9), p3Green: pixel(0.16, 0.9) };
+          const glError = gl.getError();
+          if (glError !== gl.NO_ERROR) throw new Error(`WebGL rendering/readback error: 0x${glError.toString(16)}`);
+          gl.flush();
+          self.postMessage({
+            hdr, hdrError, width, height, levels, samples, gamutSamples,
+            attributes: gl.getContextAttributes(), drawingBufferColorSpace: gl.drawingBufferColorSpace,
+            redBits: gl.getParameter(gl.RED_BITS), toneMapping: gl.drawingBufferToneMapping?.() ?? null,
+            extendedRangeReadback: hdr && samples[2][0] > 1,
+            negativeComponentReadback: hdr && gamutSamples.p3Red[1] < 0 && gamutSamples.p3Green[0] < 0,
+            physicalDisplayVerified: false
+          });
+        } catch (error) {
+          self.postMessage({ error: describeError(error) });
+        }
+      };
+    }
+
+    function createHdrSample() {
+      const element = document.createElement("div");
+      element.className = "hdr-sample";
+      element.innerHTML = `
+        <p id="hdr-sample-guide" data-text="hdrSampleIntro"></p>
+        <p data-text="hdrSampleGamut"></p>
+        <div class="hdr-sample-levels" aria-hidden="true"><span>0.5</span><span>1.0</span><span>2.0</span><span>4.0</span><span><span data-text="hdrSampleMax"></span><br><span class="hdr-sample-maximum"></span></span></div>
+        <canvas width="1000" height="360" role="img" aria-describedby="hdr-sample-guide"></canvas>
+        <div class="hdr-sample-controls"><button type="button" data-text="hdrSampleHeadroom"></button><span class="note" role="status"></span></div>
+        <p data-text="hdrSamplePermission"></p>
+        <details><summary data-text="details"></summary><pre></pre></details>`;
+      let canvas = element.querySelector("canvas");
+      const button = element.querySelector("button");
+      const status = element.querySelector('[role="status"]');
+      const details = element.querySelector("details");
+      let worker, url, timer, finish;
+      let result = null;
+      let screenDetails = null;
+      let screenEvents = new AbortController();
+      let permission = null;
+      let headroomError = null;
+      let readingHeadroom = false;
+      let maximum = null;
+      let lastSize = "";
+      const observer = typeof ResizeObserver === "function" ? new ResizeObserver(() => draw()) : null;
+      const headroomStops = () => screenDetails?.currentScreen.hdrHeadroom;
+      const localizeSample = () => {
+        for (const node of element.querySelectorAll("[data-text]")) node.textContent = text(node.dataset.text);
+        canvas.setAttribute("aria-label", text("hdrSampleLabel"));
+        element.querySelector(".hdr-sample-maximum").textContent = maximum === null ? text("hdrSampleUnknown") : maximum.toLocaleString(locale, { maximumFractionDigits: 2 });
+        button.disabled = readingHeadroom || typeof window.getScreenDetails !== "function";
+        status.textContent = text(!result ? "running" : result.error ? "hdrSampleError" : result.hdr ? "hdrSampleReady" : "hdrSampleSdr");
+        element.querySelector("pre").textContent = json({ ...result, hdrHeadroomStops: headroomStops() ?? null, maximum, headroomError });
+      };
+      const publish = () => {
+        localizeSample();
+        if (result) add("display", "WCG/HDR worker sample", result.error ? "error" : result.hdr && result.extendedRangeReadback && result.negativeComponentReadback ? "supported" : "unsupported",
+          { ...result, hdrHeadroomStops: headroomStops() ?? null, maximum, headroomError });
+      };
+      const stop = () => {
+        clearTimeout(timer);
+        observer?.disconnect();
+        if (worker) worker.onmessage = worker.onerror = worker.onmessageerror = null;
+        worker?.terminate();
+        worker = null;
+        if (url) URL.revokeObjectURL(url);
+        url = null;
+        finish?.();
+        finish = null;
+      };
+      const fail = error => {
+        result = { error };
+        canvas.hidden = true;
+        details.open = true;
+        stop();
+        publish();
+      };
+      function draw(offscreen) {
+        if (!worker || (document.hidden && !offscreen)) return;
+        const bounds = canvas.getBoundingClientRect();
+        if ((!bounds.width || !bounds.height) && !offscreen) return;
+        const width = Math.max(5, Math.min(4096, Math.round((bounds.width || 500) * devicePixelRatio)));
+        const height = Math.max(5, Math.min(4096, Math.round((bounds.height || 180) * devicePixelRatio)));
+        const size = `${width}:${height}:${maximum}`;
+        if (!offscreen && lastSize === size) return;
+        lastSize = size;
+        worker.postMessage({ canvas: offscreen, width, height, maximum }, offscreen ? [offscreen] : []);
+      }
+      const updateHeadroom = () => {
+        const stops = headroomStops();
+        const ratio = 2 ** stops;
+        maximum = Number.isFinite(stops) && stops >= 0 && Number.isFinite(ratio) && ratio <= 65504 ? ratio : null;
+        draw();
+        publish();
+      };
+      const watchScreens = () => {
+        screenEvents.abort();
+        screenEvents = new AbortController();
+        const options = { signal: screenEvents.signal };
+        screenDetails?.addEventListener("currentscreenchange", updateHeadroom, options);
+        screenDetails?.addEventListener("screenschange", watchScreens, options);
+        for (const screen of screenDetails?.screens ?? []) {
+          screen.addEventListener("change", updateHeadroom, options);
+          screen.addEventListener("hdrheadroomchange", updateHeadroom, options);
+        }
+        updateHeadroom();
+      };
+      const readHeadroom = async (requestPermission = false) => {
+        if (typeof window.getScreenDetails !== "function" || readingHeadroom) return;
+        readingHeadroom = true;
+        localizeSample();
+        try {
+          if (!requestPermission) {
+            if (!navigator.permissions?.query) return;
+            permission ??= await navigator.permissions.query({ name: "window-management" });
+            permission.onchange = () => {
+              screenDetails = null;
+              watchScreens();
+              if (permission.state === "granted") void readHeadroom();
+            };
+            if (permission.state !== "granted") return;
+          }
+          screenDetails = await deadline(window.getScreenDetails());
+          headroomError = null;
+          watchScreens();
+        } catch (error) {
+          screenDetails = null;
+          headroomError = describe(error);
+          details.open = true;
+          watchScreens();
+        } finally {
+          readingHeadroom = false;
+          localizeSample();
+        }
+      };
+      const start = () => new Promise(resolve => {
+        stop();
+        finish = resolve;
+        result = null;
+        lastSize = "";
+        const replacement = canvas.cloneNode();
+        replacement.hidden = false;
+        canvas.replaceWith(replacement);
+        canvas = replacement;
+        localizeSample();
+        add("display", "WCG/HDR worker sample", "pending", null);
+        try {
+          if (typeof Worker !== "function" || !canvas.transferControlToOffscreen) throw new Error("Transferred worker canvases are unavailable.");
+          url = URL.createObjectURL(new Blob([`(${hdrSampleWorker.toString()})()`], { type: "text/javascript" }));
+          worker = new Worker(url);
+          worker.onmessage = event => {
+            if (event.data.error) { fail(event.data.error); return; }
+            clearTimeout(timer);
+            result = event.data;
+            publish();
+            finish?.();
+            finish = null;
+          };
+          worker.onerror = event => fail(describe(event.error ?? new Error(`${event.message} (${event.filename}:${event.lineno}:${event.colno})`)));
+          worker.onmessageerror = () => fail(describe(new Error("Could not read the render worker's response.")));
+          timer = setTimeout(() => fail(describe(new DOMException("No render worker response within 5000 ms.", "TimeoutError"))), 5000);
+          draw(canvas.transferControlToOffscreen());
+          observer?.observe(canvas);
+          void readHeadroom();
+        } catch (error) { fail(describe(error)); }
+      });
+      button.addEventListener("click", () => { void readHeadroom(true); });
+      window.addEventListener("resize", () => draw());
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) { lastSize = ""; draw(); } });
+      window.addEventListener("pagehide", stop);
+      window.addEventListener("pageshow", event => { if (event.persisted) void start(); });
+      return { element, start, stop, localize: localizeSample };
+    }
+
+    function localize() {
+      document.documentElement.lang = locale;
+      document.title = `Light Player | ${text("title")}`;
+      language.value = locale;
+      language.setAttribute("aria-label", text("language"));
+      document.getElementById("sections").setAttribute("aria-label", text("title"));
+      for (const element of document.querySelectorAll("[data-text]")) element.textContent = text(element.dataset.text);
+      for (const element of document.querySelectorAll("[data-label]")) {
+        element.setAttribute("aria-label", text(element.dataset.label));
+        element.placeholder = text(element.dataset.label);
+      }
+      for (const [section, element] of sections) {
+        element.querySelector("h2").textContent = text(sectionNames[section]);
+        document.querySelector(`nav a[href="#${section}"]`).textContent = text(sectionNames[section]);
+      }
+      for (const record of records.values()) renderRecord(record);
+      filterResults();
+      updateProgress();
+    }
+
+    function deadline(promise, milliseconds = 5000) {
+      let timer;
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => { timer = setTimeout(() => reject(new DOMException(`${milliseconds} ms`, "TimeoutError")), milliseconds); })
+      ]).finally(() => clearTimeout(timer));
+    }
+
+    async function probe(section, key, action, unsupportedErrors = []) {
+      try {
+        const result = await deadline(Promise.resolve().then(action));
+        const hasStatus = result && Object.hasOwn(result, "value") && ["supported", "unsupported", "info", "error", "timeout", "pending"].includes(result.state);
+        add(section, key, hasStatus ? result.state : "info", hasStatus ? result.value : result);
+      } catch (error) {
+        add(section, key, unsupportedErrors.includes(error?.name) ? "unsupported" : error?.name === "TimeoutError" ? "timeout" : "error", describe(error));
+      }
+    }
+
+    function properties(object, names) {
+      return Object.fromEntries(names.map(name => [name, object?.[name] ?? null]));
+    }
+
+    async function environmentProbes() {
+      for (const name of ["userAgent", "platform", "vendor", "language", "languages", "hardwareConcurrency", "deviceMemory", "maxTouchPoints", "onLine", "cookieEnabled", "webdriver", "doNotTrack", "globalPrivacyControl"]) {
+        await probe("environment", `navigator.${name}`, () => navigator[name] ?? supported(false));
+      }
+      await probe("environment", "navigator.userAgentData", async () => navigator.userAgentData?.getHighEntropyValues
+        ? navigator.userAgentData.getHighEntropyValues(["architecture", "bitness", "model", "platformVersion", "fullVersionList", "wow64", "formFactors"])
+        : supported(false));
+      await probe("environment", "Intl / Date", () => ({ ...Intl.DateTimeFormat().resolvedOptions(), utcOffsetMinutes: new Date().getTimezoneOffset() }));
+      await probe("environment", "performance.memory (bytes)", () => performance.memory ? properties(performance.memory, ["jsHeapSizeLimit", "totalJSHeapSize", "usedJSHeapSize"]) : supported(false));
+      await probe("environment", "navigator.connection", () => navigator.connection ? properties(navigator.connection, ["type", "effectiveType", "downlink", "downlinkMax", "rtt", "saveData"]) : supported(false));
+      await probe("environment", "JavaScript APIs", () => Object.fromEntries(["fetch", "BigInt", "WeakRef", "FinalizationRegistry", "Float16Array", "structuredClone", "ReadableStream", "ReadableStreamBYOBReader", "WritableStream", "TransformStream", "CompressionStream", "DecompressionStream", "WebSocket", "WebTransport", "URLPattern", "scheduler"].map(name => [name, typeof globalThis[name]])));
+      await probe("hosting", "origin", () => location.origin);
+      await probe("hosting", "protocol", () => location.protocol);
+      await probe("hosting", "isSecureContext", () => supported(isSecureContext));
+      await probe("hosting", "crossOriginIsolated", () => supported(crossOriginIsolated));
+      await probe("hosting", "originAgentCluster", () => globalThis.originAgentCluster ?? supported(false));
+      await probe("hosting", "document", () => ({ visibilityState: document.visibilityState, hasFocus: document.hasFocus(), prerendering: document.prerendering ?? null, wasDiscarded: document.wasDiscarded ?? null }));
+      await probe("hosting", "Permissions Policy", () => {
+        const policy = document.permissionsPolicy ?? document.featurePolicy;
+        return policy?.allowedFeatures ? policy.allowedFeatures().sort() : supported(false);
+      });
+      await probe("hosting", "serviceWorker.controller", () => {
+        const controller = navigator.serviceWorker?.controller;
+        if (!controller) return null;
+        const url = new URL(controller.scriptURL);
+        return { script: url.origin + url.pathname, state: controller.state };
+      });
+      await probe("hosting", "HTTP response (HEAD)", async () => {
+        if (!/^https?:$/.test(location.protocol)) return supported(false);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(new DOMException("4000 ms", "TimeoutError")), 4000);
+        try {
+          const response = await fetch(location.origin + location.pathname, { method: "HEAD", cache: "no-store", credentials: "omit", redirect: "error", signal: controller.signal });
+          const names = ["content-type", "cross-origin-opener-policy", "cross-origin-embedder-policy", "cross-origin-resource-policy", "origin-agent-cluster", "content-security-policy", "permissions-policy", "referrer-policy", "x-content-type-options", "cache-control"];
+          return { status: response.status, headers: Object.fromEntries(names.map(name => [name, response.headers.get(name)])) };
+        } finally {
+          clearTimeout(timer);
+        }
+      });
+    }
+
+    const wasmAnswer = new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,127,3,2,1,0,7,10,1,6,97,110,115,119,101,114,0,0,10,6,1,4,0,65,42,11]);
+
+    function wasmModule(sections) {
+      return new Uint8Array([0,97,115,109,1,0,0,0, ...sections.flatMap(([id, bytes]) => [id, bytes.length, ...bytes])]);
+    }
+
+    function wasmFunction(resultTypes, instructions, extraSections = []) {
+      const body = [0, ...instructions, 11];
+      return wasmModule([[1, [1,96,0,resultTypes.length,...resultTypes]], [3, [1,0]], ...extraSections, [7, [1,3,114,117,110,0,0]], [10, [1,body.length,...body]]]);
+    }
+
+    async function wasmProbes() {
+      await probe("wasm", "WebAssembly", () => supported(typeof WebAssembly === "object"));
+      if (typeof WebAssembly !== "object") return;
+      await probe("wasm", "Light Player / configured execution owners", () => ({
+        managed: { threads: 1, sharedMemory: false, context: "window" },
+        sqlite: { owner: "worker", threads: 1, sharedMemory: false },
+        media: { owner: "worker", nativeThreads: true, sharedMemory: true, requiresCrossOriginIsolation: true },
+        runtimeMeasured: false
+      }));
+      await probe("wasm", "unshared WebAssembly.Memory", () => {
+        const memory = new WebAssembly.Memory({ initial: 1, maximum: 2 });
+        return supported(memory.buffer instanceof ArrayBuffer, { bytes: memory.buffer.byteLength, constructor: memory.buffer.constructor.name });
+      });
+      await probe("wasm", "compile / instantiate / execute", async () => {
+        const { instance } = await WebAssembly.instantiate(wasmAnswer);
+        const answer = instance.exports.answer();
+        return supported(answer === 42, { expected: 42, actual: answer });
+      });
+      const features = {
+        SIMD: wasmFunction([123], [65,0,253,15,253,98]),
+        "Relaxed SIMD": wasmFunction([123], [65,0,253,15,65,0,253,15,253,128,2]),
+        "Threads / atomic instructions": wasmFunction([127], [65,0,254,16,2,0], [[5, [1,3,1,1]]]),
+        "Bulk memory": wasmFunction([], [65,0,65,0,65,0,252,11,0], [[5, [1,0,1]]]),
+        "Reference types": wasmFunction([111], [208,111]),
+        "Multi-value": wasmFunction([127,127], [65,0,65,0]),
+        "Sign extension": wasmFunction([127], [65,0,192]),
+        "Non-trapping float-to-int": wasmFunction([127], [67,0,0,0,0,252,0]),
+        "Tail calls": wasmFunction([127], [18,0]),
+        "Exception tags": wasmModule([[1, [1,96,0,0]], [13, [1,0,0]]]),
+        GC: wasmModule([[1, [1,95,0]]]),
+        Memory64: wasmModule([[5, [1,4,0]]]),
+        "Multiple memories": wasmModule([[5, [2,0,1,0,1]]]),
+        "Extended constant expressions": wasmModule([[6, [1,127,0,65,0,65,0,106,11]]])
+      };
+      for (const [name, bytes] of Object.entries(features)) await probe("wasm", `${name} (validation)`, () => supported(WebAssembly.validate(bytes)));
+      await probe("wasm", "i64 / JavaScript BigInt", async () => {
+        const { instance } = await WebAssembly.instantiate(wasmFunction([126], [66,42]));
+        const answer = instance.exports.run();
+        return supported(typeof answer === "bigint" && String(answer) === "42", { type: typeof answer, value: String(answer) });
+      });
+      await probe("wasm", "shared WebAssembly.Memory", () => {
+        const memory = new WebAssembly.Memory({ initial: 1, maximum: 2, shared: true });
+        return supported(typeof SharedArrayBuffer === "function" && memory.buffer instanceof SharedArrayBuffer, { bytes: memory.buffer.byteLength, constructor: memory.buffer.constructor.name });
+      });
+      await probe("wasm", "APIs", () => Object.fromEntries(["compileStreaming", "instantiateStreaming", "Memory", "Table", "Global", "Tag", "Exception", "JSTag", "Suspending", "promising"].map(name => [name, typeof WebAssembly[name]])));
+      await probe("wasm", "compileStreaming (synthetic application/wasm response)", async () => {
+        if (typeof WebAssembly.compileStreaming !== "function") return supported(false);
+        const module = await WebAssembly.compileStreaming(new Response(wasmAnswer, { headers: { "Content-Type": "application/wasm" } }));
+        return supported(new WebAssembly.Instance(module).exports.answer() === 42);
+      });
+    }
+
+    function diagnosticWorker() {
+      self.onmessage = event => {
+        try {
+          const { memory, module, buffer, canvas } = event.data;
+          const data = {
+            isSecureContext: self.isSecureContext,
+            crossOriginIsolated: self.crossOriginIsolated,
+            hardwareConcurrency: navigator.hardwareConcurrency,
+            APIs: Object.fromEntries(["WebAssembly", "SharedArrayBuffer", "Atomics", "OffscreenCanvas", "VideoDecoder", "AudioDecoder", "ImageDecoder", "VideoEncoder", "AudioEncoder", "VideoFrame", "AudioData", "FileSystemFileHandle"].map(name => [name, typeof self[name]])),
+            webgpu: typeof navigator.gpu,
+            opfs: typeof navigator.storage?.getDirectory,
+            createSyncAccessHandle: typeof self.FileSystemFileHandle?.prototype.createSyncAccessHandle
+          };
+          if (module) data.wasmAnswer = new WebAssembly.Instance(module).exports.answer();
+          if (memory) {
+            const view = new Int32Array(memory.buffer);
+            data.atomicsPrevious = Atomics.add(view, 0, 1);
+            data.atomicsWait = Atomics.wait(view, 1, 0, 0);
+          }
+          if (canvas) {
+            let context;
+            try {
+              context = canvas.getContext("webgl2");
+              data.offscreen = { transferred: canvas instanceof OffscreenCanvas, webgl2: Boolean(context) };
+              if (context) {
+                const debug = context.getExtension("WEBGL_debug_renderer_info");
+                Object.assign(data.offscreen, {
+                  renderer: context.getParameter(debug ? debug.UNMASKED_RENDERER_WEBGL : context.RENDERER),
+                  attributes: context.getContextAttributes(), maxTextureSize: context.getParameter(context.MAX_TEXTURE_SIZE),
+                  EXT_color_buffer_float: Boolean(context.getExtension("EXT_color_buffer_float")),
+                  drawingBufferStorage: typeof context.drawingBufferStorage,
+                  drawingBufferToneMapping: typeof context.drawingBufferToneMapping,
+                  configureHighDynamicRange: typeof canvas.configureHighDynamicRange
+                });
+                context.clearColor(0.25, 0.5, 0.75, 1);
+                context.clear(context.COLOR_BUFFER_BIT);
+                const pixel = new Uint8Array(4);
+                context.readPixels(0, 0, 1, 1, context.RGBA, context.UNSIGNED_BYTE, pixel);
+                data.offscreen.pixel = Array.from(pixel);
+                data.offscreen.glError = context.getError();
+              }
+            } catch (error) {
+              data.offscreen = { error: { name: error.name, message: error.message, stack: error.stack } };
+            } finally {
+              context?.getExtension("WEBGL_lose_context")?.loseContext();
+            }
+          }
+          new Uint8Array(buffer)[0] = 42;
+          self.postMessage({ data, buffer }, [buffer]);
+        } catch (error) {
+          self.postMessage({ error: { name: error.name, message: error.message, stack: error.stack } });
+        }
+      };
+    }
+
+    async function workerProbes() {
+      await probe("workers", "APIs", () => ({ ...Object.fromEntries(["Worker", "SharedWorker", "SharedArrayBuffer", "Atomics", "MessageChannel", "BroadcastChannel"].map(name => [name, typeof globalThis[name]])), atomicsWaitAsync: typeof globalThis.Atomics?.waitAsync, locks: typeof navigator.locks }));
+      let memory = null;
+      let module = null;
+      if (typeof Worker === "function" && typeof WebAssembly === "object") {
+        await probe("workers", "WebAssembly.Module (worker input)", () => {
+          module = new WebAssembly.Module(wasmAnswer);
+          return supported(true);
+        });
+        if (typeof SharedArrayBuffer === "function") await probe("workers", "WebAssembly.Memory (worker input)", () => {
+          memory = new WebAssembly.Memory({ initial: 1, maximum: 1, shared: true });
+          return supported(true);
+        });
+      }
+      await probe("workers", "Dedicated worker / transferable ArrayBuffer", async () => {
+        if (typeof Worker !== "function") return supported(false);
+        const url = URL.createObjectURL(new Blob([`(${diagnosticWorker.toString()})()`], { type: "text/javascript" }));
+        let worker;
+        try {
+          worker = new Worker(url);
+          const canvas = typeof OffscreenCanvas === "function" && HTMLCanvasElement.prototype.transferControlToOffscreen ? smallCanvas().transferControlToOffscreen() : null;
+          const buffer = new ArrayBuffer(16);
+          const response = await deadline(new Promise((resolve, reject) => {
+            worker.onmessage = event => event.data.error ? reject(Object.assign(new Error(event.data.error.message), event.data.error)) : resolve(event.data);
+            worker.onerror = event => reject(new Error(`${event.message} (${event.filename}:${event.lineno}:${event.colno})`));
+            worker.onmessageerror = () => reject(new Error("Worker message deserialization failed"));
+            worker.postMessage({ memory, module, buffer, canvas }, canvas ? [buffer, canvas] : [buffer]);
+          }), 3500);
+          add("workers", "Worker environment", "info", response.data);
+          const offscreen = response.data.offscreen;
+          add("workers", "OffscreenCanvas transfer / WebGL2 readback", offscreen?.error ? "error" : offscreen?.webgl2 && offscreen.glError === 0 && offscreen.pixel.every((value, index) => Math.abs(value - [64,128,191,255][index]) <= 1) ? "supported" : "unsupported", offscreen ?? null);
+          if (module) add("workers", "WebAssembly.Module structured clone / execute", response.data.wasmAnswer === 42 ? "supported" : "error", response.data.wasmAnswer);
+          if (memory) {
+            const observed = Atomics.load(new Int32Array(memory.buffer), 0);
+            add("workers", "Shared WebAssembly.Memory / Atomics round trip", observed === 1 && response.data.atomicsPrevious === 0 ? "supported" : "error", { observed, previous: response.data.atomicsPrevious, wait: response.data.atomicsWait });
+          } else {
+            add("workers", "Shared WebAssembly.Memory / Atomics round trip", "unsupported", false);
+          }
+          return supported(buffer.byteLength === 0 && new Uint8Array(response.buffer)[0] === 42, { detachedBytes: buffer.byteLength, returnedBytes: response.buffer.byteLength });
+        } finally {
+          worker?.terminate();
+          URL.revokeObjectURL(url);
+        }
+      });
+    }
+
+    async function storageProbes() {
+      for (const name of ["indexedDB", "localStorage", "sessionStorage", "caches"]) {
+        await probe("storage", `${name} (access)`, () => supported(Boolean(globalThis[name])));
+      }
+      await probe("storage", "navigator.storage.estimate (bytes)", () => navigator.storage?.estimate ? navigator.storage.estimate() : supported(false));
+      await probe("storage", "navigator.storage.persisted", () => navigator.storage?.persisted ? navigator.storage.persisted() : supported(false));
+      await probe("storage", "OPFS root (read-only access)", async () => {
+        if (!navigator.storage?.getDirectory) return supported(false);
+        const root = await navigator.storage.getDirectory();
+        return supported(root.kind === "directory", { kind: root.kind });
+      });
+      await probe("storage", "File System Access APIs", () => ({
+        ...Object.fromEntries(["showOpenFilePicker", "showDirectoryPicker", "showSaveFilePicker", "FileSystemHandle", "FileSystemDirectoryHandle", "FileSystemFileHandle"].map(name => [name, typeof globalThis[name]])),
+        File: typeof globalThis.File,
+        blobArrayBuffer: typeof globalThis.Blob?.prototype.arrayBuffer,
+        fileInput: "files" in document.createElement("input"),
+        createWritable: typeof globalThis.FileSystemFileHandle?.prototype.createWritable,
+        webkitdirectory: "webkitdirectory" in document.createElement("input"),
+        launchQueue: "launchQueue" in globalThis
+      }));
+      await probe("storage", "Media / platform integration APIs", () => ({
+        mediaSession: "mediaSession" in navigator,
+        MediaMetadata: typeof globalThis.MediaMetadata,
+        wakeLock: typeof navigator.wakeLock?.request,
+        fullscreenEnabled: document.fullscreenEnabled ?? document.webkitFullscreenEnabled ?? null,
+        requestFullscreen: typeof (document.documentElement.requestFullscreen ?? document.documentElement.webkitRequestFullscreen),
+        pictureInPictureEnabled: document.pictureInPictureEnabled ?? null,
+        documentPictureInPicture: "documentPictureInPicture" in globalThis,
+        clipboardWriteText: typeof navigator.clipboard?.writeText,
+        share: typeof navigator.share,
+        serviceWorker: "serviceWorker" in navigator,
+        queryLocalFonts: typeof globalThis.queryLocalFonts,
+        mediaDevices: typeof navigator.mediaDevices,
+        selectAudioOutput: typeof navigator.mediaDevices?.selectAudioOutput,
+        HTMLMediaElementSetSinkId: typeof HTMLMediaElement.prototype.setSinkId,
+        requestVideoFrameCallback: typeof HTMLVideoElement.prototype.requestVideoFrameCallback,
+        getVideoPlaybackQuality: typeof HTMLVideoElement.prototype.getVideoPlaybackQuality
+      }));
+      await Promise.all(["persistent-storage", "microphone", "camera", "notifications", "clipboard-write", "screen-wake-lock", "local-fonts", "window-management", "local-network-access"].map(name => probe("storage", `Permissions.query / ${name}`, async () => {
+        if (!navigator.permissions?.query) return supported(false);
+        try {
+          const result = await navigator.permissions.query({ name });
+          return { permission: result.state };
+        } catch (error) {
+          if (error instanceof TypeError) return supported(false, describe(error));
+          throw error;
+        }
+      })));
+    }
+
+    function smallCanvas() {
+      const canvas = document.createElement("canvas");
+      canvas.width = 4;
+      canvas.height = 4;
+      return canvas;
+    }
+
+    function drawWebGlPixel(context, version) {
+      const vertex = context.createShader(context.VERTEX_SHADER);
+      const fragment = context.createShader(context.FRAGMENT_SHADER);
+      const program = context.createProgram();
+      const buffer = context.createBuffer();
+      try {
+        context.shaderSource(vertex, version === "webgl2"
+          ? "#version 300 es\nin vec2 position; void main() { gl_Position = vec4(position, 0.0, 1.0); }"
+          : "attribute vec2 position; void main() { gl_Position = vec4(position, 0.0, 1.0); }");
+        context.shaderSource(fragment, version === "webgl2"
+          ? "#version 300 es\nprecision mediump float; out vec4 color; void main() { color = vec4(0.25, 0.5, 0.75, 1.0); }"
+          : "precision mediump float; void main() { gl_FragColor = vec4(0.25, 0.5, 0.75, 1.0); }");
+        for (const shader of [vertex, fragment]) {
+          context.compileShader(shader);
+          if (!context.getShaderParameter(shader, context.COMPILE_STATUS)) throw new Error(context.getShaderInfoLog(shader));
+          context.attachShader(program, shader);
+        }
+        context.linkProgram(program);
+        if (!context.getProgramParameter(program, context.LINK_STATUS)) throw new Error(context.getProgramInfoLog(program));
+        context.useProgram(program);
+        context.bindBuffer(context.ARRAY_BUFFER, buffer);
+        context.bufferData(context.ARRAY_BUFFER, new Float32Array([-1,-1,3,-1,-1,3]), context.STATIC_DRAW);
+        const position = context.getAttribLocation(program, "position");
+        context.enableVertexAttribArray(position);
+        context.vertexAttribPointer(position, 2, context.FLOAT, false, 0, 0);
+        context.viewport(0, 0, 4, 4);
+        context.drawArrays(context.TRIANGLES, 0, 3);
+        const pixel = new Uint8Array(4);
+        context.readPixels(0, 0, 1, 1, context.RGBA, context.UNSIGNED_BYTE, pixel);
+        const error = context.getError();
+        const expected = [64,128,191,255];
+        return supported(error === context.NO_ERROR && pixel.every((value, index) => Math.abs(value - expected[index]) <= 1), { expected, actual: Array.from(pixel), glError: error });
+      } finally {
+        context.deleteBuffer(buffer);
+        context.deleteProgram(program);
+        context.deleteShader(vertex);
+        context.deleteShader(fragment);
+      }
+    }
+
+    function framebufferProbe(context, internalFormat, type) {
+      if (!type) return supported(false);
+      const texture = context.createTexture();
+      const framebuffer = context.createFramebuffer();
+      try {
+        context.bindTexture(context.TEXTURE_2D, texture);
+        context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MIN_FILTER, context.NEAREST);
+        context.texParameteri(context.TEXTURE_2D, context.TEXTURE_MAG_FILTER, context.NEAREST);
+        context.texImage2D(context.TEXTURE_2D, 0, internalFormat, 1, 1, 0, context.RGBA, type, null);
+        context.bindFramebuffer(context.FRAMEBUFFER, framebuffer);
+        context.framebufferTexture2D(context.FRAMEBUFFER, context.COLOR_ATTACHMENT0, context.TEXTURE_2D, texture, 0);
+        const framebufferStatus = context.checkFramebufferStatus(context.FRAMEBUFFER);
+        const result = { framebufferStatus: `0x${framebufferStatus.toString(16)}`, glError: context.getError() };
+        if (framebufferStatus === context.FRAMEBUFFER_COMPLETE && result.glError === context.NO_ERROR) {
+          context.clearColor(2, 0.5, 0.25, 1);
+          context.clear(context.COLOR_BUFFER_BIT);
+          const pixel = type === context.UNSIGNED_BYTE ? new Uint8Array(4) : new Float32Array(4);
+          context.readPixels(0, 0, 1, 1, context.RGBA, type === context.UNSIGNED_BYTE ? context.UNSIGNED_BYTE : context.FLOAT, pixel);
+          result.readbackError = context.getError();
+          result.pixel = Array.from(pixel);
+          result.extendedRangeReadback = result.readbackError === context.NO_ERROR && pixel instanceof Float32Array && pixel[0] > 1;
+        }
+        return supported(framebufferStatus === context.FRAMEBUFFER_COMPLETE && result.glError === context.NO_ERROR, result);
+      } finally {
+        context.bindFramebuffer(context.FRAMEBUFFER, null);
+        context.bindTexture(context.TEXTURE_2D, null);
+        context.deleteFramebuffer(framebuffer);
+        context.deleteTexture(texture);
+      }
+    }
+
+    async function webglProbes() {
+      const limits = ["MAX_TEXTURE_SIZE", "MAX_CUBE_MAP_TEXTURE_SIZE", "MAX_RENDERBUFFER_SIZE", "MAX_VIEWPORT_DIMS", "MAX_VERTEX_ATTRIBS", "MAX_VERTEX_UNIFORM_VECTORS", "MAX_FRAGMENT_UNIFORM_VECTORS", "MAX_VARYING_VECTORS", "MAX_COMBINED_TEXTURE_IMAGE_UNITS", "MAX_VERTEX_TEXTURE_IMAGE_UNITS", "MAX_TEXTURE_IMAGE_UNITS", "ALIASED_LINE_WIDTH_RANGE", "ALIASED_POINT_SIZE_RANGE", "RED_BITS", "GREEN_BITS", "BLUE_BITS", "ALPHA_BITS", "DEPTH_BITS", "STENCIL_BITS", "SAMPLE_BUFFERS", "SAMPLES", "SUBPIXEL_BITS", "MAX_3D_TEXTURE_SIZE", "MAX_ARRAY_TEXTURE_LAYERS", "MAX_COLOR_ATTACHMENTS", "MAX_DRAW_BUFFERS", "MAX_SAMPLES", "MAX_ELEMENT_INDEX", "MAX_ELEMENTS_INDICES", "MAX_ELEMENTS_VERTICES", "MAX_FRAGMENT_INPUT_COMPONENTS", "MAX_FRAGMENT_UNIFORM_COMPONENTS", "MAX_FRAGMENT_UNIFORM_BLOCKS", "MAX_VERTEX_OUTPUT_COMPONENTS", "MAX_VERTEX_UNIFORM_COMPONENTS", "MAX_VERTEX_UNIFORM_BLOCKS", "MAX_COMBINED_UNIFORM_BLOCKS", "MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS", "MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS", "MAX_UNIFORM_BUFFER_BINDINGS", "MAX_UNIFORM_BLOCK_SIZE", "UNIFORM_BUFFER_OFFSET_ALIGNMENT", "MAX_VARYING_COMPONENTS", "MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS", "MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS", "MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS", "MAX_TEXTURE_LOD_BIAS", "MAX_SERVER_WAIT_TIMEOUT"];
+      for (const version of ["webgl", "webgl2"]) {
+        await probe("webgl", `${version} / context`, async () => {
+          const canvas = smallCanvas();
+          let creationError = null;
+          canvas.addEventListener("webglcontextcreationerror", event => { creationError = event.statusMessage; });
+          const context = canvas.getContext(version, { antialias: false, preserveDrawingBuffer: true });
+          if (!context) return supported(false, creationError);
+          try {
+            add("webgl", `${version} / attributes`, "info", context.getContextAttributes());
+            for (const name of ["VERSION", "SHADING_LANGUAGE_VERSION", "VENDOR", "RENDERER"]) add("webgl", `${version} / ${name}`, "info", context.getParameter(context[name]));
+            const debug = context.getExtension("WEBGL_debug_renderer_info");
+            add("webgl", `${version} / unmasked renderer`, debug ? "info" : "unsupported", debug ? { vendor: context.getParameter(debug.UNMASKED_VENDOR_WEBGL), renderer: context.getParameter(debug.UNMASKED_RENDERER_WEBGL) } : null);
+            const extensions = context.getSupportedExtensions() ?? [];
+            add("webgl", `${version} / extensions`, "info", extensions.sort());
+            for (const name of extensions.filter(name => /compressed_texture|texture_compression/.test(name))) context.getExtension(name);
+            add("webgl", `${version} / compressed texture formats`, "info", Array.from(context.getParameter(context.COMPRESSED_TEXTURE_FORMATS), value => `0x${value.toString(16)}`));
+            const values = {};
+            for (const name of limits) {
+              if (typeof context[name] !== "number") continue;
+              const value = context.getParameter(context[name]);
+              values[name] = ArrayBuffer.isView(value) ? Array.from(value) : value;
+            }
+            const anisotropy = context.getExtension("EXT_texture_filter_anisotropic");
+            if (anisotropy) values.MAX_TEXTURE_MAX_ANISOTROPY_EXT = context.getParameter(anisotropy.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+            add("webgl", `${version} / limits`, "info", values);
+            const precision = {};
+            for (const stage of ["VERTEX_SHADER", "FRAGMENT_SHADER"]) {
+              precision[stage] = {};
+              for (const level of ["LOW_FLOAT", "MEDIUM_FLOAT", "HIGH_FLOAT", "LOW_INT", "MEDIUM_INT", "HIGH_INT"]) precision[stage][level] = properties(context.getShaderPrecisionFormat(context[stage], context[level]), ["rangeMin", "rangeMax", "precision"]);
+            }
+            add("webgl", `${version} / shader precision`, "info", precision);
+            await probe("webgl", `${version} / compile, draw, readPixels`, () => drawWebGlPixel(context, version));
+            const floatColor = context.getExtension(version === "webgl2" ? "EXT_color_buffer_float" : "WEBGL_color_buffer_float");
+            const halfColor = context.getExtension("EXT_color_buffer_half_float");
+            const halfTexture = version === "webgl2" ? context.HALF_FLOAT : context.getExtension("OES_texture_half_float")?.HALF_FLOAT_OES;
+            const floatTexture = version === "webgl2" || context.getExtension("OES_texture_float");
+            await probe("webgl", `${version} / RGBA8 framebuffer`, () => framebufferProbe(context, version === "webgl2" ? context.RGBA8 : context.RGBA, context.UNSIGNED_BYTE));
+            await probe("webgl", `${version} / RGBA16F framebuffer`, () => floatColor || halfColor ? framebufferProbe(context, version === "webgl2" ? context.RGBA16F : context.RGBA, halfTexture) : supported(false));
+            await probe("webgl", `${version} / RGBA32F framebuffer`, () => floatColor && floatTexture ? framebufferProbe(context, version === "webgl2" ? context.RGBA32F : context.RGBA, context.FLOAT) : supported(false));
+            for (const colorSpace of ["srgb", "display-p3", "srgb-linear", "display-p3-linear", "rec2020", "rec2100-pq", "rec2100-hlg"]) {
+              await probe("webgl", `${version} / drawingBufferColorSpace=${colorSpace}`, () => {
+                if (!("drawingBufferColorSpace" in context)) return supported(false);
+                context.drawingBufferColorSpace = colorSpace;
+                return supported(context.drawingBufferColorSpace === colorSpace, { requested: colorSpace, actual: context.drawingBufferColorSpace });
+              }, ["TypeError", "NotSupportedError"]);
+            }
+            await probe("webgl", `${version} / Light Player HDR surface`, () => {
+              const APIs = { drawingBufferStorage: typeof context.drawingBufferStorage, drawingBufferToneMapping: typeof context.drawingBufferToneMapping, configureHighDynamicRange: typeof canvas.configureHighDynamicRange, EXT_color_buffer_float: Boolean(floatColor) };
+              if (version !== "webgl2" || !floatColor || typeof context.drawingBufferStorage !== "function" || (typeof context.drawingBufferToneMapping !== "function" && typeof canvas.configureHighDynamicRange !== "function")) return supported(false, APIs);
+              context.drawingBufferColorSpace = "srgb-linear";
+              if (context.drawingBufferColorSpace !== "srgb-linear") return supported(false, { ...APIs, drawingBufferColorSpace: context.drawingBufferColorSpace });
+              context.drawingBufferStorage(context.RGBA16F, 4, 4);
+              const toneMapping = context.drawingBufferToneMapping
+                ? context.drawingBufferToneMapping({ mode: "extended" })
+                : canvas.configureHighDynamicRange({ mode: "extended" });
+              const redBits = context.getParameter(context.RED_BITS);
+              context.clearColor(2, 0.5, 0.25, 1);
+              context.clear(context.COLOR_BUFFER_BIT);
+              const pixel = new Float32Array(4);
+              context.readPixels(0, 0, 1, 1, context.RGBA, context.FLOAT, pixel);
+              const glError = context.getError();
+              return supported(redBits === 16 && glError === context.NO_ERROR && pixel[0] > 1, { ...APIs, redBits, glError, pixel: Array.from(pixel), toneMapping: toneMapping ?? null, physicalDisplayVerified: false });
+            });
+            return supported(true);
+          } finally {
+            context.getExtension("WEBGL_lose_context")?.loseContext();
+          }
+        });
+      }
+    }
+
+    async function webgpuProbes() {
+      await probe("webgpu", "navigator.gpu", () => supported(Boolean(navigator.gpu)));
+      if (!navigator.gpu) return;
+      await probe("webgpu", "getPreferredCanvasFormat", () => navigator.gpu.getPreferredCanvasFormat());
+      await probe("webgpu", "wgslLanguageFeatures", () => navigator.gpu.wgslLanguageFeatures ? Array.from(navigator.gpu.wgslLanguageFeatures).sort() : supported(false));
+      for (const preference of [null, "high-performance", "low-power"]) {
+        let defaultAdapter;
+        await probe("webgpu", `requestAdapter / ${preference ?? "default"}`, async () => {
+          const adapter = await deadline(navigator.gpu.requestAdapter(preference ? { powerPreference: preference } : {}), 3500);
+          if (!adapter) return supported(false, { adapter: null });
+          const info = adapter.info ?? (adapter.requestAdapterInfo ? await deadline(adapter.requestAdapterInfo(), 1000) : null);
+          const limits = {};
+          for (const name of Object.getOwnPropertyNames(Object.getPrototypeOf(adapter.limits))) if (typeof adapter.limits[name] === "number") limits[name] = adapter.limits[name];
+          const data = { info: properties(info, ["vendor", "architecture", "device", "description", "subgroupMinSize", "subgroupMaxSize", "isFallbackAdapter"]), isFallbackAdapter: adapter.isFallbackAdapter ?? info?.isFallbackAdapter ?? null, features: Array.from(adapter.features).sort(), limits };
+          if (preference === null) defaultAdapter = adapter;
+          return supported(true, data);
+        });
+        if (defaultAdapter) {
+          await probe("webgpu", "requestDevice (default adapter)", async () => {
+            let device;
+            let finished = false;
+            try {
+              const pending = defaultAdapter.requestDevice().then(created => {
+                if (finished) created.destroy();
+                return created;
+              });
+              device = await deadline(pending, 2500);
+              return supported(true, { features: Array.from(device.features).sort() });
+            } finally {
+              finished = true;
+              device?.destroy();
+            }
+          });
+        }
+      }
+    }
+
+    async function displayProbes() {
+      await probe("display", "screen", () => ({ ...properties(screen, ["width", "height", "availWidth", "availHeight", "colorDepth", "pixelDepth", "isExtended"]), orientation: properties(screen.orientation, ["type", "angle"]) }));
+      await probe("display", "viewport", () => ({ width: innerWidth, height: innerHeight, devicePixelRatio, visualViewport: properties(globalThis.visualViewport, ["width", "height", "scale"]) }));
+      await probe("display", "CSS media queries", () => Object.fromEntries(["(color-gamut: srgb)", "(color-gamut: p3)", "(color-gamut: rec2020)", "(dynamic-range: high)", "(video-dynamic-range: high)", "(prefers-color-scheme: dark)", "(prefers-reduced-motion: reduce)", "(prefers-contrast: more)", "(forced-colors: active)", "(pointer: coarse)", "(hover: hover)", "(display-mode: standalone)"].map(query => [query, matchMedia(query).matches])));
+      await probe("display", "CSS color syntax", () => Object.fromEntries(["color(display-p3 1 0 0)", "color(rec2020 1 0 0)", "oklch(60% 0.2 150)"].map(value => [value, CSS.supports("color", value)])));
+      for (const colorSpace of ["srgb", "display-p3"]) {
+        for (const colorType of ["unorm8", "float16"]) {
+          await probe("display", `Canvas 2D / ${colorSpace} / ${colorType}`, () => {
+            const canvas = smallCanvas();
+            const context = canvas.getContext("2d", { colorSpace, colorType, willReadFrequently: true });
+            if (!context) return supported(false);
+            const attributes = context.getContextAttributes?.() ?? null;
+            context.fillStyle = "rgb(64 128 192)";
+            context.fillRect(0, 0, 4, 4);
+            const image = context.getImageData(0, 0, 1, 1, { colorSpace, pixelFormat: colorType === "float16" ? "rgba-float16" : "rgba-unorm8" });
+            const actualType = image.data.constructor.name;
+            return supported(attributes?.colorSpace === colorSpace && (colorType === "float16" ? attributes?.colorType === "float16" && actualType === "Float16Array" : actualType === "Uint8ClampedArray"), { attributes, pixelFormat: image.pixelFormat ?? null, colorSpace: image.colorSpace ?? null, dataType: actualType, pixel: Array.from(image.data) });
+          }, ["TypeError", "NotSupportedError"]);
+        }
+      }
+      await probe("display", "OffscreenCanvas / transferToImageBitmap", () => {
+        if (typeof OffscreenCanvas !== "function" || !HTMLCanvasElement.prototype.transferControlToOffscreen) return supported(false);
+        const offscreen = smallCanvas().transferControlToOffscreen();
+        const context = offscreen.getContext("2d");
+        if (!context) return supported(false);
+        context.fillRect(0, 0, 4, 4);
+        const bitmap = offscreen.transferToImageBitmap();
+        try { return supported(bitmap.width === 4 && bitmap.height === 4); }
+        finally { bitmap.close(); }
+      });
+      await probe("display", "createImageBitmap / colorSpaceConversion=none", async () => {
+        if (typeof createImageBitmap !== "function") return supported(false);
+        const bitmap = await createImageBitmap(smallCanvas(), { colorSpaceConversion: "none", premultiplyAlpha: "none", imageOrientation: "none" });
+        try { return supported(bitmap.width === 4 && bitmap.height === 4); }
+        finally { bitmap.close(); }
+      });
+    }
+
+    const videoConfigurations = [
+      { name: "H.264 Baseline / 720p30", codec: "avc1.42E01F", container: "video/mp4", width: 1280, height: 720, framerate: 30, bitrate: 4000000 },
+      { name: "H.264 Main / 1080p60", codec: "avc1.4D002A", container: "video/mp4", width: 1920, height: 1080, framerate: 60, bitrate: 8000000 },
+      { name: "H.264 High / 1080p60", codec: "avc1.64002A", container: "video/mp4", width: 1920, height: 1080, framerate: 60, bitrate: 8000000 },
+      { name: "H.264 High 10 / 1080p60", codec: "avc1.6E002A", container: "video/mp4", width: 1920, height: 1080, framerate: 60, bitrate: 8000000 },
+      { name: "HEVC Main / 4K60", codec: "hvc1.1.6.L153.B0", container: "video/mp4", width: 3840, height: 2160, framerate: 60, bitrate: 25000000 },
+      { name: "HEVC Main 10 / 4K60 PQ", codec: "hev1.2.6.L153.B0", container: "video/mp4", width: 3840, height: 2160, framerate: 60, bitrate: 25000000, transfer: "pq" },
+      { name: "VP8 / 1080p30", codec: "vp8", container: "video/webm", width: 1920, height: 1080, framerate: 30, bitrate: 8000000 },
+      { name: "VP9 Profile 0 / 1080p60", codec: "vp09.00.41.08", container: "video/webm", width: 1920, height: 1080, framerate: 60, bitrate: 8000000 },
+      { name: "VP9 Profile 2 / 4K60 PQ", codec: "vp09.02.51.10", container: "video/webm", width: 3840, height: 2160, framerate: 60, bitrate: 25000000, transfer: "pq" },
+      { name: "VP9 Profile 2 / 4K60 12-bit", codec: "vp09.02.51.12", container: "video/webm", width: 3840, height: 2160, framerate: 60, bitrate: 25000000 },
+      { name: "AV1 Main / 1080p30", codec: "av01.0.08M.08", container: "video/mp4", width: 1920, height: 1080, framerate: 30, bitrate: 8000000 },
+      { name: "AV1 Main / 4K60 HLG", codec: "av01.0.13M.10", container: "video/mp4", width: 3840, height: 2160, framerate: 60, bitrate: 25000000, transfer: "hlg" },
+      { name: "AV1 Professional / 4K60 12-bit", codec: "av01.2.13M.12", container: "video/mp4", width: 3840, height: 2160, framerate: 60, bitrate: 25000000 },
+      { name: "AV1 Main / 8K30", codec: "av01.0.16M.08", container: "video/mp4", width: 7680, height: 4320, framerate: 30, bitrate: 50000000 }
+    ];
+
+    const audioConfigurations = [
+      { name: "AAC LC", codec: "mp4a.40.2", contentType: 'audio/mp4; codecs="mp4a.40.2"', channels: 2 },
+      { name: "HE-AAC", codec: "mp4a.40.5", contentType: 'audio/mp4; codecs="mp4a.40.5"', channels: 2 },
+      { name: "xHE-AAC", codec: "mp4a.40.42", contentType: 'audio/mp4; codecs="mp4a.40.42"', channels: 2 },
+      { name: "MP3", codec: "mp3", contentType: "audio/mpeg", channels: 2 },
+      { name: "Opus", codec: "opus", contentType: 'audio/webm; codecs="opus"', channels: 2 },
+      { name: "Opus / 5.1", codec: "opus", contentType: 'audio/webm; codecs="opus"', channels: 6 },
+      { name: "Vorbis", codec: "vorbis", contentType: 'audio/ogg; codecs="vorbis"', channels: 2 },
+      { name: "FLAC", codec: "flac", contentType: "audio/flac", channels: 2 },
+      { name: "ALAC", codec: "alac", contentType: 'audio/mp4; codecs="alac"', channels: 2 },
+      { name: "AC-3 / 5.1", codec: "ac-3", contentType: 'audio/mp4; codecs="ac-3"', channels: 6 },
+      { name: "E-AC-3 / 5.1", codec: "ec-3", contentType: 'audio/mp4; codecs="ec-3"', channels: 6 },
+      { name: "PCM s16", codec: "pcm-s16", contentType: 'audio/wav; codecs="1"', channels: 2 },
+      { name: "PCM f32", codec: "pcm-f32", contentType: 'audio/wav; codecs="3"', channels: 2 }
+    ];
+
+    async function codecProbes() {
+      const constructors = ["VideoDecoder", "VideoEncoder", "AudioDecoder", "AudioEncoder", "ImageDecoder", "VideoFrame", "AudioData", "EncodedVideoChunk", "EncodedAudioChunk"];
+      for (const name of constructors) await probe("codecs", name, () => supported(typeof globalThis[name] === "function"));
+      const queries = [];
+      if (globalThis.VideoDecoder?.isConfigSupported) {
+        for (const config of videoConfigurations) {
+          for (const hardwareAcceleration of [null, "prefer-hardware", "prefer-software"]) {
+            const requested = { codec: config.codec, codedWidth: config.width, codedHeight: config.height };
+            if (hardwareAcceleration) requested.hardwareAcceleration = hardwareAcceleration;
+            if (config.transfer) requested.colorSpace = { primaries: "bt2020", transfer: config.transfer, matrix: "bt2020-ncl", fullRange: false };
+            queries.push(probe("codecs", `VideoDecoder.isConfigSupported / ${config.name} / ${hardwareAcceleration ?? "default"}`, async () => {
+              const result = await VideoDecoder.isConfigSupported(requested);
+              return supported(result.supported, { requested, accepted: result.config });
+            }, ["TypeError", "NotSupportedError"]));
+          }
+        }
+      }
+      if (globalThis.VideoEncoder?.isConfigSupported) {
+        for (const config of videoConfigurations.filter(config => !config.transfer && config.width === 1920)) {
+          const requested = { codec: config.codec, width: config.width, height: config.height, framerate: config.framerate, bitrate: config.bitrate };
+          queries.push(probe("codecs", `VideoEncoder.isConfigSupported / ${config.name}`, async () => {
+            const result = await VideoEncoder.isConfigSupported(requested);
+            return supported(result.supported, { requested, accepted: result.config });
+          }, ["TypeError", "NotSupportedError"]));
+        }
+      }
+      for (const config of audioConfigurations) {
+        const requested = { codec: config.codec, sampleRate: 48000, numberOfChannels: config.channels };
+        if (globalThis.AudioDecoder?.isConfigSupported) queries.push(probe("codecs", `AudioDecoder.isConfigSupported / ${config.name}`, async () => {
+          const result = await AudioDecoder.isConfigSupported(requested);
+          return supported(result.supported, { requested, accepted: result.config });
+        }, ["TypeError", "NotSupportedError"]));
+        if (globalThis.AudioEncoder?.isConfigSupported && ["mp4a.40.2", "opus", "flac"].includes(config.codec)) queries.push(probe("codecs", `AudioEncoder.isConfigSupported / ${config.name}`, async () => {
+          const encoderConfig = { ...requested, bitrate: 192000 };
+          const result = await AudioEncoder.isConfigSupported(encoderConfig);
+          return supported(result.supported, { requested: encoderConfig, accepted: result.config });
+        }, ["TypeError", "NotSupportedError"]));
+      }
+      if (globalThis.ImageDecoder?.isTypeSupported) {
+        for (const type of ["image/jpeg", "image/png", "image/webp", "image/avif", "image/heif", "image/heic", "image/jxl", "image/gif", "image/bmp", "image/tiff", "image/x-icon"]) queries.push(probe("codecs", `ImageDecoder.isTypeSupported / ${type}`, async () => supported(await ImageDecoder.isTypeSupported(type))));
+      }
+      if (typeof VideoFrame === "function") {
+        for (const format of ["RGBA", "RGBX", "BGRA", "BGRX", "I420", "I422", "I444", "NV12", "I420P10", "I422P10", "I444P10", "I420P12", "I422P12", "I444P12"]) {
+          queries.push(probe("codecs", `VideoFrame / ${format} / synthetic copyTo`, async () => {
+            const frame = new VideoFrame(new Uint8Array(256), { format, codedWidth: 2, codedHeight: 2, timestamp: 0 });
+            try {
+              const bytes = frame.allocationSize();
+              const layout = await deadline(frame.copyTo(new Uint8Array(bytes)), 3500);
+              return supported(frame.format === format, { format: frame.format, bytes, layout, colorSpace: frame.colorSpace.toJSON() });
+            } finally { frame.close(); }
+          }, ["TypeError", "NotSupportedError"]));
+        }
+        queries.push(probe("codecs", "VideoFrame.copyTo / shared Wasm memory / BGRA", async () => {
+          if (typeof SharedArrayBuffer !== "function" || typeof WebAssembly !== "object") return supported(false);
+          const frame = new VideoFrame(new Uint8Array([64,128,192,255]), { format: "RGBA", codedWidth: 1, codedHeight: 1, timestamp: 0 });
+          try {
+            const memory = new WebAssembly.Memory({ initial: 1, maximum: 1, shared: true });
+            const destination = new Uint8Array(memory.buffer, 0, 4);
+            await deadline(frame.copyTo(destination, { format: "BGRA", colorSpace: "srgb" }), 3500);
+            return supported(destination[0] === 192 && destination[1] === 128 && destination[2] === 64 && destination[3] === 255, { pixel: Array.from(destination) });
+          } finally { frame.close(); }
+        }, ["TypeError", "NotSupportedError"]));
+      }
+      if (typeof AudioData === "function") {
+        for (const format of ["u8", "s16", "s32", "f32", "u8-planar", "s16-planar", "s32-planar", "f32-planar"]) queries.push(probe("codecs", `AudioData / ${format} / synthetic copyTo`, () => {
+          const audio = new AudioData({ format, sampleRate: 48000, numberOfChannels: 2, numberOfFrames: 8, timestamp: 0, data: new Uint8Array(128) });
+          try {
+            const bytes = audio.allocationSize({ planeIndex: 0, format: "f32-planar" });
+            audio.copyTo(new Float32Array(bytes / 4), { planeIndex: 0, format: "f32-planar" });
+            return supported(true, { format: audio.format, convertedFormat: "f32-planar", bytes, frames: audio.numberOfFrames, channels: audio.numberOfChannels });
+          } finally { audio.close(); }
+        }, ["TypeError", "NotSupportedError"]));
+      }
+      await Promise.all(queries);
+    }
+
+    async function mediaProbes() {
+      await probe("media", "APIs", () => ({ mediaCapabilitiesDecodingInfo: typeof navigator.mediaCapabilities?.decodingInfo, MediaSource: typeof globalThis.MediaSource, ManagedMediaSource: typeof globalThis.ManagedMediaSource, MediaRecorder: typeof globalThis.MediaRecorder, encryptedMedia: typeof navigator.requestMediaKeySystemAccess }));
+      const video = document.createElement("video");
+      const audio = document.createElement("audio");
+      const types = new Set([
+        ...videoConfigurations.map(config => `${config.container}; codecs="${config.codec}"`),
+        ...audioConfigurations.map(config => config.contentType),
+        'video/mp4; codecs="dvh1.05.06"', 'video/mp4; codecs="dvh1.08.06"',
+        'video/mp2t; codecs="avc1.64002A"', "application/vnd.apple.mpegurl", "application/x-mpegURL", "application/dash+xml", 'audio/ogg; codecs="opus"'
+      ]);
+      for (const type of types) await probe("media", type, () => ({
+        canPlayType: (type.startsWith("audio/") ? audio : video).canPlayType(type),
+        MediaSource: globalThis.MediaSource?.isTypeSupported?.(type) ?? null,
+        ManagedMediaSource: globalThis.ManagedMediaSource?.isTypeSupported?.(type) ?? null,
+        MediaRecorder: globalThis.MediaRecorder?.isTypeSupported?.(type) ?? null
+      }));
+      if (!navigator.mediaCapabilities?.decodingInfo) return;
+      const queries = [];
+      for (const config of videoConfigurations) {
+        for (const type of ["file", "media-source"]) {
+          const requested = { type, video: { contentType: `${config.container}; codecs="${config.codec}"`, width: config.width, height: config.height, framerate: config.framerate, bitrate: config.bitrate } };
+          if (config.transfer) {
+            requested.video.colorGamut = "rec2020";
+            requested.video.transferFunction = config.transfer;
+            if (config.transfer === "pq") requested.video.hdrMetadataType = "smpteSt2086";
+          }
+          queries.push(probe("media", `decodingInfo / ${type} / ${config.name}`, async () => {
+            const result = await navigator.mediaCapabilities.decodingInfo(requested);
+            return supported(result.supported, { requested, supported: result.supported, smooth: result.smooth, powerEfficient: result.powerEfficient });
+          }, ["TypeError", "NotSupportedError"]));
+        }
+      }
+      for (const config of audioConfigurations) queries.push(probe("media", `decodingInfo / audio / ${config.name}`, async () => {
+        const requested = { type: "file", audio: { contentType: config.contentType, channels: String(config.channels), bitrate: 192000, samplerate: 48000 } };
+        const result = await navigator.mediaCapabilities.decodingInfo(requested);
+        return supported(result.supported, { requested, supported: result.supported, smooth: result.smooth, powerEfficient: result.powerEfficient });
+      }, ["TypeError", "NotSupportedError"]));
+      await Promise.all(queries);
+    }
+
+    function audioContextInfo(context) {
+      return {
+        state: context.state, sampleRateHz: context.sampleRate,
+        baseLatencySeconds: context.baseLatency ?? null, outputLatencySeconds: context.outputLatency ?? null,
+        destinationChannels: context.destination.channelCount, destinationMaxChannels: context.destination.maxChannelCount,
+        channelCountMode: context.destination.channelCountMode, channelInterpretation: context.destination.channelInterpretation,
+        audioWorklet: typeof context.audioWorklet?.addModule, setSinkId: typeof context.setSinkId,
+        outputTimestamp: context.getOutputTimestamp?.() ?? null
+      };
+    }
+
+    async function audioProbes() {
+      const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
+      const OfflineContext = globalThis.OfflineAudioContext ?? globalThis.webkitOfflineAudioContext;
+      await probe("audio", "APIs", () => ({ AudioContext: typeof Context, OfflineAudioContext: typeof OfflineContext, AudioWorkletNode: typeof globalThis.AudioWorkletNode, userActivation: properties(navigator.userActivation, ["isActive", "hasBeenActive"]) }));
+      add("audio", "AudioContext.resume / user gesture", "pending", null);
+      add("audio", "AudioWorklet / module + silent processing", "pending", null);
+      if (typeof Context === "function") {
+        for (const sampleRate of [null, 44100, 48000, 96000, 192000]) await probe("audio", `AudioContext / sampleRate=${sampleRate ?? "default"}`, async () => {
+          const context = new Context(sampleRate ? { sampleRate, latencyHint: "interactive" } : { latencyHint: "interactive" });
+          try { return supported(sampleRate === null || context.sampleRate === sampleRate, audioContextInfo(context)); }
+          finally { await deadline(context.close(), 1500); }
+        }, ["NotSupportedError"]);
+      }
+      await probe("audio", "OfflineAudioContext / render", async () => {
+        if (typeof OfflineContext !== "function") return supported(false);
+        const context = new OfflineContext(2, 256, 48000);
+        const source = context.createConstantSource();
+        source.offset.value = 0.25;
+        source.connect(context.destination);
+        source.start();
+        try {
+          const output = await deadline(context.startRendering(), 3500);
+          const firstSample = output.getChannelData(0)[0];
+          return supported(Math.abs(firstSample - 0.25) < 0.0001, { sampleRate: output.sampleRate, frames: output.length, channels: output.numberOfChannels, firstSample });
+        } finally { source.disconnect(); }
+      });
+    }
+
+    function diagnosticAudioWorklet() {
+      class SilentDiagnosticProcessor extends AudioWorkletProcessor {
+        process(_inputs, outputs) {
+          for (const output of outputs) for (const channel of output) channel.fill(0);
+          this.port.postMessage({ sampleRateHz: sampleRate, currentFrame, currentTime, channels: outputs[0]?.length ?? 0, quantumFrames: outputs[0]?.[0]?.length ?? 0, SharedArrayBuffer: typeof SharedArrayBuffer, Atomics: typeof Atomics });
+          return false;
+        }
+      }
+      registerProcessor("lightplayer-silent-diagnostic", SilentDiagnosticProcessor);
+    }
+
+    async function checkAudio() {
+      if (running || audioRunning) return;
+      audioRunning = true;
+      updateProgress();
+      let context;
+      let node;
+      let url;
+      try {
+        const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
+        if (typeof Context !== "function") {
+          add("audio", "AudioContext.resume / user gesture", "unsupported", false);
+          add("audio", "AudioWorklet / module + silent processing", "unsupported", false);
+          return;
+        }
+        context = new Context({ latencyHint: "interactive" });
+        const resumed = context.resume();
+        await probe("audio", "AudioContext.resume / user gesture", async () => {
+          await deadline(resumed, 3000);
+          return supported(context.state === "running", audioContextInfo(context));
+        });
+        if (context.state !== "running") return;
+        await probe("audio", "AudioWorklet / module + silent processing", async () => {
+          if (!context.audioWorklet || typeof AudioWorkletNode !== "function") return supported(false);
+          url = URL.createObjectURL(new Blob([`(${diagnosticAudioWorklet.toString()})()`], { type: "text/javascript" }));
+          await deadline(context.audioWorklet.addModule(url), 1500);
+          node = new AudioWorkletNode(context, "lightplayer-silent-diagnostic", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+          const output = await deadline(new Promise((resolve, reject) => {
+            node.port.onmessage = event => resolve(event.data);
+            node.onprocessorerror = () => reject(new Error("AudioWorklet processorerror"));
+            node.connect(context.destination);
+          }), 2000);
+          return supported(output.quantumFrames > 0 && output.channels === 2, output);
+        });
+      } catch (error) {
+        add("audio", "AudioContext.resume / user gesture", "error", describe(error));
+      } finally {
+        node?.disconnect();
+        node?.port.close();
+        if (url) URL.revokeObjectURL(url);
+        if (context) await probe("audio", "AudioContext.close / user gesture", async () => {
+          await deadline(context.close(), 1500);
+          return supported(context.state === "closed");
+        });
+        report.audioCheckedAt = new Date().toISOString();
+        audioRunning = false;
+        updateProgress();
+      }
+    }
+
+    function exportReport() {
+      return json({ ...report, completed: !running && !audioRunning, exportedAt: new Date().toISOString(), assessments: featureAssessments(), results: Array.from(records.values(), record => record.data) });
+    }
+
+    async function run() {
+      if (running || audioRunning) return;
+      running = true;
+      hdrSample.stop();
+      report = { schemaVersion: 1, application: "Light Player", page: "diag.html", collectedAt: new Date().toISOString() };
+      records.clear();
+      for (const element of sections.values()) element.querySelectorAll(".result").forEach(row => row.remove());
+      document.getElementById("action-status").textContent = "";
+      updateProgress();
+      try {
+        const groups = [environmentProbes, wasmProbes, workerProbes, storageProbes, webglProbes, webgpuProbes, displayProbes, codecProbes, mediaProbes, audioProbes];
+        await Promise.all(groups.map(async group => {
+          try { await group(); }
+          catch (error) { add("environment", group.name, "error", describe(error)); }
+        }));
+        await hdrSample.start();
+      } catch (error) {
+        add("environment", "diagnostics", "error", describe(error));
+      } finally {
+        report.completedAt = new Date().toISOString();
+        running = false;
+        updateProgress();
+      }
+    }
+
+    for (const [section, name] of Object.entries(sectionNames)) {
+      const element = document.createElement("section");
+      element.id = section;
+      const title = document.createElement("h2");
+      title.textContent = text(name);
+      element.append(title);
+      if (["audio", "codecs", "media"].includes(section)) {
+        const note = document.createElement("p");
+        note.className = "note";
+        note.dataset.text = section === "audio" ? "audioNote" : "codecNote";
+        element.append(note);
+      }
+      sections.set(section, element);
+      results.append(element);
+      const link = document.createElement("a");
+      link.href = `#${section}`;
+      link.textContent = text(name);
+      document.getElementById("sections").append(link);
+    }
+
+    document.getElementById("filter").addEventListener("input", filterResults);
+    document.getElementById("rerun").addEventListener("click", run);
+    document.getElementById("check-audio").addEventListener("click", checkAudio);
+    language.addEventListener("change", () => { locale = language.value; localize(); });
+    document.getElementById("copy").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(exportReport());
+        document.getElementById("action-status").textContent = text("copied");
+      } catch (error) {
+        document.getElementById("action-status").textContent = json(describe(error));
+      }
+    });
+    document.getElementById("download").addEventListener("click", () => {
+      const url = URL.createObjectURL(new Blob([exportReport()], { type: "application/json" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `lightplayer-diag-${report.collectedAt.replace(/[:.]/g, "-")}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+    const hdrSample = createHdrSample();
+    localize();
+    void run();
+  </script>
+</body>
+</html>

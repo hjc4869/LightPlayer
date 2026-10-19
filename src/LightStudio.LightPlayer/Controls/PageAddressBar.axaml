@@ -1,0 +1,187 @@
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             x:Class="LightStudio.LightPlayer.Controls.PageAddressBar"
+             x:DataType="models:PageAddressBarModel"
+             ClipToBounds="False"
+             IsVisible="{Binding IsVisible, FallbackValue=False}"
+             Margin="{Binding HostMargin}"
+             VerticalAlignment="Top">
+    <UserControl.Resources>
+        <StreamGeometry x:Key="MediaSortAscendingIcon">M11,3V21H13V6.83L17.59,11.41L19,10L12,3Z</StreamGeometry>
+        <StreamGeometry x:Key="MediaSortDescendingIcon">M11,21V3H13V17.17L17.59,12.59L19,14L12,21Z</StreamGeometry>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="Border#PathBar">
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder#PathBackdrop">
+            <Setter Property="CornerRadius" Value="5" />
+            <Setter Property="Padding" Value="2" />
+        </Style>
+        <Style Selector="Button.crumb">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.crumb:pointerover">
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border x:Name="PathBar"
+            Background="Transparent"
+            BorderThickness="1">
+        <lmr:BackdropBorder x:Name="PathBackdrop"
+                                 BackdropStyle="{DynamicResource AppBackdropStyle}"
+                                 FallbackColor="{DynamicResource AppPanelBackdropColor}"
+                                 TintColor="{DynamicResource AppNavBackdropTintColor}">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <Button Classes="crumb"
+                        Command="{Binding GoUpCommand}"
+                        IsEnabled="{Binding CanGoUp}"
+                        ToolTip.Tip="{Binding GoUpText}">
+                    <Viewbox Width="16" Height="16">
+                        <Path Data="{StaticResource IconChevronUp}"
+                              Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+                <Grid x:Name="BreadcrumbViewport" Grid.Column="1" ColumnDefinitions="Auto,*" ClipToBounds="True">
+                    <TextBlock x:Name="OverflowMarker"
+                               Text="..."
+                               FontSize="13"
+                               Margin="4,0,0,0"
+                               VerticalAlignment="Center"
+                               IsVisible="False"
+                               IsHitTestVisible="False"
+                               Foreground="{lmr:BackdropForeground ResourceKey=AppSecondaryTextBrush}" />
+                    <ItemsControl x:Name="BreadcrumbItems" Grid.Column="1">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="controls:PageAddressBarEntry">
+                                <StackPanel Orientation="Horizontal"
+                                            VerticalAlignment="Center"
+                                            IsVisible="{Binding IsVisible}">
+                                    <TextBlock Text="&#x203A;"
+                                               FontSize="13"
+                                               Margin="2,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{lmr:BackdropForeground ResourceKey=AppSecondaryTextBrush}" />
+                                    <Button Classes="crumb"
+                                            Command="{Binding Item.Command}"
+                                            CommandParameter="{Binding Item.Parameter}"
+                                            ToolTip.Tip="{Binding Item.Name}">
+                                        <TextBlock Text="{Binding Item.Name}"
+                                                   FontSize="13"
+                                                   MaxWidth="{Binding MaxNameWidth}"
+                                                   MaxLines="1"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   Foreground="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                                    </Button>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+
+                    <Grid x:Name="MediaSorting"
+                        Grid.Column="2"
+                        ColumnDefinitions="76,28"
+                        IsVisible="{Binding Sorting, Converter={x:Static ObjectConverters.IsNotNull}}">
+                    <Button x:Name="SortFieldButton"
+                            Classes="crumb"
+                            MaxWidth="76"
+                            HorizontalAlignment="Right"
+                            HorizontalContentAlignment="Right"
+                            ToolTip.Tip="{Binding Shell_LibrarySorting, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            AutomationProperties.Name="{Binding Shell_LibrarySorting, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <TextBlock Text="{Binding Sorting.ShortTitle}"
+                                   FontSize="13"
+                                   TextAlignment="Right"
+                                   MaxLines="1"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                        <services:NativeContextMenu.Menu>
+                            <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                <MenuItem Header="{Binding Shell_SortTitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                          DataContext="{Binding #SortFieldButton.DataContext}"
+                                          ToggleType="Radio"
+                                          GroupName="MediaPathSort"
+                                          IsChecked="{Binding Sorting.IsTitle}"
+                                          Command="{Binding Sorting.SetSortCommand}"
+                                          CommandParameter="{x:Static models:LibrarySortField.Title}" />
+                                <MenuItem Header="{Binding Shell_SortDateAdded, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                          DataContext="{Binding #SortFieldButton.DataContext}"
+                                          ToggleType="Radio"
+                                          GroupName="MediaPathSort"
+                                          IsChecked="{Binding Sorting.IsDate}"
+                                          Command="{Binding Sorting.SetSortCommand}"
+                                          CommandParameter="{x:Static models:LibrarySortField.DateAdded}" />
+                                <MenuItem Header="{Binding Common_ColumnLength, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                          DataContext="{Binding #SortFieldButton.DataContext}"
+                                          ToggleType="Radio"
+                                          GroupName="MediaPathSort"
+                                          IsChecked="{Binding Sorting.IsDuration}"
+                                          Command="{Binding Sorting.SetSortCommand}"
+                                          CommandParameter="{x:Static models:LibrarySortField.Duration}" />
+                                <MenuItem Header="{Binding Shell_SortFileType, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                          DataContext="{Binding #SortFieldButton.DataContext}"
+                                          ToggleType="Radio"
+                                          GroupName="MediaPathSort"
+                                          IsChecked="{Binding Sorting.IsType}"
+                                          Command="{Binding Sorting.SetSortCommand}"
+                                          CommandParameter="{x:Static models:LibrarySortField.FileType}" />
+                                <MenuItem Header="{Binding Shell_SortFileSize, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                          DataContext="{Binding #SortFieldButton.DataContext}"
+                                          ToggleType="Radio"
+                                          GroupName="MediaPathSort"
+                                          IsChecked="{Binding Sorting.IsSize}"
+                                          Command="{Binding Sorting.SetSortCommand}"
+                                          CommandParameter="{x:Static models:LibrarySortField.FileSize}" />
+                            </MenuFlyout>
+                        </services:NativeContextMenu.Menu>
+                    </Button>
+                    <Button x:Name="SortDirectionButton"
+                            Grid.Column="1"
+                            Classes="crumb"
+                            Width="28"
+                            Command="{Binding Sorting.ToggleDirectionCommand}"
+                            ToolTip.Tip="{Binding Sorting.DirectionText}"
+                            AutomationProperties.Name="{Binding Sorting.DirectionText}">
+                        <Grid Width="16" Height="16">
+                            <Viewbox IsVisible="{Binding Sorting.Settings.Ascending}">
+                                <Path Data="{StaticResource MediaSortAscendingIcon}"
+                                      Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                            </Viewbox>
+                            <Viewbox IsVisible="{Binding !Sorting.Settings.Ascending}">
+                                <Path Data="{StaticResource MediaSortDescendingIcon}"
+                                      Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Grid>
+                    </Button>
+                </Grid>
+
+                <Button Grid.Column="3"
+                        Classes="crumb"
+                        Command="{Binding RefreshCommand}"
+                        ToolTip.Tip="{Binding Common_Refresh, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Viewbox Width="16" Height="16">
+                        <Path Data="{StaticResource IconRefresh}"
+                              Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+            </Grid>
+        </lmr:BackdropBorder>
+    </Border>
+</UserControl>

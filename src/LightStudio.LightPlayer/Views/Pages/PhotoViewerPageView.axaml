@@ -1,0 +1,716 @@
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:chrome="using:Avalonia.Controls.Chrome"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:converters="using:Avalonia.Data.Converters"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:video="using:LightMediaRenderer.Avalonia.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             mc:Ignorable="d"
+             d:DesignWidth="960"
+             d:DesignHeight="620"
+             Focusable="True"
+             x:Class="LightStudio.LightPlayer.Views.Pages.PhotoViewerPageView"
+             x:DataType="vm:PhotoViewerPageViewModel">
+    <UserControl.Styles>
+        <Style Selector="lmr|BackdropBorder">
+            <Setter Property="IsForegroundBoostEnabled" Value="True" />
+        </Style>
+        <!-- The edge and title-bar buttons read against the picture rather than against a page. -->
+        <Style Selector="Button.photo">
+            <Setter Property="Background" Value="#66000000" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground}" />
+            <Setter Property="Padding" Value="8" />
+        </Style>
+        <Style Selector="Button.photo:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#99000000" />
+        </Style>
+        <Style Selector="Button.step">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="CornerRadius" Value="22" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.step:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#55000000" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder.photoStep">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="CornerRadius" Value="22" />
+            <Setter Property="Margin" Value="12,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="BackdropStyle" Value="{DynamicResource AppContentBackdropStyle}" />
+            <Setter Property="FallbackColor" Value="#66000000" />
+            <Setter Property="TintColor" Value="#50000000" />
+        </Style>
+        <Style Selector="Border#TitleBar">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border#TitleBar.apple">
+            <Setter Property="chrome:WindowDecorationProperties.ElementRole" Value="TitleBar" />
+        </Style>
+        <Style Selector="Border#TitleBar Button">
+            <Setter Property="chrome:WindowDecorationProperties.ElementRole" Value="User" />
+        </Style>
+        <Style Selector="Grid#TitleContent">
+            <Setter Property="Margin" Value="16,10" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder#TitleBackdrop">
+            <Setter Property="BackdropStyle" Value="{DynamicResource AppContentBackdropStyle}" />
+            <Setter Property="FallbackColor" Value="#80000000" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder.photoHeaderGlass">
+            <Setter Property="BackdropStyle" Value="Off" />
+            <Setter Property="FallbackColor" Value="Transparent" />
+            <Setter Property="TintColor" Value="#50000000" />
+            <Setter Property="CornerRadius" Value="999" />
+        </Style>
+        <Style Selector="Border#TitleBar:not(.liquidGlass) lmr|BackdropBorder.photoHeaderGlass > :is(Control)">
+            <Setter Property="lmr:BackdropBorder.ForegroundSource" Value="{Binding #TitleBackdrop}" />
+        </Style>
+        <Style Selector="Border#TitleBar.liquidGlass">
+            <Setter Property="Margin" Value="12,12,12,0" />
+            <Setter Property="Background" Value="{x:Null}" />
+            <Style Selector="^ lmr|BackdropBorder#TitleBackdrop">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+            <Style Selector="^ Grid#TitleContent">
+                <Setter Property="Margin" Value="0" />
+            </Style>
+            <Style Selector="^ lmr|BackdropBorder.photoHeaderGlass">
+                <Setter Property="BackdropStyle" Value="{DynamicResource AppContentBackdropStyle}" />
+                <Setter Property="FallbackColor" Value="#B0000000" />
+                <Setter Property="MinHeight" Value="44" />
+            </Style>
+            <Style Selector="^ lmr|BackdropBorder.photoHeaderText">
+                <Setter Property="Padding" Value="14,0" />
+            </Style>
+            <Style Selector="^ lmr|BackdropBorder#FileNameBackdrop">
+                <Setter Property="HorizontalAlignment" Value="Left" />
+            </Style>
+            <Style Selector="^ Button">
+                <Setter Property="Width" Value="44" />
+                <Setter Property="Height" Value="44" />
+                <Setter Property="CornerRadius" Value="999" />
+                <Setter Property="Background" Value="Transparent" />
+            </Style>
+        </Style>
+        <!-- The gaps between the pills drag the window, as a macOS title bar does. -->
+        <Style Selector="Border#TitleBar.liquidGlass.apple">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Style Selector="^ Grid#TitleContent">
+                <Setter Property="Margin" Value="12,12,12,0" />
+            </Style>
+        </Style>
+        <Style Selector="Border#Toolbar">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="BorderBrush" Value="#30FFFFFF" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder#ToolbarBackdrop">
+            <Setter Property="CornerRadius" Value="7" />
+        </Style>
+        <Style Selector="StackPanel#ToolbarButtons > :is(Button)">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="AutomationProperties.Name" Value="{Binding (ToolTip.Tip), RelativeSource={RelativeSource Self}}" />
+        </Style>
+        <Style Selector="StackPanel#ToolbarButtons > :is(Button):pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#28FFFFFF" />
+        </Style>
+        <Style Selector="StackPanel#ToolbarButtons > :is(Button):pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#40FFFFFF" />
+        </Style>
+        <Style Selector="StackPanel#ToolbarButtons > :is(Button) > Path, StackPanel#ToolbarButtons > :is(Button) > Grid > Path, StackPanel#ToolbarButtons > :is(Button) > Viewbox Path">
+            <Setter Property="Fill" Value="{lmr:BackdropForeground}" />
+            <Setter Property="Width" Value="20" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Stretch" Value="Uniform" />
+        </Style>
+        <Style Selector="Slider#ZoomSlider:horizontal">
+            <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton /template/ Border#TrackBackground">
+                <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderTrackFill}" />
+            </Style>
+            <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton /template/ Border#TrackBackground">
+                <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderTrackValueFill}" />
+            </Style>
+            <Style Selector="^ /template/ Thumb">
+                <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderThumbBackground}" />
+            </Style>
+            <Style Selector="^:pointerover">
+                <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton /template/ Border#TrackBackground">
+                    <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderTrackFillPointerOver}" />
+                </Style>
+                <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton /template/ Border#TrackBackground">
+                    <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderTrackValueFillPointerOver}" />
+                </Style>
+                <Style Selector="^ /template/ Thumb">
+                    <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderThumbBackgroundPointerOver}" />
+                </Style>
+            </Style>
+            <Style Selector="^:pressed">
+                <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton /template/ Border#TrackBackground">
+                    <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderTrackFillPressed}" />
+                </Style>
+                <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton /template/ Border#TrackBackground">
+                    <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderTrackValueFillPressed}" />
+                </Style>
+                <Style Selector="^ /template/ Thumb">
+                    <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderThumbBackgroundPressed}" />
+                </Style>
+            </Style>
+            <Style Selector="^:disabled">
+                <Style Selector="^ /template/ RepeatButton#PART_IncreaseButton /template/ Border#TrackBackground">
+                    <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderTrackFillDisabled}" />
+                </Style>
+                <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton /template/ Border#TrackBackground">
+                    <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderTrackValueFillDisabled}" />
+                </Style>
+                <Style Selector="^ /template/ Thumb">
+                    <Setter Property="Background" Value="{lmr:BackdropForeground ResourceKey=SliderThumbBackgroundDisabled}" />
+                </Style>
+            </Style>
+        </Style>
+        <Style Selector="Button#ZoomModeButton">
+            <Setter Property="ToolTip.Tip" Value="{Binding Photo_FitToWindow, Source={x:Static strings:LocalizedStrings.Instance}}" />
+            <Style Selector="^ Path">
+                <Setter Property="Data" Value="{StaticResource IconPhotoFitWindow}" />
+            </Style>
+        </Style>
+        <Style Selector="Button#RawModeButton">
+            <Setter Property="ToolTip.Tip" Value="{Binding Photo_ShowRaw, Source={x:Static strings:LocalizedStrings.Instance}}" />
+        </Style>
+        <Style Selector="Button#RawModeButton.raw">
+            <Setter Property="ToolTip.Tip" Value="{Binding Photo_ShowEmbeddedJpeg, Source={x:Static strings:LocalizedStrings.Instance}}" />
+        </Style>
+        <Style Selector="Button#ZoomModeButton.fit">
+            <Setter Property="ToolTip.Tip" Value="{Binding Photo_ActualSize, Source={x:Static strings:LocalizedStrings.Instance}}" />
+            <Style Selector="^ Path">
+                <Setter Property="Data" Value="{StaticResource IconActualSize}" />
+            </Style>
+        </Style>
+        <Style Selector="Border.toolbarSeparator">
+            <Setter Property="Width" Value="1" />
+            <Setter Property="Height" Value="20" />
+            <Setter Property="Margin" Value="4,0" />
+            <Setter Property="Background" Value="#30FFFFFF" />
+        </Style>
+        <Style Selector="Border#Toolbar.compact :is(Control).zoomDetail">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Border#Toolbar.small StackPanel#ToolbarButtons > :is(Button)">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Padding" Value="5,8" />
+        </Style>
+        <Style Selector="Border#Toolbar.tight StackPanel#ToolbarButtons > :is(Button)">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Padding" Value="2,8" />
+        </Style>
+        <Style Selector="Border#Toolbar.liquidGlass">
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="BorderBrush" Value="{x:Null}" />
+            <Style Selector="^ lmr|BackdropBorder#ToolbarBackdrop">
+                <Setter Property="CornerRadius" Value="999" />
+            </Style>
+            <Style Selector="^ StackPanel#ToolbarButtons > :is(Button)">
+                <Setter Property="CornerRadius" Value="999" />
+            </Style>
+        </Style>
+        <Style Selector="Border#TitleBar.liquidGlass Button:pointerover /template/ ContentPresenter, Border#Toolbar.liquidGlass StackPanel#ToolbarButtons > :is(Button):pointerover /template/ ContentPresenter, Border#TitleBar.liquidGlass Button:pressed /template/ ContentPresenter, Border#Toolbar.liquidGlass StackPanel#ToolbarButtons > :is(Button):pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="#55000000" />
+        </Style>
+        <Style Selector="Button.photoThumbnail">
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="BorderBrush" Value="#50FFFFFF" />
+            <Setter Property="Background" Value="#CC202020" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="Button.photoThumbnail.selected">
+            <Setter Property="BorderBrush" Value="White" />
+        </Style>
+        <Style Selector="Button.photoThumbnail:pointerover /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="White" />
+            <Setter Property="Background" Value="#CC303030" />
+        </Style>
+        <Style Selector="TextBlock.photoShortcutKey">
+            <Setter Property="Width" Value="132" />
+            <Setter Property="FontFamily" Value="Consolas,Menlo,DejaVu Sans Mono,monospace" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="#B0FFFFFF" />
+        </Style>
+        <Style Selector="TextBlock.photoShortcutAction">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="StackPanel.photoShortcutColumn">
+            <Setter Property="Spacing" Value="8" />
+        </Style>
+    </UserControl.Styles>
+
+    <!--
+        Always dark, like the video player: a photo is judged against what surrounds it, and a
+        light frame around a picture shifts how its own tones read.
+    -->
+    <Grid x:Name="Stage" Background="Transparent">
+        <!-- GetBackPreviewMargin keeps this inset linked to ShellView's content reservations. -->
+        <ContentControl x:Name="BackPreview" IsHitTestVisible="False" />
+        <Border x:Name="DismissBackdrop" Background="#FF101010" />
+        <Grid.ContextFlyout>
+            <MenuFlyout>
+                <MenuItem Header="{Binding Photo_Zoom, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <MenuItem Header="{Binding Photo_ZoomIn, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding ZoomInCommand}" />
+                    <MenuItem Header="{Binding Photo_ZoomOut, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding ZoomOutCommand}" />
+                    <MenuItem Header="{Binding Photo_ActualSize, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding ZoomToActualSizeCommand}" />
+                    <MenuItem Header="{Binding Photo_FitToWindow, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding ZoomToFitCommand}" />
+                </MenuItem>
+                <MenuItem Header="{Binding Photo_Rotate, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <MenuItem Header="{Binding Photo_Rotate90, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding RotateCommand}"
+                              CommandParameter="90" />
+                    <MenuItem Header="{Binding Photo_Rotate180, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding RotateCommand}"
+                              CommandParameter="180" />
+                    <MenuItem Header="{Binding Photo_Rotate270, Source={x:Static strings:LocalizedStrings.Instance}}"
+                              Command="{Binding RotateCommand}"
+                              CommandParameter="270" />
+                </MenuItem>
+                <MenuItem Header="{Binding Common_Copy, Source={x:Static strings:LocalizedStrings.Instance}}"
+                          Command="{Binding CopyImageCommand}" />
+                <MenuItem Header="{Binding Photo_CopyPath, Source={x:Static strings:LocalizedStrings.Instance}}"
+                          Command="{Binding CopyPathCommand}" />
+                <Separator />
+                <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                          Command="{Binding OpenContainingFolderCommand}"
+                          IsVisible="{Binding CanRevealInFileManager}" />
+                <MenuItem Header="{Binding Photo_OpenWith, Source={x:Static strings:LocalizedStrings.Instance}}"
+                          Command="{Binding OpenWithCommand}"
+                          IsVisible="{Binding CanOpenWith}" />
+                <MenuItem Header="{Binding Photo_Share, Source={x:Static strings:LocalizedStrings.Instance}}"
+                          Command="{Binding ShareCommand}"
+                          IsVisible="{Binding CanShare}" />
+                <Separator />
+                <MenuItem Header="{Binding Common_Properties, Source={x:Static strings:LocalizedStrings.Instance}}"
+                          Command="{Binding PropertiesCommand}" />
+            </MenuFlyout>
+        </Grid.ContextFlyout>
+
+        <video:PhotoView x:Name="Photo"
+                         SourceKey="{Binding NavigationParameter}"
+                         Source="{Binding Image}"
+                         PreviewSource="{Binding Preview.Image}"
+                         PreviewNaturalSize="{Binding NaturalSize}"
+                         PreviousPreviewSource="{Binding PreviousPreview.Image}"
+                         NextPreviewSource="{Binding NextPreview.Image}"
+                         PreviousNaturalSize="{Binding PreviousNaturalSize}"
+                         NextNaturalSize="{Binding NextNaturalSize}"
+                         Rotation="{Binding Rotation}"
+                         EnableHdrPassthrough="{Binding EnableHdrPassthrough}"
+                         EnableGainMap="{Binding EnableGainMap}"
+                         ToneMapping="{Binding ToneMapping}"
+                         DisplayPanelBitDepth="{Binding DisplayPanelBitDepth}" />
+
+        <ProgressBar IsIndeterminate="{Binding IsLoading}"
+                     Width="120"
+                     Height="4"
+                     VerticalAlignment="Center"
+                     HorizontalAlignment="Center"
+                     IsVisible="{Binding IsLoading}" />
+
+        <StackPanel VerticalAlignment="Center"
+                    HorizontalAlignment="Center"
+                    Spacing="8"
+                    MaxWidth="420"
+                    IsVisible="{Binding HasFailed}">
+            <TextBlock Text="{Binding Photo_LoadFailed, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       Foreground="White"
+                       FontSize="16"
+                       HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding Failure}"
+                       Foreground="#B0FFFFFF"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center" />
+        </StackPanel>
+
+        <!-- The same step the sideways swipe makes, for pointers that have nothing to swipe with. -->
+        <lmr:BackdropBorder Classes="photoStep"
+                                 HorizontalAlignment="Left"
+                                 IsVisible="{Binding ShowPreviousButton}">
+            <Button x:Name="PreviousButton"
+                    Classes="photo step"
+                    HorizontalAlignment="Left"
+                    Command="{Binding PreviousCommand}"
+                    IsVisible="{Binding ShowPreviousButton}"
+                    ToolTip.Tip="{Binding Photo_Previous, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <Viewbox Width="22" Height="22">
+                    <Path Data="{StaticResource IconChevronLeft}" Fill="{lmr:BackdropForeground}" />
+                </Viewbox>
+            </Button>
+        </lmr:BackdropBorder>
+
+        <lmr:BackdropBorder Classes="photoStep"
+                                 HorizontalAlignment="Right"
+                                 IsVisible="{Binding ShowNextButton}">
+            <Button x:Name="NextButton"
+                    Classes="photo step"
+                    HorizontalAlignment="Right"
+                    Command="{Binding NextCommand}"
+                    IsVisible="{Binding ShowNextButton}"
+                    ToolTip.Tip="{Binding Photo_Next, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <Viewbox Width="22" Height="22">
+                    <Path Data="{StaticResource IconChevronRight}" Fill="{lmr:BackdropForeground}" />
+                </Viewbox>
+            </Button>
+        </lmr:BackdropBorder>
+
+        <Border x:Name="TitleBar"
+                Classes.liquidGlass="{DynamicResource AppIsContentLiquidGlass}"
+                Classes.apple="{DynamicResource AppIsAppleChrome}"
+                VerticalAlignment="Top"
+                HorizontalAlignment="Stretch"
+                Padding="{Binding $self.(controls:ShellChrome.WindowControlsInset)}"
+                IsVisible="{Binding AreControlsVisible}">
+            <Panel>
+                <lmr:BackdropBorder x:Name="TitleBackdrop"
+                                         IsHitTestVisible="False"
+                                         TintColor="#50000000" />
+                <Grid x:Name="TitleContent" ColumnDefinitions="Auto,*,Auto,Auto">
+                    <lmr:BackdropBorder Grid.Column="0"
+                                             Classes="photoHeaderGlass"
+                                             Margin="0,0,8,0"
+                                             IsVisible="{Binding ShowBackButton}">
+                        <Button Classes="icon"
+                                Command="{Binding BackCommand}"
+                                AutomationProperties.Name="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                ToolTip.Tip="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox Width="20" Height="20">
+                                <Path Data="{StaticResource IconChevronLeft}"
+                                      Stretch="Uniform"
+                                      Fill="{lmr:BackdropForeground}" />
+                            </Viewbox>
+                        </Button>
+                    </lmr:BackdropBorder>
+                    <lmr:BackdropBorder Grid.Column="1"
+                                             x:Name="FileNameBackdrop"
+                                             Classes="photoHeaderGlass photoHeaderText">
+                        <TextBlock Text="{Binding FileName}"
+                                   Foreground="{lmr:BackdropForeground}"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                    </lmr:BackdropBorder>
+                    <lmr:BackdropBorder Grid.Column="2"
+                                             Classes="photoHeaderGlass photoHeaderText"
+                                             Margin="8,0,0,0"
+                                             MaxWidth="140"
+                                             IsVisible="{Binding Description, Converter={x:Static converters:StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding Description}"
+                                   Foreground="{lmr:BackdropForeground Color=#B0FFFFFF}"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                    </lmr:BackdropBorder>
+                    <lmr:BackdropBorder Grid.Column="3"
+                                             Classes="photoHeaderGlass"
+                                             Margin="8,0,0,0"
+                                             IsVisible="{Binding CanOpenInNewWindow}">
+                        <Button Classes="icon"
+                                Command="{Binding OpenInNewWindowCommand}"
+                                AutomationProperties.Name="{Binding Common_OpenInNewWindow, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                ToolTip.Tip="{Binding Common_OpenInNewWindow, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox Width="20" Height="20">
+                                <Path Data="{StaticResource IconOpenInNewWindow}"
+                                      Fill="{lmr:BackdropForeground}" />
+                            </Viewbox>
+                        </Button>
+                    </lmr:BackdropBorder>
+                </Grid>
+            </Panel>
+        </Border>
+
+        <controls:PhotoPreviewStrip x:Name="PreviewStrip"
+                        Height="64"
+                        MaxWidth="900"
+                        VerticalAlignment="Bottom"
+                        Margin="8,0,8,72"
+                        IsVisible="{Binding AreControlsVisible}"
+                        AutomationProperties.Name="{Binding Nav_PhotoViewer, Source={x:Static strings:LocalizedStrings.Instance}}" />
+
+        <Border x:Name="Toolbar"
+                Classes.liquidGlass="{DynamicResource AppIsContentLiquidGlass}"
+                VerticalAlignment="Bottom"
+                HorizontalAlignment="Center"
+                Margin="8,0,8,16"
+                Background="Transparent"
+                BorderThickness="1"
+                BoxShadow="0 4 16 0 #60000000"
+                IsVisible="{Binding AreControlsVisible}">
+            <lmr:BackdropBorder x:Name="ToolbarBackdrop"
+                                     Padding="6"
+                                     BackdropStyle="{DynamicResource AppContentBackdropStyle}"
+                                     FallbackColor="#E6222222"
+                                     TintColor="#50000000">
+                <StackPanel x:Name="ToolbarButtons" Orientation="Horizontal">
+                    <Button x:Name="MoreButton"
+                            Click="OnMoreClicked"
+                            ToolTip.Tip="{Binding Shell_More, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Path Data="{StaticResource IconMore}" Height="5" VerticalAlignment="Center" />
+                    </Button>
+                    <Button Command="{Binding PropertiesCommand}"
+                            ToolTip.Tip="{Binding Common_Properties, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Path Data="{StaticResource IconInformation}" />
+                    </Button>
+                    <Button Command="{Binding CopyImageCommand}"
+                            ToolTip.Tip="{Binding Common_Copy, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Path Data="{StaticResource IconCopy}" />
+                    </Button>
+                    <Border Classes="toolbarSeparator" />
+                    <Button Command="{Binding RotateCommand}"
+                            CommandParameter="270"
+                            IsEnabled="{Binding HasImage}"
+                            ToolTip.Tip="{Binding Photo_Rotate270, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Path Data="{StaticResource IconRotateLeft}" />
+                    </Button>
+                    <Button Command="{Binding RotateCommand}"
+                            CommandParameter="90"
+                            IsEnabled="{Binding HasImage}"
+                            ToolTip.Tip="{Binding Photo_Rotate90, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Path Data="{StaticResource IconRotateRight}" />
+                    </Button>
+                    <Border Classes="toolbarSeparator" />
+                    <Button x:Name="RawModeButton"
+                            Classes.raw="{Binding IsRawRendering}"
+                            Command="{Binding ToggleRawRenderingCommand}"
+                            IsVisible="{Binding CanSwitchRawRendering}">
+                        <Viewbox Width="20" Height="20">
+                            <Border Width="32" Height="20"
+                                    CornerRadius="1.5"
+                                    BorderThickness="1.5"
+                                    BorderBrush="{lmr:BackdropForeground}">
+                                <Grid>
+                                    <TextBlock Text="JPEG" FontSize="9" FontWeight="Bold"
+                                               Foreground="{lmr:BackdropForeground}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               IsVisible="{Binding !IsRawRendering}" />
+                                    <TextBlock Text="RAW" FontSize="9" FontWeight="Bold"
+                                               Foreground="{lmr:BackdropForeground}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               IsVisible="{Binding IsRawRendering}" />
+                                </Grid>
+                            </Border>
+                        </Viewbox>
+                    </Button>
+                    <ToggleButton x:Name="HdrToggle"
+                                  IsChecked="{Binding EnableGainMap, Mode=TwoWay}"
+                                  ToolTip.Tip="{Binding Photo_Hdr, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <ToggleButton.Theme>
+                            <ControlTheme TargetType="ToggleButton" BasedOn="{StaticResource {x:Type Button}}" />
+                        </ToggleButton.Theme>
+                        <ToggleButton.IsVisible>
+                            <MultiBinding Converter="{x:Static converters:BoolConverters.And}">
+                                <Binding Path="HasGainMap" />
+                                <Binding Path="EnableHdrPassthrough" />
+                                <Binding Path="#Photo.IsExtendedRangeOutput" />
+                                <Binding Path="#Photo.SupportsHdrOutput" />
+                            </MultiBinding>
+                        </ToggleButton.IsVisible>
+                        <Viewbox Width="20" Height="20">
+                            <Grid Width="24" Height="16">
+                                <Path Data="{StaticResource IconHdrOn}" Width="24" Height="16" IsVisible="{Binding #HdrToggle.IsChecked}" />
+                                <Path Data="{StaticResource IconHdrOff}" Width="24" Height="16" IsVisible="{Binding !#HdrToggle.IsChecked}" />
+                            </Grid>
+                        </Viewbox>
+                    </ToggleButton>
+                    <Button x:Name="HdrButton" IsVisible="False"
+                            ToolTip.Tip="{Binding Photo_ToneMapping, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Button.Flyout>
+                            <Flyout Placement="Top" Opening="OnHdrFlyoutOpening">
+                                <ScrollViewer x:Name="ToneMappingScroll" HorizontalScrollBarVisibility="Disabled">
+                                    <StackPanel x:Name="ToneMappingContent" Width="340" Spacing="12" Margin="4">
+                                        <StackPanel Spacing="10">
+                                            <TextBlock FontWeight="SemiBold" TextWrapping="Wrap"
+                                                       Text="{Binding Photo_ToneMapping, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                            <TextBlock Text="{Binding Photo_ToneCurve, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                            <ComboBox x:Name="ToneCurveBox" HorizontalAlignment="Stretch" SelectionChanged="OnToneCurveChanged"
+                                                      AutomationProperties.Name="{Binding Photo_ToneCurve, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                <ComboBoxItem Content="{Binding Photo_ToneAutomatic, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                <ComboBoxItem Content="{Binding Photo_ToneSpline, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                <ComboBoxItem Content="BT.2390" />
+                                                <ComboBoxItem Content="BT.2446A" />
+                                            </ComboBox>
+                                            <StackPanel x:Name="ToneParameterRows" Spacing="8" />
+                                            <Button x:Name="ToneResetButton" Click="OnToneResetClicked" HorizontalAlignment="Stretch">
+                                                <TextBlock Text="{Binding Photo_ToneReset, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                            </Button>
+                                            <Button x:Name="ToneSaveButton" Click="OnToneSaveClicked" HorizontalAlignment="Stretch">
+                                                <TextBlock Text="{Binding Photo_ToneSave, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                            </Button>
+                                            <Button x:Name="ToneClearButton" Click="OnToneClearClicked" HorizontalAlignment="Stretch">
+                                                <TextBlock Text="{Binding Photo_ToneClear, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                            </Button>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Flyout>
+                        </Button.Flyout>
+                        <Viewbox Width="20" Height="20">
+                            <Grid Width="24" Height="16">
+                                <Path Data="{StaticResource IconHdrOn}" Width="24" Height="16" />
+                            </Grid>
+                        </Viewbox>
+                    </Button>
+                    <Button x:Name="ZoomModeButton"
+                            Click="OnZoomModeClicked"
+                            IsEnabled="{Binding HasImage}">
+                        <Viewbox Width="20" Height="20">
+                            <Path Width="24" Height="16" />
+                        </Viewbox>
+                    </Button>
+                    <TextBlock x:Name="ZoomPercentageText"
+                               Classes="zoomDetail"
+                               Width="52"
+                               FontSize="12"
+                               Foreground="{lmr:BackdropForeground Color=#D8FFFFFF}"
+                               TextAlignment="Center"
+                               VerticalAlignment="Center" />
+                    <Button x:Name="ZoomOutButton"
+                            Command="{Binding ZoomOutCommand}"
+                            ToolTip.Tip="{Binding Photo_ZoomOut, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Path Data="{StaticResource IconZoomOut}" />
+                    </Button>
+                    <Slider x:Name="ZoomSlider"
+                            Classes="zoomDetail"
+                            Width="120"
+                            Height="36"
+                            Margin="4,0"
+                            Minimum="0"
+                            Maximum="6"
+                            SmallChange="0.125"
+                            LargeChange="0.5"
+                            IsEnabled="{Binding HasImage}"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{Binding Photo_Zoom, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            ToolTip.Tip="{Binding #ZoomPercentageText.Text}">
+                        <Slider.Resources>
+                            <GridLength x:Key="SliderPreContentMargin">8</GridLength>
+                            <GridLength x:Key="SliderPostContentMargin">8</GridLength>
+                            <SolidColorBrush x:Key="SliderTrackFill" Color="#80FFFFFF" />
+                            <SolidColorBrush x:Key="SliderTrackFillPointerOver" Color="#A0FFFFFF" />
+                            <SolidColorBrush x:Key="SliderTrackFillPressed" Color="#A0FFFFFF" />
+                            <SolidColorBrush x:Key="SliderTrackFillDisabled" Color="#40FFFFFF" />
+                            <SolidColorBrush x:Key="SliderTrackValueFill" Color="White" />
+                            <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="White" />
+                            <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#D8FFFFFF" />
+                            <SolidColorBrush x:Key="SliderTrackValueFillDisabled" Color="#60FFFFFF" />
+                            <SolidColorBrush x:Key="SliderThumbBackground" Color="White" />
+                            <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="White" />
+                            <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#D8FFFFFF" />
+                            <SolidColorBrush x:Key="SliderThumbBackgroundDisabled" Color="#60FFFFFF" />
+                        </Slider.Resources>
+                    </Slider>
+                    <Button x:Name="ZoomInButton"
+                            Command="{Binding ZoomInCommand}"
+                            ToolTip.Tip="{Binding Photo_ZoomIn, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Path Data="{StaticResource IconZoomIn}" />
+                    </Button>
+                    <Border Classes="toolbarSeparator zoomDetail" />
+                    <Button Command="{Binding ToggleFullScreenCommand}"
+                            ToolTip.Tip="{Binding VideoPlayer_FullScreen, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Grid Width="20" Height="20">
+                            <Path Data="{StaticResource IconFullScreen}" IsVisible="{Binding !IsFullScreen}" />
+                            <Path Data="{StaticResource IconExitFullScreen}" IsVisible="{Binding IsFullScreen}" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
+            </lmr:BackdropBorder>
+        </Border>
+
+        <Border x:Name="PhotoShortcutsPanel"
+                IsVisible="False"
+                Background="#B0000000"
+                Tapped="OnPhotoShortcutsBackgroundTapped">
+            <Border HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Margin="24"
+                    MaxWidth="560"
+                    Padding="18,12,18,16"
+                    CornerRadius="8"
+                    Background="#F0101010"
+                    BorderBrush="#40FFFFFF"
+                    BorderThickness="1">
+                <Grid RowDefinitions="Auto,*">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+                        <TextBlock Grid.Column="0"
+                                   VerticalAlignment="Center"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="White"
+                                   Text="{Binding VideoPlayer_Shortcuts, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                        <Button Grid.Column="1"
+                                Classes="photo"
+                                Width="32"
+                                Height="32"
+                                MinWidth="0"
+                                MinHeight="0"
+                                Padding="8"
+                                Click="OnPhotoShortcutsCloseClick"
+                                ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconClose}" Fill="White" />
+                            </Viewbox>
+                        </Button>
+                    </Grid>
+                    <ScrollViewer Grid.Row="1" MaxHeight="380" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Classes="photoShortcutColumn">
+                            <DockPanel>
+                                <TextBlock Classes="photoShortcutKey" Text="Ctrl + =" />
+                                <TextBlock Classes="photoShortcutAction" Text="{Binding Photo_ZoomIn, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock Classes="photoShortcutKey" Text="Ctrl + -" />
+                                <TextBlock Classes="photoShortcutAction" Text="{Binding Photo_ZoomOut, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock Classes="photoShortcutKey" Text="←  ↑  →  ↓" />
+                                <TextBlock Classes="photoShortcutAction" Text="{Binding Photo_ShortcutNavigateOrPan, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock Classes="photoShortcutKey" Text="F  F11" />
+                                <TextBlock Classes="photoShortcutAction" Text="{Binding VideoPlayer_FullScreen, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock Classes="photoShortcutKey" Text="Esc" />
+                                <TextBlock Classes="photoShortcutAction" Text="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock Classes="photoShortcutKey" Text="?" />
+                                <TextBlock Classes="photoShortcutAction" Text="{Binding VideoPlayer_ShortcutHelp, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            </DockPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Border>
+    </Grid>
+</UserControl>

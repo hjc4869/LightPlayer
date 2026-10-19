@@ -1,0 +1,156 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             xmlns:views="using:LightStudio.LightPlayer.Views.Pages"
+             x:Class="LightStudio.LightPlayer.Views.Pages.CustomFiltersSettingsView"
+             x:DataType="vm:VideoSettingsSectionViewModel">
+      <StackPanel Spacing="10">
+      <Grid ColumnDefinitions="*,Auto"
+          ColumnSpacing="12"
+          Margin="0,0,0,4">
+        <StackPanel Grid.Column="0" Spacing="4">
+            <TextBlock Text="{Binding CustomFiltersHeader}"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Text="{Binding CustomFiltersDescription}"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            <Button Classes="link"
+                    HorizontalAlignment="Left"
+                    FontSize="13"
+                    Content="{Binding FindShaderPackagesText}"
+                    Click="OnFindShaderPackagesClick" />
+        </StackPanel>
+        <Button Grid.Column="1"
+                Classes="icon"
+                Margin="0,0,18,0"
+                VerticalAlignment="Center"
+                IsVisible="{Binding CanImportShaderPackages}"
+                ToolTip.Tip="{Binding ImportFilterText}"
+                Click="OnImportShaderPackageClick">
+            <Viewbox Width="16" Height="16">
+                <Path Data="{StaticResource IconAdd}"
+                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+            </Viewbox>
+        </Button>
+    </Grid>
+
+    <TextBlock Text="{Binding ShaderPackageStatus}"
+               IsVisible="{Binding HasShaderPackageStatus}"
+               Margin="2,-2,2,2"
+               FontSize="12"
+               TextWrapping="Wrap"
+               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+
+    <TextBlock Text="{Binding NoCustomFiltersText}"
+               IsVisible="{Binding !HasShaderPackages}"
+               Margin="2,6,2,0"
+               FontSize="13"
+               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+
+    <ItemsControl ItemsSource="{Binding ShaderPackages}">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:VideoShaderPackageRowViewModel">
+                <Border Classes="settingsGroup"
+                        Margin="0,0,0,8">
+                    <StackPanel>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="16,12">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding DisplayName}"
+                                               Classes="settingName"
+                                               FontSize="14"
+                                               TextWrapping="Wrap" />
+                                </Grid>
+                                <TextBlock Text="{Binding Description}"
+                                           Classes="settingDescription"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Details}"
+                                           Classes="settingDescription"
+                                           FontSize="11"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="4"
+                                        VerticalAlignment="Center">
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding PriorityText}"
+                                           FontSize="11"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                <Button Classes="icon"
+                                        ToolTip.Tip="{Binding MoveUpText}"
+                                        Command="{Binding MoveUpCommand}">
+                                    <Viewbox Width="16" Height="16">
+                                        <Path Data="{StaticResource IconChevronUp}"
+                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                    </Viewbox>
+                                </Button>
+                                <Button Classes="icon"
+                                        ToolTip.Tip="{Binding MoveDownText}"
+                                        Command="{Binding MoveDownCommand}">
+                                    <Viewbox Width="16" Height="16">
+                                        <Path Data="{StaticResource IconChevronDown}"
+                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                    </Viewbox>
+                                </Button>
+                                <Button Classes="icon"
+                                        ToolTip.Tip="{Binding DeleteText}"
+                                        Command="{Binding RemoveCommand}">
+                                    <Viewbox Width="16" Height="16">
+                                        <Path Data="{StaticResource IconDelete}"
+                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                    </Viewbox>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Classes="settingsDivider" />
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="16,8">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="{Binding EnabledText}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          OnContent=""
+                                          OffContent=""
+                                          IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
+                        </Grid>
+
+                        <Border Classes="settingsDivider" />
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="16,8">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="{Binding MaximumResolutionText}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                <TextBlock Text="{Binding MaximumResolutionDescription}"
+                                           Classes="settingDescription"
+                                           FontSize="11"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                            <controls:NumberEntry Grid.Column="1"
+                                                  Width="150"
+                                                  Minimum="0"
+                                                  Maximum="{Binding MaximumResolutionLimit}"
+                                                  Increment="120"
+                                                  FormatString="0"
+                                                  Number="{Binding MaximumSourceResolution, Mode=TwoWay}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+    </StackPanel>
+</UserControl>

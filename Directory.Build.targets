@@ -1,0 +1,8 @@
+<Project>
+  <!--
+    Shared build logic imported by every project in the repository. The FFmpeg targets are
+    inert unless a project opts in with <BundleFfmpeg> / <BundleFfmpegCli>.
+  -->
+  <Import Project="$(MSBuildThisFileDirectory)build\Ffmpeg.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)tools/NativeBindings/NativeBindings.targets" />
+</Project>

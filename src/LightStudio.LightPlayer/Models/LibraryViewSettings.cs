@@ -11,19 +11,55 @@ public enum LibraryItemKind
     Song,
     Album,
     Artist,
+
+    /// <summary>The media library of photos and videos.</summary>
+    Video,
+}
+
+public enum LibraryGroupField
+{
+    Name,
+    Artist,
+    Album,
+    CreationMonth,
+    CreationDay,
+    CreationYear,
+    Country,
+    State,
+    City,
 }
 
 /// <summary>
-/// The persisted sort field, direction, and grouping toggle for a single
-/// browse page.
+/// The persisted sorting and grouping settings for a single browse page.
 /// </summary>
-public sealed record LibraryViewSettings(LibrarySortField Sort, bool Ascending, bool GroupingEnabled)
+public sealed record LibraryViewSettings(LibrarySortField Sort, bool Ascending)
 {
+    public bool GroupingEnabled { get; init; }
+
+    public LibraryGroupField GroupBy { get; init; }
+
     public static LibraryViewSettings Default(LibraryItemKind kind) => kind switch
     {
-        LibraryItemKind.Album => new LibraryViewSettings(LibrarySortField.AlbumName, true, false),
-        LibraryItemKind.Artist => new LibraryViewSettings(LibrarySortField.ArtistName, true, false),
-        _ => new LibraryViewSettings(LibrarySortField.Title, true, false),
+        LibraryItemKind.Album => new LibraryViewSettings(LibrarySortField.AlbumName, true),
+        LibraryItemKind.Artist => new LibraryViewSettings(LibrarySortField.ArtistName, true),
+        LibraryItemKind.Video => new LibraryViewSettings(LibrarySortField.Title, true)
+        {
+            GroupBy = LibraryGroupField.CreationMonth,
+        },
+        _ => new LibraryViewSettings(LibrarySortField.Title, true),
+    };
+
+    public static IReadOnlyList<LibraryGroupField> SupportedGroups(LibraryItemKind kind) => kind switch
+    {
+        LibraryItemKind.Song => [LibraryGroupField.Name, LibraryGroupField.Artist, LibraryGroupField.Album],
+        LibraryItemKind.Album => [LibraryGroupField.Name, LibraryGroupField.Artist],
+        LibraryItemKind.Artist => [LibraryGroupField.Name],
+        LibraryItemKind.Video =>
+        [
+            LibraryGroupField.CreationDay, LibraryGroupField.CreationMonth, LibraryGroupField.CreationYear,
+            LibraryGroupField.Country, LibraryGroupField.State, LibraryGroupField.City,
+        ],
+        _ => [],
     };
 
     /// <summary>
@@ -42,6 +78,15 @@ public sealed record LibraryViewSettings(LibrarySortField Sort, bool Ascending, 
         [
             LibrarySortField.ArtistName,
         ],
+
+        LibraryItemKind.Video =>
+        [
+            LibrarySortField.Title,
+            LibrarySortField.DateAdded,
+            LibrarySortField.Duration,
+            LibrarySortField.FileType,
+            LibrarySortField.FileSize,
+        ],
         _ =>
         [
             LibrarySortField.Title,
@@ -50,6 +95,7 @@ public sealed record LibraryViewSettings(LibrarySortField Sort, bool Ascending, 
             LibrarySortField.Genre,
             LibrarySortField.Year,
             LibrarySortField.DateAdded,
+            LibrarySortField.Duration,
         ],
     };
 
@@ -59,8 +105,10 @@ public sealed record LibraryViewSettings(LibrarySortField Sort, bool Ascending, 
     /// </summary>
     public LibraryViewSettings Normalized(LibraryItemKind kind)
     {
-        return SupportedSorts(kind).Contains(Sort)
-            ? this
-            : this with { Sort = Default(kind).Sort };
+        return this with
+        {
+            Sort = SupportedSorts(kind).Contains(Sort) ? Sort : Default(kind).Sort,
+            GroupBy = SupportedGroups(kind).Contains(GroupBy) ? GroupBy : Default(kind).GroupBy,
+        };
     }
 }

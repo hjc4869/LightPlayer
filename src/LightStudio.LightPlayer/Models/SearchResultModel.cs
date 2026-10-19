@@ -1,3 +1,4 @@
+using System;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -8,6 +9,7 @@ public enum SearchResultKind
     Song,
     Album,
     Artist,
+    Video,
 }
 
 /// <summary>
@@ -21,6 +23,9 @@ public sealed partial class SearchResultModel : ObservableObject
     /// </summary>
     [ObservableProperty]
     private IImage? image;
+
+    partial void OnImageChanged(IImage? oldValue, IImage? newValue) =>
+        (oldValue as IDisposable)?.Dispose();
 
     public SearchResultModel(string title, string subtitle, SearchResultKind kind, ThumbnailKind thumbnailKind = ThumbnailKind.Album, bool hasThumbnail = false)
     {

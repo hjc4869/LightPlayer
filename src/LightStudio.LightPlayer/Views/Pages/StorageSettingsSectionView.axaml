@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="360"
+             x:Class="LightStudio.LightPlayer.Views.Pages.StorageSettingsSectionView"
+             x:DataType="vm:StorageSettingsSectionViewModel">
+    <ItemsControl ItemsSource="{Binding Items}">
+        <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:StorageCacheItemViewModel">
+                <StackPanel>
+                    <Border Classes="settingsDividedRow">
+                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Header}"
+                                           Classes="settingName"
+                                           FontSize="14"
+                                           TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Description}"
+                                           Classes="settingDescription"
+                                           FontSize="12"
+                                           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1"
+                                        Orientation="Horizontal"
+                                        Spacing="10"
+                                        Margin="16,0,0,0"
+                                        VerticalAlignment="Center">
+                                <TextBlock Text="{Binding UsageText}"
+                                           FontSize="12"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                <Button Classes="icon"
+                                        ToolTip.Tip="{Binding StorageSettings_Clear, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                        Command="{Binding ClearCommand}">
+                                    <Viewbox Width="16" Height="16">
+                                        <Path Data="{StaticResource IconDelete}"
+                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                    </Viewbox>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Classes="settingsDividedRow"
+                            IsVisible="{Binding HasLimit}">
+                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding StorageSettings_LimitHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                           Classes="settingName"
+                                           FontSize="14" />
+                                <TextBlock Text="{Binding StorageSettings_LimitDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                           Classes="settingDescription"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                            <controls:NumberEntry Width="150"
+                                                  Grid.Column="1"
+                                                  Margin="16,0,0,0"
+                                                  Minimum="{Binding MinimumLimitMebibytes}"
+                                                  Maximum="{Binding MaximumLimitMebibytes}"
+                                                  Increment="64"
+                                                  FormatString="0"
+                                                  Number="{Binding LimitMebibytes, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

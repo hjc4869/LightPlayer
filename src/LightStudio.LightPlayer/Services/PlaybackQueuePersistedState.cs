@@ -14,7 +14,8 @@ public sealed record PlaybackQueueItemState(
     string Artist,
     string Album,
     long DurationTicks,
-    int? StartTimeMs = null);
+    int? StartTimeMs = null,
+    string SourceId = "local");
 
 /// <summary>
 /// Serializable snapshot of the now-playing queue persisted across launches:

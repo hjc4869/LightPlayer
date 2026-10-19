@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Animation.Easings;
 using Avalonia.Media;
-using Avalonia.Styling;
 
 namespace LightStudio.LightPlayer.Animations;
 
@@ -35,96 +33,44 @@ public sealed class DrillInPageTransition : IPageTransition
     /// <summary>Easing applied to both the fade and the scale.</summary>
     public Easing Easing { get; set; } = new CubicEaseOut();
 
-    public async Task Start(Visual? from, Visual? to, bool forward, CancellationToken cancellationToken)
+    public Task Start(Visual? from, Visual? to, bool forward, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested)
-        {
-            return;
-        }
-
-        var tasks = new List<Task>();
-
-        if (from is not null)
-        {
-            var exitScale = forward ? ExitScale : EnterScale;
-            tasks.Add(AnimateAsync(from, fromOpacity: 1d, toOpacity: 0d, fromScale: 1d, toScale: exitScale, cancellationToken));
-        }
-
-        if (to is not null)
-        {
-            to.IsVisible = true;
-            var enterScale = forward ? EnterScale : ExitScale;
-            tasks.Add(AnimateAsync(to, fromOpacity: 0d, toOpacity: 1d, fromScale: enterScale, toScale: 1d, cancellationToken));
-        }
-
-        await Task.WhenAll(tasks);
-
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return;
-        }
-
-        // Leave the visuals in a clean state: hide the page we left and drop the temporary
-        // render transforms so nothing lingers at animation priority for the next navigation.
-        if (from is not null)
-        {
-            from.IsVisible = false;
-            from.RenderTransform = null;
-        }
-
-        if (to is not null)
-        {
-            to.RenderTransform = null;
-        }
+            return Task.CompletedTask;
+        return Begin(from, to, forward).RunAsync(cancellationToken);
     }
 
-    private Task AnimateAsync(Visual visual, double fromOpacity, double toOpacity, double fromScale, double toScale, CancellationToken cancellationToken)
+    internal PageTransitionSession Begin(Visual? from, Visual? to, bool forward)
     {
-        // Scale from the centre so the page grows/shrinks about its middle rather than the corner.
-        visual.RenderTransformOrigin = RelativePoint.Center;
-
-        var fade = new Animation
+        double exitScale = forward ? ExitScale : EnterScale;
+        double enterScale = forward ? EnterScale : ExitScale;
+        var outgoingTransform = new ScaleTransform();
+        var incomingTransform = new ScaleTransform();
+        var outgoing = from is null ? null : new PageTransitionSession.VisualState(from, outgoingTransform, centered: true);
+        var incoming = to is null ? null : new PageTransitionSession.VisualState(to, incomingTransform, centered: true);
+        var session = new PageTransitionSession(Duration, Easing, progress =>
         {
-            Duration = Duration,
-            Easing = Easing,
-            FillMode = FillMode.Forward,
-            Children =
-            {
-                new KeyFrame { Cue = new Cue(0d), Setters = { new Setter(Visual.OpacityProperty, fromOpacity) } },
-                new KeyFrame { Cue = new Cue(1d), Setters = { new Setter(Visual.OpacityProperty, toOpacity) } },
-            },
-        };
-
-        var scale = new Animation
+            outgoingTransform.ScaleX = outgoingTransform.ScaleY = 1 + (exitScale - 1) * progress;
+            incomingTransform.ScaleX = incomingTransform.ScaleY = enterScale + (1 - enterScale) * progress;
+            if (outgoing is not null)
+                outgoing.Opacity = outgoing.OriginalOpacity * (1 - progress);
+            if (incoming is not null)
+                incoming.Opacity = incoming.OriginalOpacity * progress;
+        }, commit =>
         {
-            Duration = Duration,
-            Easing = Easing,
-            FillMode = FillMode.Forward,
-            Children =
+            if (commit)
             {
-                new KeyFrame
-                {
-                    Cue = new Cue(0d),
-                    Setters =
-                    {
-                        new Setter(ScaleTransform.ScaleXProperty, fromScale),
-                        new Setter(ScaleTransform.ScaleYProperty, fromScale),
-                    },
-                },
-                new KeyFrame
-                {
-                    Cue = new Cue(1d),
-                    Setters =
-                    {
-                        new Setter(ScaleTransform.ScaleXProperty, toScale),
-                        new Setter(ScaleTransform.ScaleYProperty, toScale),
-                    },
-                },
-            },
-        };
-
-        return Task.WhenAll(
-            fade.RunAsync(visual, cancellationToken),
-            scale.RunAsync(visual, cancellationToken));
+                outgoing?.Complete(false);
+                incoming?.Complete(true);
+            }
+            else
+            {
+                outgoing?.Dispose();
+                incoming?.Dispose();
+            }
+        });
+        session.Observe(from ?? to);
+        session.Update(0);
+        return session;
     }
 }

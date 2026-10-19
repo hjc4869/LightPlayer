@@ -1,39 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-    <Platforms>x64;ARM64</Platforms>
-  </PropertyGroup>
-
-  <!--
-    Configurable FFmpeg.AutoGen bindings version
-    ============================================
-    FFmpeg.AutoGen is ABI-locked to a specific FFmpeg major (it loads the matching
-    libav*.so.<soname>), so the binding version must match the FFmpeg shipped by the
-    target runtime:
-
-      * Default (host / self-provided FFmpeg 8.x)      -> 8.1.0
-      * Flatpak (org.freedesktop.Platform 25.08 ships  -> 7.1.1
-        FFmpeg 7.1.x, i.e. libavcodec.so.61 etc.)
-
-    Override precedence (highest first):
-      1. -p:FFmpegAutoGenVersion=X.Y.Z   (explicit, wins everywhere)
-      2. -p:Flatpak=true                 (selects the 7.1.1 bindings)
-      3. default 8.1.0
-
-    A FFMPEG<major> compilation constant (e.g. FFMPEG8 / FFMPEG7) is emitted so
-    source can guard the rare API differences between FFmpeg majors with #if.
-  -->
-  <PropertyGroup>
-    <Flatpak Condition="'$(Flatpak)' == ''">false</Flatpak>
-    <FFmpegAutoGenVersion Condition="'$(FFmpegAutoGenVersion)' == '' And '$(Flatpak)' == 'true'">7.1.1</FFmpegAutoGenVersion>
-    <FFmpegAutoGenVersion Condition="'$(FFmpegAutoGenVersion)' == ''">8.1.0</FFmpegAutoGenVersion>
-    <DefineConstants>$(DefineConstants);FFMPEG$(FFmpegAutoGenVersion.Split('.')[0])</DefineConstants>
+    <FfmpegApiMajor Condition="'$(FfmpegApiMajor)' == '' and '$(Flatpak)' == 'true'">8</FfmpegApiMajor>
+    <FfmpegApiMajor Condition="'$(FfmpegApiMajor)' == ''">$(LightStudioFfmpegVersion.Split('.')[0])</FfmpegApiMajor>
+    <DefineConstants>$(DefineConstants);FFMPEG$(FfmpegApiMajor)</DefineConstants>
+    <NativeBindingsEnabled>true</NativeBindingsEnabled>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="FFmpeg.AutoGen" Version="$(FFmpegAutoGenVersion)" />
+    <!-- Restore uses this project's own selection; heads that select a package runtime themselves reference the package directly. -->
+    <PackageReference Include="LightStudio.Ffmpeg" GeneratePathProperty="true" Condition="'$(UseFfmpegPackage)' == 'true'" />
+    <ProjectReference Include="..\LightMediaRenderer\LightMediaRenderer.csproj" />
+    <ProjectReference Include="..\LightStudio.Logging\LightStudio.Logging.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\LightMediaRenderer\Software\*.cs" Link="Software\%(Filename)%(Extension)" />
+    <Compile Include="..\LightMediaRenderer\Rendering\VideoColorGamut.cs" Link="Software\VideoColorGamut.cs" />
+  </ItemGroup>
+
+  <!-- The native runtime is selected after this file is evaluated, so its define is added before compilation. -->
+  <Target Name="DefineFfmpegShimTargetPlatform" BeforeTargets="GenerateNativeBindingsManifest;CoreCompile"
+          Condition="$(NativeBindingsRuntime.StartsWith('win-'))">
+    <PropertyGroup>
+      <DefineConstants>$(DefineConstants);WINDOWS</DefineConstants>
+    </PropertyGroup>
+  </Target>
 </Project>

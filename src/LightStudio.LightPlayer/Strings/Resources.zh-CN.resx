@@ -1,0 +1,2128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    Microsoft ResX Schema
+
+    Version 2.0
+
+    The primary goals of this format is to allow a simple XML format
+    that is mostly human readable. The generation and parsing of the
+    various data types are done through the TypeConverter classes
+    associated with the data types.
+
+    Example:
+
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+
+    There are any number of "resheader" rows that contain simple
+    name/value pairs.
+
+    Each data row contains a name, and value. The row also contains a
+    type or mimetype. Type corresponds to a .NET class that support
+    text/value conversion through the TypeConverter architecture.
+    Classes that don't support this are serialized and stored with the
+    mimetype set.
+
+    The mimetype is used for serialized objects, and tells the
+    ResXResourceReader how to depersist the object. This is currently not
+    extensible. For a given mimetype the value must be set accordingly:
+
+    Note - application/x-microsoft.net.object.binary.base64 is the format
+    that the ResXResourceWriter will generate, however the reader can
+    read any of the formats listed below.
+
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="About_GitHubProject" xml:space="preserve">
+    <value>GitHub 项目</value>
+  </data>
+  <data name="About_ExportLogs" xml:space="preserve">
+    <value>导出已保存的日志</value>
+  </data>
+  <data name="About_BrowserDiagnostics" xml:space="preserve">
+    <value>浏览器诊断</value>
+  </data>
+  <data name="About_ResetIndexDatabase" xml:space="preserve">
+    <value>重置索引数据库</value>
+  </data>
+  <data name="About_ResetIndexDatabaseConfirm" xml:space="preserve">
+    <value>Light 播放器将关闭。下次启动应用时将重置媒体库和语义搜索索引。您的设置、播放列表和媒体文件将予以保留。</value>
+  </data>
+  <data name="About_ResetIndexDatabaseManualScan" xml:space="preserve">
+    <value>下次启动后，您需要手动扫描媒体库。</value>
+  </data>
+  <data name="About_ResetAndClose" xml:space="preserve">
+    <value>重置并关闭</value>
+  </data>
+  <data name="About_ResetIndexDatabaseBrowserConfirm" xml:space="preserve">
+    <value>页面将刷新并重置媒体库和语义搜索索引。您的设置、播放列表和媒体文件将予以保留。</value>
+  </data>
+  <data name="About_ResetAndReload" xml:space="preserve">
+    <value>重置并刷新</value>
+  </data>
+  <data name="About_ProductName" xml:space="preserve">
+    <value>Light 播放器</value>
+  </data>
+  <data name="About_Tagline" xml:space="preserve">
+    <value>使用 AvaloniaUI 框架构建的跨平台媒体播放器。</value>
+  </data>
+  <data name="About_VersionFormat" xml:space="preserve">
+    <value>版本 {0} (构建 {1})</value>
+  </data>
+  <data name="Albums_EmptyDescription" xml:space="preserve">
+    <value>添加媒体库目录并扫描以查看专辑列表。</value>
+  </data>
+  <data name="Albums_EmptyHeader" xml:space="preserve">
+    <value>暂无专辑</value>
+  </data>
+  <data name="Albums_Loading" xml:space="preserve">
+    <value>正在加载专辑...</value>
+  </data>
+  <data name="Artists_EmptyDescription" xml:space="preserve">
+    <value>添加媒体库目录并扫描以查看艺术家列表。</value>
+  </data>
+  <data name="Artists_EmptyHeader" xml:space="preserve">
+    <value>暂无艺术家</value>
+  </data>
+  <data name="Artists_Loading" xml:space="preserve">
+    <value>正在加载艺术家...</value>
+  </data>
+  <data name="Common_About" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Common_Add" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="Common_AddToPlaylist" xml:space="preserve">
+    <value>添加到播放列表</value>
+  </data>
+  <data name="Common_AddToQueue" xml:space="preserve">
+    <value>添加到正在播放</value>
+  </data>
+  <data name="Common_AlbumsFormat" xml:space="preserve">
+    <value>{0}张专辑</value>
+  </data>
+  <data name="Common_Back" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Common_Restore" xml:space="preserve">
+    <value>还原</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Common_ColumnAlbum" xml:space="preserve">
+    <value>专辑</value>
+  </data>
+  <data name="Common_ColumnArtist" xml:space="preserve">
+    <value>艺术家</value>
+  </data>
+  <data name="Common_ColumnGenre" xml:space="preserve">
+    <value>流派</value>
+  </data>
+  <data name="Common_ColumnLength" xml:space="preserve">
+    <value>长度</value>
+  </data>
+  <data name="Common_ColumnTitle" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="Common_ColumnYear" xml:space="preserve">
+    <value>年份</value>
+  </data>
+  <data name="Common_Continue" xml:space="preserve">
+    <value>继续</value>
+  </data>
+  <data name="Common_Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="Common_Create" xml:space="preserve">
+    <value>创建</value>
+  </data>
+  <data name="Common_Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Common_Edit" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="Common_GoToAlbum" xml:space="preserve">
+    <value>前往专辑页面</value>
+  </data>
+  <data name="Common_GoToArtist" xml:space="preserve">
+    <value>前往艺术家页面</value>
+  </data>
+  <data name="Common_GoToLocation" xml:space="preserve">
+    <value>前往所在位置</value>
+  </data>
+  <data name="Common_ImportLyrics" xml:space="preserve">
+    <value>导入歌词</value>
+  </data>
+  <data name="Common_ItemsFormat" xml:space="preserve">
+    <value>{0}个项目</value>
+  </data>
+  <data name="Common_OK" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Common_Loading" xml:space="preserve">
+    <value>正在加载...</value>
+  </data>
+  <data name="Common_OneAlbum" xml:space="preserve">
+    <value>1张专辑</value>
+  </data>
+  <data name="Common_OneItem" xml:space="preserve">
+    <value>1个项目</value>
+  </data>
+  <data name="Common_Open" xml:space="preserve">
+    <value>打开</value>
+  </data>
+  <data name="Common_OpenContainingFolder" xml:space="preserve">
+    <value>打开所在目录</value>
+  </data>
+  <data name="Common_Play" xml:space="preserve">
+    <value>播放</value>
+  </data>
+  <data name="Common_PlayNext" xml:space="preserve">
+    <value>下一个播放</value>
+  </data>
+  <data name="Common_Playlist" xml:space="preserve">
+    <value>播放列表</value>
+  </data>
+  <data name="Common_PlaylistName" xml:space="preserve">
+    <value>播放列表名称</value>
+  </data>
+  <data name="Common_Properties" xml:space="preserve">
+    <value>属性</value>
+  </data>
+  <data name="Common_Refresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="Common_RemoveFromPlaylist" xml:space="preserve">
+    <value>从播放列表中删除</value>
+  </data>
+  <data name="Common_Rename" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="Common_Retry" xml:space="preserve">
+    <value>重试</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Common_Search" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="Common_ScrollLeft" xml:space="preserve">
+    <value>向左滚动</value>
+  </data>
+  <data name="Common_ScrollRight" xml:space="preserve">
+    <value>向右滚动</value>
+  </data>
+  <data name="Common_Select" xml:space="preserve">
+    <value>选择</value>
+  </data>
+  <data name="Common_Shuffle" xml:space="preserve">
+    <value>随机播放</value>
+  </data>
+  <data name="Common_Song" xml:space="preserve">
+    <value>音乐</value>
+  </data>
+  <data name="Common_System" xml:space="preserve">
+    <value>系统</value>
+  </data>
+  <data name="Common_ThemeDark" xml:space="preserve">
+    <value>暗色</value>
+  </data>
+  <data name="Common_ThemeLight" xml:space="preserve">
+    <value>亮色</value>
+  </data>
+  <data name="Common_ThemeSystem" xml:space="preserve">
+    <value>系统默认</value>
+  </data>
+  <data name="Common_Unknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="Common_UnknownAlbum" xml:space="preserve">
+    <value>未知专辑</value>
+  </data>
+  <data name="Common_UnknownArtist" xml:space="preserve">
+    <value>未知艺术家</value>
+  </data>
+  <data name="Common_UnknownGenre" xml:space="preserve">
+    <value>未知流派</value>
+  </data>
+  <data name="Common_UnknownTitle" xml:space="preserve">
+    <value>未知标题</value>
+  </data>
+  <data name="Common_UnknownYear" xml:space="preserve">
+    <value>未知年份</value>
+  </data>
+  <data name="DefaultPageSettings_StartupPageHeader" xml:space="preserve">
+    <value>启动页面</value>
+  </data>
+  <data name="DefaultPage_LastPage" xml:space="preserve">
+    <value>上次使用</value>
+  </data>
+  <data name="ExtensionSettings_AddSource" xml:space="preserve">
+    <value>添加来源</value>
+  </data>
+  <data name="ExtensionSettings_AddSourcePickerTitle" xml:space="preserve">
+    <value>添加歌词来源</value>
+  </data>
+  <data name="ExtensionSettings_ImportBundled" xml:space="preserve">
+    <value>导入自带来源</value>
+  </data>
+  <data name="ExtensionSettings_LyricSourcesDescription" xml:space="preserve">
+    <value>JavaScript 歌词来源脚本</value>
+  </data>
+  <data name="ExtensionSettings_LyricSourcesHeader" xml:space="preserve">
+    <value>歌词来源</value>
+  </data>
+  <data name="ExtensionSettings_NoSources" xml:space="preserve">
+    <value>未添加歌词来源</value>
+  </data>
+  <data name="ExtensionSettings_RemoveSource" xml:space="preserve">
+    <value>删除来源</value>
+  </data>
+  <data name="ExtensionSettings_Subtitle" xml:space="preserve">
+    <value>管理第三方歌词搜索来源。</value>
+  </data>
+  <data name="ExtensionSettings_ThirdPartyLyricsDescription" xml:space="preserve">
+    <value>重新导入应用自带的第三方歌词来源。可能适用第三方服务的使用条款。</value>
+  </data>
+  <data name="ExtensionSettings_ThirdPartyLyricsHeader" xml:space="preserve">
+    <value>第三方歌词来源</value>
+  </data>
+  <data name="ExtensionSettings_Title" xml:space="preserve">
+    <value>扩展</value>
+  </data>
+  <data name="Home_ContinueWatching" xml:space="preserve">
+    <value>继续观看</value>
+  </data>
+  <data name="Home_EmptyDescription" xml:space="preserve">
+    <value>添加一个音乐媒体库目录并扫描音乐。</value>
+  </data>
+  <data name="Home_EmptyHeader" xml:space="preserve">
+    <value>此处空空如也。</value>
+  </data>
+  <data name="Home_RecentlyAddedVideos" xml:space="preserve">
+    <value>最近添加的视频</value>
+  </data>
+  <data name="Home_RecentlyPlayed" xml:space="preserve">
+    <value>最近播放</value>
+  </data>
+  <data name="Home_ShuffleAlbums" xml:space="preserve">
+    <value>换一批专辑</value>
+  </data>
+  <data name="Home_Spotlight" xml:space="preserve">
+    <value>来自媒体库</value>
+  </data>
+  <data name="Home_SpotlightNext" xml:space="preserve">
+    <value>下一项</value>
+  </data>
+  <data name="Home_SpotlightPrevious" xml:space="preserve">
+    <value>上一项</value>
+  </data>
+  <data name="Home_Upcoming" xml:space="preserve">
+    <value>接下来播放</value>
+  </data>
+  <data name="Home_ViewAll" xml:space="preserve">
+    <value>查看全部</value>
+  </data>
+  <data name="InitialSetup_EnableThirdPartyLyrics" xml:space="preserve">
+    <value>启用第三方歌词服务</value>
+  </data>
+  <data name="InitialSetup_Intro" xml:space="preserve">
+    <value>在使用应用之前，请配置初始设置。</value>
+  </data>
+  <data name="InitialSetup_ThirdPartyTerms" xml:space="preserve">
+    <value>可能适用第三方服务的使用条款。</value>
+  </data>
+  <data name="InitialSetup_Title" xml:space="preserve">
+    <value>欢迎来到 Light 播放器</value>
+  </data>
+  <data name="LanguageSettings_InterfaceLanguageHeader" xml:space="preserve">
+    <value>软件界面语言</value>
+  </data>
+  <data name="Library_SelectAlbumHeader" xml:space="preserve">
+    <value>选择专辑</value>
+  </data>
+  <data name="Library_SelectArtistHeader" xml:space="preserve">
+    <value>选择艺术家</value>
+  </data>
+  <data name="Library_SelectItemDescription" xml:space="preserve">
+    <value>从列表中选择一项以查看其详细信息。</value>
+  </data>
+  <data name="LibrarySettings_AddDefaultFolders" xml:space="preserve">
+    <value>添加默认目录</value>
+  </data>
+  <data name="LibrarySettings_AddDefaultFoldersConfirmMessageFormat" xml:space="preserve">
+    <value>要将以下默认音乐目录添加到媒体库吗？
+
+{0}</value>
+  </data>
+  <data name="LibrarySettings_AddDefaultFoldersConfirmTitle" xml:space="preserve">
+    <value>添加默认目录</value>
+  </data>
+  <data name="LibrarySettings_AddFolder" xml:space="preserve">
+    <value>添加目录</value>
+  </data>
+  <data name="LibrarySettings_AddMusicFolderPickerTitle" xml:space="preserve">
+    <value>添加音乐目录</value>
+  </data>
+  <data name="LibrarySettings_ChooseExistingFolder" xml:space="preserve">
+    <value>添加现有的本地目录</value>
+  </data>
+  <data name="LibrarySettings_DefaultFoldersAlreadyAdded" xml:space="preserve">
+    <value>默认音乐目录已经存在于媒体库。</value>
+  </data>
+  <data name="LibrarySettings_FolderAlreadyCovered" xml:space="preserve">
+    <value>该目录已经存在于媒体库。</value>
+  </data>
+  <data name="LibrarySettings_FolderAccessRefused" xml:space="preserve">
+    <value>未获得该目录的访问权限。</value>
+  </data>
+  <data name="LibrarySettings_FolderPickingUnavailable" xml:space="preserve">
+    <value>目录选择器在此平台不可用</value>
+  </data>
+  <data name="LibrarySettings_BrowserFolderAccessDescription" xml:space="preserve">
+    <value>重新加载页面后，可能需要再次授予文件夹访问权限。媒体库需要手动扫描。</value>
+  </data>
+  <data name="LibrarySettings_BrowserTemporaryFolderAccessDescription" xml:space="preserve">
+    <value>每次重新加载页面后，都需要重新选择各个媒体库文件夹。新文件会在重新加载页面、重新选择文件夹并扫描后显示。</value>
+  </data>
+  <data name="LibrarySettings_FolderAccessUnavailable" xml:space="preserve">
+    <value>此浏览器不支持持续访问本地文件夹。你仍可逐个打开文件。</value>
+  </data>
+  <data name="LibrarySettings_GrantFolderAccess" xml:space="preserve">
+    <value>授予访问权限</value>
+  </data>
+  <data name="LibrarySettings_RenewFolderAccessTitle" xml:space="preserve">
+    <value>恢复目录访问权限</value>
+  </data>
+  <data name="LibrarySettings_RenewFolderAccessMessageFormat" xml:space="preserve">
+    <value>读取以下媒体库目录前需要重新授予访问权限：
+
+{0}</value>
+  </data>
+  <data name="LibrarySettings_FoldersDescription" xml:space="preserve">
+    <value>媒体库中包含的本地目录。</value>
+  </data>
+  <data name="LibrarySettings_FoldersHeader" xml:space="preserve">
+    <value>目录</value>
+  </data>
+  <data name="LibrarySettings_KeepHistoryDescription" xml:space="preserve">
+    <value>关闭后会清除现有历史记录。</value>
+  </data>
+  <data name="LibrarySettings_KeepHistoryHeader" xml:space="preserve">
+    <value>保留播放历史</value>
+  </data>
+  <data name="LibrarySettings_NoDefaultFolders" xml:space="preserve">
+    <value>未在此设备上找到默认音乐目录。</value>
+  </data>
+  <data name="LibrarySettings_NoFolders" xml:space="preserve">
+    <value>未添加目录。</value>
+  </data>
+  <data name="LibrarySettings_OnlyLocalFolders" xml:space="preserve">
+    <value>只能将本地目录添加到媒体库。</value>
+  </data>
+  <data name="LibrarySettings_RemoveFolder" xml:space="preserve">
+    <value>移除目录</value>
+  </data>
+  <data name="LibrarySettings_RemoveNestedFirst" xml:space="preserve">
+    <value>在添加目录前，请先从媒体库中移除其子目录。</value>
+  </data>
+  <data name="LibrarySettings_ScanAtStartupDescription" xml:space="preserve">
+    <value>应用启动时自动扫描媒体库文件夹。</value>
+  </data>
+  <data name="LibrarySettings_ScanAtStartupHeader" xml:space="preserve">
+    <value>启动时扫描</value>
+  </data>
+  <data name="LibrarySettings_ScanLibrary" xml:space="preserve">
+    <value>扫描媒体库</value>
+  </data>
+  <data name="LibrarySettings_Subtitle" xml:space="preserve">
+    <value>选择 Light 播放器扫描音乐和视频文件的位置。</value>
+  </data>
+  <data name="LibrarySettings_Title" xml:space="preserve">
+    <value>媒体库目录</value>
+  </data>
+  <data name="LyricSearch_ClearLyrics" xml:space="preserve">
+    <value>移除歌词</value>
+  </data>
+  <data name="LyricSearch_Header" xml:space="preserve">
+    <value>从目录中选择歌词</value>
+  </data>
+  <data name="LyricSearch_ImportExternal" xml:space="preserve">
+    <value>导入外部歌词文件...</value>
+  </data>
+  <data name="LyricSearch_NoResultsFound" xml:space="preserve">
+    <value>未找到结果</value>
+  </data>
+  <data name="LyricSearch_NoSourcesInstalled" xml:space="preserve">
+    <value>未安装歌词来源，请前往设置-扩展页面添加。</value>
+  </data>
+  <data name="LyricSearch_OneResultFound" xml:space="preserve">
+    <value>找到1个结果。</value>
+  </data>
+  <data name="LyricSearch_ResultsFoundFormat" xml:space="preserve">
+    <value>找到{0}个结果。</value>
+  </data>
+  <data name="LyricSearch_SearchFailedFormat" xml:space="preserve">
+    <value>歌词搜索失败 {0}</value>
+  </data>
+  <data name="Menu_Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="Menu_Edit" xml:space="preserve">
+    <value>编辑</value>
+  </data>
+  <data name="Menu_File" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="Menu_Forward" xml:space="preserve">
+    <value>前进</value>
+  </data>
+  <data name="Menu_Go" xml:space="preserve">
+    <value>前往</value>
+  </data>
+  <data name="Menu_Help" xml:space="preserve">
+    <value>帮助</value>
+  </data>
+  <data name="Menu_Playback" xml:space="preserve">
+    <value>播放</value>
+  </data>
+  <data name="Menu_View" xml:space="preserve">
+    <value>视图</value>
+  </data>
+  <data name="Nav_AlbumDetail" xml:space="preserve">
+    <value>专辑细节</value>
+  </data>
+  <data name="Nav_Albums" xml:space="preserve">
+    <value>专辑</value>
+  </data>
+  <data name="Nav_ArtistDetail" xml:space="preserve">
+    <value>艺术家细节</value>
+  </data>
+  <data name="Nav_Artists" xml:space="preserve">
+    <value>艺术家</value>
+  </data>
+  <data name="Nav_Home" xml:space="preserve">
+    <value>首页</value>
+  </data>
+  <data name="Nav_Library" xml:space="preserve">
+    <value>媒体库</value>
+  </data>
+  <data name="Nav_Music" xml:space="preserve">
+    <value>音乐</value>
+  </data>
+  <data name="Nav_NowPlaying" xml:space="preserve">
+    <value>正在播放</value>
+  </data>
+  <data name="Nav_PlaylistDetail" xml:space="preserve">
+    <value>播放列表细节</value>
+  </data>
+  <data name="Nav_Playlists" xml:space="preserve">
+    <value>播放列表</value>
+  </data>
+  <data name="Nav_Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="NowPlaying_LyricsEarlier" xml:space="preserve">
+    <value>提早显示歌词(+1s)</value>
+  </data>
+  <data name="NowPlaying_LyricsHeader" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="NowPlaying_LyricsLater" xml:space="preserve">
+    <value>延后显示歌词(-1s)</value>
+  </data>
+  <data name="NowPlaying_Minimize" xml:space="preserve">
+    <value>最小化</value>
+  </data>
+  <data name="NowPlaying_NoLyricsAddSource" xml:space="preserve">
+    <value>未找到歌词。请在设置里添加一个歌词来源，或手动导入一个 .lrc 文件。</value>
+  </data>
+  <data name="NowPlaying_NoLyricsSearchImport" xml:space="preserve">
+    <value>未找到歌词。请使用搜索功能，或手动导入一个 .lrc 文件。</value>
+  </data>
+  <data name="NowPlaying_SearchLyrics" xml:space="preserve">
+    <value>搜索歌词</value>
+  </data>
+  <data name="NowPlaying_TabLyrics" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="NowPlaying_TabTrack" xml:space="preserve">
+    <value>音乐</value>
+  </data>
+  <data name="NowPlaying_TabUpNext" xml:space="preserve">
+    <value>接下来播放</value>
+  </data>
+  <data name="NowPlaying_UpcomingHeader" xml:space="preserve">
+    <value>接下来播放</value>
+  </data>
+  <data name="Placeholder_AddAFolderHeader" xml:space="preserve">
+    <value>添加一个目录</value>
+  </data>
+  <data name="Placeholder_AddFolderDescription" xml:space="preserve">
+    <value>选择音乐库中包含哪些目录。</value>
+  </data>
+  <data name="Placeholder_Appearance" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="Placeholder_EmptyDescription" xml:space="preserve">
+    <value>请先添加一个媒体库目录。</value>
+  </data>
+  <data name="Placeholder_PlaceholderRoute" xml:space="preserve">
+    <value>Placeholder route</value>
+  </data>
+  <data name="Placeholder_RemoveThisFolder" xml:space="preserve">
+    <value>移除这个目录</value>
+  </data>
+  <data name="Placeholder_ThemeDescription" xml:space="preserve">
+    <value>配置应用的外观细节。</value>
+  </data>
+  <data name="PlaybackBar_Like" xml:space="preserve">
+    <value>喜欢</value>
+  </data>
+  <data name="PlaybackBar_ModePlayInOrder" xml:space="preserve">
+    <value>顺序播放</value>
+  </data>
+  <data name="PlaybackBar_ModeRepeatAll" xml:space="preserve">
+    <value>全部循环</value>
+  </data>
+  <data name="PlaybackBar_ModeRepeatOne" xml:space="preserve">
+    <value>单曲循环</value>
+  </data>
+  <data name="PlaybackBar_Next" xml:space="preserve">
+    <value>下一曲</value>
+  </data>
+  <data name="PlaybackBar_OpenNowPlaying" xml:space="preserve">
+    <value>打开正在播放</value>
+  </data>
+  <data name="PlaybackBar_PlayPause" xml:space="preserve">
+    <value>播放 / 暂停</value>
+  </data>
+  <data name="PlaybackBar_Previous" xml:space="preserve">
+    <value>上一曲</value>
+  </data>
+  <data name="PlaybackBar_Volume" xml:space="preserve">
+    <value>音量</value>
+  </data>
+  <data name="PlaylistDetail_DeleteConfirmFormat" xml:space="preserve">
+    <value>是否删除 "{0}"？这个操作无法撤销。</value>
+  </data>
+  <data name="PlaylistDetail_DeletePlaylist" xml:space="preserve">
+    <value>删除播放列表</value>
+  </data>
+  <data name="PlaylistDetail_EmptyDescription" xml:space="preserve">
+    <value>从媒体库或正在播放添加音乐到这里。</value>
+  </data>
+  <data name="PlaylistDetail_EmptyHeader" xml:space="preserve">
+    <value>空播放列表</value>
+  </data>
+  <data name="PlaylistDetail_Export" xml:space="preserve">
+    <value>导出...</value>
+  </data>
+  <data name="PlaylistDetail_RenameDialogHeader" xml:space="preserve">
+    <value>重命名播放列表</value>
+  </data>
+  <data name="PlaylistDialog_ExportTitle" xml:space="preserve">
+    <value>导出播放列表</value>
+  </data>
+  <data name="PlaylistModel_NoItems" xml:space="preserve">
+    <value>无内容</value>
+  </data>
+  <data name="PlaylistPicker_NewPlaylist" xml:space="preserve">
+    <value>+  创建新播放列表...</value>
+  </data>
+  <data name="Playlists_ChooseFromListDescription" xml:space="preserve">
+    <value>从列表选择播放列表以查看内容。</value>
+  </data>
+  <data name="Playlists_CreateOrImportDescription" xml:space="preserve">
+    <value>创建一个播放列表，或导入 M3U/WPL 文件。</value>
+  </data>
+  <data name="Playlists_ImportPlaylist" xml:space="preserve">
+    <value>导入播放列表</value>
+  </data>
+  <data name="Playlists_NewPlaylist" xml:space="preserve">
+    <value>新播放列表</value>
+  </data>
+  <data name="Playlists_NoPlaylists" xml:space="preserve">
+    <value>暂无播放列表</value>
+  </data>
+  <data name="Playlists_SaveQueueToCreate" xml:space="preserve">
+    <value>保存正在播放的曲目以创建播放列表。</value>
+  </data>
+  <data name="Playlists_SelectPlaylistHeader" xml:space="preserve">
+    <value>选择播放列表</value>
+  </data>
+  <data name="Props_AlbumArtist" xml:space="preserve">
+    <value>专辑艺术家</value>
+  </data>
+  <data name="Props_AspectRatio" xml:space="preserve">
+    <value>宽高比</value>
+  </data>
+  <data name="Props_BitDepth" xml:space="preserve">
+    <value>位深度</value>
+  </data>
+  <data name="Props_Bitrate" xml:space="preserve">
+    <value>比特率</value>
+  </data>
+  <data name="Props_BitrateKbpsFormat" xml:space="preserve">
+    <value>{0:0} kbps</value>
+  </data>
+  <data name="Props_Channels" xml:space="preserve">
+    <value>声道</value>
+  </data>
+  <data name="Props_Codec" xml:space="preserve">
+    <value>编解码器</value>
+  </data>
+  <data name="Props_Color" xml:space="preserve">
+    <value>色彩</value>
+  </data>
+  <data name="Props_Composer" xml:space="preserve">
+    <value>作曲家</value>
+  </data>
+  <data name="Props_Container" xml:space="preserve">
+    <value>容器格式</value>
+  </data>
+  <data name="Props_Date" xml:space="preserve">
+    <value>日期</value>
+  </data>
+  <data name="Props_Disc" xml:space="preserve">
+    <value>唱片编号</value>
+  </data>
+  <data name="Props_Disposition" xml:space="preserve">
+    <value>标记</value>
+  </data>
+  <data name="Props_Duration" xml:space="preserve">
+    <value>时长</value>
+  </data>
+  <data name="Props_FileName" xml:space="preserve">
+    <value>文件名</value>
+  </data>
+  <data name="Props_FileSizeMbFormat" xml:space="preserve">
+    <value>{0:0.00} MB</value>
+  </data>
+  <data name="Props_FrameRate" xml:space="preserve">
+    <value>帧率</value>
+  </data>
+  <data name="Props_FrameRateFpsFormat" xml:space="preserve">
+    <value>{0:0.###} fps</value>
+  </data>
+  <data name="Props_Frames" xml:space="preserve">
+    <value>帧数</value>
+  </data>
+  <data name="Props_Language" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="Props_Location" xml:space="preserve">
+    <value>位置</value>
+  </data>
+  <data name="Props_PixelFormat" xml:space="preserve">
+    <value>像素格式</value>
+  </data>
+  <data name="Props_Profile" xml:space="preserve">
+    <value>配置文件</value>
+  </data>
+  <data name="Props_Resolution" xml:space="preserve">
+    <value>分辨率</value>
+  </data>
+  <data name="Props_SampleFormat" xml:space="preserve">
+    <value>采样格式</value>
+  </data>
+  <data name="Props_SampleRate" xml:space="preserve">
+    <value>采样率</value>
+  </data>
+  <data name="Props_SampleRateKhzFormat" xml:space="preserve">
+    <value>{0:0.###} kHz</value>
+  </data>
+  <data name="Props_SectionAudioStreamFormat" xml:space="preserve">
+    <value>音频流 #{0}</value>
+  </data>
+  <data name="Props_SectionChapters" xml:space="preserve">
+    <value>章节</value>
+  </data>
+  <data name="Props_SectionGeneral" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="Props_SectionMetadata" xml:space="preserve">
+    <value>元数据</value>
+  </data>
+  <data name="Props_SectionStreamFormat" xml:space="preserve">
+    <value>流 #{0}</value>
+  </data>
+  <data name="Props_SectionSubtitleStreamFormat" xml:space="preserve">
+    <value>字幕流 #{0}</value>
+  </data>
+  <data name="Props_SectionVideoStreamFormat" xml:space="preserve">
+    <value>视频流 #{0}</value>
+  </data>
+  <data name="Props_Size" xml:space="preserve">
+    <value>大小</value>
+  </data>
+  <data name="Props_Track" xml:space="preserve">
+    <value>曲目编号</value>
+  </data>
+  <data name="Props_Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="QueuePane_DeleteSelected" xml:space="preserve">
+    <value>删除选中的</value>
+  </data>
+  <data name="QueuePane_EditQueue" xml:space="preserve">
+    <value>编辑队列</value>
+  </data>
+  <data name="QueuePane_EnterEditMode" xml:space="preserve">
+    <value>进入编辑模式</value>
+  </data>
+  <data name="QueuePane_ExitEditMode" xml:space="preserve">
+    <value>退出编辑模式</value>
+  </data>
+  <data name="QueuePane_NowPlayingHeader" xml:space="preserve">
+    <value>正在播放</value>
+  </data>
+  <data name="QueuePane_RemoveFromQueue" xml:space="preserve">
+    <value>从队列中删除</value>
+  </data>
+  <data name="QueuePane_RemoveAll" xml:space="preserve">
+    <value>全部删除</value>
+  </data>
+  <data name="QueuePane_RemoveSelected" xml:space="preserve">
+    <value>删除选中项</value>
+  </data>
+  <data name="QueuePane_SaveAsPlaylist" xml:space="preserve">
+    <value>保存为播放列表</value>
+  </data>
+  <data name="QueuePane_SelectAll" xml:space="preserve">
+    <value>全选</value>
+  </data>
+  <data name="QueuePane_UnselectAll" xml:space="preserve">
+    <value>取消全选</value>
+  </data>
+  <data name="RemoteApiSettings_ApplyButton" xml:space="preserve">
+    <value>应用设置</value>
+  </data>
+  <data name="RemoteApiSettings_ConnectionNoticeLocal" xml:space="preserve">
+    <value>API 地址：http://{0}:{1}/api/v1/</value>
+  </data>
+  <data name="RemoteApiSettings_ConnectionNoticeRemote" xml:space="preserve"><value>远程设备：打开 http://&lt;此电脑的局域网地址&gt;:{0}/。0.0.0.0 地址仅用于监听设置。</value></data>
+  <data name="RemoteApiSettings_FirewallNotice" xml:space="preserve"><value>防火墙：如果其他设备无法连接，请在受信任的网络配置文件中允许 TCP 端口 {0} 的入站连接。</value></data>
+  <data name="RemoteApiSettings_HostPlaceholder" xml:space="preserve"><value>主机</value></data>
+  <data name="RemoteApiSettings_HttpServerDescription" xml:space="preserve"><value>允许浏览器和 API 客户端连接到此媒体库。</value></data>
+  <data name="RemoteApiSettings_HttpServerHeader" xml:space="preserve"><value>HTTP 服务器</value></data>
+  <data name="RemoteApiSettings_InvalidPort" xml:space="preserve"><value>HTTP 端口必须是 1 到 65535 之间的整数。</value></data>
+  <data name="RemoteApiSettings_ListenHostDescription" xml:space="preserve"><value>对所有网络接口使用 0.0.0.0，仅对本机使用 127.0.0.1。</value></data>
+  <data name="RemoteApiSettings_ListenHostHeader" xml:space="preserve"><value>监听主机</value></data>
+  <data name="RemoteApiSettings_MissingHostOrPort" xml:space="preserve"><value>请输入主机和 1 到 65535 之间的端口。</value></data>
+  <data name="RemoteApiSettings_PortDescription" xml:space="preserve">
+    <value>REST API 监听的 TCP 端口。</value>
+  </data>
+  <data name="RemoteApiSettings_PortHeader" xml:space="preserve"><value>端口</value></data>
+  <data name="RemoteApiSettings_PortPlaceholder" xml:space="preserve"><value>端口</value></data>
+  <data name="RemoteApiSettings_PortUnset" xml:space="preserve"><value>自行选择</value></data>
+  <data name="RemoteApiSettings_SecurityNotice" xml:space="preserve">
+    <value>安全提示：HTTP 流量未加密。请启用登录要求，并仅在受信任的专用网络中使用。请勿将此端口暴露到互联网或配置路由器端口转发。</value>
+  </data>
+  <data name="RemoteApiSettings_ServerDisabled" xml:space="preserve"><value>HTTP 服务器已禁用。</value></data>
+  <data name="RemoteApiSettings_ServerFailed" xml:space="preserve"><value>HTTP 服务器启动失败：{0}</value></data>
+  <data name="RemoteApiSettings_ServerRunning" xml:space="preserve"><value>HTTP 服务器正在 {0} 运行</value></data>
+  <data name="RemoteApiSettings_Subtitle" xml:space="preserve">
+    <value>将此媒体库共享给网页应用和其他 REST API 客户端。</value>
+  </data>
+  <data name="RemoteApiSettings_Title" xml:space="preserve"><value>远程访问</value></data>
+  <data name="SampleRateSettings_AlwaysResampleHeader" xml:space="preserve">
+    <value>总是重采样</value>
+  </data>
+  <data name="SampleRateSettings_NextTrackPrompt" xml:space="preserve">
+    <value>采样率设置会在播放下一曲时开始生效。</value>
+  </data>
+  <data name="SampleRateSettings_PreferredRateHeader" xml:space="preserve">
+    <value>首选采样率</value>
+  </data>
+  <data name="SampleRateSettings_SystemRateHeader" xml:space="preserve">
+    <value>系统采样率</value>
+  </data>
+  <data name="SampleRateSettings_Title" xml:space="preserve">
+    <value>采样率</value>
+  </data>
+  <data name="SampleRate_Detecting" xml:space="preserve">
+    <value>正在检测...</value>
+  </data>
+  <data name="AudioSettings_DefaultDevice" xml:space="preserve"><value>系统默认设备</value></data>
+  <data name="AudioSettings_DeviceHeader" xml:space="preserve"><value>输出设备</value></data>
+  <data name="AudioSettings_ExclusiveDescription" xml:space="preserve"><value>允许 Light Player 独占所选设备；其他应用可能无法播放音频。</value></data>
+  <data name="AudioSettings_ExclusiveHeader" xml:space="preserve"><value>独占模式</value></data>
+  <data name="AudioSettings_Subtitle" xml:space="preserve"><value>选择音频输出设备和播放模式。</value></data>
+  <data name="AudioSettings_Title" xml:space="preserve"><value>音频输出</value></data>
+  <data name="AudioSettings_UnavailableDevice" xml:space="preserve"><value>所选设备（不可用）</value></data>
+  <data name="VideoSettings_Title" xml:space="preserve"><value>视频</value></data>
+  <data name="VideoSettings_Subtitle" xml:space="preserve"><value>选择视频转换、缩放和解码首选项。</value></data>
+  <data name="VideoSettings_BufferHeader" xml:space="preserve"><value>视频缓冲</value></data>
+  <data name="VideoSettings_DebandingHeader" xml:space="preserve"><value>去色带</value></data>
+  <data name="VideoSettings_DebandingOff" xml:space="preserve"><value>关闭</value></data>
+  <data name="VideoSettings_DebandingLow" xml:space="preserve"><value>低</value></data>
+  <data name="VideoSettings_DebandingMedium" xml:space="preserve"><value>中</value></data>
+  <data name="VideoSettings_DebandingHigh" xml:space="preserve"><value>高</value></data>
+  <data name="VideoSettings_UpscalingHeader" xml:space="preserve"><value>视频放大</value></data>
+  <data name="VideoSettings_DownscalingHeader" xml:space="preserve"><value>视频缩小</value></data>
+  <data name="VideoSettings_PreferHardwareProcessingHeader" xml:space="preserve"><value>优先使用硬件处理视频</value></data>
+  <data name="VideoSettings_HdrPassthroughHeader" xml:space="preserve"><value>高级色彩输出（WCG / HDR）</value></data>
+  <data name="VideoSettings_HdrPassthroughDescription" xml:space="preserve"><value>重启 Light 以应用更改。</value></data>
+  <data name="VideoSettings_Bt709InterpretationHeader" xml:space="preserve"><value>BT.709 解释方式</value></data>
+  <data name="VideoSettings_Bt709InterpretationDescription" xml:space="preserve"><value>选择 BT.709 视频的传递函数。</value></data>
+  <data name="VideoSettings_Bt709PlatformPreferred" xml:space="preserve"><value>平台首选</value></data>
+  <data name="VideoSettings_Bt709GammaFormat" xml:space="preserve"><value>伽马 {0}</value></data>
+  <data name="VideoSettings_PanelBitDepthHeader" xml:space="preserve"><value>显示面板位深</value></data>
+  <data name="VideoSettings_PanelBitDepthDescription" xml:space="preserve"><value>覆盖抖动决策</value></data>
+  <data name="VideoSettings_PanelBitDepthAutomatic" xml:space="preserve"><value>默认（{0}）</value></data>
+  <data name="VideoSettings_BitDepthFormat" xml:space="preserve"><value>{0} 位</value></data>
+  <data name="VideoSettings_ScalingNearest" xml:space="preserve"><value>最近邻</value></data>
+  <data name="VideoSettings_ScalingBilinear" xml:space="preserve"><value>双线性</value></data>
+  <data name="VideoSettings_ScalingTrilinear" xml:space="preserve"><value>三线性</value></data>
+  <data name="VideoSettings_HardwareEnabledHeader" xml:space="preserve"><value>启用硬件解码器</value></data>
+  <data name="VideoSettings_PhotoDecodePreferenceHeader" xml:space="preserve"><value>照片解码偏好</value></data>
+  <data name="VideoSettings_PhotoDecodeMemory" xml:space="preserve"><value>内存</value></data>
+  <data name="VideoSettings_PhotoDecodePerformance" xml:space="preserve"><value>性能</value></data>
+  <data name="VideoSettings_HardwareDecoderHeader" xml:space="preserve"><value>首选硬件解码器</value></data>
+  <data name="VideoSettings_HardwareDecoderCopyBackDescription" xml:space="preserve"><value>当前选择的解码器会将解码后的帧复制回系统内存。</value></data>
+  <data name="VideoSettings_HardwareAuto" xml:space="preserve"><value>自动</value></data>
+  <data name="VideoSettings_HardwareDeviceHeader" xml:space="preserve"><value>解码设备</value></data>
+  <data name="VideoSettings_HardwareDeviceDescription" xml:space="preserve"><value>当设备中有多个显卡时，选择由哪个显卡解码视频。</value></data>
+  <data name="VideoSettings_HardwareDeviceAuto" xml:space="preserve"><value>自动</value></data>
+  <data name="VideoSettings_HardwareOptionDefault" xml:space="preserve"><value>默认</value></data>
+  <data name="SearchBox_Clear" xml:space="preserve">
+    <value>清除搜索</value>
+  </data>
+  <data name="SearchBox_Placeholder" xml:space="preserve">
+    <value>搜索...</value>
+  </data>
+  <data name="Search_AlbumsHeaderFormat" xml:space="preserve">
+    <value>专辑 ({0})</value>
+  </data>
+  <data name="Search_ArtistsHeaderFormat" xml:space="preserve">
+    <value>艺术家 ({0})</value>
+  </data>
+  <data name="Search_NoResultsDescription" xml:space="preserve">
+    <value>尝试搜索其他内容。</value>
+  </data>
+  <data name="Search_NoResultsHeader" xml:space="preserve">
+    <value>无结果</value>
+  </data>
+  <data name="Search_ResultsForFormat" xml:space="preserve">
+    <value>“{0}”的搜索结果</value>
+  </data>
+  <data name="Search_SongsHeaderFormat" xml:space="preserve">
+    <value>音乐 ({0})</value>
+  </data>
+  <data name="Search_VideosHeaderFormat" xml:space="preserve">
+    <value>视频 ({0})</value>
+  </data>
+  <data name="SettingsSection_LibraryTitle" xml:space="preserve">
+    <value>媒体库</value>
+  </data>
+  <data name="SettingsSection_PlaybackTitle" xml:space="preserve">
+    <value>播放</value>
+  </data>
+  <data name="SettingsSection_SampleRateListTitle" xml:space="preserve">
+    <value>采样率</value>
+  </data>
+  <data name="Settings_ChooseFromListDescription" xml:space="preserve">
+    <value>从列表选择分类以查看设置。</value>
+  </data>
+  <data name="Settings_SelectSectionHeader" xml:space="preserve">
+    <value>选择分类</value>
+  </data>
+  <data name="Shell_CheckForUpdates" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="Shell_CueFailureFormat" xml:space="preserve">
+    <value>{0}: 无法找到或打开{1}。 如果 CUE 文件在你的媒体库目录外，请尝试将 CUE 文件与音频轨道一同打开以便 Light 获取访问权限。</value>
+  </data>
+  <data name="Shell_CueItsAudioFile" xml:space="preserve">
+    <value>它指向的音频文件</value>
+  </data>
+  <data name="Shell_IndexedItemsFormat" xml:space="preserve">
+    <value>已经扫描{0}个曲目...</value>
+  </data>
+  <data name="Shell_IndexedOneItem" xml:space="preserve">
+    <value>已经扫描1个曲目...</value>
+  </data>
+  <data name="Shell_LayoutGrid" xml:space="preserve">
+    <value>网格</value>
+  </data>
+  <data name="Shell_LayoutList" xml:space="preserve">
+    <value>列表</value>
+  </data>
+  <data name="Shell_LibrarySorting" xml:space="preserve">
+    <value>媒体库排序</value>
+  </data>
+  <data name="Shell_More" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="Shell_NowPlaying" xml:space="preserve">
+    <value>正在播放</value>
+  </data>
+  <data name="Shell_OneScanWarning" xml:space="preserve">
+    <value>1个扫描警告</value>
+  </data>
+  <data name="Shell_OpenMediaFilesPickerTitle" xml:space="preserve">
+    <value>打开媒体文件</value>
+  </data>
+  <data name="Shell_OpenFile" xml:space="preserve">
+    <value>打开文件...</value>
+  </data>
+  <data name="Shell_OpenStreamLink" xml:space="preserve">
+    <value>打开串流链接...</value>
+  </data>
+  <data name="Shell_OpenFolderFailed" xml:space="preserve">
+    <value>无法打开所在文件夹</value>
+  </data>
+  <data name="Shell_OpenFolderMissingFormat" xml:space="preserve">
+    <value>文件夹不存在：{0}</value>
+  </data>
+  <data name="Shell_OpenFolderNoApp" xml:space="preserve">
+    <value>此设备上没有可显示该文件夹的应用。请安装文件管理器后重试。</value>
+  </data>
+  <data name="Shell_OpenFolderRefused" xml:space="preserve">
+    <value>系统拒绝打开该文件夹。</value>
+  </data>
+  <data name="Shell_OpenFolderUnknownLocation" xml:space="preserve">
+    <value>无法确定此文件的位置。</value>
+  </data>
+  <data name="Shell_RecentlyAdded" xml:space="preserve">
+    <value>最近添加的音乐</value>
+  </data>
+  <data name="Shell_RefreshLibrary" xml:space="preserve">
+    <value>刷新媒体库</value>
+  </data>
+  <data name="Shell_ScanCompleteItemsFormat" xml:space="preserve">
+    <value>媒体库扫描结束：索引了{0}个曲目。</value>
+  </data>
+  <data name="Shell_ScanCompleteOneItem" xml:space="preserve">
+    <value>媒体库扫描结束：索引了1个曲目。</value>
+  </data>
+  <data name="Shell_ScanCompletedWithWarnings" xml:space="preserve">
+    <value>媒体库扫描时发生了数据库警告。</value>
+  </data>
+  <data name="Shell_ScanFailed" xml:space="preserve">
+    <value>媒体库扫描失败。</value>
+  </data>
+  <data name="Shell_ScanRefreshing" xml:space="preserve">
+    <value>正在扫描媒体库...</value>
+  </data>
+  <data name="Shell_ScanWarningsFormat" xml:space="preserve">
+    <value>{0}个媒体库扫描警告</value>
+  </data>
+  <data name="Shell_ScanningFoldersFormat" xml:space="preserve">
+    <value>正在扫描{0}个目录...</value>
+  </data>
+  <data name="Shell_ScanningOneFolder" xml:space="preserve">
+    <value>正在扫描1个目录...</value>
+  </data>
+  <data name="Shell_ShuffleAll" xml:space="preserve">
+    <value>随机播放全部</value>
+  </data>
+  <data name="Shell_SortAlbumName" xml:space="preserve">
+    <value>专辑名称</value>
+  </data>
+  <data name="Shell_SortArtistName" xml:space="preserve">
+    <value>艺术家名称</value>
+  </data>
+  <data name="Shell_SortAscending" xml:space="preserve">
+    <value>升序</value>
+  </data>
+  <data name="Shell_SortDateAdded" xml:space="preserve">
+    <value>添加日期</value>
+  </data>
+  <data name="Shell_SortDescending" xml:space="preserve">
+    <value>降序</value>
+  </data>
+  <data name="Shell_SortGenre" xml:space="preserve">
+    <value>流派</value>
+  </data>
+  <data name="Shell_SortTitle" xml:space="preserve">
+    <value>标题</value>
+  </data>
+  <data name="Shell_SortYear" xml:space="preserve">
+    <value>年份</value>
+  </data>
+  <data name="Shell_ToggleNavigation" xml:space="preserve">
+    <value>切换导航栏</value>
+  </data>
+  <data name="Shell_UpdateChecking" xml:space="preserve">
+    <value>正在检查更新...</value>
+  </data>
+  <data name="Shell_UpdateDownloadFormat" xml:space="preserve">
+    <value>下载版本 {0}</value>
+  </data>
+  <data name="Shell_UpdateFailedFormat" xml:space="preserve">
+    <value>检查更新失败：{0}</value>
+  </data>
+  <data name="Shell_UpdateUpToDate" xml:space="preserve">
+    <value>你正在使用最新版本。</value>
+  </data>
+  <data name="Shell_WarnActionFailed" xml:space="preserve">
+    <value>操作失败</value>
+  </data>
+  <data name="Shell_WarnCueOpen" xml:space="preserve">
+    <value>无法打开 CUE 文件</value>
+  </data>
+  <data name="Shell_WarnLoadLibrary" xml:space="preserve">
+    <value>无法加载媒体库</value>
+  </data>
+  <data name="Shell_WarnLoadPage" xml:space="preserve">
+    <value>无法加载页面</value>
+  </data>
+  <data name="Shell_WarnPlaybackError" xml:space="preserve">
+    <value>播放错误</value>
+  </data>
+  <data name="Shell_WarnScanFailed" xml:space="preserve">
+    <value>媒体库扫描失败</value>
+  </data>
+  <data name="Shell_WarningDetailsTitle" xml:space="preserve">
+    <value>细节</value>
+  </data>
+  <data name="Songs_EmptyDescription" xml:space="preserve">
+    <value>添加一个音乐媒体库目录并扫描以查看音乐。</value>
+  </data>
+  <data name="Songs_EmptyHeader" xml:space="preserve">
+    <value>暂无音乐</value>
+  </data>
+  <data name="Songs_Loading" xml:space="preserve">
+    <value>正在加载音乐...</value>
+  </data>
+  <data name="StorageSettings_LyricsHeader" xml:space="preserve">
+    <value>歌词</value>
+  </data>
+  <data name="StorageSettings_LyricsDescription" xml:space="preserve">
+    <value>存储在应用数据文件夹中的歌词。</value>
+  </data>
+  <data name="StorageSettings_VideoPreviewsHeader" xml:space="preserve">
+    <value>视频预览</value>
+  </data>
+  <data name="StorageSettings_VideoPreviewsDescription" xml:space="preserve">
+    <value>本地视频的预览缓存。</value>
+  </data>
+  <data name="StorageSettings_PhotoPreviewsHeader" xml:space="preserve">
+    <value>照片预览</value>
+  </data>
+  <data name="StorageSettings_PhotoPreviewsDescription" xml:space="preserve">
+    <value>本地照片的缩略图缓存。</value>
+  </data>
+  <data name="StorageSettings_MediaBlocksHeader" xml:space="preserve">
+    <value>已缓存的流式音频</value>
+  </data>
+  <data name="StorageSettings_MediaBlocksDescription" xml:space="preserve">
+    <value>保留在本地的远程音轨片段，使重复播放无需再次下载。</value>
+  </data>
+  <data name="StorageSettings_ImagesHeader" xml:space="preserve">
+    <value>专辑封面与视频预览</value>
+  </data>
+  <data name="StorageSettings_ImagesDescription" xml:space="preserve">
+    <value>从服务器下载的封面图片和视频预览图，保留在本地以免浏览时重复获取。</value>
+  </data>
+  <data name="Connection_ServerName" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Connection_ServerAddress" xml:space="preserve">
+    <value>地址</value>
+  </data>
+  <data name="Connection_UserName" xml:space="preserve">
+    <value>用户名</value>
+  </data>
+  <data name="Connection_Password" xml:space="preserve">
+    <value>密码</value>
+  </data>
+  <data name="StorageSettings_UsageFormat" xml:space="preserve">
+    <value>{0} 项，{1}</value>
+  </data>
+  <data name="StorageSettings_Empty" xml:space="preserve">
+    <value>空</value>
+  </data>
+  <data name="StorageSettings_Measuring" xml:space="preserve">
+    <value>正在计算...</value>
+  </data>
+  <data name="StorageSettings_Clear" xml:space="preserve">
+    <value>清除</value>
+  </data>
+  <data name="StorageSettings_LimitHeader" xml:space="preserve">
+    <value>最大容量（MiB）</value>
+  </data>
+  <data name="StorageSettings_LimitDescription" xml:space="preserve">
+    <value>此缓存可使用的空间。调小后会优先删除最久未使用的数据。</value>
+  </data>
+  <data name="StorageSettings_ClearConfirmTitle" xml:space="preserve">
+    <value>清除缓存数据</value>
+  </data>
+  <data name="StorageSettings_ClearConfirmMessageFormat" xml:space="preserve">
+    <value>确定要从本设备删除"{0}"吗？此操作无法撤销。</value>
+  </data>
+  <data name="StreamLink_Address" xml:space="preserve">
+    <value>串流 URL</value>
+  </data>
+  <data name="StreamLink_InvalidAddress" xml:space="preserve">
+    <value>请输入 HTTP 或 HTTPS URL。</value>
+  </data>
+  <data name="StreamLink_Title" xml:space="preserve">
+    <value>打开串流链接</value>
+  </data>
+  <data name="TextPrompt_DefaultTitle" xml:space="preserve">
+    <value>播放列表</value>
+  </data>
+  <data name="ThemeSettings_ModeSystemDescription" xml:space="preserve">
+    <value>自动切换。</value>
+  </data>
+  <data name="ThemeSettings_RowDescription" xml:space="preserve">
+    <value>使用系统设置，亮色或暗色模式。</value>
+  </data>
+  <data name="ThemeSettings_Subtitle" xml:space="preserve">
+    <value>选择应用外观主题</value>
+  </data>
+  <data name="ThemeSettings_Title" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="ThemeSettings_SectionTitle" xml:space="preserve">
+    <value>主题</value>
+  </data>
+  <data name="ThemeSettings_SectionSubtitle" xml:space="preserve">
+    <value>选择应用外观。</value>
+  </data>
+  <data name="ThemeSettings_ModeSectionSubtitle" xml:space="preserve">
+    <value>选择应用与系统的匹配方式。</value>
+  </data>
+  <data name="ThemeSettings_ModeLightDescription" xml:space="preserve">
+    <value>始终使用亮色主题。</value>
+  </data>
+  <data name="ThemeSettings_ModeDarkDescription" xml:space="preserve">
+    <value>始终使用暗色主题。</value>
+  </data>
+  <data name="ThemeSettings_AppleStyleHeader" xml:space="preserve">
+    <value>启用 Apple 界面风格</value>
+  </data>
+  <data name="ThemeColor_SectionTitle" xml:space="preserve">
+    <value>主题颜色</value>
+  </data>
+  <data name="ThemeColor_SectionSubtitle" xml:space="preserve">
+    <value>选择一个颜色主题来个性化应用。</value>
+  </data>
+  <data name="ThemeColor_MicaHeader" xml:space="preserve">
+    <value>与桌面融合</value>
+  </data>
+  <data name="ThemeColor_MicaDescription" xml:space="preserve">
+    <value>使用 Windows 11 的云母材质，让窗口映出壁纸的色彩。</value>
+  </data>
+  <data name="ThemeColor_AddCustom" xml:space="preserve">
+    <value>添加自定义主题</value>
+  </data>
+  <data name="ThemeColor_DeleteTitle" xml:space="preserve">
+    <value>删除主题</value>
+  </data>
+  <data name="ThemeColor_DeleteMessageFormat" xml:space="preserve">
+    <value>删除自定义主题 "{0}"？此操作无法撤销。</value>
+  </data>
+  <data name="ThemeColor_Apple" xml:space="preserve">
+    <value>Apple</value>
+  </data>
+  <data name="ThemeColor_WindowsDefault" xml:space="preserve">
+    <value>Windows</value>
+  </data>
+  <data name="ThemeColor_Ocean" xml:space="preserve">
+    <value>海洋</value>
+  </data>
+  <data name="ThemeColor_Forest" xml:space="preserve">
+    <value>森林</value>
+  </data>
+  <data name="ThemeColor_Violet" xml:space="preserve">
+    <value>紫罗兰</value>
+  </data>
+  <data name="ThemeColor_Sunset" xml:space="preserve">
+    <value>日落</value>
+  </data>
+  <data name="ThemeColor_Amber" xml:space="preserve">
+    <value>琥珀</value>
+  </data>
+  <data name="ThemeColor_Role_Accent" xml:space="preserve">
+    <value>强调色</value>
+  </data>
+  <data name="ThemeColor_Role_PageBackground" xml:space="preserve">
+    <value>页面背景</value>
+  </data>
+  <data name="ThemeColor_Role_PanelBackground" xml:space="preserve">
+    <value>面板背景</value>
+  </data>
+  <data name="ThemeColor_Role_NavBackground" xml:space="preserve">
+    <value>导航背景</value>
+  </data>
+  <data name="ThemeColor_Role_PlaybackBarBackground" xml:space="preserve">
+    <value>播放栏背景</value>
+  </data>
+  <data name="ThemeColor_Role_PrimaryText" xml:space="preserve">
+    <value>主要文本</value>
+  </data>
+  <data name="ThemeColor_Role_SecondaryText" xml:space="preserve">
+    <value>次要文本</value>
+  </data>
+  <data name="ThemeColor_Role_DisabledText" xml:space="preserve">
+    <value>禁用文本</value>
+  </data>
+  <data name="ThemeColor_Role_Selection" xml:space="preserve">
+    <value>选中项</value>
+  </data>
+  <data name="ThemeColor_Role_Hover" xml:space="preserve">
+    <value>悬停</value>
+  </data>
+  <data name="ThemeColor_Role_ArtOverlay" xml:space="preserve">
+    <value>专辑封面遮罩</value>
+  </data>
+  <data name="ThemeColor_Role_Divider" xml:space="preserve">
+    <value>分隔线</value>
+  </data>
+  <data name="ThemeColor_Role_ThumbnailPlaceholder" xml:space="preserve">
+    <value>缩略图背景</value>
+  </data>
+  <data name="ThemeColor_Role_ThumbnailGlyph" xml:space="preserve">
+    <value>缩略图图标</value>
+  </data>
+  <data name="ThemeColor_Role_Favorite" xml:space="preserve">
+    <value>收藏</value>
+  </data>
+  <data name="ThemeEditor_TitleNew" xml:space="preserve">
+    <value>新建颜色主题</value>
+  </data>
+  <data name="ThemeEditor_TitleEdit" xml:space="preserve">
+    <value>编辑颜色主题</value>
+  </data>
+  <data name="ThemeEditor_WindowTitle" xml:space="preserve">
+    <value>自定义主题</value>
+  </data>
+  <data name="ThemeEditor_NameLabel" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="ThemeEditor_NameWatermark" xml:space="preserve">
+    <value>我的主题</value>
+  </data>
+  <data name="ThemeEditor_VariantLabel" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="ThemeEditor_VariantLockedHint" xml:space="preserve">
+    <value>编辑时外观是固定的，以便颜色保持在同一主题内。</value>
+  </data>
+  <data name="ThemeEditor_BaseOnLabel" xml:space="preserve">
+    <value>基于</value>
+  </data>
+  <data name="ThemeEditor_BaseOnPlaceholder" xml:space="preserve">
+    <value>从现有主题开始</value>
+  </data>
+  <data name="ThemeEditor_ColorsLabel" xml:space="preserve">
+    <value>颜色</value>
+  </data>
+  <data name="ThemeEditor_NameRequired" xml:space="preserve">
+    <value>请输入主题名称。</value>
+  </data>
+  <data name="ThemeEditor_InvalidColor" xml:space="preserve">
+    <value>一个或多个颜色不是有效的十六进制值。</value>
+  </data>
+  <data name="ThemeEditor_OverwriteTitle" xml:space="preserve">
+    <value>覆盖主题</value>
+  </data>
+  <data name="ThemeEditor_OverwriteConfirm" xml:space="preserve">
+    <value>覆盖</value>
+  </data>
+  <data name="ThemeEditor_OverwriteMessageFormat" xml:space="preserve">
+    <value>已存在名为 "{0}" 的主题。要覆盖它吗？</value>
+  </data>
+  <data name="RemoteApiSettings_AuthHeader" xml:space="preserve">
+    <value>要求登录</value>
+  </data>
+  <data name="RemoteApiSettings_AuthDescription" xml:space="preserve">
+    <value>在允许访问前要求输入用户名和密码。</value>
+  </data>
+  <data name="RemoteApiSettings_UsernameHeader" xml:space="preserve">
+    <value>用户名</value>
+  </data>
+  <data name="RemoteApiSettings_PasswordHeader" xml:space="preserve">
+    <value>密码</value>
+  </data>
+  <data name="RemoteApiSettings_PasswordPlaceholder" xml:space="preserve">
+    <value>留空以保留当前密码</value>
+  </data>
+  <data name="RemoteApiSettings_MissingCredentials" xml:space="preserve">
+    <value>请输入用户名和密码，或关闭登录要求。</value>
+  </data>
+  <data name="RemoteApiSettings_AllowedOriginsHeader" xml:space="preserve">
+    <value>允许的网站</value>
+  </data>
+  <data name="RemoteApiSettings_AllowedOriginsDescription" xml:space="preserve">
+    <value>允许从浏览器调用此 API 的网站，以逗号分隔。留空则不允许任何网站。</value>
+  </data>
+  <data name="RemoteApiSettings_AllowedOriginsAddOfficial" xml:space="preserve">
+    <value>添加 lmp.hjc.im</value>
+  </data>
+  <data name="RemoteApiSettings_PairingConnect" xml:space="preserve">
+    <value>连接到</value>
+  </data>
+  <data name="RemoteApiSettings_PairingShowQr" xml:space="preserve">
+    <value>显示二维码</value>
+  </data>
+  <data name="RemoteApiSettings_PairingQrInstruction" xml:space="preserve">
+    <value>在 Android 上安装 Light Player，然后使用系统相机应用扫描此二维码。此二维码将在 5 分钟后过期。</value>
+  </data>
+  <data name="RemoteApiSettings_PairingCopied" xml:space="preserve">
+    <value>已复制</value>
+  </data>
+  <data name="RemoteApiSettings_PairingAuthenticatedNotice" xml:space="preserve">
+    <value>复制的链接在 5 分钟内有效。与之共享链接的任何人都可以添加此媒体库，并获得 30 天的访问权限。更改密码即可撤销配对访问权限。</value>
+  </data>
+  <data name="RemoteApiSettings_PairingOpenNotice" xml:space="preserve">
+    <value>复制的链接在 5 分钟内有效。登录已关闭，因此任何能访问此服务器的人都能访问该媒体库。</value>
+  </data>
+  <data name="RemoteApiSettings_PairingUnavailable" xml:space="preserve">
+    <value>无法创建配对链接。请检查此计算机是否具有专用 IPv4 网络地址。</value>
+  </data>
+  <data name="RemoteApiSettings_PairingCopyFailed" xml:space="preserve">
+    <value>无法复制配对链接。</value>
+  </data>
+  <data name="RemoteApiSettings_PairingQrFailed" xml:space="preserve">
+    <value>无法创建配对二维码。</value>
+  </data>
+  <data name="RemoteApiPairing_WebSuccess" xml:space="preserve">
+    <value>已连接到 {0}。</value>
+  </data>
+  <data name="RemoteApiPairing_WebFailed" xml:space="preserve">
+    <value>无法添加已配对的媒体库：{0}</value>
+  </data>
+  <data name="RemoteApiPairing_AndroidSuccess" xml:space="preserve">
+    <value>已连接到 {0}。</value>
+  </data>
+  <data name="RemoteApiPairing_AndroidFailed" xml:space="preserve">
+    <value>无法添加已配对的媒体库。二维码可能已过期，或服务器当前不可用。</value>
+  </data>
+  <data name="Shell_ServerRunning" xml:space="preserve">
+    <value>正在 {0} 提供服务</value>
+  </data>
+  <data name="WaylandSettings_EnableHeader" xml:space="preserve">
+    <value>启用 Wayland</value>
+  </data>
+  <data name="WaylandSettings_ModeAuto" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="WaylandSettings_ModeOff" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Nav_Video" xml:space="preserve">
+    <value>媒体</value>
+  </data>
+  <data name="Nav_VideoPlayer" xml:space="preserve">
+    <value>视频播放</value>
+  </data>
+  <data name="Nav_PhotoViewer" xml:space="preserve">
+    <value>照片</value>
+  </data>
+  <data name="Photo_LoadFailed" xml:space="preserve">
+    <value>无法打开此图片。</value>
+  </data>
+  <data name="Photo_LoadFailedDescription" xml:space="preserve">
+    <value>文件可能已损坏，或此版本不支持该格式。</value>
+  </data>
+  <data name="Video_Loading" xml:space="preserve">
+    <value>正在载入媒体…</value>
+  </data>
+  <data name="Video_EmptyHeader" xml:space="preserve">
+    <value>还没有媒体。</value>
+  </data>
+  <data name="Video_EmptyDescription" xml:space="preserve">
+    <value>请在设置中添加媒体文件夹。</value>
+  </data>
+  <data name="Video_LibraryRoot" xml:space="preserve">
+    <value>媒体库</value>
+  </data>
+  <data name="Video_GoUp" xml:space="preserve">
+    <value>返回上一级</value>
+  </data>
+  <data name="Video_ItemCount" xml:space="preserve">
+    <value>{0} 个媒体文件</value>
+  </data>
+  <data name="Video_ClearSubtitleCache" xml:space="preserve">
+    <value>清除已导入的字幕</value>
+  </data>
+  <data name="Video_ClearPlaybackProgress" xml:space="preserve">
+    <value>清除播放进度</value>
+  </data>
+  <data name="Video_MarkAsWatched" xml:space="preserve">
+    <value>标记为已观看</value>
+  </data>
+  <data name="Video_MarkFolderAsWatched" xml:space="preserve">
+    <value>全部标记为已观看</value>
+  </data>
+  <data name="Video_ClearFolderPlaybackProgress" xml:space="preserve">
+    <value>清除全部播放进度</value>
+  </data>
+  <data name="Shell_LayoutVideoFlat" xml:space="preserve">
+    <value>全部媒体</value>
+  </data>
+  <data name="Shell_LayoutVideoFolders" xml:space="preserve">
+    <value>按文件夹浏览</value>
+  </data>
+  <data name="VideoPlayer_Back10" xml:space="preserve">
+    <value>后退 10 秒</value>
+  </data>
+  <data name="VideoPlayer_Forward10" xml:space="preserve">
+    <value>前进 10 秒</value>
+  </data>
+  <data name="VideoPlayer_Speed" xml:space="preserve">
+    <value>播放速度</value>
+  </data>
+  <data name="VideoPlayer_Subtitles" xml:space="preserve">
+    <value>字幕开关</value>
+  </data>
+  <data name="VideoPlayer_SubtitleTrack" xml:space="preserve">
+    <value>字幕轨道</value>
+  </data>
+  <data name="VideoPlayer_SubtitleBrightness" xml:space="preserve">
+    <value>字幕亮度</value>
+  </data>
+  <data name="VideoPlayer_SubtitleBrightnessSdr" xml:space="preserve">
+    <value>SDR 亮度</value>
+  </data>
+  <data name="VideoPlayer_SubtitleBrightnessFollowVideo" xml:space="preserve">
+    <value>跟随视频亮度</value>
+  </data>
+  <data name="VideoPlayer_AudioTrack" xml:space="preserve">
+    <value>音轨</value>
+  </data>
+  <data name="VideoPlayer_Resolution" xml:space="preserve">
+    <value>分辨率</value>
+  </data>
+  <data name="VideoPlayer_VideoRendition" xml:space="preserve">
+    <value>视频版本</value>
+  </data>
+  <data name="VideoPlayer_Live" xml:space="preserve">
+    <value>直播</value>
+  </data>
+  <data name="VideoPlayer_StreamConnecting" xml:space="preserve">
+    <value>正在连接到媒体流...</value>
+  </data>
+  <data name="VideoPlayer_StreamLoadingManifest" xml:space="preserve">
+    <value>正在加载流清单...</value>
+  </data>
+  <data name="VideoPlayer_StreamReadingInformation" xml:space="preserve">
+    <value>正在读取流信息...</value>
+  </data>
+  <data name="VideoPlayer_StreamOpenFailedFormat" xml:space="preserve">
+    <value>无法打开 {0} 流：{1}</value>
+  </data>
+  <data name="VideoPlayer_LiveStreamEndedFormat" xml:space="preserve">
+    <value>{0} 直播流意外结束。</value>
+  </data>
+  <data name="VideoPlayer_TrackDefault" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="VideoPlayer_Chapters" xml:space="preserve">
+    <value>章节</value>
+  </data>
+  <data name="VideoPlayer_Playlist" xml:space="preserve">
+    <value>视频列表</value>
+  </data>
+  <data name="VideoPlayer_UpNext" xml:space="preserve">
+    <value>接下来播放</value>
+  </data>
+  <data name="VideoPlayer_SubtitlesOff" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="VideoPlayer_AddSubtitle" xml:space="preserve">
+    <value>添加字幕文件</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFromDevice" xml:space="preserve">
+    <value>从本机选择…</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFromServer" xml:space="preserve">
+    <value>从服务器选择…</value>
+  </data>
+  <data name="VideoPlayer_SubtitlePickerTitle" xml:space="preserve">
+    <value>选择字幕文件</value>
+  </data>
+  <data name="VideoPlayer_SubtitleBrowserTitle" xml:space="preserve">
+    <value>服务器上的字幕</value>
+  </data>
+  <data name="VideoPlayer_SubtitleBrowserEmpty" xml:space="preserve">
+    <value>此处没有字幕文件。</value>
+  </data>
+  <data name="VideoPlayer_SubtitleImportedFormat" xml:space="preserve">
+    <value>已导入 ({0})</value>
+  </data>
+  <data name="VideoPlayer_AutoPlayNext" xml:space="preserve">
+    <value>自动播放下一个视频</value>
+  </data>
+  <data name="VideoPlayer_FullScreen" xml:space="preserve">
+    <value>全屏</value>
+  </data>
+  <data name="VideoPlayer_Minimize" xml:space="preserve">
+    <value>最小化</value>
+  </data>
+  <data name="VideoPlayer_Maximize" xml:space="preserve">
+    <value>最大化</value>
+  </data>
+  <data name="VideoPlayer_PictureInPicture" xml:space="preserve">
+    <value>画中画</value>
+  </data>
+  <data name="VideoPlayer_PictureInPictureExit" xml:space="preserve">
+    <value>返回应用</value>
+  </data>
+  <data name="VideoPlayer_PictureInPictureActive" xml:space="preserve">
+    <value>正在独立窗口中播放</value>
+  </data>
+  <data name="VideoPlayer_Statistics" xml:space="preserve">
+    <value>播放统计信息</value>
+  </data>
+  <data name="Video_ResumePlayback" xml:space="preserve">
+    <value>继续播放</value>
+  </data>
+  <data name="VideoPlayer_Shortcuts" xml:space="preserve">
+    <value>键盘快捷键</value>
+  </data>
+  <data name="VideoPlayer_ShortcutSeek5" xml:space="preserve">
+    <value>后退 / 前进 5 秒</value>
+  </data>
+  <data name="VideoPlayer_ShortcutSeek10" xml:space="preserve">
+    <value>后退 / 前进 10 秒</value>
+  </data>
+  <data name="VideoPlayer_ShortcutSeek60" xml:space="preserve">
+    <value>后退 / 前进 1 分钟</value>
+  </data>
+  <data name="VideoPlayer_ShortcutStartEnd" xml:space="preserve">
+    <value>跳到开头 / 结尾</value>
+  </data>
+  <data name="VideoPlayer_ShortcutChapters" xml:space="preserve">
+    <value>上一章节 / 下一章节</value>
+  </data>
+  <data name="VideoPlayer_ShortcutVideos" xml:space="preserve">
+    <value>上一个视频 / 下一个视频</value>
+  </data>
+  <data name="VideoPlayer_ShortcutVolume" xml:space="preserve">
+    <value>音量增大 / 减小</value>
+  </data>
+  <data name="VideoPlayer_ShortcutMute" xml:space="preserve">
+    <value>静音</value>
+  </data>
+  <data name="VideoPlayer_ShortcutAudioTrack" xml:space="preserve">
+    <value>下一条音轨</value>
+  </data>
+  <data name="VideoPlayer_ShortcutSubtitleTrack" xml:space="preserve">
+    <value>下一条字幕</value>
+  </data>
+  <data name="VideoPlayer_ShortcutSpeed" xml:space="preserve">
+    <value>减速 / 加速</value>
+  </data>
+  <data name="VideoPlayer_ShortcutClose" xml:space="preserve">
+    <value>关闭菜单并退出全屏</value>
+  </data>
+  <data name="VideoPlayer_ShortcutHelp" xml:space="preserve">
+    <value>显示此列表</value>
+  </data>
+  <data name="VideoPlayer_Muted" xml:space="preserve">
+    <value>已静音</value>
+  </data>
+  <data name="LibrarySettings_MusicFoldersHeader" xml:space="preserve">
+    <value>音乐文件夹</value>
+  </data>
+  <data name="LibrarySettings_VideoFoldersHeader" xml:space="preserve">
+    <value>图片和视频文件夹</value>
+  </data>
+  <data name="LibrarySettings_VideoFoldersDescription" xml:space="preserve">
+    <value>用于扫描图片和视频的文件夹。</value>
+  </data>
+  <data name="LibrarySettings_AddVideoFolder" xml:space="preserve">
+    <value>添加视频文件夹</value>
+  </data>
+  <data name="LibrarySettings_AddDefaultVideoFoldersConfirmMessageFormat" xml:space="preserve">
+    <value>要将以下默认视频文件夹添加到媒体库吗？
+
+{0}</value>
+  </data>
+  <data name="LibrarySettings_DefaultVideoFoldersAlreadyAdded" xml:space="preserve">
+    <value>默认视频文件夹已经存在于媒体库。</value>
+  </data>
+  <data name="LibrarySettings_NoDefaultVideoFolders" xml:space="preserve">
+    <value>未在此设备上找到默认视频文件夹。</value>
+  </data>
+  <data name="RemoteApiSettings_TranscodeHeader" xml:space="preserve"><value>为客户端重新编码</value></data>
+  <data name="RemoteApiSettings_TranscodeDescription" xml:space="preserve"><value>允许客户端请求此计算机转码视频和音频。</value></data>
+  <data name="RemoteApiSettings_TranscodeHardwareHeader" xml:space="preserve"><value>硬件转码</value></data>
+  <data name="RemoteApiSettings_TranscodeHardwareScalingHeader" xml:space="preserve"><value>硬件缩放</value></data>
+  <data name="RemoteApiSettings_TranscodeDeviceTypeHeader" xml:space="preserve"><value>编码接口</value></data>
+  <data name="RemoteApiSettings_TranscodeDeviceHeader" xml:space="preserve"><value>编码设备</value></data>
+  <data name="RemoteApiSettings_TranscodeSoftwareHeader" xml:space="preserve"><value>回退到处理器</value></data>
+  <data name="RemoteApiSettings_TranscodeAutomatic" xml:space="preserve"><value>自动</value></data>
+  <data name="RemoteApiSettings_TranscodeRateControlHeader" xml:space="preserve"><value>码率控制</value></data>
+  <data name="RemoteApiSettings_TranscodeQualityHeader" xml:space="preserve"><value>编码偏好</value></data>
+  <data name="RemoteApiSettings_TranscodeUsageHeader" xml:space="preserve"><value>使用模式</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateControlHeader" xml:space="preserve"><value>VA-API 码率控制</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateCqp" xml:space="preserve"><value>恒定质量 (CQP)</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateCbr" xml:space="preserve"><value>恒定码率 (CBR)</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateVbr" xml:space="preserve"><value>可变码率 (VBR)</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateIcq" xml:space="preserve"><value>智能恒定质量 (ICQ)</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateQvbr" xml:space="preserve"><value>质量定义的可变码率 (QVBR)</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiRateAvbr" xml:space="preserve"><value>平均可变码率 (AVBR)</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiQualityHeader" xml:space="preserve"><value>VA-API 编码偏好</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiQualityQuality" xml:space="preserve"><value>质量</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiQualityBalanced" xml:space="preserve"><value>均衡</value></data>
+  <data name="RemoteApiSettings_TranscodeVaapiQualitySpeed" xml:space="preserve"><value>速度</value></data>
+  <data name="RemoteTranscodeSettings_Title" xml:space="preserve"><value>远程重新编码</value></data>
+  <data name="RemoteTranscodeSettings_Subtitle" xml:space="preserve"><value>在发送到本设备之前，请求服务器重新编码的内容。</value></data>
+  <data name="RemoteTranscodeSettings_VideoHeader" xml:space="preserve"><value>重新编码视频</value></data>
+  <data name="RemoteTranscodeSettings_VideoCodecHeader" xml:space="preserve"><value>视频编解码器</value></data>
+  <data name="RemoteTranscodeSettings_VideoCodecsHeader" xml:space="preserve"><value>本设备可播放的编解码器</value></data>
+  <data name="RemoteTranscodeSettings_VideoCodecsDescription" xml:space="preserve"><value>其他格式的视频无论是否满足条件都会被重新编码。名称之间用逗号分隔。</value></data>
+  <data name="RemoteTranscodeSettings_FileBitrateThresholdHeader" xml:space="preserve"><value>文件总码率高于此值时重新编码视频</value></data>
+  <data name="RemoteTranscodeSettings_FileBitrateThresholdDescription" xml:space="preserve"><value>根据文件大小和时长计算，单位为 Mb/s。设为 0 则禁用此限制。</value></data>
+  <data name="RemoteTranscodeSettings_VideoBitrateHeader" xml:space="preserve"><value>目标码率 (Mbps)</value></data>
+  <data name="RemoteTranscodeSettings_VideoHeightThresholdHeader" xml:space="preserve"><value>高于此高度时重新编码视频</value></data>
+  <data name="RemoteTranscodeSettings_VideoHeightThresholdDescription" xml:space="preserve"><value>画面高度（行数）。设为 0 则不会仅因尺寸而重新编码。</value></data>
+  <data name="RemoteTranscodeSettings_VideoHeightHeader" xml:space="preserve"><value>将视频高度降至</value></data>
+  <data name="RemoteTranscodeSettings_VideoHeightDescription" xml:space="preserve"><value>行数。设为 0 则保持原始尺寸，仅降低码率。</value></data>
+  <data name="RemoteTranscodeSettings_AudioHeader" xml:space="preserve"><value>重新编码音频</value></data>
+  <data name="RemoteTranscodeSettings_AudioCodecHeader" xml:space="preserve"><value>音频编解码器</value></data>
+  <data name="RemoteTranscodeSettings_AudioCodecsHeader" xml:space="preserve"><value>要重新编码的音频编解码器</value></data>
+  <data name="RemoteTranscodeSettings_AudioBitrateHeader" xml:space="preserve"><value>目标码率 (Kbps)</value></data>
+  <data name="RemoteTranscodeSettings_HardwareNotice" xml:space="preserve"><value>该服务器使用显卡设备编码。</value></data>
+  <data name="RemoteTranscodeSettings_SoftwareNotice" xml:space="preserve"><value>该服务器使用处理器编码，因此同时能承载的串流数量很少。</value></data>
+  <data name="RemoteTranscodeSettings_Automatic" xml:space="preserve"><value>由服务器决定</value></data>
+  <data name="VideoPlayer_Transcode" xml:space="preserve"><value>重新编码</value></data>
+  <data name="VideoPlayer_TranscodeFollow" xml:space="preserve"><value>遵循设置</value></data>
+  <data name="VideoPlayer_TranscodeVideoOn" xml:space="preserve"><value>始终重新编码视频</value></data>
+  <data name="VideoPlayer_TranscodeVideoOff" xml:space="preserve"><value>按原样发送视频</value></data>
+  <data name="VideoPlayer_TranscodeAudioOn" xml:space="preserve"><value>始终重新编码音频</value></data>
+  <data name="VideoPlayer_TranscodeAudioOff" xml:space="preserve"><value>按原样发送音频</value></data>
+  <data name="VideoPlayer_TranscodeVideoMode" xml:space="preserve"><value>视频重新编码</value></data>
+  <data name="VideoPlayer_TranscodeAudioMode" xml:space="preserve"><value>音频重新编码</value></data>
+  <data name="VideoPlayer_TranscodeVideoBitrate" xml:space="preserve"><value>视频码率 (Mb/s)</value></data>
+  <data name="VideoPlayer_TranscodeVideoHeight" xml:space="preserve"><value>目标分辨率（像素高度；留空则遵循全局设置）</value></data>
+  <data name="VideoPlayer_TranscodeAudioBitrate" xml:space="preserve"><value>音频码率 (kb/s)</value></data>
+  <data name="VideoPlayer_TranscodeRestartNotice" xml:space="preserve"><value>更改后将重新建立串流。</value></data>
+  <data name="VideoPlayer_TranscodeApply" xml:space="preserve"><value>应用</value></data>
+  <data name="LibrarySource_ThisDevice" xml:space="preserve"><value>本机</value></data>
+  <data name="RemoteLibraries_Title" xml:space="preserve"><value>远程媒体库</value></data>
+  <data name="RemoteLibraries_Description" xml:space="preserve"><value>添加并合并多个独立的 Light Player 媒体库。</value></data>
+  <data name="RemoteLibraries_RemoteOnlyDescription" xml:space="preserve"><value>此处无法使用本地媒体库文件夹，因此只能使用远程媒体库。</value></data>
+  <data name="RemoteLibraries_PreferDuplicates" xml:space="preserve"><value>优先使用高优先级的重复项</value></data>
+  <data name="RemoteLibraries_PreferDuplicatesDescription" xml:space="preserve"><value>隐藏匹配专辑和歌曲中优先级较低的副本。</value></data>
+  <data name="RemoteLibraries_Add" xml:space="preserve"><value>添加远程媒体库</value></data>
+  <data name="RemoteLibraries_PriorityFormat" xml:space="preserve"><value>优先级 {0}</value></data>
+  <data name="RemoteLibraries_LoadMusic" xml:space="preserve"><value>加载音乐</value></data>
+  <data name="RemoteLibraries_LoadVideo" xml:space="preserve"><value>加载视频</value></data>
+  <data name="RemoteLibraries_RefreshAtStartup" xml:space="preserve"><value>启动时刷新</value></data>
+  <data name="RemoteLibraries_MoveUp" xml:space="preserve"><value>上移</value></data>
+  <data name="RemoteLibraries_MoveDown" xml:space="preserve"><value>下移</value></data>
+  <data name="RemoteLibraries_Edit" xml:space="preserve"><value>编辑媒体库</value></data>
+  <data name="RemoteLibraries_Refresh" xml:space="preserve"><value>刷新媒体库</value></data>
+  <data name="RemoteLibraries_Retry" xml:space="preserve"><value>重新连接</value></data>
+  <data name="RemoteLibraries_RefreshComplete" xml:space="preserve"><value>刷新完成</value></data>
+  <data name="RemoteLibraries_StatusConnecting" xml:space="preserve"><value>正在连接</value></data>
+  <data name="RemoteLibraries_StatusOnline" xml:space="preserve"><value>在线</value></data>
+  <data name="RemoteLibraries_StatusOffline" xml:space="preserve"><value>离线</value></data>
+  <data name="RemoteLibraries_StatusSignIn" xml:space="preserve"><value>需要登录</value></data>
+  <data name="RemoteLibraries_StatusIncompatible" xml:space="preserve"><value>服务器不兼容</value></data>
+  <data name="RemoteLibraries_StatusDisabled" xml:space="preserve"><value>已禁用</value></data>
+  <data name="RemoteLibraries_StatusRefreshing" xml:space="preserve"><value>正在刷新</value></data>
+  <data name="RemoteLibraries_RemoveTitle" xml:space="preserve"><value>移除远程媒体库</value></data>
+  <data name="RemoteLibraries_RemoveMessageFormat" xml:space="preserve"><value>确定要移除“{0}”吗？播放列表和队列中的引用将保持不可用，缓存的数据会被删除。</value></data>
+  <data name="RemoteLibraries_AddHeader" xml:space="preserve"><value>添加远程媒体库</value></data>
+  <data name="RemoteLibraries_EditHeader" xml:space="preserve"><value>编辑远程媒体库</value></data>
+  <data name="RemoteLibraries_Advanced" xml:space="preserve"><value>高级连接设置</value></data>
+  <data name="RemoteLibraries_Provider" xml:space="preserve"><value>服务</value></data>
+  <data name="RemoteLibraries_ProviderLightPlayer" xml:space="preserve"><value>Light Player</value></data>
+  <data name="RemoteLibraries_ProviderNextcloudMusic" xml:space="preserve"><value>Nextcloud Music</value></data>
+  <data name="RemoteLibraries_ProviderWebDav" xml:space="preserve"><value>WebDAV</value></data>
+  <data name="RemoteLibraries_WebDavRangeRequired" xml:space="preserve"><value>此 WebDAV 服务器不支持 HTTP 字节范围请求，而 Light Player 需要此功能才能访问远程媒体。</value></data>
+  <data name="RemoteLibraries_ConnectedAsFormat" xml:space="preserve"><value>已作为 {0} 连接</value></data>
+  <data name="RemoteLibraries_ApiKey" xml:space="preserve"><value>Music API 密钥</value></data>
+  <data name="RemoteLibraries_ApiKeyHint" xml:space="preserve"><value>在浏览器中连接，或粘贴在 Nextcloud Music 设置中生成的 API 密钥。</value></data>
+  <data name="RemoteLibraries_ConnectNextcloud" xml:space="preserve"><value>连接 Nextcloud</value></data>
+  <data name="RemoteLibraries_OpenNextcloudMusic" xml:space="preserve"><value>打开 Nextcloud Music</value></data>
+  <data name="RemoteLibraries_ApiProxy" xml:space="preserve"><value>API 代理</value></data>
+  <data name="RemoteLibraries_NamePlaceholder" xml:space="preserve"><value>家庭媒体库</value></data>
+  <data name="RemoteLibraries_ApiProxyPlaceholder" xml:space="preserve"><value>留空表示直接连接</value></data>
+  <data name="RemoteLibraries_WebProxy" xml:space="preserve"><value>通过本站点转发 API 请求</value></data>
+  <data name="RemoteLibraries_WebProxyHint" xml:space="preserve"><value>直接连接需要服务器允许本站点，浏览器也可能会请求访问局域网地址的权限。若无法直接连接，请勾选此项。</value></data>
+  <data name="RemoteLibraries_LoadMusicShort" xml:space="preserve"><value>音乐</value></data>
+  <data name="RemoteLibraries_LoadVideoShort" xml:space="preserve"><value>视频</value></data>
+  <data name="RemoteLibraries_RememberPassword" xml:space="preserve"><value>在本设备上记住密码</value></data>
+  <data name="RemoteLibraries_SaveOffline" xml:space="preserve"><value>离线保存</value></data>
+  <data name="RemoteLibraries_LibrarySingular" xml:space="preserve"><value>1个媒体库</value></data>
+  <data name="RemoteLibraries_LibrariesFormat" xml:space="preserve"><value>{0}个媒体库</value></data>
+  <data name="Playlists_FavoriteMusic" xml:space="preserve">
+    <value>收藏的音乐</value>
+  </data>
+  <data name="Playlists_FavoriteVideo" xml:space="preserve">
+    <value>收藏的视频</value>
+  </data>
+  <data name="Playlists_MusicPlaylist" xml:space="preserve">
+    <value>音乐播放列表</value>
+  </data>
+  <data name="Playlists_VideoPlaylist" xml:space="preserve">
+    <value>视频播放列表</value>
+  </data>
+  <data name="Playlists_NewPlaylistKindHeader" xml:space="preserve">
+    <value>选择播放列表类型</value>
+  </data>
+  <data name="Playlists_UntitledPlaylist" xml:space="preserve">
+    <value>未命名播放列表</value>
+  </data>
+  <data name="PlaylistDetail_VideoEmptyDescription" xml:space="preserve">
+    <value>从视频库中添加视频。</value>
+  </data>
+  <data name="Video_AddToFavorites" xml:space="preserve">
+    <value>添加到收藏的视频</value>
+  </data>
+  <data name="Video_RemoveFromFavorites" xml:space="preserve">
+    <value>从收藏的视频中移除</value>
+  </data>
+  <data name="Video_RecentlyViewed" xml:space="preserve">
+    <value>最近浏览</value>
+  </data>
+  <data name="Video_ClearRecentlyViewed" xml:space="preserve">
+    <value>清除最近浏览</value>
+  </data>
+  <data name="Video_RecentEmptyHeader" xml:space="preserve">
+    <value>还没有浏览记录。</value>
+  </data>
+  <data name="Video_RecentEmptyDescription" xml:space="preserve">
+    <value>浏览过的文件夹和打开过的媒体会显示在这里。</value>
+  </data>
+  <data name="VideoSettings_CustomFiltersHeader" xml:space="preserve"><value>自定义缩放滤镜</value></data>
+  <data name="VideoSettings_CustomFiltersDescription" xml:space="preserve"><value>导入并排列基于文件的预缩放滤镜。播放器只会运行第一个符合条件的滤镜。</value></data>
+  <data name="VideoSettings_CustomFiltersFindOnline" xml:space="preserve"><value>在线查找着色器包</value></data>
+  <data name="VideoSettings_CustomFiltersImport" xml:space="preserve"><value>导入着色器包</value></data>
+  <data name="VideoSettings_CustomFiltersEmpty" xml:space="preserve"><value>尚未安装自定义缩放滤镜。</value></data>
+  <data name="VideoSettings_CustomFiltersImportUnavailable" xml:space="preserve"><value>此设备无法导入着色器包文件夹。</value></data>
+  <data name="VideoSettings_CustomFiltersImportPickerTitle" xml:space="preserve"><value>选择着色器包文件夹</value></data>
+  <data name="VideoSettings_CustomFiltersImportedFormat" xml:space="preserve"><value>已导入 {0}。</value></data>
+  <data name="VideoSettings_CustomFiltersRemoveTitle" xml:space="preserve"><value>移除缩放滤镜</value></data>
+  <data name="VideoSettings_CustomFiltersRemoveMessageFormat" xml:space="preserve"><value>要移除“{0}”吗？</value></data>
+  <data name="VideoSettings_CustomFiltersPriorityFormat" xml:space="preserve"><value>优先级 {0}</value></data>
+  <data name="VideoSettings_CustomFiltersMoveUp" xml:space="preserve"><value>上移</value></data>
+  <data name="VideoSettings_CustomFiltersMoveDown" xml:space="preserve"><value>下移</value></data>
+  <data name="VideoSettings_CustomFiltersEnabled" xml:space="preserve"><value>允许自动使用</value></data>
+  <data name="VideoSettings_CustomFiltersMaximumResolution" xml:space="preserve"><value>最大支持分辨率</value></data>
+  <data name="VideoSettings_CustomFiltersMaximumResolutionDescription" xml:space="preserve"><value>自动选择时允许的源视频短边像素上限。0 表示无限制。</value></data>
+  <data name="VideoPlayer_ScalingFilter" xml:space="preserve"><value>自定义缩放滤镜</value></data>
+  <data name="VideoPlayer_ScalingFilterAutomatic" xml:space="preserve"><value>自动</value></data>
+  <data name="VideoPlayer_ScalingFilterOff" xml:space="preserve"><value>关闭</value></data>
+  <data name="VideoPlayer_ScalingFilterDisabledSuffix" xml:space="preserve"><value>（自动选择已禁用）</value></data>
+  <data name="VideoPlayer_ScalingFilterResolutionSuffix" xml:space="preserve"><value>（超出自动分辨率上限）</value></data>
+  <data name="VideoSettings_CustomFiltersDetailsFormat" xml:space="preserve"><value>{0} | {1} | {2} | {3} 个阶段</value></data>
+  <data name="Photo_ShowRaw" xml:space="preserve"><value>显示原始 RAW 图像</value></data>
+  <data name="Photo_ShowEmbeddedJpeg" xml:space="preserve"><value>显示内嵌 JPEG</value></data>
+  <data name="Photo_Hdr" xml:space="preserve">
+    <value>HDR 增益图</value>
+  </data>
+  <data name="Photo_ActualSize" xml:space="preserve">
+    <value>实际大小 (1:1)</value>
+  </data>
+  <data name="Photo_CopyPath" xml:space="preserve">
+    <value>复制路径</value>
+  </data>
+  <data name="Photo_FitToWindow" xml:space="preserve">
+    <value>适应窗口</value>
+  </data>
+  <data name="Photo_Next" xml:space="preserve">
+    <value>下一张</value>
+  </data>
+  <data name="Photo_ShortcutNavigateOrPan" xml:space="preserve">
+    <value>放大时移动照片；否则查看上一张或下一张</value>
+  </data>
+  <data name="Photo_OpenWith" xml:space="preserve">
+    <value>打开方式…</value>
+  </data>
+  <data name="Photo_Previous" xml:space="preserve">
+    <value>上一张</value>
+  </data>
+  <data name="Photo_Rotate" xml:space="preserve">
+    <value>旋转</value>
+  </data>
+  <data name="Photo_Rotate90" xml:space="preserve">
+    <value>90°</value>
+  </data>
+  <data name="Photo_Rotate180" xml:space="preserve">
+    <value>180°</value>
+  </data>
+  <data name="Photo_Rotate270" xml:space="preserve">
+    <value>270°</value>
+  </data>
+  <data name="Photo_Share" xml:space="preserve">
+    <value>分享</value>
+  </data>
+  <data name="Photo_ShareUnsupported" xml:space="preserve">
+    <value>此平台不支持分享。</value>
+  </data>
+  <data name="Photo_Zoom" xml:space="preserve">
+    <value>缩放</value>
+  </data>
+  <data name="Photo_ZoomIn" xml:space="preserve">
+    <value>放大</value>
+  </data>
+  <data name="Photo_ZoomOut" xml:space="preserve">
+    <value>缩小</value>
+  </data>
+  <data name="Props_SectionExif" xml:space="preserve">
+    <value>EXIF</value>
+  </data>
+  <data name="Props_ExifMake" xml:space="preserve"><value>相机制造商</value></data>
+  <data name="Props_ExifModel" xml:space="preserve"><value>相机型号</value></data>
+  <data name="Props_ExifSoftware" xml:space="preserve"><value>软件</value></data>
+  <data name="Props_ExifArtist" xml:space="preserve"><value>摄影者</value></data>
+  <data name="Props_ExifCopyright" xml:space="preserve"><value>版权</value></data>
+  <data name="Props_ExifImageDescription" xml:space="preserve"><value>图像描述</value></data>
+  <data name="Props_ExifDateTime" xml:space="preserve"><value>修改时间</value></data>
+  <data name="Props_ExifOrientation" xml:space="preserve"><value>图像方向</value></data>
+  <data name="Props_ExifResolution" xml:space="preserve"><value>打印分辨率</value></data>
+  <data name="Props_ExifDateTimeOriginal" xml:space="preserve"><value>拍摄时间</value></data>
+  <data name="Props_ExifDateTimeDigitized" xml:space="preserve"><value>数字化时间</value></data>
+  <data name="Props_ExifLensModel" xml:space="preserve"><value>镜头型号</value></data>
+  <data name="Props_ExifExposureTime" xml:space="preserve"><value>曝光时间</value></data>
+  <data name="Props_ExifFNumber" xml:space="preserve"><value>光圈</value></data>
+  <data name="Props_ExifISO" xml:space="preserve"><value>ISO 感光度</value></data>
+  <data name="Props_ExifExposureBias" xml:space="preserve"><value>曝光补偿</value></data>
+  <data name="Props_ExifFocalLength" xml:space="preserve"><value>焦距</value></data>
+  <data name="Props_ExifFocalLengthIn35mmFilm" xml:space="preserve"><value>35 毫米等效焦距</value></data>
+  <data name="Props_ExifExposureProgram" xml:space="preserve"><value>曝光程序</value></data>
+  <data name="Props_ExifMeteringMode" xml:space="preserve"><value>测光模式</value></data>
+  <data name="Props_ExifFlash" xml:space="preserve"><value>闪光灯</value></data>
+  <data name="Props_ExifWhiteBalance" xml:space="preserve"><value>白平衡</value></data>
+  <data name="Props_ExifColorSpace" xml:space="preserve"><value>色彩空间</value></data>
+  <data name="Props_ExifGPSPosition" xml:space="preserve"><value>GPS 坐标</value></data>
+  <data name="Props_ExifGPSAltitude" xml:space="preserve"><value>GPS 海拔</value></data>
+  <data name="Selection_Select" xml:space="preserve"><value>选择</value></data>
+  <data name="Selection_Exit" xml:space="preserve"><value>退出选择</value></data>
+  <data name="Selection_Count" xml:space="preserve"><value>已选择 {0} 项</value></data>
+  <data name="PageSearch_Find" xml:space="preserve"><value>在页面中查找</value></data>
+  <data name="PageSearch_Previous" xml:space="preserve"><value>上一个匹配项</value></data>
+  <data name="PageSearch_Next" xml:space="preserve"><value>下一个匹配项</value></data>
+  <data name="PageSearch_Matches" xml:space="preserve"><value>第 {0} 项，共 {1} 个匹配项</value></data>
+  <data name="PageSearch_Partial" xml:space="preserve"><value>部分项目无法搜索。</value></data>
+  <data name="Shell_DownloadDesktopApp" xml:space="preserve">
+    <value>下载桌面应用</value>
+  </data>
+  <data name="ThemeColor_BackdropHeader" xml:space="preserve">
+    <value>背景效果</value>
+  </data>
+  <data name="ThemeColor_BackdropGlassContentOnly" xml:space="preserve">
+    <value>液态玻璃（仅内容）</value>
+  </data>
+  <data name="ThemeColor_BackdropBlur" xml:space="preserve">
+    <value>模糊</value>
+  </data>
+  <data name="ThemeColor_BackdropOff" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Common_OpenInNewWindow" xml:space="preserve">
+    <value>在新窗口中打开</value>
+  </data>
+  <data name="PhotoIndex_Title" xml:space="preserve"><value>照片搜索</value></data>
+  <data name="PhotoIndex_Enable" xml:space="preserve"><value>照片语义搜索</value></data>
+  <data name="PhotoIndex_Description" xml:space="preserve"><value>通过描述照片内容搜索媒体库文件夹中的照片。</value></data>
+  <data name="Inference_Model" xml:space="preserve"><value>搜索模型</value></data>
+  <data name="Inference_NoModel" xml:space="preserve"><value>尚未安装模型</value></data>
+  <data name="Inference_Import" xml:space="preserve"><value>导入模型文件夹</value></data>
+  <data name="Inference_Download" xml:space="preserve"><value>下载模型</value></data>
+  <data name="Inference_Device" xml:space="preserve"><value>处理设备</value></data>
+  <data name="PhotoIndex_Remote" xml:space="preserve"><value>允许已认证的客户端搜索这些照片</value></data>
+  <data name="PhotoIndex_ProgressFormat" xml:space="preserve"><value>已索引 {0} 张；已处理 {1}/{2} 张；失败 {3} 张</value></data>
+  <data name="Inference_DeviceFallback" xml:space="preserve"><value>无法使用所选设备。正在使用 {0}。</value></data>
+  <data name="Inference_WindowsInferenceDescription" xml:space="preserve"><value>选择 GPU 可加快照片搜索，选择 CPU 可获得更广泛的兼容性。部分操作仍可能在 CPU 上运行。首次使用时可能需要下载。</value></data>
+  <data name="Inference_WindowsProviderWarning" xml:space="preserve"><value>警告：CPU 和 DirectML 以外的提供程序可能无法正确运行所选模型，并可能导致崩溃。使用风险由您自行承担。请向硬件厂商查询支持的模型和配置指南。</value></data>
+  <data name="Inference_Models" xml:space="preserve"><value>模型</value></data>
+  <data name="Inference_ModelDescription" xml:space="preserve"><value>更改模型会重置索引。</value></data>
+  <data name="Inference_SiglipBaseDescription" xml:space="preserve"><value>轻量，适合手机和较旧的电脑等算力有限的设备。</value></data>
+  <data name="Inference_SiglipLargeDescription" xml:space="preserve"><value>均衡，适合现代轻薄笔记本电脑。</value></data>
+  <data name="Inference_SiglipSo400mDescription" xml:space="preserve"><value>大型，适合配备高性能独立显卡的现代电脑。</value></data>
+  <data name="Inference_Imported" xml:space="preserve"><value>已导入的模型</value></data>
+  <data name="Inference_Downloading" xml:space="preserve"><value>正在下载...</value></data>
+  <data name="Inference_Paused" xml:space="preserve"><value>已暂停</value></data>
+  <data name="Inference_Verifying" xml:space="preserve"><value>正在检查模型...</value></data>
+  <data name="Inference_Installing" xml:space="preserve"><value>正在安装...</value></data>
+  <data name="Inference_Canceling" xml:space="preserve"><value>正在取消...</value></data>
+  <data name="Inference_DownloadFailed" xml:space="preserve"><value>下载已中断。请恢复下载以重试。</value></data>
+  <data name="Inference_PauseDownload" xml:space="preserve"><value>暂停下载</value></data>
+  <data name="Inference_ResumeDownload" xml:space="preserve"><value>恢复下载</value></data>
+  <data name="Search_PhotosHeader" xml:space="preserve"><value>照片</value></data>
+  <data name="Search_MorePhotos" xml:space="preserve"><value>更多照片结果</value></data>
+  <data name="Search_MoreAlbums" xml:space="preserve"><value>更多专辑结果</value></data>
+  <data name="Search_MoreArtists" xml:space="preserve"><value>更多艺术家结果</value></data>
+  <data name="Search_MoreSongs" xml:space="preserve"><value>更多歌曲结果</value></data>
+  <data name="AudioSeparation_Title" xml:space="preserve"><value>音源分离</value></data>
+  <data name="AudioSeparation_Subtitle" xml:space="preserve"><value>在音乐播放期间聆听由 AI 模型分离的音轨。</value></data>
+  <data name="AudioSeparation_Enable" xml:space="preserve"><value>启用音源分离</value></data>
+  <data name="AudioSeparation_Model" xml:space="preserve"><value>音源分离模型</value></data>
+  <data name="AudioSeparation_Import" xml:space="preserve"><value>导入 ONNX 模型</value></data>
+  <data name="AudioSeparation_Original" xml:space="preserve"><value>原始音频</value></data>
+  <data name="AudioSeparation_Track1" xml:space="preserve"><value>分轨 1</value></data>
+  <data name="AudioSeparation_Track2" xml:space="preserve"><value>分轨 2</value></data>
+  <data name="LibrarySettings_AlbumGroupingHeader" xml:space="preserve">
+    <value>不同艺术家的同名专辑</value>
+  </data>
+  <data name="LibrarySettings_AlbumGroupingDescription" xml:space="preserve">
+    <value>归类专辑名相同且未设置专辑艺术家的歌曲。</value>
+  </data>
+  <data name="LibrarySettings_AlbumGroupingAlwaysCombine" xml:space="preserve">
+    <value>始终合并</value>
+  </data>
+  <data name="LibrarySettings_AlbumGroupingSameFolder" xml:space="preserve">
+    <value>仅合并同一文件夹中的歌曲</value>
+  </data>
+  <data name="LibrarySettings_AlbumGroupingSeparateArtists" xml:space="preserve">
+    <value>按艺术家分开</value>
+  </data>
+  <data name="Shell_SortFileType" xml:space="preserve">
+    <value>文件类型</value>
+  </data>
+  <data name="Shell_SortFileSize" xml:space="preserve">
+    <value>文件大小</value>
+  </data>
+  <data name="Shell_Grouping" xml:space="preserve"><value>项目分组</value></data>
+  <data name="Shell_GroupBy" xml:space="preserve"><value>分组依据</value></data>
+  <data name="Shell_GroupName" xml:space="preserve"><value>首字符</value></data>
+  <data name="Shell_GroupCreationDay" xml:space="preserve"><value>日期</value></data>
+  <data name="Shell_GroupCreationMonth" xml:space="preserve"><value>月份</value></data>
+  <data name="Shell_GroupCreationYear" xml:space="preserve"><value>年份</value></data>
+  <data name="Shell_GroupCountry" xml:space="preserve"><value>国家</value></data>
+  <data name="Shell_GroupState" xml:space="preserve"><value>省/州</value></data>
+  <data name="Shell_GroupCity" xml:space="preserve"><value>城市</value></data>
+  <data name="Shell_ChooseGroup" xml:space="preserve"><value>选择分组</value></data>
+  <data name="Shell_GroupUnknownDate" xml:space="preserve"><value>日期未知</value></data>
+  <data name="Shell_GroupUnknownLocation" xml:space="preserve"><value>位置未知</value></data>
+  <data name="Shell_GroupLocationFormat" xml:space="preserve"><value>{1} {0}</value></data>
+  <data name="Shell_GroupFolders" xml:space="preserve"><value>文件夹</value></data>
+  <data name="LibrarySettings_AutoScanHeader" xml:space="preserve">
+    <value>自动扫描</value>
+  </data>
+  <data name="LibrarySettings_AutoScanDescription" xml:space="preserve">
+    <value>自动保持本地媒体库为最新状态。</value>
+  </data>
+  <data name="LibrarySettings_AutoScanIntervalHeader" xml:space="preserve">
+    <value>扫描间隔（分钟）</value>
+  </data>
+  <data name="SettingsPage_General" xml:space="preserve"><value>常规</value></data>
+  <data name="SettingsPage_LocalLibrary" xml:space="preserve"><value>本地媒体库</value></data>
+  <data name="SettingsPage_RemoteLibrary" xml:space="preserve"><value>远程媒体库</value></data>
+  <data name="SettingsPage_PhotoIndex" xml:space="preserve"><value>照片索引</value></data>
+  <data name="SettingsPage_AudioPlayback" xml:space="preserve"><value>音频播放</value></data>
+  <data name="SettingsPage_VideoPlayback" xml:space="preserve"><value>视频播放</value></data>
+  <data name="SettingsPage_CustomFilters" xml:space="preserve"><value>自定义滤镜</value></data>
+  <data name="SettingsPage_ServerStreaming" xml:space="preserve"><value>服务器串流</value></data>
+  <data name="LibrarySettings_MusicLibraryHeader" xml:space="preserve"><value>音乐库</value></data>
+  <data name="LibrarySettings_MediaLibraryHeader" xml:space="preserve"><value>照片与视频</value></data>
+  <data name="LibrarySettings_UseSystemLibrary" xml:space="preserve"><value>使用系统媒体库</value></data>
+  <data name="LibrarySettings_SystemMusicDescription" xml:space="preserve"><value>显示设备媒体库中的音乐。</value></data>
+  <data name="LibrarySettings_SystemMediaDescription" xml:space="preserve"><value>显示设备媒体库中的照片和视频。</value></data>
+  <data name="LibrarySettings_ScanFolders" xml:space="preserve"><value>扫描文件夹</value></data>
+  <data name="LibrarySettings_ScanFoldersDescription" xml:space="preserve"><value>包含所选文件夹中的文件。</value></data>
+  <data name="LibrarySettings_ManageMediaAccess" xml:space="preserve"><value>管理媒体访问权限</value></data>
+  <data name="LibrarySettings_SystemLibraryAccessDenied" xml:space="preserve"><value>尚未允许访问媒体。请在系统设置中授予访问权限。</value></data>
+  <data name="LibrarySource_SystemLibrary" xml:space="preserve"><value>系统媒体库</value></data>
+  <data name="LibrarySettings_SourcesDescription" xml:space="preserve"><value>选择音乐、照片和视频的来源。</value></data>
+  <data name="Library_EmptySourcesDescription" xml:space="preserve"><value>所选媒体库来源中没有可用的媒体。</value></data>
+  <data name="Props_SectionPhoto" xml:space="preserve"><value>照片</value></data>
+  <data name="Props_PhotoComponents" xml:space="preserve"><value>图像组成</value></data>
+  <data name="Props_PhotoComponentFormat" xml:space="preserve"><value>{0:N0} 个 {1} ({2})</value></data>
+  <data name="Shell_AutomaticUpdateCheck" xml:space="preserve">
+    <value>自动检查更新</value>
+  </data>
+  <data name="Photo_ToneMapping" xml:space="preserve"><value>HDR 色调映射</value></data>
+  <data name="Photo_ToneCurve" xml:space="preserve"><value>色调曲线</value></data>
+  <data name="Photo_ToneAutomatic" xml:space="preserve"><value>自动</value></data>
+  <data name="Photo_ToneSpline" xml:space="preserve"><value>PQ 样条曲线</value></data>
+  <data name="Photo_ToneHeadroom" xml:space="preserve"><value>目标 HDR 余量</value></data>
+  <data name="Photo_ToneTargetLuminance" xml:space="preserve"><value>目标最大亮度</value></data>
+  <data name="Photo_ToneReferenceWhite" xml:space="preserve"><value>SDR 参考白</value></data>
+  <data name="Photo_ToneKneeOffset" xml:space="preserve"><value>拐点偏移</value></data>
+  <data name="Photo_ToneKneeAdaptation" xml:space="preserve"><value>拐点适应度</value></data>
+  <data name="Photo_ToneKneeMinimum" xml:space="preserve"><value>最小拐点</value></data>
+  <data name="Photo_ToneKneeMaximum" xml:space="preserve"><value>最大拐点</value></data>
+  <data name="Photo_ToneKneeDefault" xml:space="preserve"><value>默认拐点</value></data>
+  <data name="Photo_ToneSlopeTuning" xml:space="preserve"><value>斜率调节</value></data>
+  <data name="Photo_ToneSlopeOffset" xml:space="preserve"><value>斜率偏移</value></data>
+  <data name="Photo_ToneContrast" xml:space="preserve"><value>对比度</value></data>
+  <data name="Photo_ToneReset" xml:space="preserve"><value>重置为自动</value></data>
+  <data name="Photo_ToneSave" xml:space="preserve"><value>保存为首选色调曲线</value></data>
+  <data name="Photo_ToneClear" xml:space="preserve"><value>清除已保存的偏好</value></data>
+</root>

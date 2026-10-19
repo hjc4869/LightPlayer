@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:animations="using:LightStudio.LightPlayer.Animations"
+             mc:Ignorable="d"
+             d:DesignWidth="560"
+             d:DesignHeight="200"
+             x:Name="Root"
+             x:Class="LightStudio.LightPlayer.Controls.AlbumArtBanner">
+    <UserControl.Styles>
+        <!-- Tappable artist name styled as a flat link, matching the album detail page. -->
+        <Style Selector="Button.metaLink">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Button.metaLink /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.metaLink:pointerover">
+            <Setter Property="TextBlock.TextDecorations" Value="Underline" />
+        </Style>
+        <!-- When the artist has no detail page (e.g. "Various") the command is
+             disabled; keep the label flat so it reads as plain text. -->
+        <Style Selector="Button.metaLink:disabled /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </UserControl.Styles>
+
+    <!-- Wide artwork strip: the cover fills the width, a vertical fade to the page
+         background darkens only the lower part, and the title/metadata sit on top
+         of that fade. -->
+    <Border Height="200"
+            CornerRadius="6"
+            ClipToBounds="True">
+        <Panel>
+            <controls:MediaThumbnail Source="{Binding #Root.Source}"
+                                     CornerRadius="6"
+                                     animations:ConnectedArtwork.Key="{Binding #Root.(animations:ConnectedArtwork.Key)}"
+                                     PlaceholderKind="Album" />
+
+            <!-- Background set in code-behind: the gradient is built from the current
+                 page-background color so it follows the active color theme. -->
+            <Border x:Name="FadeOverlay" IsHitTestVisible="False" />
+
+            <Grid VerticalAlignment="Bottom"
+                  Margin="12,0,4,10"
+                  ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0"
+                            VerticalAlignment="Bottom"
+                            Margin="0,0,0,2"
+                            Spacing="2">
+                    <TextBlock Text="{Binding #Root.Header}"
+                               IsVisible="{Binding #Root.Header, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               FontSize="13"
+                               FontWeight="Bold"
+                               Foreground="{DynamicResource AppAccentBrush}" />
+                    <TextBlock Text="{Binding #Root.Title}"
+                               FontSize="22"
+                               FontWeight="SemiBold"
+                               MaxLines="1"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <!-- The artist reads as a link only when the host supplies a command;
+                         otherwise it is plain text (no hand cursor, no "go to artist" tip). -->
+                    <Panel IsVisible="{Binding #Root.ArtistName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <Button Classes="metaLink"
+                                IsVisible="{Binding #Root.ArtistCommand, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                Command="{Binding #Root.ArtistCommand}"
+                                ToolTip.Tip="{Binding Common_GoToArtist, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <TextBlock Text="{Binding #Root.ArtistName}"
+                                       FontSize="14"
+                                       MaxLines="1"
+                                       TextTrimming="CharacterEllipsis"
+                                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                        </Button>
+                        <TextBlock Text="{Binding #Root.ArtistName}"
+                                   IsVisible="{Binding #Root.ArtistCommand, Converter={x:Static ObjectConverters.IsNull}}"
+                                   FontSize="14"
+                                   MaxLines="1"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    </Panel>
+                    <TextBlock Text="{Binding #Root.Meta}"
+                               IsVisible="{Binding #Root.Meta, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                               FontSize="13"
+                               MaxLines="1"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                </StackPanel>
+
+                <!-- Album-level actions; the hosting page moves its own button row in
+                     here while the banner is shown. -->
+                <ContentControl Grid.Column="1"
+                                Margin="4,0,0,0"
+                                VerticalAlignment="Bottom"
+                                Content="{Binding #Root.ActionContent}" />
+            </Grid>
+        </Panel>
+    </Border>
+</UserControl>

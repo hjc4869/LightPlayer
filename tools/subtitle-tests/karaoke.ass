@@ -1,0 +1,40 @@
+[Script Info]
+Title: Karaoke tags - \k, \kf, \K, \ko, \kt
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+; PrimaryColour is the sung colour, SecondaryColour the unsung one.
+Style: Kara,Arial,54,&H0000FFFF,&H00FF6060,&H00202020,&H80000000,1,0,0,0,100,100,0,0,1,3,1,5,20,20,20,1
+Style: Small,Arial,26,&H00C0C0C0,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,0,5,20,20,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+
+; --- \k : the syllable flips colour when its turn comes
+Dialogue: 0,0:00:00.00,0:00:07.00,Small,,0,0,0,,{\pos(640,60)}k: each syllable flips from secondary to primary
+Dialogue: 0,0:00:00.00,0:00:07.00,Kara,,0,0,0,,{\pos(640,120)}{\k100}Ka{\k100}ra{\k100}o{\k100}ke {\k100}hard {\k100}high{\k100}light
+
+; --- \kf : the colour sweeps across the syllable
+Dialogue: 0,0:00:00.00,0:00:07.00,Small,,0,0,0,,{\pos(640,220)}kf: the fill sweeps across each syllable
+Dialogue: 0,0:00:00.00,0:00:07.00,Kara,,0,0,0,,{\pos(640,280)}{\kf100}Ka{\kf100}ra{\kf100}o{\kf100}ke {\kf100}sweep{\kf200}ing
+
+; --- \K : the same thing spelt the other way
+Dialogue: 0,0:00:00.00,0:00:07.00,Small,,0,0,0,,{\pos(640,380)}K: identical to kf, and the only case sensitive tag
+Dialogue: 0,0:00:00.00,0:00:07.00,Kara,,0,0,0,,{\pos(640,440)}{\K150}Up{\K150}per{\K150}case{\K150} al{\K150}ias
+
+; --- \ko : the border only appears once the syllable is sung
+Dialogue: 0,0:00:00.00,0:00:07.00,Small,,0,0,0,,{\pos(640,540)}ko: the outline is drawn only after the syllable is sung
+Dialogue: 0,0:00:00.00,0:00:07.00,Kara,,0,0,0,,{\pos(640,600)\bord5\3c&H00FF00&}{\ko120}Out{\ko120}line{\ko120} ap{\ko120}pears{\ko120} late
+
+; --- \kt : moves the karaoke clock, so a syllable can start early or late
+Dialogue: 0,0:00:07.20,0:00:14.00,Small,,0,0,0,,{\pos(640,220)}kt: resets the karaoke clock, so the second half restarts
+Dialogue: 0,0:00:07.20,0:00:14.00,Kara,,0,0,0,,{\pos(640,300)}{\kf100}one{\kf100} two{\kf100} three{\kt0}{\kf100} back{\kf100} to{\kf100} zero
+
+; --- a whole-line sweep, the way a typesetter would actually write it
+Dialogue: 0,0:00:07.20,0:00:14.00,Small,,0,0,0,,{\pos(640,420)}kf across a line long enough to wrap keeps one sweep per syllable
+Dialogue: 0,0:00:07.20,0:00:14.00,Kara,,0,0,0,,{\pos(640,500)\fs40}{\kf60}A {\kf60}syllable {\kf60}that {\kf60}is {\kf60}broken {\kf60}across {\kf60}two {\kf60}lines {\kf60}still {\kf60}sweeps {\kf60}once

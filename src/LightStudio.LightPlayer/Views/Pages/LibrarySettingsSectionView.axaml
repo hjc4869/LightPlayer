@@ -1,51 +1,52 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
              xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
              mc:Ignorable="d"
              d:DesignWidth="620"
              d:DesignHeight="560"
              x:Class="LightStudio.LightPlayer.Views.Pages.LibrarySettingsSectionView"
              x:DataType="vm:LibrarySettingsSectionViewModel">
+    <UserControl.Styles>
+        <Style Selector="controls|SettingRow.albumGroupingSetting TextBlock, controls|SettingRow.autoScanSetting TextBlock, controls|SettingRow.nativeLibrarySetting TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </UserControl.Styles>
+    <!-- The inset lives on the content, not the scroll viewer, so the scroll bar stays at the pane edge. -->
     <ScrollViewer>
-        <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
-            <StackPanel Spacing="4" Margin="0,0,0,4">
-                <TextBlock Text="Library folders"
-                           FontSize="22"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                <TextBlock Text="Choose where Light scans for music."
-                           FontSize="13"
-                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
-            </StackPanel>
-
-            <controls:SettingRow Header="Folders"
-                                 Description="Local folders included in the music library.">
-                <controls:SettingRow.ActionContent>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Classes="icon"
-                                ToolTip.Tip="Add folder"
-                                Click="OnAddFolderClick">
-                            <Viewbox Width="16" Height="16">
-                                <Path Data="{StaticResource IconAdd}"
-                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
-                            </Viewbox>
-                        </Button>
-                        <Button Classes="icon"
-                                ToolTip.Tip="Scan library"
-                                Command="{Binding ScanLibraryCommand}"
-                                IsVisible="{Binding ShowScanButton}">
-                            <Viewbox Width="16" Height="16">
-                                <Path Data="{StaticResource IconRefresh}"
-                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
-                            </Viewbox>
-                        </Button>
-                    </StackPanel>
-                </controls:SettingRow.ActionContent>
-            </controls:SettingRow>
+        <StackPanel MaxWidth="680"
+                    HorizontalAlignment="Stretch"
+                    Margin="{Binding ContentMargin}"
+                    Spacing="10">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,0,4">
+                <StackPanel Grid.Column="0" Spacing="4">
+                    <TextBlock Text="{Binding LibraryTitle}"
+                               FontSize="22"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <TextBlock Text="{Binding LibrarySubtitle}"
+                               FontSize="13"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Classes="icon"
+                        Margin="0,0,18,0"
+                        VerticalAlignment="Center"
+                        ToolTip.Tip="{Binding LibrarySettings_ScanLibrary, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        Command="{Binding ScanLibraryCommand}"
+                        IsVisible="{Binding ShowScanAction}">
+                    <Viewbox Width="16" Height="16">
+                        <Path Data="{StaticResource IconRefresh}"
+                              Fill="{DynamicResource AppPrimaryTextBrush}" />
+                    </Viewbox>
+                </Button>
+            </Grid>
 
             <TextBlock Text="{Binding StatusMessage}"
                        IsVisible="{Binding HasStatusMessage}"
@@ -53,56 +54,310 @@
                        Margin="2,-2,2,2"
                        Foreground="{DynamicResource AppSecondaryTextBrush}" />
 
-            <TextBlock Text="No folders added."
-                       IsVisible="{Binding !HasLibraryFolders}"
+            <StackPanel Spacing="10" IsVisible="{Binding CanManageLibraryFolders}">
+            <TextBlock Text="{Binding FolderAccessDescription}"
+                       IsVisible="{Binding HasFolderAccessDescription}"
                        FontSize="13"
-                       Margin="2,6,2,0"
+                       TextWrapping="Wrap"
                        Foreground="{DynamicResource AppSecondaryTextBrush}" />
-
-            <ItemsControl ItemsSource="{Binding LibraryFolders}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="models:LibraryFolderModel">
-                        <controls:SettingRow Header="{Binding Name}"
-                                             Description="{Binding Path}">
+            <controls:SettingRow Header="{Binding MusicLibraryHeader}"
+                                 Description="{Binding MusicLibraryDescription}">
+                <controls:SettingRow.ActionContent>
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowMusicFolders}">
+                        <Button Classes="icon"
+                                ToolTip.Tip="{Binding LibrarySettings_AddDefaultFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                Command="{Binding AddDefaultFoldersCommand}"
+                                IsVisible="{Binding CanAddDefaultFolders}">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconFolderHome}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                        <Button Classes="icon"
+                                ToolTip.Tip="{Binding LibrarySettings_AddFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            IsVisible="{x:Static services:PlatformServices.CanManageLibraryFolders}"
+                                Click="OnAddFolderClick">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconAdd}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                    </StackPanel>
+                </controls:SettingRow.ActionContent>
+                <controls:SettingRow.RowsContent>
+                    <StackPanel>
+                        <controls:SettingRow Classes="nativeLibrarySetting" IsGrouped="True" HasTopDivider="True"
+                                             IsVisible="{Binding SupportsSystemMusicLibrary}"
+                                             Header="{Binding LibrarySettings_UseSystemLibrary, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                             Description="{Binding LibrarySettings_SystemMusicDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
                             <controls:SettingRow.ActionContent>
-                                <Button Classes="icon"
-                                        ToolTip.Tip="Remove folder"
-                                        Tag="{Binding}"
-                                        Click="OnRemoveFolderClick">
-                                    <Viewbox Width="16" Height="16">
-                                        <Path Data="{StaticResource IconDelete}"
-                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
-                                    </Viewbox>
-                                </Button>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Classes="icon" IsVisible="{Binding UseSystemMusicLibrary}"
+                                            ToolTip.Tip="{Binding LibrarySettings_ManageMediaAccess, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            Command="{Binding ManageSystemMusicAccessCommand}">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="{StaticResource IconSettings}" Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        </Viewbox>
+                                    </Button>
+                                    <ToggleSwitch x:Name="SystemMusicToggle" OnContent="" OffContent=""
+                                                  IsChecked="{Binding UseSystemMusicLibrary, Mode=TwoWay}" />
+                                </StackPanel>
                             </controls:SettingRow.ActionContent>
                         </controls:SettingRow>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
-            <controls:SettingRow Header="Scan at startup"
-                                 Description="Automatically scan library folders for new or changed music each time Light starts.">
-                <controls:SettingRow.ActionContent>
-                    <ToggleSwitch IsChecked="{Binding ScanLibraryOnStartup, Mode=TwoWay}" />
-                </controls:SettingRow.ActionContent>
+                        <controls:SettingRow Classes="nativeLibrarySetting" IsGrouped="True" HasTopDivider="True"
+                                             IsVisible="{Binding SupportsSystemMusicLibrary}"
+                                             Header="{Binding LibrarySettings_ScanFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                             Description="{Binding LibrarySettings_ScanFoldersDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <controls:SettingRow.ActionContent>
+                                <ToggleSwitch x:Name="ScanMusicFoldersToggle" OnContent="" OffContent=""
+                                              IsChecked="{Binding ScanMusicFolders, Mode=TwoWay}" />
+                            </controls:SettingRow.ActionContent>
+                        </controls:SettingRow>
+                        <StackPanel IsVisible="{Binding ShowMusicFolders}">
+                        <Border Classes="settingsDividedRow"
+                                IsVisible="{Binding !HasLibraryFolders}">
+                            <TextBlock Text="{Binding LibrarySettings_NoFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding LibraryFolders}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:LibraryFolderModel">
+                                    <Border Classes="settingsDividedRow">
+                                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}"
+                                                           Classes="settingName"
+                                                           FontSize="14" />
+                                                <TextBlock Text="{Binding Path}"
+                                                           Classes="settingDescription"
+                                                           FontSize="12"
+                                                           TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1"
+                                                        Orientation="Horizontal"
+                                                        Spacing="8"
+                                                        Margin="16,0,0,0"
+                                                        VerticalAlignment="Center">
+                                                <Button Content="{Binding LibrarySettings_GrantFolderAccess, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                        IsVisible="{Binding NeedsAccess}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:LibrarySettingsSectionViewModel)DataContext).GrantFolderAccessCommand}"
+                                                        CommandParameter="{Binding}" />
+                                                <Button Classes="icon"
+                                                        ToolTip.Tip="{Binding LibrarySettings_RemoveFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                        IsVisible="{x:Static services:PlatformServices.CanManageLibraryFolders}"
+                                                        Tag="{Binding}"
+                                                        Click="OnRemoveFolderClick">
+                                                    <Viewbox Width="16" Height="16">
+                                                        <Path Data="{StaticResource IconDelete}"
+                                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                                    </Viewbox>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </controls:SettingRow.RowsContent>
             </controls:SettingRow>
 
-            <StackPanel Spacing="4" Margin="0,12,0,4">
-                <TextBlock Text="Playback history"
-                           FontSize="22"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                <TextBlock Text="Track what you have played recently."
-                           FontSize="13"
-                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            <controls:SettingRow Header="{Binding MediaLibraryHeader}"
+                                 Description="{Binding MediaLibraryDescription}"
+                                 IsVisible="{Binding ShowVideoFolders}">
+                <controls:SettingRow.ActionContent>
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowMediaFolders}">
+                        <Button Classes="icon"
+                                ToolTip.Tip="{Binding LibrarySettings_AddDefaultFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                Command="{Binding AddDefaultVideoFoldersCommand}"
+                                IsVisible="{Binding CanAddDefaultFolders}">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconFolderHome}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                        <Button Classes="icon"
+                                ToolTip.Tip="{Binding LibrarySettings_AddVideoFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                IsVisible="{x:Static services:PlatformServices.CanManageLibraryFolders}"
+                                Click="OnAddVideoFolderClick">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconAdd}"
+                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                    </StackPanel>
+                </controls:SettingRow.ActionContent>
+                <controls:SettingRow.RowsContent>
+                    <StackPanel>
+                        <controls:SettingRow Classes="nativeLibrarySetting" IsGrouped="True" HasTopDivider="True"
+                                             IsVisible="{Binding SupportsSystemMediaLibrary}"
+                                             Header="{Binding LibrarySettings_UseSystemLibrary, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                             Description="{Binding LibrarySettings_SystemMediaDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <controls:SettingRow.ActionContent>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Classes="icon" IsVisible="{Binding UseSystemMediaLibrary}"
+                                            ToolTip.Tip="{Binding LibrarySettings_ManageMediaAccess, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                            Command="{Binding ManageSystemMediaAccessCommand}">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="{StaticResource IconSettings}" Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                        </Viewbox>
+                                    </Button>
+                                    <ToggleSwitch x:Name="SystemMediaToggle" OnContent="" OffContent=""
+                                                  IsChecked="{Binding UseSystemMediaLibrary, Mode=TwoWay}" />
+                                </StackPanel>
+                            </controls:SettingRow.ActionContent>
+                        </controls:SettingRow>
+                        <controls:SettingRow Classes="nativeLibrarySetting" IsGrouped="True" HasTopDivider="True"
+                                             IsVisible="{Binding SupportsSystemMediaLibrary}"
+                                             Header="{Binding LibrarySettings_ScanFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                             Description="{Binding LibrarySettings_ScanFoldersDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <controls:SettingRow.ActionContent>
+                                <ToggleSwitch x:Name="ScanMediaFoldersToggle" OnContent="" OffContent=""
+                                              IsChecked="{Binding ScanMediaFolders, Mode=TwoWay}" />
+                            </controls:SettingRow.ActionContent>
+                        </controls:SettingRow>
+                        <StackPanel IsVisible="{Binding ShowMediaFolders}">
+                        <Border Classes="settingsDividedRow"
+                                IsVisible="{Binding !HasVideoFolders}">
+                            <TextBlock Text="{Binding LibrarySettings_NoFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                        </Border>
+                        <ItemsControl ItemsSource="{Binding VideoFolders}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:LibraryFolderModel">
+                                    <Border Classes="settingsDividedRow">
+                                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}"
+                                                           Classes="settingName"
+                                                           FontSize="14" />
+                                                <TextBlock Text="{Binding Path}"
+                                                           Classes="settingDescription"
+                                                           FontSize="12"
+                                                           TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1"
+                                                        Orientation="Horizontal"
+                                                        Spacing="8"
+                                                        Margin="16,0,0,0"
+                                                        VerticalAlignment="Center">
+                                                <Button Content="{Binding LibrarySettings_GrantFolderAccess, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                        IsVisible="{Binding NeedsAccess}"
+                                                        Command="{Binding $parent[ItemsControl].((vm:LibrarySettingsSectionViewModel)DataContext).GrantFolderAccessCommand}"
+                                                        CommandParameter="{Binding}" />
+                                                <Button Classes="icon"
+                                                        ToolTip.Tip="{Binding LibrarySettings_RemoveFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                        IsVisible="{x:Static services:PlatformServices.CanManageLibraryFolders}"
+                                                        Tag="{Binding}"
+                                                        Click="OnRemoveVideoFolderClick">
+                                                    <Viewbox Width="16" Height="16">
+                                                        <Path Data="{StaticResource IconDelete}"
+                                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                                    </Viewbox>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        </StackPanel>
+                    </StackPanel>
+                </controls:SettingRow.RowsContent>
+            </controls:SettingRow>
+
             </StackPanel>
 
-            <controls:SettingRow Header="Keep playback history"
-                                 Description="Show recently played tracks on the home page. Turning this off clears the existing history.">
-                <controls:SettingRow.ActionContent>
-                    <ToggleSwitch IsChecked="{Binding EnablePlaybackHistory, Mode=TwoWay}" />
-                </controls:SettingRow.ActionContent>
+            <controls:SettingRow Header="{Binding LibrarySettings_FoldersHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsVisible="{Binding !CanManageLibraryFolders}">
+                <controls:SettingRow.RowsContent>
+                    <Border Classes="settingsDividedRow">
+                        <TextBlock Text="{Binding LibrarySettings_FolderAccessUnavailable, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                   FontSize="13"
+                                   TextWrapping="Wrap"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    </Border>
+                </controls:SettingRow.RowsContent>
             </controls:SettingRow>
+
+            <controls:SettingRow Header="{Binding LibrarySettings_ScanAtStartupHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding LibrarySettings_ScanAtStartupDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 IsHeaderVisible="{Binding ShowStartupScanSetting}">
+                <controls:SettingRow.ActionContent>
+                    <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding ScanLibraryOnStartup, Mode=TwoWay}" />
+                </controls:SettingRow.ActionContent>
+                <controls:SettingRow.RowsContent>
+                    <StackPanel>
+                        <controls:SettingRow Classes="autoScanSetting" IsGrouped="True"
+                                             HasTopDivider="{Binding ShowStartupScanSetting}"
+                                             IsVisible="{Binding CanAutoScanLibrary}"
+                                             Header="{Binding LibrarySettings_AutoScanHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                             Description="{Binding LibrarySettings_AutoScanDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <controls:SettingRow.ActionContent>
+                                <ToggleSwitch x:Name="AutoScanToggle" OnContent="" OffContent=""
+                                              IsChecked="{Binding AutoScanLibrary, Mode=TwoWay}" />
+                            </controls:SettingRow.ActionContent>
+                        </controls:SettingRow>
+                        <controls:SettingRow Classes="autoScanSetting" IsGrouped="True" HasTopDivider="True"
+                                             IsVisible="{Binding ShowAutoScanInterval}"
+                                             Header="{Binding LibrarySettings_AutoScanIntervalHeader, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <controls:SettingRow.ActionContent>
+                                <NumericUpDown x:Name="AutoScanIntervalInput" Width="110"
+                                               Minimum="1" Maximum="1440" Increment="1" FormatString="0"
+                                               ClipValueToMinMax="True"
+                                               IsEnabled="{Binding AutoScanLibrary}"
+                                               Value="{Binding AutoScanIntervalMinutes, Mode=TwoWay}" />
+                            </controls:SettingRow.ActionContent>
+                        </controls:SettingRow>
+                        <Border Classes="settingsDivider"
+                                IsVisible="{Binding ShowStartupScanSetting}" />
+                        <Grid ColumnDefinitions="*,Auto"
+                              Margin="16,12"
+                              VerticalAlignment="Center">
+                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding LibrarySettings_KeepHistoryHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                           Classes="settingName"
+                                           FontSize="14" />
+                                <TextBlock Text="{Binding LibrarySettings_KeepHistoryDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                           Classes="settingDescription"
+                                           FontSize="12"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                            <ToggleSwitch Grid.Column="1"
+                                          Margin="16,0,0,0"
+                                          OnContent=""
+                                          OffContent=""
+                                          IsChecked="{Binding EnablePlaybackHistory, Mode=TwoWay}" />
+                        </Grid>
+                        <controls:SettingRow Classes="albumGroupingSetting" IsGrouped="True" HasTopDivider="True"
+                                             IsVisible="{Binding ShowAlbumGrouping}"
+                                             Header="{Binding LibrarySettings_AlbumGroupingHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                             Description="{Binding LibrarySettings_AlbumGroupingDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <controls:SettingRow.ActionContent>
+                                <ComboBox x:Name="AlbumGroupingSelector" Width="110"
+                                          ItemsSource="{Binding AlbumGroupingOptions}"
+                                          SelectedIndex="{Binding SelectedAlbumGroupingIndex, Mode=TwoWay}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:AlbumGroupingOption">
+                                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="280" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </controls:SettingRow.ActionContent>
+                        </controls:SettingRow>
+                        <ContentControl Content="{Binding Storage}"
+                                        IsVisible="{Binding HasStorage}" />
+                    </StackPanel>
+                </controls:SettingRow.RowsContent>
+            </controls:SettingRow>
+
+            <ContentControl Content="{Binding RemoteLibraries}"
+                            IsVisible="{Binding HasRemoteLibraries}"
+                            Margin="0,12,0,0" />
+
         </StackPanel>
     </ScrollViewer>
 </UserControl>

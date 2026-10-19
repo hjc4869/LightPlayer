@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>lmr-avalonia-demo</AssemblyName>
+    <RootNamespace>LmrAvaloniaDemo</RootNamespace>
+    <Nullable>enable</Nullable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <BundleFfmpeg Condition="('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Windows'))) Or $(RuntimeIdentifier.StartsWith('win'))">true</BundleFfmpeg>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Web/**" />
+    <Content Remove="Web/**" />
+    <None Remove="Web/**" />
+    <ProjectReference Include="../../src/LightMediaRenderer.Avalonia/LightMediaRenderer.Avalonia.csproj" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
+  </ItemGroup>
+</Project>

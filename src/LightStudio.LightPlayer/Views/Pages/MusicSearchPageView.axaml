@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             x:Class="LightStudio.LightPlayer.Views.Pages.MusicSearchPageView"
+             x:DataType="vm:MusicSearchPageViewModel">
+    <Grid RowDefinitions="Auto,Auto,*" MaxWidth="1180" HorizontalAlignment="Stretch">
+        <Grid ColumnDefinitions="Auto,*,Auto" Margin="24,20,24,12">
+            <Button Classes="icon" Command="{Binding BackCommand}" IsVisible="{Binding ShowBackButton}"
+                    Margin="0,0,12,0" VerticalAlignment="Center"
+                    ToolTip.Tip="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconArrowLeft}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+            </Button>
+            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Title}" FontSize="12" TextWrapping="Wrap" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Text="{Binding HeaderText}" FontSize="20" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            </StackPanel>
+            <Button Grid.Column="2" Classes="icon" Command="{Binding RefreshCommand}" IsEnabled="{Binding !IsBusy}" Margin="12,0,0,0"
+                    ToolTip.Tip="{Binding Common_Refresh, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconRefresh}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+            </Button>
+        </Grid>
+        <TextBlock Grid.Row="1" Text="{Binding ErrorText}" TextWrapping="Wrap" Margin="24,0,24,8" FontSize="12"
+                   Foreground="{DynamicResource AppFavoriteBrush}" />
+        <ScrollViewer Grid.Row="2" x:Name="TilesScrollViewer" IsVisible="{Binding ShowTiles}">
+            <ItemsControl ItemsSource="{Binding Tiles}" Margin="16,0,16,24">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <controls:UniformTileGrid MinItemWidth="130" MinItemHeight="160" MinColumnSpacing="6" MinRowSpacing="2"
+                                                  TotalCount="{Binding TotalItemCount}" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:LibraryTileModel"><Viewbox><controls:LibraryTile /></Viewbox></DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+        <ScrollViewer Grid.Row="2" x:Name="TracksScrollViewer" IsVisible="{Binding ShowTracks}">
+            <ItemsControl ItemsSource="{Binding Tracks}" Margin="12,0,12,24">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <controls:IncrementalVirtualizingStackPanel TotalCount="{Binding TotalItemCount}" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:TrackRowModel"><controls:TrackRow /></DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+        <controls:EmptyState Grid.Row="2" IsVisible="{Binding ShowEmpty}"
+                             Header="{Binding Search_NoResultsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             Description="{Binding Search_NoResultsDescription, Source={x:Static strings:LocalizedStrings.Instance}}" />
+        <ProgressBar Grid.Row="2" Height="3" MinHeight="0" VerticalAlignment="Bottom"
+                     IsVisible="{Binding IsBusy}" IsIndeterminate="{Binding IsBusy}" />
+    </Grid>
+</UserControl>

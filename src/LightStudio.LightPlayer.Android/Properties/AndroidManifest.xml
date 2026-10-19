@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:installLocation="auto">
+	<!-- Online lyrics / metadata retrieval. -->
+	<uses-permission android:name="android.permission.INTERNET" />
+
+	<!-- Scoped storage: read the user's audio (Android 13+ granular media permission). Folder
+	     access itself is granted per-tree through the Storage Access Framework picker, which
+	     needs no manifest permission; this covers direct media reads (e.g. metadata) and shared
+	     locations such as /sdcard/Music that the library scans by filesystem path. -->
+	<uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+	<!-- Video player -->
+	<uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+
+	<!-- Cover art stored beside the music (folder.jpg / cover.jpg) is an image, so reading it
+	     from shared storage needs the granular image permission as well. -->
+	<uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+	<uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+
+	<!-- Pre-Android 13 devices have no granular media permissions; shared storage is gated by
+	     the single legacy read permission instead. -->
+	<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+
+	<!-- Media notification shown while playing (Android 13+ runtime permission). -->
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+	<!-- Keep playing in the background via a foreground service of type mediaPlayback. -->
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+	<uses-permission android:name="android.permission.WAKE_LOCK" />
+
+	<!-- Android 9+ blocks cleartext traffic by default; the network security config re-enables
+	     plain http:// so user-configured LightPlayer servers on the local network work. -->
+	<application android:label="@string/app_name" android:icon="@drawable/Icon" android:networkSecurityConfig="@xml/network_security_config">
+		<!-- Android 16 otherwise ignores requested orientation on unfolded displays at least 600dp
+		     wide. Video fullscreen deliberately follows the media aspect ratio on those displays. -->
+		<property android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY" android:value="true" />
+
+		<!-- "Open with" and "Share" hand a picture to another app, which since Android 7 may only
+		     be given a content URI. The grant travels with the intent and expires with it. -->
+		<provider
+			android:name="androidx.core.content.FileProvider"
+			android:authorities="im.hjc.LightPlayer.fileprovider"
+			android:exported="false"
+			android:grantUriPermissions="true">
+			<meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+		</provider>
+	</application>
+</manifest>

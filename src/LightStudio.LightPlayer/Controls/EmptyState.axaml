@@ -11,7 +11,7 @@
                 VerticalAlignment="Center"
                 Spacing="8">
         <Viewbox Width="64" Height="64" HorizontalAlignment="Center">
-            <Path Data="{StaticResource IconEmptyLibrary}"
+            <Path Data="{Binding #Root.Icon}"
                   Fill="{DynamicResource AppDisabledTextBrush}" />
         </Viewbox>
         <TextBlock Text="{Binding #Root.Header}"

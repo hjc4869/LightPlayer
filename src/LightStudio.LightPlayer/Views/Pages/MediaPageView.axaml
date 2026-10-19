@@ -1,0 +1,215 @@
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="900"
+             d:DesignHeight="640"
+             x:Class="LightStudio.LightPlayer.Views.Pages.MediaPageView"
+             x:DataType="vm:MediaPageViewModel">
+    <UserControl.Resources>
+        <DataTemplate x:Key="WideMediaTemplate" DataType="models:VideoTileModel" x:DataType="models:VideoTileModel">
+            <Viewbox>
+                <controls:SelectionItem Classes="tile">
+                    <controls:VideoTile />
+                </controls:SelectionItem>
+            </Viewbox>
+        </DataTemplate>
+        <DataTemplate x:Key="CompactMediaTemplate" DataType="models:VideoTileModel" x:DataType="models:VideoTileModel">
+            <Viewbox>
+                <controls:SelectionItem Classes="tile">
+                    <controls:VideoTile Classes="compact" />
+                </controls:SelectionItem>
+            </Viewbox>
+        </DataTemplate>
+        <DataTemplate x:Key="MediaRowTemplate" DataType="models:VideoTileModel" x:DataType="models:VideoTileModel">
+            <controls:SelectionItem>
+                <controls:VideoListRow />
+            </controls:SelectionItem>
+        </DataTemplate>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="controls|EmptyState TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="TextAlignment" Value="Center" />
+        </Style>
+
+        <!-- Wide layouts browse the library as a grid of preview tiles. -->
+        <Style Selector="ItemsControl.videoItems">
+            <Setter Property="ItemsSource" Value="{Binding Items}" />
+            <Setter Property="IsVisible" Value="True" />
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <controls:UniformTileGrid MinItemWidth="270"
+                                              MinItemHeight="165"
+                                              MinColumnSpacing="4"
+                                              MinRowSpacing="4"
+                                              TotalCount="{Binding TotalItemCount}" />
+                </ItemsPanelTemplate>
+            </Setter>
+            <Setter Property="ItemTemplate" Value="{StaticResource WideMediaTemplate}" />
+        </Style>
+        <Style Selector="ItemsControl.videoItems.compact, ItemsControl.videoItems.list">
+            <Setter Property="ItemsSource" Value="{Binding MediaItems}" />
+            <Setter Property="IsVisible" Value="{Binding HasMedia}" />
+        </Style>
+        <Style Selector="ItemsControl.videoItems.compact">
+            <Setter Property="Margin" Value="16,8,16,24" />
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <controls:UniformTileGrid MinItemWidth="100"
+                                              MinItemHeight="100"
+                                              MinColumnSpacing="6"
+                                              MinRowSpacing="6"
+                                              TotalCount="{Binding MediaTotalItemCount}" />
+                </ItemsPanelTemplate>
+            </Setter>
+            <Setter Property="ItemTemplate" Value="{StaticResource CompactMediaTemplate}" />
+        </Style>
+        <Style Selector="ItemsControl.videoItems.list">
+            <Setter Property="ItemsPanel">
+                <ItemsPanelTemplate>
+                    <controls:IncrementalVirtualizingStackPanel TotalCount="{Binding MediaTotalItemCount}" />
+                </ItemsPanelTemplate>
+            </Setter>
+            <Setter Property="ItemTemplate" Value="{StaticResource MediaRowTemplate}" />
+        </Style>
+        <Style Selector="ItemsControl.videoItems:not(.compact)">
+            <Setter Property="Margin" Value="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,16,32,32|8,8,8,24'}" />
+        </Style>
+        <Style Selector="ItemsControl.folderItems.narrow">
+            <Setter Property="ItemsSource" Value="{Binding FolderItems}" />
+        </Style>
+        <Style Selector="controls|GroupedItemsView.mediaGroups">
+            <Setter Property="MinItemWidth" Value="270" />
+            <Setter Property="HeaderAlignmentTarget" Value="PreviewFrame" />
+            <Setter Property="MinItemHeight" Value="165" />
+            <Setter Property="ColumnSpacing" Value="4" />
+            <Setter Property="RowSpacing" Value="4" />
+            <Setter Property="ItemTemplate" Value="{StaticResource WideMediaTemplate}" />
+            <Setter Property="ContentInset" Value="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,16,32,32|8,8,8,24'}" />
+        </Style>
+        <Style Selector="controls|GroupedItemsView.mediaGroups.compact">
+            <Setter Property="HeaderAlignmentTarget" Value="{x:Null}" />
+            <Setter Property="MinItemWidth" Value="100" />
+            <Setter Property="MinItemHeight" Value="100" />
+            <Setter Property="ColumnSpacing" Value="6" />
+            <Setter Property="RowSpacing" Value="6" />
+            <Setter Property="ItemTemplate" Value="{StaticResource CompactMediaTemplate}" />
+            <Setter Property="ContentInset" Value="16,8,16,24" />
+        </Style>
+        <Style Selector="controls|GroupedItemsView.mediaGroups.list">
+            <Setter Property="IsList" Value="True" />
+            <Setter Property="HeaderAlignmentTarget" Value="{x:Null}" />
+            <Setter Property="HeaderPadding" Value="8,0" />
+            <Setter Property="MinItemHeight" Value="66" />
+            <Setter Property="RowSpacing" Value="0" />
+            <Setter Property="ItemTemplate" Value="{StaticResource MediaRowTemplate}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*">
+        <controls:MultiSelectBar DataContext="{Binding Selection}" />
+        <controls:PageAddressBarSlot x:Name="AddressBarSlot"
+                                     Grid.Row="1"
+                                     AddressBar="{Binding AddressBar}" />
+
+        <Panel Grid.Row="2" ZIndex="1">
+            <StackPanel IsVisible="{Binding IsLoading}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="10">
+                <ProgressBar IsIndeterminate="{Binding IsLoading}" Width="140" Height="4" />
+                <TextBlock Text="{Binding LoadingText}"
+                           HorizontalAlignment="Center"
+                           FontSize="13"
+                           Foreground="{lmr:BackdropForeground ResourceKey=AppSecondaryTextBrush}" />
+            </StackPanel>
+
+            <controls:EmptyState IsVisible="{Binding ShowEmpty}"
+                                 Margin="16,0"
+                                 Header="{Binding EmptyHeader}"
+                                 Description="{Binding EmptyDescription}" />
+
+            <Border IsVisible="{Binding HasPartialFailures}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    MaxWidth="640"
+                    Margin="16,8"
+                    Padding="12,8"
+                    CornerRadius="6"
+                    Background="{DynamicResource AppPanelBackgroundBrush}"
+                    BorderBrush="{DynamicResource AppFavoriteBrush}"
+                    BorderThickness="1"
+                    ZIndex="2">
+                <TextBlock Text="{Binding PartialFailureText}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{lmr:BackdropForeground ResourceKey=AppFavoriteBrush}" />
+            </Border>
+        </Panel>
+
+        <Grid Grid.Row="1" Grid.RowSpan="2" RowDefinitions="*,Auto">
+                        <ScrollViewer x:Name="MediaScrollViewer" IsVisible="{Binding !GroupingEnabled}">
+                            <Grid RowDefinitions="Auto,Auto,*">
+                                <Border IsVisible="{Binding AddressBar.IsVisible}"
+                                        Height="{Binding #AddressBarSlot.Bounds.Height}"
+                                        Margin="{Binding #AddressBarSlot.Margin}" />
+                                <ItemsControl Grid.Row="1"
+                                              Classes="folderItems"
+                                              Classes.narrow="{Binding IsNarrow}"
+                                              ItemTemplate="{StaticResource MediaRowTemplate}"
+                                              Margin="8,8,8,0">
+                                    <ItemsControl.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                            <Binding Path="IsNarrow" />
+                                            <Binding Path="HasFolders" />
+                                        </MultiBinding>
+                                    </ItemsControl.IsVisible>
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <controls:IncrementalVirtualizingStackPanel TotalCount="{Binding FolderItems.Count}" />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                                <ItemsControl Grid.Row="2"
+                                              Classes="videoItems"
+                                              Classes.compact="{Binding UseCompactGrid}"
+                                              Classes.list="{Binding UseNarrowList}" />
+                            </Grid>
+            </ScrollViewer>
+            <controls:GroupedItemsView x:Name="GroupedView" Classes="mediaGroups"
+                                       Classes.compact="{Binding UseCompactGrid}"
+                                       Classes.list="{Binding UseNarrowList}"
+                                       FoldersAsList="{Binding IsNarrow}"
+                                       FolderItemTemplate="{StaticResource MediaRowTemplate}"
+                                       Model="{Binding Grouping}" IsVisible="{Binding GroupingEnabled}"
+                                       LeadingHeight="{Binding #AddressBarSlot.Height}"
+                                       LeadingMargin="{Binding #AddressBarSlot.Margin}" />
+            <Panel Grid.Row="1" Height="36">
+                <Panel.IsVisible>
+                    <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                        <Binding Path="IsLoadingMore" />
+                        <Binding Path="HasLoadMoreError" />
+                    </MultiBinding>
+                </Panel.IsVisible>
+                <ProgressBar IsVisible="{Binding IsLoadingMore}"
+                             IsIndeterminate="{Binding IsLoadingMore}"
+                             Width="100"
+                             Height="3"
+                             HorizontalAlignment="Center"
+                             VerticalAlignment="Center" />
+                <Button IsVisible="{Binding HasLoadMoreError}"
+                        Command="{Binding RetryLoadMoreCommand}"
+                        Content="{Binding Common_Retry, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center" />
+            </Panel>
+        </Grid>
+    </Grid>
+</UserControl>

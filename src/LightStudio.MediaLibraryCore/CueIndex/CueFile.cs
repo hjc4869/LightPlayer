@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace LightStudio.MediaLibraryCore.CueIndex
@@ -32,22 +33,27 @@ namespace LightStudio.MediaLibraryCore.CueIndex
             dict.Add(key.ToLower(), value);
         }
 
-        public static async Task<CueFile> CreateFromStreamAsync(Stream stream)
+        public static Task<CueFile> CreateFromStreamAsync(Stream stream) =>
+            CreateFromStreamAsync(stream, CancellationToken.None);
+
+        public static async Task<CueFile> CreateFromStreamAsync(Stream stream, CancellationToken cancellationToken)
         {
             using (stream)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (stream.Length > MaxCueFileSize)
                 {
-                    // Return empty list when file size exceeds the limit.
                     return new CueFile("", new List<ManagedAudioIndexCue>());
                 }
 
                 using var sr = new StreamReader(stream);
-                return CreateFromString(await sr.ReadToEndAsync());
+                return CreateFromString(await sr.ReadToEndAsync(cancellationToken));
             }
         }
         public static CueFile CreateFromString(string content)
         {
+            if (content.Length > MaxCueFileSize)
+                throw new InvalidDataException("CUE metadata exceeds the text budget.");
             string fileName = null;
 
             List<ManagedAudioIndexCue> cues = new List<ManagedAudioIndexCue>();
@@ -59,7 +65,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                 if (s_index == -1)
                     continue;
                 AddIfNotNullOrWhiteSpace(cueComments, comment.Substring(0, s_index),
-                    comment.Substring(s_index + 1, comment.Length - s_index - 1).Trim('\"')); // Naive approach
+                    comment.Substring(s_index + 1, comment.Length - s_index - 1).Trim('\"'));
             }
             var tracks = cue.Tracks;
             for (int i = 0; i < tracks.Length; i++)
@@ -67,11 +73,10 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                 var track = tracks[i];
                 var next = i == tracks.Length - 1 ? (Track?)null : tracks[i + 1];
                 if (track.TrackDataType != DataType.AUDIO)
-                    continue; //just ignore that
+                    continue;
                 else if (track.DataFile.Filename != null &&
                     track.DataFile.Filename.Trim() != string.Empty)
                 {
-                    //file
                     fileName = track.DataFile.Filename;
                 }
 
@@ -79,7 +84,7 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                 var trackComments = new Dictionary<string, string>();
                 var duration = TimeSpan.Zero;
                 if (track.Indices.Length == 0)
-                    continue;//ignore track without indices
+                    continue;
                 var beginTime = track.Indices[track.Indices.Length - 1];
                 var beginTimespan = new TimeSpan(0, 0, beginTime.Minutes, beginTime.Seconds, beginTime.Frames * 40 / 3);
                 var endTimespan = TimeSpan.Zero;
@@ -87,9 +92,8 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                 {
                     endTimespan = new TimeSpan(0, 0, next.Value.Indices[0].Minutes, next.Value.Indices[0].Seconds, next.Value.Indices[0].Frames * 40 / 3);
                     duration = endTimespan - beginTimespan;
-                }//else duration=0, which means play until end.
+                }
 
-                //track
                 foreach (var comment in track.Comments)
                 {
                     var s_index = comment.IndexOf(' ');
@@ -123,7 +127,8 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                 else if (cueComments.ContainsKey("date"))
                     mediaInfo.Date = cueComments["date"];
 
-                if (cueComments.TryGetValue("disc", out var discStr))
+                if (cueComments.TryGetValue("disc", out var discStr) ||
+                    cueComments.TryGetValue("discnumber", out discStr))
                 {
                     var split = discStr.Split('/');
                     if (split.Length == 2)
@@ -141,6 +146,11 @@ namespace LightStudio.MediaLibraryCore.CueIndex
                 {
                     mediaInfo.DiscNumber = "1";
                     mediaInfo.TotalDiscs = "1";
+                }
+
+                if (cueComments.TryGetValue("totaldiscs", out var totalDiscsStr))
+                {
+                    mediaInfo.TotalDiscs = totalDiscsStr;
                 }
 
                 mediaInfo.Duration = duration;

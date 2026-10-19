@@ -1,0 +1,171 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="620"
+             x:Class="LightStudio.LightPlayer.Views.Pages.RemoteTranscodeSettingsSectionView"
+             x:DataType="vm:RemoteTranscodeSettingsSectionViewModel">
+    <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
+        <StackPanel Spacing="4" Margin="0,0,0,4">
+            <TextBlock Text="{Binding Title}"
+                       FontSize="22"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Text="{Binding Description}"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            <TextBlock Text="{Binding ServerNotice}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding HasServerNotice}"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <Border Classes="settingsGroup">
+            <StackPanel>
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True">
+            <controls:SettingRow.ActionContent>
+                <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding Video, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoCodecHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsVisible="{Binding HasVideoCodecs}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding VideoCodecOptions}"
+                          SelectedItem="{Binding SelectedVideoCodec, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoCodecsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             Description="{Binding RemoteTranscodeSettings_VideoCodecsDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <TextBox Width="150" Text="{Binding VideoCodecs, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_FileBitrateThresholdHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                     Description="{Binding RemoteTranscodeSettings_FileBitrateThresholdDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                     IsGrouped="True"
+                     HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <controls:NumberEntry Width="150"
+                                      Minimum="0"
+                                      Maximum="200"
+                                      Increment="1"
+                                      FormatString="0.#"
+                                      Number="{Binding FileBitrateThreshold, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoBitrateHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <controls:NumberEntry Width="150"
+                                      Minimum="0"
+                                      Maximum="200"
+                                      Increment="0.5"
+                                      FormatString="0.#"
+                                      Number="{Binding VideoBitrate, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoHeightThresholdHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             Description="{Binding RemoteTranscodeSettings_VideoHeightThresholdDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <controls:NumberEntry Width="150"
+                                      Minimum="0"
+                                      Maximum="8192"
+                                      Increment="90"
+                                      FormatString="0"
+                                      Number="{Binding VideoHeightThreshold, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoHeightHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             Description="{Binding RemoteTranscodeSettings_VideoHeightDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <controls:NumberEntry Width="150"
+                                      Minimum="0"
+                                      Maximum="8192"
+                                      Increment="90"
+                                      FormatString="0"
+                                      Number="{Binding VideoHeight, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+            </StackPanel>
+        </Border>
+
+        <Border Classes="settingsGroup">
+            <StackPanel>
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_AudioHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True">
+            <controls:SettingRow.ActionContent>
+                <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding Audio, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_AudioCodecsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <TextBox Width="150" Text="{Binding AudioCodecsToTranscode, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_AudioCodecHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsVisible="{Binding HasAudioCodecs}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding AudioCodecOptions}"
+                          SelectedItem="{Binding SelectedAudioCodec, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoSettingsOption">
+                            <TextBlock Text="{Binding Title}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+
+        <controls:SettingRow Header="{Binding RemoteTranscodeSettings_AudioBitrateHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.ActionContent>
+                <controls:NumberEntry Width="150"
+                                      Minimum="0"
+                                      Maximum="4000"
+                                      Increment="32"
+                                      FormatString="0"
+                                      Number="{Binding AudioBitrate, Mode=TwoWay}" />
+            </controls:SettingRow.ActionContent>
+        </controls:SettingRow>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

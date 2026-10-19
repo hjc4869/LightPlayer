@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
+             mc:Ignorable="d"
+             d:DesignWidth="800"
+             d:DesignHeight="600"
+             x:Class="LightStudio.LightPlayer.Controls.VideoSheet"
+             x:DataType="vm:VideoSheetViewModel"
+             ClipToBounds="True">
+
+    <UserControl.Styles>
+        <!-- Corner-card controls. Dark discs so they read against any frame, and large enough to
+             hit with a finger on a card only a few hundred pixels wide. -->
+        <Style Selector="Button.mini">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="#66000000" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.mini /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#66000000" />
+        </Style>
+        <Style Selector="Button.mini:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#99000000" />
+        </Style>
+        <Style Selector="Button.mini Path">
+            <Setter Property="Fill" Value="White" />
+            <Setter Property="Stretch" Value="Uniform" />
+        </Style>
+        <Style Selector="Button.mini.primary">
+            <Setter Property="Width" Value="52" />
+            <Setter Property="Height" Value="52" />
+            <Setter Property="Padding" Value="12" />
+            <Setter Property="CornerRadius" Value="26" />
+        </Style>
+    </UserControl.Styles>
+
+    <!--
+        The card. Its size and its distance from the bottom-right corner are interpolated by the
+        code-behind, which owns the drag, the settle animation and the cross-fade; unlike the
+        now-playing sheet it cannot be placed by a render transform, because the corner card keeps
+        the picture's aspect ratio rather than the shell's.
+    -->
+    <Border x:Name="Card"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Background="Black"
+            ClipToBounds="True"
+            BoxShadow="0 2 16 0 #66000000">
+        <Panel>
+              <!-- The running session uses the same player view as the full-page host. -->
+            <ContentControl x:Name="PlayerHost"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch"
+                            Content="{Binding Content}" />
+
+            <!-- Corner-card controls, drawn over the picture in place of the full deck. The host
+                 panel is transparent rather than unset so the whole card answers the drag that
+                 maximizes it (and the one that throws it away) even once the controls have faded;
+                 only the inner panel comes and goes with them. -->
+            <Panel x:Name="MiniOverlay" Background="Transparent">
+                <!-- Invisible edge targets keep resizing available after the controls fade. They
+                     sit beneath MiniControls so buttons at the corners retain their full hit area. -->
+                <Border x:Name="LeftResizeEdge"
+                    Width="8"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent"
+                    Cursor="SizeWestEast" />
+                <Border x:Name="TopResizeEdge"
+                    Height="8"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Top"
+                    Background="Transparent"
+                    Cursor="SizeNorthSouth" />
+
+                <Panel x:Name="MiniControls">
+                    <Button Classes="mini primary"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Command="{Binding Content.PlayPauseCommand}"
+                            ToolTip.Tip="{Binding PlaybackBar_PlayPause, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox>
+                            <Panel>
+                                <Path Data="{StaticResource IconPlay}" IsVisible="{Binding !Content.IsPlaying}" />
+                                <Path Data="{StaticResource IconPause}" IsVisible="{Binding Content.IsPlaying}" />
+                            </Panel>
+                        </Viewbox>
+                    </Button>
+
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="4"
+                                Margin="6"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top">
+                        <Button Classes="mini"
+                                Command="{Binding ExpandCommand}"
+                                ToolTip.Tip="{Binding VideoPlayer_Maximize, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox><Path Data="{StaticResource IconChevronUp}" /></Viewbox>
+                        </Button>
+                        <Button Classes="mini"
+                                IsVisible="{Binding Content.CanUsePictureInPicture}"
+                                Command="{Binding Content.TogglePictureInPictureCommand}"
+                                ToolTip.Tip="{Binding VideoPlayer_PictureInPicture, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox><Path Data="{StaticResource IconPictureInPicture}" /></Viewbox>
+                        </Button>
+                    </StackPanel>
+
+                    <Button Classes="mini"
+                            Margin="6"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Command="{Binding CloseCommand}"
+                            ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox><Path Data="{StaticResource IconClose}" /></Viewbox>
+                    </Button>
+                </Panel>
+            </Panel>
+        </Panel>
+    </Border>
+</UserControl>

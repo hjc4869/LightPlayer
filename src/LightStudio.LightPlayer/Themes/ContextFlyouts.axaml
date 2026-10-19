@@ -1,0 +1,164 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:strings="using:LightStudio.LightPlayer.Strings"
+                    xmlns:models="using:LightStudio.LightPlayer.Models">
+    <!--
+        One instance shared by every library tile and row. The grids realize thousands of these
+        while scrolling, and a per-item menu rebuilds its items and their bindings each time; the
+        flyout binds against whichever item it is opened over, because Avalonia reparents the popup
+        onto the placement target.
+    -->
+    <MenuFlyout x:Key="LibraryTileContextFlyout" x:DataType="models:LibraryTileModel">
+        <MenuItem Header="{Binding Selection_Select, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding Selection.EnterCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanSelect}" />
+        <Separator IsVisible="{Binding CanSelect}" />
+        <MenuItem Header="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding PlayCommand}" IsVisible="{Binding !HasAlbumNavigation}" />
+        <MenuItem Header="{Binding Common_GoToAlbum, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding OpenAlbumCommand}" IsVisible="{Binding HasAlbumNavigation}" />
+        <MenuItem Header="{Binding Common_PlayNext, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding PlayNextCommand}" />
+        <MenuItem Header="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding AddToQueueCommand}" />
+        <MenuItem Header="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding AddToPlaylistCommand}" />
+        <Separator IsVisible="{Binding HasArtistNavigation}" />
+        <MenuItem Header="{Binding Common_GoToAlbum, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding Track.OpenAlbumCommand}" IsVisible="{Binding IsTrackTile}" />
+        <MenuItem Header="{Binding Common_GoToArtist, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding OpenArtistCommand}" IsVisible="{Binding HasArtistNavigation}" />
+        <Separator IsVisible="{Binding HasFileActions}" />
+        <MenuItem Header="{Binding Common_Properties, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding Track.PropertiesCommand}" IsVisible="{Binding IsTrackTile}" />
+        <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding OpenFolderCommand}"
+                  IsVisible="{Binding CanOpenContainingFolder}" />
+    </MenuFlyout>
+
+    <MenuFlyout x:Key="LibraryRowContextFlyout" x:DataType="models:LibraryTileModel">
+        <MenuItem Header="{Binding Selection_Select, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding Selection.EnterCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanSelect}" />
+        <Separator IsVisible="{Binding CanSelect}" />
+        <MenuItem Header="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding PlayCommand}" />
+        <MenuItem Header="{Binding Common_PlayNext, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding PlayNextCommand}" />
+        <MenuItem Header="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding AddToQueueCommand}" />
+        <MenuItem Header="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding AddToPlaylistCommand}" />
+        <Separator IsVisible="{Binding HasArtistNavigation}" />
+        <MenuItem Header="{Binding Common_GoToArtist, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding OpenArtistCommand}" IsVisible="{Binding HasArtistNavigation}" />
+        <Separator IsVisible="{Binding CanOpenContainingFolder}" />
+        <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding OpenFolderCommand}"
+                  IsVisible="{Binding CanOpenContainingFolder}" />
+    </MenuFlyout>
+
+    <!--
+        Attached in code-behind. Grouped play / library / location / playback-state / inspect, each
+        group behind the separator that opens it so a hidden group takes its rule with it.
+    -->
+    <MenuFlyout x:Key="VideoTileContextFlyout" x:DataType="models:VideoTileModel">
+        <MenuItem Header="{Binding Selection_Select, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding Selection.EnterCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanSelect}" />
+        <Separator IsVisible="{Binding CanSelect}" />
+        <MenuItem Header="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding OpenCommand}" />
+        <MenuItem Header="{Binding Common_OpenInNewWindow, Source={x:Static strings:LocalizedStrings.Instance}}"
+              Command="{Binding OpenInNewWindowCommand}" IsVisible="{Binding CanOpenInNewWindow}" />
+        <Separator IsVisible="{Binding CanAddToPlaylist}" />
+        <MenuItem Header="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding AddToPlaylistCommand}"
+                  IsVisible="{Binding CanAddToPlaylist}" />
+        <Separator IsVisible="{Binding HasLocationActions}" />
+        <MenuItem Header="{Binding Common_GoToLocation, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding GoToLocationCommand}"
+                  IsVisible="{Binding CanGoToLocation}" />
+        <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding OpenFolderCommand}"
+                  IsVisible="{Binding CanOpenContainingFolder}" />
+        <Separator IsVisible="{Binding HasPlaybackStateActions}" />
+        <MenuItem Header="{Binding Video_MarkAsWatched, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding MarkAsWatchedCommand}"
+                  IsVisible="{Binding CanMarkAsWatched}" />
+        <MenuItem Header="{Binding Video_ClearPlaybackProgress, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding ClearPlaybackProgressCommand}"
+                  IsVisible="{Binding CanClearPlaybackProgress}" />
+        <MenuItem Header="{Binding Video_ClearSubtitleCache, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding ClearSubtitleCacheCommand}"
+                  IsVisible="{Binding CanClearSubtitleCache}" />
+        <Separator IsVisible="{Binding CanShowProperties}" />
+        <MenuItem Header="{Binding Common_Properties, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding PropertiesCommand}"
+                  IsVisible="{Binding CanShowProperties}" />
+    </MenuFlyout>
+
+    <!--
+        Pictures are listed off the folder rather than the index, so only the actions that need
+        nothing but the file itself are offered; the grouping follows the video menu's.
+    -->
+    <MenuFlyout x:Key="PhotoTileContextFlyout" x:DataType="models:VideoTileModel">
+        <MenuItem Header="{Binding Selection_Select, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding Selection.EnterCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanSelect}" />
+        <Separator IsVisible="{Binding CanSelect}" />
+        <MenuItem Header="{Binding Common_Open, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding OpenCommand}" />
+        <MenuItem Header="{Binding Common_OpenInNewWindow, Source={x:Static strings:LocalizedStrings.Instance}}"
+              Command="{Binding OpenInNewWindowCommand}" IsVisible="{Binding CanOpenInNewWindow}" />
+        <Separator IsVisible="{Binding HasLocationActions}" />
+        <MenuItem Header="{Binding Common_GoToLocation, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding GoToLocationCommand}"
+                  IsVisible="{Binding CanGoToLocation}" />
+        <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding OpenFolderCommand}"
+                  IsVisible="{Binding CanOpenContainingFolder}" />
+        <Separator IsVisible="{Binding CanShowProperties}" />
+        <MenuItem Header="{Binding Common_Properties, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding PropertiesCommand}"
+                  IsVisible="{Binding CanShowProperties}" />
+    </MenuFlyout>
+
+    <!-- Rows inside a video playlist retain the video's location and playback-state actions, and
+         add the entry-level edit the library grid has nowhere to apply. -->
+    <MenuFlyout x:Key="VideoPlaylistRowContextFlyout" x:DataType="models:VideoTileModel">
+        <MenuItem Header="{Binding Selection_Select, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding Selection.EnterCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanSelect}" />
+        <Separator IsVisible="{Binding CanSelect}" />
+        <MenuItem Header="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}" Command="{Binding OpenCommand}" />
+        <MenuItem Header="{Binding Common_OpenInNewWindow, Source={x:Static strings:LocalizedStrings.Instance}}"
+              Command="{Binding OpenInNewWindowCommand}" IsVisible="{Binding CanOpenInNewWindow}" />
+        <Separator IsVisible="{Binding CanAddToPlaylist}" />
+        <MenuItem Header="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding AddToPlaylistCommand}"
+                  IsVisible="{Binding CanAddToPlaylist}" />
+        <Separator IsVisible="{Binding HasLocationActions}" />
+        <MenuItem Header="{Binding Common_GoToLocation, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding GoToLocationCommand}"
+                  IsVisible="{Binding CanGoToLocation}" />
+        <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding OpenFolderCommand}"
+                  IsVisible="{Binding CanOpenContainingFolder}" />
+        <Separator IsVisible="{Binding HasPlaybackStateActions}" />
+        <MenuItem Header="{Binding Video_MarkAsWatched, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding MarkAsWatchedCommand}"
+                  IsVisible="{Binding CanMarkAsWatched}" />
+        <MenuItem Header="{Binding Video_ClearPlaybackProgress, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding ClearPlaybackProgressCommand}"
+                  IsVisible="{Binding CanClearPlaybackProgress}" />
+        <Separator IsVisible="{Binding CanRemoveFromPlaylist}" />
+        <MenuItem Header="{Binding Common_RemoveFromPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding RemoveFromPlaylistCommand}"
+                  IsVisible="{Binding CanRemoveFromPlaylist}" />
+    </MenuFlyout>
+
+    <!-- Folder tiles: the rest of the video menu is per-video, and these cover the whole subtree. -->
+    <MenuFlyout x:Key="VideoFolderTileContextFlyout" x:DataType="models:VideoTileModel">
+        <MenuItem Header="{Binding Selection_Select, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding Selection.EnterCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanSelect}" />
+        <Separator IsVisible="{Binding CanSelect}" />
+        <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding OpenFolderCommand}"
+                  IsVisible="{Binding CanOpenContainingFolder}" />
+        <Separator IsVisible="{Binding CanOpenContainingFolder}" />
+        <MenuItem Header="{Binding Video_MarkFolderAsWatched, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding MarkAsWatchedCommand}" />
+        <MenuItem Header="{Binding Video_ClearFolderPlaybackProgress, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding ClearPlaybackProgressCommand}" />
+    </MenuFlyout>
+
+    <!-- The recently viewed entry stands for the list itself, which is all there is to act on. -->
+    <MenuFlyout x:Key="VideoRecentTileContextFlyout" x:DataType="models:VideoTileModel">
+        <MenuItem Header="{Binding Selection_Select, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding Selection.EnterCommand}" CommandParameter="{Binding}" IsVisible="{Binding CanSelect}" />
+        <Separator IsVisible="{Binding CanSelect}" />
+        <MenuItem Header="{Binding Video_ClearRecentlyViewed, Source={x:Static strings:LocalizedStrings.Instance}}"
+                  Command="{Binding ClearRecentCommand}" />
+    </MenuFlyout>
+</ResourceDictionary>

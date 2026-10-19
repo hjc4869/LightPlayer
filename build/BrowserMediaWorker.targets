@@ -1,0 +1,279 @@
+<Project>
+  <!--
+    Publishes the threaded .NET media worker (LightStudio.LightPlayer.WebWorkers) and ships its script and
+    runtime under wwwroot/media/worker/. The worker runs as a separate runtime with its own _framework, so it
+    is published rather than referenced. The publish runs in a process of its own, with build directories of
+    its own, alongside this project's build; its files are copied into this app's output once both finish.
+  -->
+  <PropertyGroup>
+    <BrowserMediaWorkerProject>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)', '../src/LightStudio.LightPlayer.WebWorkers/LightStudio.LightPlayer.WebWorkers.csproj'))</BrowserMediaWorkerProject>
+    <!-- One tree per app, so apps built together never share a worker build. -->
+    <BrowserMediaWorkerArtifactsPath>$([MSBuild]::NormalizeDirectory('$(ArtifactsPath)', 'browser-media-worker', '$(MSBuildProjectName)'))</BrowserMediaWorkerArtifactsPath>
+    <BrowserMediaWorkerPublishDir>$([MSBuild]::NormalizeDirectory('$(BrowserMediaWorkerArtifactsPath)', 'publish', '$(Configuration.ToLowerInvariant())'))</BrowserMediaWorkerPublishDir>
+    <!-- Ahead-of-time compilation only pays off in shipped builds. -->
+    <BrowserMediaWorkerAot Condition="'$(BrowserMediaWorkerAot)' == '' and '$(Configuration)' == 'Release'">true</BrowserMediaWorkerAot>
+    <BrowserMediaWorkerAot Condition="'$(BrowserMediaWorkerAot)' == ''">false</BrowserMediaWorkerAot>
+    <_BrowserMediaWorkerHost>$(DOTNET_HOST_PATH)</_BrowserMediaWorkerHost>
+    <_BrowserMediaWorkerHost Condition="'$(_BrowserMediaWorkerHost)' == ''">dotnet</_BrowserMediaWorkerHost>
+  </PropertyGroup>
+
+  <!--
+    Start launches the worker publish and returns; Finish waits for it and reports its output. The running
+    publish is held as a build-scoped task object, which ends the process if this build stops before Finish.
+  -->
+  <UsingTask TaskName="BrowserMediaWorkerPublish" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Mode ParameterType="System.String" Required="true" />
+      <Host ParameterType="System.String" />
+      <Project ParameterType="System.String" />
+      <Properties ParameterType="Microsoft.Build.Framework.ITaskItem[]" />
+      <LogFile ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Class" Language="cs"><![CDATA[
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Microsoft.Build.Framework;
+using Microsoft.Build.Utilities;
+
+public sealed class BrowserMediaWorkerPublish : Task, ICancelableTask
+{
+    // Settings of this app's own build that would misplace or reconfigure the worker's.
+    private static readonly HashSet<string> NotForwarded = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "ArtifactsPath", "BaseIntermediateOutputPath", "BaseOutputPath", "CurrentSolutionConfigurationContents",
+        "DesignTimeBuild", "IntermediateOutputPath", "MSBuildRestoreSessionId", "NoBuild", "OutDir", "OutputPath",
+        "PublishDir", "RunAOTCompilation", "RuntimeIdentifier", "SelfContained", "TargetFramework", "TargetFrameworks",
+        "WasmBuildingForNestedPublish", "WasmMainJSPath", "NativeBindingsRuntime", "NativeBindingsProfile",
+        "NativeBindingsStatic", "NativeBindingsEmitImports",
+    };
+
+    private volatile Running running;
+
+    [Required] public string Mode { get; set; }
+    public string Host { get; set; }
+    public string Project { get; set; }
+    public ITaskItem[] Properties { get; set; }
+    [Required] public string LogFile { get; set; }
+
+    public override bool Execute() => Mode == "Start" ? Start() : Finish();
+
+    public void Cancel() => running?.Stop();
+
+    private bool Start()
+    {
+        var arguments = new List<string> { "publish", Project, "-nologo", "-tl:off", "-nodeReuse:false", "-v:m", "-clp:NoSummary;ForceNoAlign" };
+        var properties = new SortedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (BuildEngine is IBuildEngine6 engine)
+        {
+            foreach (KeyValuePair<string, string> property in engine.GetGlobalProperties())
+            {
+                if (!NotForwarded.Contains(property.Key) && !property.Key.StartsWith("_", StringComparison.Ordinal) &&
+                    !property.Key.StartsWith("Solution", StringComparison.Ordinal) && property.Value.IndexOfAny(new[] { '\r', '\n', '"' }) < 0)
+                    properties[property.Key] = property.Value;
+            }
+        }
+
+        foreach (ITaskItem property in Properties ?? Array.Empty<ITaskItem>())
+            properties[property.ItemSpec] = property.GetMetadata("Value");
+        foreach (KeyValuePair<string, string> property in properties)
+            arguments.Add("-p:" + property.Key + "=" + Escape(property.Value));
+
+        var info = new ProcessStartInfo(Host, string.Join(" ", arguments.Select(Quote)))
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            StandardOutputEncoding = Encoding.UTF8,
+            StandardErrorEncoding = Encoding.UTF8,
+        };
+        Directory.CreateDirectory(Path.GetDirectoryName(LogFile));
+        var started = new Running(info, LogFile);
+        BuildEngine4.RegisterTaskObject(LogFile, started, RegisteredTaskObjectLifetime.Build, false);
+        Log.LogMessage(MessageImportance.High, "Publishing the browser media worker in the background; its log is " + LogFile);
+        return true;
+    }
+
+    private bool Finish()
+    {
+        running = BuildEngine4.UnregisterTaskObject(LogFile, RegisteredTaskObjectLifetime.Build) as Running;
+        if (running == null)
+        {
+            Log.LogError("The browser media worker publish was not started in this build.");
+            return false;
+        }
+
+        using (running)
+        {
+            int exitCode = running.Wait();
+            foreach (string line in running.Output)
+                Log.LogMessageFromText(line, MessageImportance.Low);
+            if (exitCode != 0 && !Log.HasLoggedErrors)
+                Log.LogError("Publishing the browser media worker failed with exit code " + exitCode + "; see " + LogFile + ".");
+        }
+
+        return !Log.HasLoggedErrors;
+    }
+
+    // Command-line property values separate on these characters unless escaped.
+    private static string Escape(string value) => value.Replace("%", "%25").Replace(";", "%3B").Replace(",", "%2C");
+
+    // Quotes one argument the way the process's command line is split back into arguments.
+    private static string Quote(string argument)
+    {
+        if (argument.Length > 0 && argument.IndexOfAny(new[] { ' ', '\t', '"' }) < 0)
+            return argument;
+
+        var quoted = new StringBuilder("\"");
+        int backslashes = 0;
+        foreach (char character in argument)
+        {
+            if (character == '\\')
+            {
+                backslashes++;
+                continue;
+            }
+
+            quoted.Append('\\', character == '"' ? backslashes * 2 + 1 : backslashes);
+            backslashes = 0;
+            quoted.Append(character);
+        }
+
+        return quoted.Append('\\', backslashes * 2).Append('"').ToString();
+    }
+
+    private sealed class Running : IDisposable
+    {
+        private readonly Process process;
+        private readonly List<string> output = new List<string>();
+        private readonly string logFile;
+
+        public Running(ProcessStartInfo info, string logFile)
+        {
+            this.logFile = logFile;
+            process = new Process { StartInfo = info };
+            process.OutputDataReceived += (sender, line) => Add(line.Data);
+            process.ErrorDataReceived += (sender, line) => Add(line.Data);
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+        }
+
+        public string[] Output
+        {
+            get { lock (output) return output.ToArray(); }
+        }
+
+        public int Wait()
+        {
+            process.WaitForExit();
+            File.WriteAllLines(logFile, Output);
+            return process.ExitCode;
+        }
+
+        public void Stop()
+        {
+            try
+            {
+                if (process.HasExited)
+                    return;
+
+                // The whole tree where the runtime can end one, so the publish's build nodes stop with it.
+                var killTree = typeof(Process).GetMethod("Kill", new[] { typeof(bool) });
+                if (killTree != null)
+                    killTree.Invoke(process, new object[] { true });
+                else
+                    process.Kill();
+            }
+            catch (Exception exception) when (exception is InvalidOperationException ||
+                exception is System.Reflection.TargetInvocationException && exception.InnerException is InvalidOperationException)
+            {
+                // The process exited on its own in the meantime.
+            }
+        }
+
+        public void Dispose()
+        {
+            Stop();
+            process.Dispose();
+        }
+
+        private void Add(string line)
+        {
+            if (line != null)
+                lock (output) output.Add(line);
+        }
+    }
+}
+]]></Code>
+    </Task>
+  </UsingTask>
+
+  <!--
+    Starts early, so the worker builds while this app compiles and links. The WebAssembly SDK's nested publish
+    build of this project reuses the worker of the outer build. A build that skips compilation reuses the last one.
+  -->
+  <Target Name="StartBrowserMediaWorkerPublish" BeforeTargets="PrepareForBuild"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(WasmBuildingForNestedPublish)' != 'true' and '$(NoBuild)' != 'true'">
+    <ItemGroup>
+      <_BrowserMediaWorkerProperty Include="Configuration" Value="$(Configuration)" />
+      <_BrowserMediaWorkerProperty Include="ArtifactsPath" Value="$(BrowserMediaWorkerArtifactsPath)" />
+      <_BrowserMediaWorkerProperty Include="PublishDir" Value="$(BrowserMediaWorkerPublishDir)" />
+      <_BrowserMediaWorkerProperty Include="RunAOTCompilation" Value="$(BrowserMediaWorkerAot)" />
+    </ItemGroup>
+    <!-- Fingerprinted names change between builds, so a fresh folder keeps stale runtime files out of this app. -->
+    <RemoveDir Directories="$(BrowserMediaWorkerPublishDir)" />
+    <BrowserMediaWorkerPublish Mode="Start" Host="$(_BrowserMediaWorkerHost)" Project="$(BrowserMediaWorkerProject)"
+                               Properties="@(_BrowserMediaWorkerProperty)" LogFile="$(BrowserMediaWorkerArtifactsPath)publish.log" />
+    <PropertyGroup>
+      <_BrowserMediaWorkerStarted>true</_BrowserMediaWorkerStarted>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="_FinishBrowserMediaWorkerPublish"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(WasmBuildingForNestedPublish)' != 'true'">
+    <BrowserMediaWorkerPublish Mode="Finish" LogFile="$(BrowserMediaWorkerArtifactsPath)publish.log"
+                               Condition="'$(_BrowserMediaWorkerStarted)' == 'true'" />
+    <ItemGroup>
+      <_BrowserMediaWorkerAsset Include="$(BrowserMediaWorkerPublishDir)wwwroot/**" />
+    </ItemGroup>
+    <Error Condition="!Exists('$(BrowserMediaWorkerPublishDir)wwwroot/lp-media-worker.js')"
+           Text="The browser media worker has not been published to $(BrowserMediaWorkerPublishDir)." />
+  </Target>
+
+  <!-- A publish waits until after its own ahead-of-time compilation and link instead. -->
+  <Target Name="CopyBrowserMediaWorkerToOutput" AfterTargets="Build" DependsOnTargets="_FinishBrowserMediaWorkerPublish"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(WasmBuildingForNestedPublish)' != 'true' and '$(_IsPublishing)' != 'true'">
+    <Copy SourceFiles="@(_BrowserMediaWorkerAsset)"
+          DestinationFiles="@(_BrowserMediaWorkerAsset->'$(OutDir)wwwroot/media/worker/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyBrowserMediaWorkerToPublishDirectory" AfterTargets="Publish" DependsOnTargets="_FinishBrowserMediaWorkerPublish"
+          Condition="'$(DesignTimeBuild)' != 'true' and '$(WasmBuildingForNestedPublish)' != 'true'">
+    <Copy SourceFiles="@(_BrowserMediaWorkerAsset)"
+          DestinationFiles="@(_BrowserMediaWorkerAsset->'$(PublishDir)wwwroot/media/worker/%(RecursiveDir)%(Filename)%(Extension)')" />
+  </Target>
+
+  <!-- FFmpeg, LibRaw, Little CMS and the JPEG XR codec run only in the media worker; the page runtime does not link them. -->
+  <Target Name="ExcludeBrowserWorkerNativeLibraries" BeforeTargets="PrepareForBuild">
+    <ItemGroup>
+      <NativeFileReference Remove="@(NativeFileReference)"
+          Condition="$([System.String]::Copy('%(NativeFileReference.Identity)').ToLowerInvariant().Contains('lightstudio.ffmpeg')) or '%(NativeFileReference.Filename)' == 'libjxrglue' or '%(NativeFileReference.Filename)' == 'libjpegxr' or '%(NativeFileReference.Filename)' == 'libraw' or '%(NativeFileReference.Filename)' == 'liblcms2'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="CheckBrowserFfmpegIsolation" BeforeTargets="WasmLinkDotNet">
+    <ItemGroup>
+      <_UnexpectedBrowserFfmpeg Include="@(NativeFileReference)"
+          Condition="$([System.String]::Copy('%(NativeFileReference.Identity)').ToLowerInvariant().Contains('lightstudio.ffmpeg')) or '%(NativeFileReference.Filename)' == 'libjxrglue' or '%(NativeFileReference.Filename)' == 'libjpegxr' or '%(NativeFileReference.Filename)' == 'libraw' or '%(NativeFileReference.Filename)' == 'liblcms2'" />
+    </ItemGroup>
+    <Error Condition="'@(_UnexpectedBrowserFfmpeg)' != ''" Text="FFmpeg, LibRaw, Little CMS and JPEG XR must be linked only by the media worker, not the page runtime: @(_UnexpectedBrowserFfmpeg)." />
+  </Target>
+</Project>

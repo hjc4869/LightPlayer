@@ -1,0 +1,170 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             xmlns:views="using:LightStudio.LightPlayer.Views.Pages"
+             x:Class="LightStudio.LightPlayer.Views.Pages.PhotoIndexSettingsView"
+             x:DataType="vm:PhotoIndexSettingsViewModel">
+    <UserControl.Styles>
+        <Style Selector="controls|SettingRow.photoSetting TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="ComboBox#EmbeddingModelSelector /template/ TextBlock">
+            <Setter Property="TextWrapping" Value="NoWrap" />
+        </Style>
+    </UserControl.Styles>
+    <StackPanel x:DataType="vm:PhotoIndexSettingsViewModel"
+                IsVisible="{Binding Status.RuntimeAvailable, FallbackValue=False}" Spacing="10">
+        <TextBlock Text="{Binding SettingsPage_PhotoIndex, Source={x:Static strings:LocalizedStrings.Instance}}"
+                   FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap"
+                   Margin="0,0,0,4"
+                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+        <Border Classes="settingsGroup">
+            <StackPanel>
+                <controls:SettingRow Classes="photoSetting" IsGrouped="True"
+                                     Header="{Binding PhotoIndex_Enable, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                     Description="{Binding PhotoIndex_Description, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <controls:SettingRow.ActionContent>
+                        <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                      IsEnabled="{Binding CanConfigure}" />
+                    </controls:SettingRow.ActionContent>
+                </controls:SettingRow>
+                <controls:SettingRow Classes="photoSetting" IsGrouped="True" HasTopDivider="True"
+                                     Header="{Binding Inference_Models, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <controls:SettingRow.ActionContent>
+                        <Button Classes="icon" Click="OnImportEmbeddingModelClick" IsEnabled="{Binding CanImport}"
+                                ToolTip.Tip="{Binding Inference_Import, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconFolder}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                    </controls:SettingRow.ActionContent>
+                    <controls:SettingRow.RowsContent>
+                        <ItemsControl ItemsSource="{Binding Models}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:InferenceModelSettingsViewModel">
+                                    <controls:SettingRow Classes="photoSetting" IsGrouped="True" HasTopDivider="True"
+                                                         Header="{Binding Name}" Description="{Binding Description}">
+                                        <controls:SettingRow.DescriptionContent>
+                                            <StackPanel Spacing="4" Margin="0,6,0,0">
+                                                <Button Classes="link" Content="{Binding DownloadUri.Host}" Click="OnInferenceModelLinkClick"
+                                                        IsVisible="{Binding HasDownloadLink}" HorizontalAlignment="Left" FontSize="12"
+                                                        ToolTip.Tip="{Binding DownloadUri}" />
+                                                <StackPanel IsVisible="{Binding HasTransfer}" Spacing="4">
+                                                    <TextBlock Text="{Binding StatusText}" FontSize="12"
+                                                               ToolTip.Tip="{Binding Error}" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                                    <TextBlock Text="{Binding ProgressText}" IsVisible="{Binding HasProgress}" FontSize="12"
+                                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                                    <ProgressBar Value="{Binding Progress}" IsVisible="{Binding HasProgress}"
+                                                                 Height="3" MinHeight="0" MinWidth="0" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </controls:SettingRow.DescriptionContent>
+                                        <controls:SettingRow.ActionContent>
+                                            <Grid ColumnDefinitions="32,32" ColumnSpacing="8" Width="72" Height="32">
+                                                <Button Grid.Column="1" Classes="icon" Width="32" Height="32"
+                                                        Command="{Binding DownloadCommand}" IsVisible="{Binding ShowDownload}"
+                                                        ToolTip.Tip="{Binding Inference_Download, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconDownload}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                                                </Button>
+                                                <Button Grid.Column="1" Classes="icon" Width="32" Height="32"
+                                                    Command="{Binding DeleteCommand}" IsVisible="{Binding ShowDelete}"
+                                                        ToolTip.Tip="{Binding Common_Delete, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconDelete}" Fill="{DynamicResource AppSecondaryTextBrush}" /></Viewbox>
+                                                </Button>
+                                                <Button Classes="icon" Width="32" Height="32" Command="{Binding PauseCommand}" IsVisible="{Binding ShowPause}"
+                                                        ToolTip.Tip="{Binding Inference_PauseDownload, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconPause}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                                                </Button>
+                                                <Button Classes="icon" Width="32" Height="32" Command="{Binding DownloadCommand}" IsVisible="{Binding ShowResume}"
+                                                        ToolTip.Tip="{Binding Inference_ResumeDownload, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconPlay}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                                                </Button>
+                                                <Button Grid.Column="1" Classes="icon" Width="32" Height="32"
+                                                        Command="{Binding CancelCommand}" IsVisible="{Binding HasTransfer}"
+                                                        ToolTip.Tip="{Binding Common_Cancel, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconClose}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                                                </Button>
+                                            </Grid>
+                                        </controls:SettingRow.ActionContent>
+                                    </controls:SettingRow>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </controls:SettingRow.RowsContent>
+                </controls:SettingRow>
+                <controls:SettingRow Classes="photoSetting" IsGrouped="True" HasTopDivider="True"
+                                     Header="{Binding Inference_Model, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                     Description="{Binding Inference_ModelDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <controls:SettingRow.ActionContent>
+                        <ComboBox x:Name="EmbeddingModelSelector" Width="160" ItemsSource="{Binding InstalledModels}"
+                                  SelectedItem="{Binding SelectedModel, Mode=TwoWay}" IsEnabled="{Binding CanSelectModel}"
+                                  PlaceholderText="{Binding Inference_NoModel, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                  ToolTip.Tip="{Binding SelectedModel.Name}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="services:InferenceInstalledModel">
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="280" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </controls:SettingRow.ActionContent>
+                </controls:SettingRow>
+                <controls:SettingRow Classes="photoSetting" IsGrouped="True" HasTopDivider="True"
+                                     Header="{Binding Inference_Device, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <controls:SettingRow.DescriptionContent>
+                        <TextBlock Text="{Binding DeviceFallbackDescription}" TextWrapping="Wrap"
+                                   Classes="settingDescription" IsVisible="{Binding IsDeviceFallback}" FontSize="12" />
+                    </controls:SettingRow.DescriptionContent>
+                    <controls:SettingRow.ActionContent>
+                        <ComboBox x:Name="InferenceDeviceSelector" Width="160" ItemsSource="{Binding Status.Devices}"
+                                  SelectedItem="{Binding SelectedDevice, Mode=TwoWay}" IsEnabled="{Binding !IsChanging}"
+                                  ToolTip.Tip="{Binding SelectedDevice.Name}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="services:InferenceDevice">
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="280" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </controls:SettingRow.ActionContent>
+                </controls:SettingRow>
+                <controls:SettingRow Classes="photoSetting" IsGrouped="True" HasTopDivider="True"
+                                     IsVisible="{Binding $parent[views:SettingsPageView].((vm:SettingsPageViewModel)DataContext).RemoteAccess.Enabled, FallbackValue=False, TargetNullValue=False}"
+                                     Header="{Binding PhotoIndex_Remote, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <controls:SettingRow.ActionContent>
+                        <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding AllowRemoteSearch, Mode=TwoWay}"
+                                      IsEnabled="{Binding CanConfigure}" />
+                    </controls:SettingRow.ActionContent>
+                </controls:SettingRow>
+                <controls:SettingRow Classes="photoSetting" IsGrouped="True" HasTopDivider="True"
+                                     Header="{Binding LibrarySettings_ScanLibrary, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                     Description="{Binding ProgressText}">
+                    <controls:SettingRow.DescriptionContent>
+                        <TextBlock Text="{Binding Status.Error}" FontSize="12" Foreground="{DynamicResource AppFavoriteBrush}"
+                                   IsVisible="{Binding Status.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    </controls:SettingRow.DescriptionContent>
+                    <controls:SettingRow.ActionContent>
+                        <Grid ColumnDefinitions="32,32" ColumnSpacing="8" Width="72" Height="32">
+                            <Button Grid.Column="1" Classes="icon" Width="32" Height="32" Command="{Binding ScanCommand}"
+                                    IsVisible="{Binding !Status.IsIndexing}" IsEnabled="{Binding CanScan}"
+                                    ToolTip.Tip="{Binding LibrarySettings_ScanLibrary, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconRefresh}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                            </Button>
+                            <Button Grid.Column="1" Classes="icon" Width="32" Height="32" Command="{Binding CancelCommand}"
+                                    IsVisible="{Binding Status.IsIndexing}"
+                                    ToolTip.Tip="{Binding Common_Cancel, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconClose}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                            </Button>
+                        </Grid>
+                    </controls:SettingRow.ActionContent>
+                </controls:SettingRow>
+            </StackPanel>
+        </Border>
+        <ProgressBar Height="3" MinHeight="0" MinWidth="0" IsVisible="{Binding Status.IsIndexing}" IsIndeterminate="{Binding $self.IsVisible}" />
+        <ProgressBar Height="3" MinHeight="0" MinWidth="0" IsVisible="{Binding IsChanging}" IsIndeterminate="{Binding $self.IsVisible}" />
+        <TextBlock x:Name="PhotoProviderDescription" Text="{Binding ProviderDescription}" FontSize="12"
+                   TextWrapping="Wrap" Foreground="{DynamicResource AppSecondaryTextBrush}"
+                   IsVisible="{Binding ProviderDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,41 @@
+<Project>
+  <!--
+    Multithreaded runtime glue fix for runtimes that start inside a dedicated worker: the shipped
+    dotnet.native.js copies the worker flag before the runtime replaces it, so the worker's main thread
+    registers as a pthread and fails on attach.
+  -->
+  <UsingTask TaskName="PatchWorkerEnvironmentReplacement" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <GluePath ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+var original = new Regex(@"(ENVIRONMENT_IS_WORKER\s*=\s*dotnet_replacements\.ENVIRONMENT_IS_WORKER;)(\s*)(Module\.__dotnet_runtime\.initializeReplacements\(dotnet_replacements\);)");
+var patched = new Regex(@"Module\.__dotnet_runtime\.initializeReplacements\(dotnet_replacements\);\s*ENVIRONMENT_IS_WORKER\s*=\s*dotnet_replacements\.ENVIRONMENT_IS_WORKER;");
+string text = File.ReadAllText(GluePath);
+if (original.IsMatch(text))
+{
+    File.WriteAllText(GluePath, original.Replace(text, "$3$2$1", 1));
+}
+else if (!patched.IsMatch(text))
+{
+    Log.LogError("The worker environment replacement was not found in {0}.", GluePath);
+    return false;
+}
+]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="PatchWorkerEnvironmentReplacement" AfterTargets="WasmLinkDotNet"
+          Condition="'$(WasmBuildNative)' == 'true' and '$(WasmEnableThreads)' == 'true'">
+    <PatchWorkerEnvironmentReplacement GluePath="$(_WasmIntermediateOutputPath)dotnet.native.js" />
+  </Target>
+
+  <Target Name="RequireNativeWorkerRuntime" BeforeTargets="Build"
+          Condition="'$(WasmBuildNative)' != 'true' or '$(WasmEnableThreads)' != 'true'">
+    <Error Text="A worker-hosted runtime needs WasmEnableThreads and WasmBuildNative, so its dotnet.native.js can be patched." />
+  </Target>
+</Project>

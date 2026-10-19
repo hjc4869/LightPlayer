@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>$(TargetFramework)-browser</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>LightStudio.VideoValidation.Web</RootNamespace>
+    <AssemblyName>LightStudio.VideoValidation.Web</AssemblyName>
+    <WasmBuildNative>true</WasmBuildNative>
+    <WasmMainJSPath>main.js</WasmMainJSPath>
+    <WasmEnableThreads>false</WasmEnableThreads>
+    <WasmEnableSIMD>true</WasmEnableSIMD>
+    <WasmNativeStrip>true</WasmNativeStrip>
+    <WasmAllowUndefinedSymbols>true</WasmAllowUndefinedSymbols>
+    <RunAOTCompilation>true</RunAOTCompilation>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <ValidationCorpusDirectory Condition="'$(ValidationCorpusDirectory)' == ''">$(MSBuildThisFileDirectory)../../../artifacts/video-validation</ValidationCorpusDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" />
+    <PackageReference Include="Avalonia.Browser" />
+    <PackageReference Include="Avalonia.Fonts.Inter" />
+    <PackageReference Include="LightStudio.Ffmpeg" />
+    <PackageReference Include="Microsoft.NET.WebAssembly.Threading" Condition="'$(WasmEnableThreads)' == 'true'" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ValidationApp/ValidationApp.csproj" />
+    <ProjectReference Include="../../../src/LightStudio.RemoteServices/LightStudio.RemoteServices.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../../../src/LightStudio.LightPlayer.Web/BrowserAssets.cs"
+             Link="ProductionWeb/BrowserAssets.cs" />
+    <Compile Include="../../../src/LightStudio.LightPlayer.Web/BrowserVideoBootstrap.cs"
+             Link="ProductionWeb/BrowserVideoBootstrap.cs" />
+    <Compile Include="../../../src/LightStudio.LightPlayer.Web/BrowserMainThread.cs;../../../src/LightStudio.LightPlayer.Web/BrowserVideoPlanes.cs;../../../src/LightStudio.LightPlayer.Web/WebAudioPlaybackBackend.cs;../../../src/LightStudio.LightPlayer.Web/MediaWorkerConnection.cs;../../../src/LightStudio.LightPlayer.Web/WorkerMediaEngine.cs;../../../src/LightStudio.LightPlayer.Web/PacketRelay.cs;../../../src/LightStudio.LightPlayer.Web/BrowserMediaOperations.cs;../../../src/LightStudio.LightPlayer.Web/BrowserImageDecoder.Photos.cs;../../../src/LightStudio.LightPlayer.Web/BrowserImageDecoder.Animation.cs;../../../src/LightStudio.LightPlayer.Web/WorkerSourceHost.cs;../../../src/LightStudio.LightPlayer.Web/BrowserSessionInput.cs;../../../src/LightStudio.LightPlayer.Web/BrowserMediaFrames.cs;../../../src/LightStudio.LightPlayer.Web/BrowserFileSystem.cs;../../../src/LightStudio.LightPlayer.Web/BrowserFileStream.cs"
+         Link="ProductionWeb/%(Filename)%(Extension)" />
+    <Content Include="../../../src/LightStudio.LightPlayer.Web/wwwroot/media/*.js"
+         Link="wwwroot/media/%(Filename)%(Extension)"
+         CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../../src/LightStudio.LightPlayer.Web/wwwroot/file-system-access.js;../../../src/LightStudio.LightPlayer.Web/wwwroot/web-audio.js;../../../src/LightStudio.LightPlayer.Web/wwwroot/web-audio-worklet.js"
+         Link="wwwroot/%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Remove="Automation/**" />
+    <None Remove="Automation/**" />
+  </ItemGroup>
+  <Target Name="ConfigureValidationWebRun" BeforeTargets="ComputeRunArguments">
+    <Error Condition="!Exists('$(ValidationCorpusDirectory)/assets-manifest.json')"
+           Text="Generate the corpus with make video-validation-generate or set ValidationCorpusDirectory to an existing corpus." />
+    <PropertyGroup>
+      <RunCommand>node</RunCommand>
+      <RunArguments>&quot;$(MSBuildProjectDirectory)/Automation/run.mjs&quot; --serve --app &quot;$(TargetDir)&quot; --corpus &quot;$(ValidationCorpusDirectory)&quot;</RunArguments>
+      <RunWorkingDirectory>$(MSBuildProjectDirectory)</RunWorkingDirectory>
+    </PropertyGroup>
+  </Target>
+  <Import Project="../../../build/BrowserMediaWorker.targets" />
+</Project>

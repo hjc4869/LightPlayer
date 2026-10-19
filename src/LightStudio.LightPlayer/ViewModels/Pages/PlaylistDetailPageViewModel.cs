@@ -11,6 +11,8 @@ using CommunityToolkit.Mvvm.Input;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Services;
 
+using Strings = LightStudio.LightPlayer.Strings;
+
 namespace LightStudio.LightPlayer.ViewModels.Pages;
 
 /// <summary>
@@ -18,7 +20,7 @@ namespace LightStudio.LightPlayer.ViewModels.Pages;
 /// duration), the ordered entries as track rows, and playlist-level actions
 /// (play, shuffle, queue, rename, delete, export).
 /// </summary>
-public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDisposable
+public sealed partial class PlaylistDetailPageViewModel : SelectionPageViewModelBase, IDisposable, IInlineDetailPage, INowPlayingHighlightTarget
 {
     private readonly string playlistId;
     private readonly IPlaylistService service;
@@ -31,6 +33,7 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
     private PlaylistModel? playlist;
     private bool suppressItemsSync;
     private bool disposed;
+    private MediaItemKey? nowPlaying;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowEmpty))]
@@ -40,11 +43,13 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
     [ObservableProperty]
     private string headerSubtitle = string.Empty;
 
-    // The page's own header back button is hidden when the detail is hosted inline in
-    // the adaptive Playlists master-detail view, where the container provides the back
-    // affordance. It stays visible when the page is shown on its own route.
+    // Its own header back button. Shown only when the page is on its own route and the shell has no
+    // back button of its own. The narrow layout, the Apple layout, and hosts with their own back
+    // navigation (Android, the browser) hide it in favor of a single global back affordance. When
+    // hosted inline in the adaptive Playlists master-detail view, the host drives this instead (see
+    // PlaylistsPageViewModel).
     [ObservableProperty]
-    private bool showBackButton = true;
+    private bool showBackButton = !PlatformServices.HostProvidesBackNavigation;
 
     public PlaylistDetailPageViewModel(
         string playlistId,
@@ -53,7 +58,8 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
         TrackActionCallbacks sharedTrackActions,
         Action<IReadOnlyList<PlaylistItemModel>, bool> play,
         Action<IReadOnlyList<PlaylistItemModel>> enqueue,
-        Action goBack)
+        Action goBack,
+        LibraryCommands? selectionCommands = null)
     {
         this.playlistId = playlistId;
         this.service = service;
@@ -61,31 +67,53 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
         this.play = play;
         this.enqueue = enqueue;
         this.goBack = goBack;
-        Title = "Playlist";
+        TitleKey = nameof(Strings.Resources.Common_Playlist);
 
-        rowActions = new TrackActionCallbacks
+        // Take the shell's actions wholesale and add only the playlist-specific one, so an action
+        // added to the shared set later cannot be silently dropped here.
+        rowActions = sharedTrackActions with { RemoveFromPlaylist = RemoveRow };
+
+        BackCommand = new RelayCommand(() =>
         {
-            Play = sharedTrackActions.Play,
-            PlayNext = sharedTrackActions.PlayNext,
-            AddToQueue = sharedTrackActions.AddToQueue,
-            AddToPlaylist = sharedTrackActions.AddToPlaylist,
-            ShowProperties = sharedTrackActions.ShowProperties,
-            OpenContainingFolder = sharedTrackActions.OpenContainingFolder,
-            RemoveFromPlaylist = RemoveRow,
-        };
-
-        BackCommand = new RelayCommand(() => this.goBack());
+            if (!TryHandleBack())
+            {
+                this.goBack();
+            }
+        });
         PlayCommand = new RelayCommand(() => this.play(CurrentItems(), false), () => HasItems);
         ShuffleCommand = new RelayCommand(() => this.play(CurrentItems(), true), () => HasItems);
         AddToQueueCommand = new RelayCommand(() => this.enqueue(CurrentItems()), () => HasItems);
-        RenameCommand = new AsyncRelayCommand(RenameAsync);
-        DeleteCommand = new AsyncRelayCommand(DeleteAsync);
-        ExportCommand = new AsyncRelayCommand(ExportAsync, () => HasItems);
+        RenameCommand = new AsyncRelayCommand(() => AppErrorReporter.GuardAsync(RenameAsync));
+        DeleteCommand = new AsyncRelayCommand(() => AppErrorReporter.GuardAsync(DeleteAsync));
+        ExportCommand = new AsyncRelayCommand(() => AppErrorReporter.GuardAsync(ExportAsync), () => HasItems);
 
+        MultiSelectionActions.AddMusicActions(Selection, selectionCommands ?? new LibraryCommands
+        {
+            PlayTracks = tracks => play(tracks.Select(row => rowToItem[row]).ToArray(), false),
+            ShuffleTracks = tracks => play(tracks.Select(row => rowToItem[row]).ToArray(), true),
+            AddTracksToQueue = tracks => enqueue(tracks.Select(row => rowToItem[row]).ToArray()),
+        });
+        Selection.AddAction(nameof(Strings.Resources.Common_RemoveFromPlaylist), RemoveRowsAsync);
+        PageSearch.SetSource(new PageSearchSource(
+            () => PageSearchSource.Entries(Rows).Prepend(
+                new PageSearchEntry(this, string.Join('\n', Title, HeaderSubtitle))), [Rows], this));
         Load();
     }
 
+    // A standalone (route-hosted) detail page hides its own back button while the shell shows one.
+    // Inline-hosted copies never receive shell layout changes (their host owns ShowBackButton), so
+    // this stays inert there.
+    protected override void OnHasShellBackButtonChanged(bool value) =>
+        ShowBackButton = !PlatformServices.HostProvidesBackNavigation && !value;
+
     public ObservableCollection<TrackRowModel> Rows { get; } = new();
+
+    /// <inheritdoc />
+    public void SetNowPlaying(MediaItemKey? mediaItem)
+    {
+        nowPlaying = mediaItem;
+        NowPlayingHighlight.Apply(Rows, nowPlaying);
+    }
 
     public IRelayCommand BackCommand { get; }
 
@@ -105,24 +133,27 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
 
     public bool ShowContent => HasItems;
 
-    public string EmptyHeader => "This playlist is empty";
+    public bool CanDelete => playlist is not null && !playlist.IsBuiltIn;
 
-    public string EmptyDescription => "Add music from the library or the now-playing queue.";
+    public string EmptyHeader => Strings.Resources.PlaylistDetail_EmptyHeader;
+
+    public string EmptyDescription => Strings.Resources.PlaylistDetail_EmptyDescription;
 
     private void Load()
     {
         playlist = service.GetById(playlistId);
         if (playlist is null)
         {
-            Title = "Playlist";
+            // Leave the generic localized "Playlist" title from the constructor as a fallback.
             HeaderSubtitle = string.Empty;
             UpdateState();
             return;
         }
 
+        Title = playlist.Title;
+
         playlist.PropertyChanged += OnPlaylistPropertyChanged;
         playlist.Items.CollectionChanged += OnPlaylistItemsChanged;
-        Title = playlist.Title;
 
         foreach (var item in playlist.Items)
         {
@@ -148,7 +179,8 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
             trackNumber: 0,
             dateAdded: default,
             callbacks: rowActions,
-            startTimeMs: item.StartTimeMs)
+            startTimeMs: item.StartTimeMs,
+            sourceId: item.SourceId)
         {
             IsPlaylistItem = true,
             PlaybackContext = () => Rows,
@@ -158,22 +190,30 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
         Rows.Add(row);
     }
 
-    private async void RemoveRow(TrackRowModel row)
+    private async void RemoveRow(TrackRowModel row) =>
+        await AppErrorReporter.GuardAsync(() => RemoveRowsAsync([row]));
+
+    private async Task RemoveRowsAsync(IReadOnlyList<SelectionItemModel> selected)
     {
-        if (!rowToItem.Remove(row))
+        if (disposed || suppressItemsSync)
         {
             return;
         }
 
-        Rows.Remove(row);
-        UpdateState();
+        var removed = selected.Cast<TrackRowModel>().ToHashSet();
+        var remaining = Rows.Where(row => !removed.Contains(row)).Select(row => rowToItem[row]).ToArray();
 
-        // The replace below mutates the shared playlist collection; suppress the
-        // resulting change notification so we don't rebuild the rows we just edited.
         suppressItemsSync = true;
         try
         {
-            await service.ReplaceItemsAsync(playlistId, CurrentItems());
+            await service.ReplaceItemsAsync(playlistId, remaining);
+            foreach (var row in removed)
+            {
+                rowToItem.Remove(row);
+                Rows.Remove(row);
+            }
+
+            UpdateState();
         }
         finally
         {
@@ -191,7 +231,7 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
             return;
         }
 
-        var name = await dialogs.PromptForTitleAsync("Rename playlist", "Rename", playlist.Title);
+        var name = await dialogs.PromptForTitleAsync(Strings.Resources.PlaylistDetail_RenameDialogHeader, Strings.Resources.Common_Rename, playlist.Title);
         if (!string.IsNullOrWhiteSpace(name))
         {
             await service.RenameAsync(playlistId, name);
@@ -206,9 +246,9 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
         }
 
         var confirmed = await dialogs.ConfirmAsync(
-            "Delete playlist",
-            $"Delete \"{playlist.Title}\"? This cannot be undone.",
-            "Delete");
+            Strings.Resources.PlaylistDetail_DeletePlaylist,
+            string.Format(Strings.Resources.PlaylistDetail_DeleteConfirmFormat, playlist.Title),
+            Strings.Resources.Common_Delete);
         if (confirmed)
         {
             await service.DeleteAsync(playlistId);
@@ -223,11 +263,9 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
             return;
         }
 
-        var path = await dialogs.PickExportFileAsync(playlist.Title);
-        if (!string.IsNullOrWhiteSpace(path))
-        {
-            await service.ExportAsync(playlistId, path);
-        }
+        await dialogs.SaveExportFileAsync(
+            playlist.Title,
+            async fileName => (await service.ExportAsync(playlistId, fileName))?.Content);
     }
 
     private void OnPlaylistPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -253,6 +291,7 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
 
     private void SyncRowsFromPlaylist()
     {
+        Selection.Exit();
         Rows.Clear();
         rowToItem.Clear();
         if (playlist is not null)
@@ -268,6 +307,8 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
 
     private void UpdateState()
     {
+        Selection.SetItems(Rows);
+        NowPlayingHighlight.Apply(Rows, nowPlaying);
         HasItems = Rows.Count > 0;
         HeaderSubtitle = BuildSubtitle();
         PlayCommand.NotifyCanExecuteChanged();
@@ -279,7 +320,7 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
     private string BuildSubtitle()
     {
         var count = Rows.Count;
-        var label = count == 1 ? "1 item" : $"{count} items";
+        var label = count == 1 ? Strings.Resources.Common_OneItem : string.Format(Strings.Resources.Common_ItemsFormat, count);
         var total = rowToItem.Values.Aggregate(TimeSpan.Zero, (sum, item) => sum + item.Duration);
         return total > TimeSpan.Zero
             ? $"{label}  ·  {LibrarySortKeys.FormatDuration(total)}"
@@ -287,7 +328,7 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
     }
 
     private static string DeriveTitle(string? path) =>
-        string.IsNullOrWhiteSpace(path) ? "Unknown title" : Path.GetFileNameWithoutExtension(path);
+        string.IsNullOrWhiteSpace(path) ? Strings.Resources.Common_UnknownTitle : Path.GetFileNameWithoutExtension(path);
 
     public void Dispose()
     {
@@ -297,6 +338,8 @@ public sealed partial class PlaylistDetailPageViewModel : PageViewModelBase, IDi
         }
 
         disposed = true;
+        PageSearch.Close();
+        Selection.Dispose();
         if (playlist is not null)
         {
             playlist.PropertyChanged -= OnPlaylistPropertyChanged;

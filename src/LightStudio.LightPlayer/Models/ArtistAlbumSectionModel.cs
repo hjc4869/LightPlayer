@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -10,11 +11,13 @@ namespace LightStudio.LightPlayer.Models;
 /// <summary>
 /// One album's worth of tracks rendered as a section on the artist detail page:
 /// cover art, title, release year, the album's ordered track rows, and
-/// album-level play/queue actions.
+/// album-level playback, queue, and playlist actions.
 /// </summary>
 public sealed partial class ArtistAlbumSectionModel : ObservableObject
 {
-    private bool artRequested;
+    private readonly object artGate = new();
+    private CancellationTokenSource? artRequest;
+    private bool artLoaded;
 
     [ObservableProperty]
     private IImage? coverImage;
@@ -24,13 +27,17 @@ public sealed partial class ArtistAlbumSectionModel : ObservableObject
         string year,
         IReadOnlyList<TrackRowModel> tracks,
         IRelayCommand playCommand,
-        IRelayCommand addToQueueCommand)
+        IRelayCommand shuffleCommand,
+        IRelayCommand addToQueueCommand,
+        IRelayCommand addToPlaylistCommand)
     {
         Title = title;
         Year = year;
         Tracks = tracks;
         PlayCommand = playCommand;
+        ShuffleCommand = shuffleCommand;
         AddToQueueCommand = addToQueueCommand;
+        AddToPlaylistCommand = addToPlaylistCommand;
     }
 
     public string Title { get; }
@@ -43,20 +50,77 @@ public sealed partial class ArtistAlbumSectionModel : ObservableObject
 
     public IRelayCommand PlayCommand { get; }
 
+    public IRelayCommand ShuffleCommand { get; }
+
     public IRelayCommand AddToQueueCommand { get; }
 
+    public IRelayCommand AddToPlaylistCommand { get; }
+
     /// <summary>Loads this section's cover art. Invoked once when the section is shown.</summary>
-    public Func<ArtistAlbumSectionModel, Task>? ArtLoader { get; set; }
+    public Func<ArtistAlbumSectionModel, CancellationToken, Task>? ArtLoader { get; set; }
 
     /// <summary>Triggers a one-time cover load for this section, if a loader is set.</summary>
     public void RequestArt()
     {
-        if (artRequested || ArtLoader is null)
+        CancellationTokenSource request;
+        lock (artGate)
         {
-            return;
+            if (artLoaded || artRequest is not null || ArtLoader is null)
+            {
+                return;
+            }
+
+            artRequest = request = new CancellationTokenSource();
         }
 
-        artRequested = true;
-        _ = ArtLoader(this);
+        // Never run the loader inline: RequestArt is raised from the UI thread after the page loads.
+        _ = Task.Run(() => RunArtLoaderAsync(request));
+    }
+
+    /// <summary>Abandons an in-flight load, e.g. when the page reloads onto a different artist.</summary>
+    public void CancelArt()
+    {
+        lock (artGate)
+        {
+            artRequest?.Cancel();
+            artRequest = null;
+        }
+    }
+
+    /// <summary>Frees this section's cover once it is no longer displayed anywhere.</summary>
+    public void ReleaseArt()
+    {
+        CancelArt();
+        CoverImage = null;
+    }
+
+    partial void OnCoverImageChanged(IImage? oldValue, IImage? newValue) =>
+        (oldValue as IDisposable)?.Dispose();
+
+    private async Task RunArtLoaderAsync(CancellationTokenSource request)
+    {
+        try
+        {
+            if (ArtLoader is { } loader)
+            {
+                await loader(this, request.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            lock (artGate)
+            {
+                if (ReferenceEquals(artRequest, request))
+                {
+                    artLoaded = true;
+                    artRequest = null;
+                }
+
+                request.Dispose();
+            }
+        }
     }
 }

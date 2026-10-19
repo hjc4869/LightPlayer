@@ -1,0 +1,47 @@
+[Script Info]
+Title: Vector drawings - \p and \pbo
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Shape,Arial,40,&H0000D7FF,&H000000FF,&H00202020,&H80000000,0,0,0,0,100,100,0,0,1,0,0,5,20,20,20,1
+Style: Small,Arial,26,&H00C0C0C0,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,2,0,5,20,20,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+
+; --- straight lines
+Dialogue: 0,0:00:00.00,0:00:10.00,Small,,0,0,0,,{\pos(200,90)}p1: lines
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(200,180)\p1}m 0 0 l 120 0 l 120 90 l 0 90{\p0}
+
+; --- a triangle, showing that the shape hangs off the baseline
+Dialogue: 0,0:00:00.00,0:00:10.00,Small,,0,0,0,,{\pos(440,90)}p1: triangle
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(440,180)\p1\c&H00FF00&}m 0 90 l 60 0 l 120 90{\p0}
+
+; --- beziers
+Dialogue: 0,0:00:00.00,0:00:10.00,Small,,0,0,0,,{\pos(680,90)}p1: bezier
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(680,180)\p1\c&HFF80FF&}m 0 90 b 0 -30 120 -30 120 90{\p0}
+
+; --- b-spline
+Dialogue: 0,0:00:00.00,0:00:10.00,Small,,0,0,0,,{\pos(940,90)}p1: b-spline with s, p and c
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(940,180)\p1\c&HFFFF80&}m 0 45 s 0 0 60 0 120 45 p 60 90 c{\p0}
+
+; --- \p scale: identical shapes at scale 1 and scale 4
+Dialogue: 0,0:00:00.00,0:00:10.00,Small,,0,0,0,,{\pos(640,290)}p4 divides every coordinate by 8, so these two are the same size
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(500,380)\p1}m 0 0 l 100 0 l 100 80 l 0 80{\p0}
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(780,380)\p4\c&H80FF80&}m 0 0 l 800 0 l 800 640 l 0 640{\p0}
+
+; --- \pbo pushes the shape down past the baseline
+Dialogue: 0,0:00:00.00,0:00:10.00,Small,,0,0,0,,{\pos(640,470)}pbo: 0, 40 and 80 - the baseline is the row of text below
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(420,540)\p1\pbo0}m 0 0 l 90 0 l 90 60 l 0 60{\p0}
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(640,540)\p1\pbo40\c&H00FF00&}m 0 0 l 90 0 l 90 60 l 0 60{\p0}
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(860,540)\p1\pbo80\c&H0000FF&}m 0 0 l 90 0 l 90 60 l 0 60{\p0}
+
+; --- drawings take the border, shadow and colour of the style around them
+Dialogue: 0,0:00:00.00,0:00:10.00,Small,,0,0,0,,{\pos(640,620)}a drawing takes the border, shadow and transform of the text around it
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(500,680)\bord4\shad3\3c&H000000&\p1}m 0 0 l 100 0 l 50 60{\p0}
+Dialogue: 0,0:00:00.00,0:00:10.00,Shape,,0,0,0,,{\pos(760,680)\frz25\bord4\3c&H000000&\p1\c&H00FFFF&}m 0 0 l 100 0 l 50 60{\p0}

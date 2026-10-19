@@ -1,156 +1,597 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
              xmlns:models="using:LightStudio.LightPlayer.Models"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             xmlns:animations="using:LightStudio.LightPlayer.Animations"
              mc:Ignorable="d"
-             d:DesignWidth="980"
-             d:DesignHeight="680"
+             d:DesignWidth="1100"
+             d:DesignHeight="760"
              x:Class="LightStudio.LightPlayer.Views.Pages.HomePageView"
              x:DataType="vm:HomePageViewModel">
+    <UserControl.Resources>
+        <!-- One spotlight card. Three are drawn at a time, so the item either side of the middle is
+             already there when a swipe starts pulling it in. -->
+        <DataTemplate x:Key="SpotlightSlideTemplate" x:DataType="models:SpotlightSlideModel">
+            <Button Classes="spotlight" Command="{Binding OpenCommand}">
+                <Panel DataContext="{Binding ContextItem}" DataContextChanged="OnSpotlightContextItemChanged">
+                <Border DataContext="{Binding $parent[Button].DataContext}"
+                        CornerRadius="10"
+                        ClipToBounds="True"
+                        Background="{DynamicResource AppThumbnailPlaceholderBrush}">
+                    <Panel>
+                        <Image Source="{Binding BackgroundImage}"
+                               Stretch="UniformToFill"
+                               RenderOptions.BitmapInterpolationMode="HighQuality" />
+                           <Image Source="{Binding PreviousBackdrop}"
+                               Opacity="{Binding PreviousBackdropOpacity}"
+                               IsVisible="{Binding ShowCover}"
+                               IsHitTestVisible="False"
+                               Stretch="UniformToFill"
+                               RenderOptions.BitmapInterpolationMode="HighQuality" />
+
+                        <!-- The same page-background fade the album banner uses, so the text stays
+                             readable over any frame. Published from code-behind, which tracks the
+                             theme-variant and user-palette driven page background. -->
+                        <Border Background="{DynamicResource SpotlightScrimBrush}" IsHitTestVisible="False" />
+
+                        <!-- The card's text is always left-anchored, so it gets a second fade from
+                             that side. Together with the one above it backs the header, which sits
+                             too high up the card for the bottom fade to reach. -->
+                        <Border Background="{DynamicResource SpotlightSideScrimBrush}" IsHitTestVisible="False" />
+
+                        <Grid VerticalAlignment="Bottom"
+                              Margin="22"
+                              ColumnDefinitions="Auto,*">
+                            <controls:MediaThumbnail Grid.Column="0"
+                                                     animations:ConnectedArtwork.Key="{Binding ArtworkKey}"
+                                                     Width="146"
+                                                     Height="146"
+                                                     Margin="0,0,20,0"
+                                                     CornerRadius="8"
+                                                     VerticalAlignment="Bottom"
+                                                     IsVisible="{Binding ShowCover}"
+                                                     Source="{Binding Cover}"
+                                                     PlaceholderKind="Album" />
+
+                            <StackPanel Grid.Column="1"
+                                        VerticalAlignment="Bottom"
+                                        Spacing="4">
+                                <controls:FixedLineTextBlock Text="{Binding Header}"
+                                           IsVisible="{Binding Header, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                           FontSize="12"
+                                           LineHeight="15"
+                                           FontWeight="Bold"
+                                           Foreground="{DynamicResource AppAccentBrush}" />
+                                <controls:FixedLineTextBlock Text="{Binding Title}"
+                                           FontSize="26"
+                                           LineHeight="32"
+                                           FontWeight="SemiBold"
+                                           TextWrapping="Wrap"
+                                           MaxLines="2"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                <controls:FixedLineTextBlock Text="{Binding Subtitle}"
+                                           IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                           FontSize="15"
+                                           LineHeight="18"
+                                           MaxLines="1"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                <controls:FixedLineTextBlock Text="{Binding Meta}"
+                                           IsVisible="{Binding Meta, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                                           FontSize="13"
+                                           LineHeight="16"
+                                           MaxLines="1"
+                                           TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </Panel>
+                </Border>
+                </Panel>
+            </Button>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <UserControl.Styles>
+        <Style Selector="TextBlock.sectionHeader">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
+        </Style>
+
+        <!-- Flat title-row affordances: the shuffle glyph, the row step arrows, and the view-all link. -->
+        <Style Selector="Button.headerAction">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="7,4" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.headerAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
+        </Style>
+
+        <Style Selector="Button.spotlight">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style Selector="Button.spotlight /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
+        <!-- The card's own step arrows sit over the artwork, and only while a pointer that can
+             reach them is on the card; a touch screen turns the card over by dragging it. -->
+        <Style Selector="Button.spotlightStep">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="CornerRadius" Value="19" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder.spotlightStep">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="CornerRadius" Value="19" />
+            <Setter Property="Margin" Value="12,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="BackdropStyle" Value="{DynamicResource AppBackdropStyle}" />
+            <Setter Property="FallbackColor" Value="#66000000" />
+            <Setter Property="TintColor" Value="#50000000" />
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Panel#SpotlightHost:pointerover lmr|BackdropBorder.spotlightStep">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="IsHitTestVisible" Value="True" />
+        </Style>
+        <Style Selector="Button.spotlightStep:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#55000000" />
+        </Style>
+
+        <Style Selector="Ellipse.spotlightDot">
+            <Setter Property="Width" Value="6" />
+            <Setter Property="Height" Value="6" />
+            <Setter Property="Opacity" Value="0.45" />
+            <Setter Property="Fill" Value="{DynamicResource AppSecondaryTextBrush}" />
+        </Style>
+        <Style Selector="Ellipse.spotlightDot.current">
+            <Setter Property="Opacity" Value="1" />
+            <Setter Property="Fill" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+
+        <!-- Tile geometry. Held in styles rather than on the elements so the narrow overrides
+             below can win: a local value would outrank them. -->
+        <Style Selector="Viewbox.mediaTile">
+            <Setter Property="Width" Value="284" />
+        </Style>
+        <Style Selector="StackPanel.narrow Viewbox.mediaTile">
+            <Setter Property="Width" Value="244" />
+        </Style>
+        <Style Selector="Viewbox.musicTile">
+            <Setter Property="Width" Value="134" />
+        </Style>
+        <Style Selector="StackPanel.narrow Viewbox.musicTile">
+            <Setter Property="Width" Value="116" />
+        </Style>
+
+        <!-- One row of tiles scrolls sideways on its own; the page keeps scrolling vertically. The
+             bar is left off: the row is stepped by the arrows in its title, and dragged directly on
+             a touch screen. -->
+        <Style Selector="ScrollViewer.tileRow">
+            <Setter Property="HorizontalScrollBarVisibility" Value="Hidden" />
+            <Setter Property="VerticalScrollBarVisibility" Value="Disabled" />
+        </Style>
+    </UserControl.Styles>
+
+    <controls:PageSearchHost Search="{Binding PageSearch}">
     <Panel>
-        <!-- Loading -->
-        <ProgressBar IsVisible="{Binding IsLoading}"
-                     IsIndeterminate="True"
-                     Width="140"
-                     Height="4"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center" />
+        <controls:EmptyState IsVisible="{Binding ShowEmpty}"
+                             Header="{Binding EmptyHeader}"
+                             Description="{Binding EmptyDescription}" />
 
-        <!-- Now playing hero -->
-        <ScrollViewer IsVisible="{Binding HasNowPlaying}">
-            <StackPanel Margin="32" Spacing="32">
-                <Grid ColumnDefinitions="Auto,*">
-                    <controls:MediaThumbnail Grid.Column="0"
-                                             Width="200"
-                                             Height="200"
-                                             CornerRadius="6"
-                                             Source="{Binding AlbumImage}"
-                                             PlaceholderKind="Album" />
-                    <StackPanel Grid.Column="1"
-                                Margin="24,0,0,0"
-                                VerticalAlignment="Bottom"
-                                Spacing="6">
-                        <TextBlock Text="NOW PLAYING"
-                                   FontSize="13"
-                                   FontWeight="Bold"
-                                   Foreground="{DynamicResource AppAccentBrush}" />
-                        <TextBlock Text="{Binding NowPlayingTitle}"
-                                   FontSize="32"
-                                   FontWeight="SemiBold"
-                                   TextWrapping="Wrap"
-                                   MaxLines="2"
-                                   TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                        <TextBlock Text="{Binding NowPlayingArtist}"
-                                   FontSize="16"
-                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                        <TextBlock Text="{Binding NowPlayingAlbum}"
-                                   FontSize="14"
-                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                    </StackPanel>
-                </Grid>
+        <ScrollViewer x:Name="HomeScrollViewer"
+                      BringIntoViewOnFocusChange="False"
+                      GotFocus="OnHomeScrollViewerGotFocus">
+            <ScrollViewer.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                    <Binding Path="IsLoading" />
+                    <Binding Path="HasContent" />
+                </MultiBinding>
+            </ScrollViewer.IsVisible>
+            <!-- Stretch plus MaxWidth centers the column, so an ultra-wide window gets margins
+                 instead of tiles strung across the whole screen. -->
+            <StackPanel x:Name="ContentColumn"
+                        Classes.narrow="{Binding IsNarrow}"
+                        MaxWidth="1180"
+                        Spacing="28"
+                        Margin="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,28,32,36|12,12,12,28'}">
+                <Border IsVisible="{Binding HasPartialFailures}"
+                        Padding="12,8"
+                        CornerRadius="6"
+                        Background="{DynamicResource AppPanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource AppFavoriteBrush}"
+                        BorderThickness="1">
+                    <TextBlock Text="{Binding PartialFailureText}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppFavoriteBrush}" />
+                </Border>
 
-                <!-- Upcoming -->
-                <StackPanel IsVisible="{Binding HasUpcoming}" Spacing="10">
-                    <TextBlock Text="Upcoming"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                    <ItemsControl ItemsSource="{Binding Upcoming}">
+                 <!-- Spotlight: the playing track first, followed by library picks. The card
+                     keeps one shape as the page resizes, so its height follows the width the column
+                     gives it (see the code-behind). -->
+                <Panel x:Name="SpotlightHost">
+                    <Panel.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                            <Binding Path="IsLoading" />
+                            <Binding Path="ShowSpotlight" />
+                        </MultiBinding>
+                    </Panel.IsVisible>
+                    <Border x:Name="SpotlightLoadingPlaceholder"
+                            CornerRadius="10"
+                            Background="{DynamicResource AppPanelBackgroundBrush}"
+                            BorderBrush="{DynamicResource AppDividerBrush}"
+                            BorderThickness="1"
+                            Padding="22"
+                            IsHitTestVisible="False">
+                        <Border.IsVisible>
+                            <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                <Binding Path="IsLoading" />
+                                <Binding Path="!ShowSpotlight" />
+                            </MultiBinding>
+                        </Border.IsVisible>
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Spacing="10">
+                            <Viewbox Width="36" Height="36" Margin="0,0,0,4">
+                                <Path Data="{StaticResource IconAlbum}"
+                                      Fill="{DynamicResource AppSecondaryTextBrush}"
+                                      Opacity="0.5" />
+                            </Viewbox>
+                            <TextBlock Text="{Binding Home_Spotlight, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                            <TextBlock Text="{Binding Common_Loading, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       FontSize="13"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                        </StackPanel>
+                    </Border>
+                    <Panel x:Name="SpotlightViewport" Background="Transparent" ClipToBounds="True">
+                        <ContentControl x:Name="SpotlightPreviousCard"
+                                        HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Stretch"
+                                        Content="{Binding SpotlightPrevious}"
+                                        ContentTemplate="{StaticResource SpotlightSlideTemplate}" />
+                        <ContentControl x:Name="SpotlightNextCard"
+                                        HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Stretch"
+                                        Content="{Binding SpotlightNext}"
+                                        ContentTemplate="{StaticResource SpotlightSlideTemplate}" />
+                        <ContentControl x:Name="SpotlightCurrentCard"
+                                        controls:PageSearchHost.Target="{Binding SpotlightCurrent}"
+                                        HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Stretch"
+                                        Content="{Binding SpotlightCurrent}"
+                                        ContentTemplate="{StaticResource SpotlightSlideTemplate}" />
+                    </Panel>
+
+                    <lmr:BackdropBorder Classes="spotlightStep"
+                                             HorizontalAlignment="Left"
+                                             IsVisible="{Binding HasSpotlightSteps}">
+                        <Button Classes="spotlightStep"
+                                HorizontalAlignment="Left"
+                                IsVisible="{Binding HasSpotlightSteps}"
+                                Click="OnSpotlightPreviousClick"
+                                ToolTip.Tip="{Binding Home_SpotlightPrevious, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox Width="20" Height="20">
+                                <Path Data="{StaticResource IconChevronLeft}" Fill="{lmr:BackdropForeground}" />
+                            </Viewbox>
+                        </Button>
+                    </lmr:BackdropBorder>
+
+                    <lmr:BackdropBorder Classes="spotlightStep"
+                                             HorizontalAlignment="Right"
+                                             IsVisible="{Binding HasSpotlightSteps}">
+                        <Button Classes="spotlightStep"
+                                HorizontalAlignment="Right"
+                                IsVisible="{Binding HasSpotlightSteps}"
+                                Click="OnSpotlightNextClick"
+                                ToolTip.Tip="{Binding Home_SpotlightNext, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox Width="20" Height="20">
+                                <Path Data="{StaticResource IconChevronRight}" Fill="{lmr:BackdropForeground}" />
+                            </Viewbox>
+                        </Button>
+                    </lmr:BackdropBorder>
+
+                    <!-- How many items the card holds, and which one is up. -->
+                    <ItemsControl ItemsSource="{Binding SpotlightSlides}"
+                                  IsVisible="{Binding HasSpotlightSteps}"
+                                  IsHitTestVisible="False"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Bottom"
+                                  Margin="0,0,0,9">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="14" />
+                                <StackPanel Orientation="Horizontal" Spacing="6" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:LibraryTileModel">
-                                <Button Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="0"
-                                        Width="130"
-                                        Command="{Binding OpenCommand}">
-                                    <StackPanel Spacing="6" Margin="5">
-                                        <controls:MediaThumbnail Width="120" Height="120" CornerRadius="4"
-                                                                 Source="{Binding Image}"
-                                                                 PlaceholderKind="{Binding ThumbnailKind}" />
-                                        <TextBlock Text="{Binding Title}" FontSize="13" MaxLines="1" TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                                        <TextBlock Text="{Binding Subtitle}" FontSize="12" MaxLines="1" TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                                    </StackPanel>
-                                </Button>
+                            <DataTemplate x:DataType="models:SpotlightSlideModel">
+                                <Ellipse Classes="spotlightDot" Classes.current="{Binding IsCurrent}" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                </Panel>
+
+                <!-- Up next -->
+                <StackPanel IsVisible="{Binding HasUpcoming}" Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Classes="sectionHeader"
+                                   Margin="2,0,0,0"
+                                   Text="{Binding Home_Upcoming, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    IsVisible="{Binding #UpcomingRow.ScrollBarMaximum.X, Converter={x:Static conv:PositiveNumberConverter.Instance}}">
+                            <Button Classes="headerAction"
+                                    CommandParameter="{Binding #UpcomingRow}"
+                                    Click="OnRowScrollLeftClick"
+                                    ToolTip.Tip="{Binding Common_ScrollLeft, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16">
+                                    <Path Data="{StaticResource IconChevronLeft}"
+                                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="headerAction"
+                                    CommandParameter="{Binding #UpcomingRow}"
+                                    Click="OnRowScrollRightClick"
+                                    ToolTip.Tip="{Binding Common_ScrollRight, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16">
+                                    <Path Data="{StaticResource IconChevronRight}"
+                                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <ScrollViewer x:Name="UpcomingRow" Classes="tileRow">
+                        <ItemsControl ItemsSource="{Binding Upcoming}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:LibraryTileModel">
+                                    <Viewbox Classes="musicTile">
+                                        <controls:LibraryTile />
+                                    </Viewbox>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </StackPanel>
 
-                <!-- Recently played -->
-                <StackPanel IsVisible="{Binding HasRecently}" Spacing="10">
-                    <TextBlock Text="Recently played"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                    <ItemsControl ItemsSource="{Binding Recently}">
+                <StackPanel IsVisible="{Binding HasRecentlyPlayed}" Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Classes="sectionHeader"
+                                   Margin="2,0,0,0"
+                                   Text="{Binding Home_RecentlyPlayed, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    IsVisible="{Binding #RecentlyPlayedRow.ScrollBarMaximum.X, Converter={x:Static conv:PositiveNumberConverter.Instance}}">
+                            <Button Classes="headerAction"
+                                    CommandParameter="{Binding #RecentlyPlayedRow}"
+                                    Click="OnRowScrollLeftClick"
+                                    ToolTip.Tip="{Binding Common_ScrollLeft, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16">
+                                    <Path Data="{StaticResource IconChevronLeft}"
+                                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="headerAction"
+                                    CommandParameter="{Binding #RecentlyPlayedRow}"
+                                    Click="OnRowScrollRightClick"
+                                    ToolTip.Tip="{Binding Common_ScrollRight, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16">
+                                    <Path Data="{StaticResource IconChevronRight}"
+                                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <ScrollViewer x:Name="RecentlyPlayedRow" Classes="tileRow">
+                        <ItemsControl ItemsSource="{Binding RecentlyPlayed}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:LibraryTileModel">
+                                    <Viewbox Classes="musicTile">
+                                        <controls:LibraryTile />
+                                    </Viewbox>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- Continue watching -->
+                <StackPanel IsVisible="{Binding HasContinueWatching}" Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Classes="sectionHeader"
+                                   Margin="2,0,0,0"
+                                   Text="{Binding Home_ContinueWatching, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    IsVisible="{Binding #ContinueWatchingRow.ScrollBarMaximum.X, Converter={x:Static conv:PositiveNumberConverter.Instance}}">
+                            <Button Classes="headerAction"
+                                    CommandParameter="{Binding #ContinueWatchingRow}"
+                                    Click="OnRowScrollLeftClick"
+                                    ToolTip.Tip="{Binding Common_ScrollLeft, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16">
+                                    <Path Data="{StaticResource IconChevronLeft}"
+                                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="headerAction"
+                                    CommandParameter="{Binding #ContinueWatchingRow}"
+                                    Click="OnRowScrollRightClick"
+                                    ToolTip.Tip="{Binding Common_ScrollRight, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16">
+                                    <Path Data="{StaticResource IconChevronRight}"
+                                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <ScrollViewer x:Name="ContinueWatchingRow" Classes="tileRow">
+                        <ItemsControl ItemsSource="{Binding ContinueWatching}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:VideoTileModel">
+                                    <Viewbox Classes="mediaTile">
+                                        <controls:VideoTile />
+                                    </Viewbox>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- Recently added -->
+                <StackPanel IsVisible="{Binding HasRecentlyAdded}" Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Classes="sectionHeader"
+                                   Margin="2,0,0,0"
+                                   Text="{Binding Home_RecentlyAddedVideos, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    IsVisible="{Binding #RecentlyAddedRow.ScrollBarMaximum.X, Converter={x:Static conv:PositiveNumberConverter.Instance}}">
+                            <Button Classes="headerAction"
+                                    CommandParameter="{Binding #RecentlyAddedRow}"
+                                    Click="OnRowScrollLeftClick"
+                                    ToolTip.Tip="{Binding Common_ScrollLeft, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16">
+                                    <Path Data="{StaticResource IconChevronLeft}"
+                                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="headerAction"
+                                    CommandParameter="{Binding #RecentlyAddedRow}"
+                                    Click="OnRowScrollRightClick"
+                                    ToolTip.Tip="{Binding Common_ScrollRight, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16">
+                                    <Path Data="{StaticResource IconChevronRight}"
+                                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                    <ScrollViewer x:Name="RecentlyAddedRow" Classes="tileRow">
+                        <ItemsControl ItemsSource="{Binding RecentlyAdded}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:VideoTileModel">
+                                    <Viewbox Classes="mediaTile">
+                                        <controls:VideoTile />
+                                    </Viewbox>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+
+                <!-- Album picks -->
+                <StackPanel IsVisible="{Binding HasAlbumPicks}" Spacing="10">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Classes="sectionHeader"
+                                   Margin="2,0,0,0"
+                                   Text="{Binding Nav_Albums, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                        <Button Grid.Column="1"
+                                Classes="headerAction"
+                                Margin="6,0,0,0"
+                                Command="{Binding RefreshAlbumPicksCommand}"
+                                IsEnabled="{Binding !IsRefreshingAlbumPicks}"
+                                ToolTip.Tip="{Binding Home_ShuffleAlbums, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox Width="16" Height="16">
+                                <Path Data="{StaticResource IconRefresh}"
+                                      Fill="{DynamicResource AppSecondaryTextBrush}" />
+                            </Viewbox>
+                        </Button>
+                        <Button Grid.Column="3"
+                                Classes="headerAction"
+                                Command="{Binding ShowAllAlbumsCommand}">
+                            <TextBlock Text="{Binding Home_ViewAll, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       FontSize="13"
+                                       Foreground="{DynamicResource AppAccentBrush}" />
+                        </Button>
+                    </Grid>
+                    <ItemsControl ItemsSource="{Binding AlbumPicks}"
+                                  ClipToBounds="True"
+                                  SizeChanged="OnAlbumPicksSizeChanged">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="14" />
+                                <controls:UniformTileGrid MinItemWidth="140"
+                                                          MinItemHeight="172"
+                                                          MinColumnSpacing="6"
+                                                          MinRowSpacing="6" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="models:LibraryTileModel">
-                                <Button Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="0"
-                                        Width="130"
-                                        Command="{Binding OpenCommand}">
-                                    <StackPanel Spacing="6" Margin="5">
-                                        <controls:MediaThumbnail Width="120" Height="120" CornerRadius="4"
-                                                                    Source="{Binding Image}"
-                                                                    PlaceholderKind="{Binding ThumbnailKind}" />
-                                        <TextBlock Text="{Binding Title}" FontSize="13" MaxLines="1" TextTrimming="CharacterEllipsis"
-                                                    Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                                        <TextBlock Text="{Binding Subtitle}" FontSize="12" MaxLines="1" TextTrimming="CharacterEllipsis"
-                                                    Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                                    </StackPanel>
-                                </Button>
+                                <Viewbox>
+                                    <controls:LibraryTile />
+                                </Viewbox>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>
-
-        <!-- All-music fallback -->
-        <Panel IsVisible="{Binding ShowFallback}">
-            <controls:EmptyState IsVisible="{Binding IsEmpty}"
-                                 Header="It's lonely here."
-                                 Description="Add a library folder and scan to get started." />
-            <ScrollViewer IsVisible="{Binding !IsEmpty}" Margin="14,0">
-                <StackPanel Margin="18,32" Spacing="8">
-                    <TextBlock Text="All Music"
-                               FontSize="18"
-                               FontWeight="SemiBold"
-                               Margin="4,8,0,0"
-                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                    <ItemsRepeater ItemsSource="{Binding AllMusic}">
-                        <ItemsRepeater.Layout>
-                            <UniformGridLayout MinItemWidth="120"
-                                               MinItemHeight="150"
-                                               MinColumnSpacing="6"
-                                               MinRowSpacing="2"
-                                               ItemsStretch="Uniform"/>
-                        </ItemsRepeater.Layout>
-                        <ItemsRepeater.ItemTemplate>
-                            <DataTemplate x:DataType="models:LibraryTileModel">
-                                <controls:LibraryTile />
-                            </DataTemplate>
-                        </ItemsRepeater.ItemTemplate>
-                    </ItemsRepeater>
-                </StackPanel>
-            </ScrollViewer>
-        </Panel>
     </Panel>
+    </controls:PageSearchHost>
 </UserControl>

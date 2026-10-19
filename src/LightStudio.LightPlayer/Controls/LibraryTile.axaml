@@ -1,16 +1,21 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
              xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:media="using:Avalonia.Media"
+             xmlns:animations="using:LightStudio.LightPlayer.Animations"
              mc:Ignorable="d"
+             Width="120"
+             Height="148"
              d:DesignWidth="120"
-             d:DesignHeight="150"
+             d:DesignHeight="148"
              x:Class="LightStudio.LightPlayer.Controls.LibraryTile"
              x:DataType="models:LibraryTileModel">
     <UserControl.Styles>
-        <!-- Outer card border + greyed art overlay revealed when the pointer is over the tile. -->
+        <!-- Outer card border + grayed art overlay revealed when the pointer is over the tile. -->
         <Style Selector="Border.tileHover">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="Transparent" />
@@ -19,37 +24,32 @@
             <Setter Property="IsVisible" Value="False" />
         </Style>
         <Style Selector="Border.tileHover:pointerover">
-            <Setter Property="Background" Value="{DynamicResource AppHoverBrush}" />
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
         </Style>
-        <Style Selector="Border.tileHover:pointerover Border.tileArtOverlay">
+        <Style Selector="Border.tileHover.actionable:pointerover Border.tileArtOverlay">
             <Setter Property="IsVisible" Value="True" />
         </Style>
     </UserControl.Styles>
 
     <Border Classes="tileHover"
+            Classes.actionable="{Binding EnableTileActions}"
             BorderThickness="1"
             CornerRadius="6"
             Padding="4"
+            ContextFlyout="{StaticResource LibraryTileContextFlyout}"
             Tapped="OnTapped">
-        <Border.ContextFlyout>
-            <MenuFlyout>
-                <MenuItem Header="Play" Command="{Binding PlayCommand}" />
-                <MenuItem Header="Add to queue" Command="{Binding AddToQueueCommand}" />
-            </MenuFlyout>
-        </Border.ContextFlyout>
-        <StackPanel Spacing="2" Background="Transparent">
-            <Panel Height="{Binding Path=Bounds.Width, RelativeSource={RelativeSource Self}}">
+        <StackPanel Spacing="1" Background="Transparent">
+            <Panel x:Name="ArtHost" Height="112" Width="112">
                 <!-- Single cover (albums) or placeholder glyph (artists without album art). -->
-                <controls:MediaThumbnail Height="{Binding Path=Bounds.Width, RelativeSource={RelativeSource Self}}"
-                                         CornerRadius="4"
+                <controls:MediaThumbnail CornerRadius="4"
+                                         animations:ConnectedArtwork.Key="{Binding ArtworkKey}"
                                          IsVisible="{Binding !HasCollage}"
                                          Source="{Binding Image}"
                                          PlaceholderKind="{Binding ThumbnailKind}"
                                          ToolTip.Tip="{Binding Title}" />
                 <!-- Artist album-art collage: 1x1, 2x2, or 3x3 based on how many covers are available. -->
                 <Border IsVisible="{Binding HasCollage}"
-                        Height="{Binding Path=Bounds.Width, RelativeSource={RelativeSource Self}}"
                         CornerRadius="4"
                         ClipToBounds="True"
                         Background="{DynamicResource AppThumbnailPlaceholderBrush}"
@@ -61,10 +61,8 @@
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Image x:CompileBindings="False"
-                                       Source="{Binding}"
-                                       Stretch="UniformToFill" />
+                            <DataTemplate x:DataType="media:IImage">
+                                <lmr:FastImage Source="{Binding}" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
@@ -75,36 +73,34 @@
                         CornerRadius="4"
                         Background="{DynamicResource AppArtOverlayBrush}">
                     <StackPanel Orientation="Horizontal"
-                                Spacing="14"
+                                Spacing="5"
                                 VerticalAlignment="Bottom"
                                 HorizontalAlignment="Center"
-                                Margin="0,0,0,12">
+                                Margin="0,0,0,3">
                         <Button Classes="miniIcon"
                                 Command="{Binding PlayCommand}"
-                                ToolTip.Tip="Play">
-                            <Viewbox Width="16" Height="16">
+                                ToolTip.Tip="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox Width="11" Height="11">
                                 <Path Data="{StaticResource IconPlay}"
                                       Fill="{DynamicResource AppPrimaryTextBrush}" />
                             </Viewbox>
                         </Button>
-                        <Button Classes="miniIcon"
+                        <controls:AddToQueueButton Classes="miniIcon"
+                                IconSize="11"
                                 Command="{Binding AddToQueueCommand}"
-                                ToolTip.Tip="Add to queue">
-                            <Viewbox Width="16" Height="16">
-                                <Path Data="{StaticResource IconAdd}"
-                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
-                            </Viewbox>
-                        </Button>
+                                ToolTip.Tip="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" />
                     </StackPanel>
                 </Border>
             </Panel>
-            <TextBlock Text="{Binding Title}"
-                       FontSize="14"
+            <controls:FixedLineTextBlock Text="{Binding Title}"
+                       FontSize="11"
+                       LineHeight="13"
                        MaxLines="1"
                        TextTrimming="CharacterEllipsis"
                        Foreground="{DynamicResource AppPrimaryTextBrush}" />
-            <TextBlock Text="{Binding Subtitle}"
-                       FontSize="12"
+            <controls:FixedLineTextBlock Text="{Binding Subtitle}"
+                       FontSize="9"
+                       LineHeight="11"
                        MaxLines="1"
                        TextTrimming="CharacterEllipsis"
                        Foreground="{DynamicResource AppSecondaryTextBrush}" />

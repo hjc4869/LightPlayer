@@ -1,0 +1,216 @@
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
+             xmlns:media="using:Avalonia.Media"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             mc:Ignorable="d"
+             AutomationProperties.Name="{Binding Title}"
+             d:DesignWidth="320"
+             d:DesignHeight="200"
+             x:Class="LightStudio.LightPlayer.Controls.VideoTile"
+             x:DataType="models:VideoTileModel">
+    <UserControl.Styles>
+        <Style Selector="controls|VideoTile">
+            <Setter Property="Width" Value="320" />
+            <Setter Property="Height" Value="200" />
+        </Style>
+        <Style Selector="controls|VideoTile.compact">
+            <Setter Property="Width" Value="100" />
+            <Setter Property="Height" Value="100" />
+        </Style>
+        <Style Selector="Border.videoTile">
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Margin" Value="3" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+        <Style Selector="Border#PreviewFrame">
+            <Setter Property="CornerRadius" Value="7" />
+        </Style>
+        <Style Selector="controls|VideoTile.compact Border.videoTile">
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+        <Style Selector="controls|VideoTile.compact Border#PreviewFrame">
+            <Setter Property="CornerRadius" Value="0" />
+        </Style>
+        <Style Selector="controls|VideoTile.compact Panel#TileDetails">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Panel#CompactBadge">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="controls|VideoTile.compact Panel#CompactBadge">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="Border.videoTile:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+        <Style Selector="Border.videoTile:pointerover Border#HoverScrim">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="videoTile"
+            BackgroundSizing="OuterBorderEdge"
+            Background="{DynamicResource AppThumbnailPlaceholderBrush}">
+        <!-- The frame's ring is drawn by the border above and sits outside this one, whose radius is
+             the outer radius less that thickness. Clipping the content here is what keeps the
+             preview and the placeholder inside the rounded corner instead of squaring it off. -->
+        <Border x:Name="PreviewFrame" ClipToBounds="True">
+            <Panel>
+                <!-- Preview frame; a video with no stored preview and a folder with no previews
+                     beneath it fall back to the placeholder glyph underneath. -->
+                <lmr:FastImage Source="{Binding Preview}"
+                                    IsVisible="{Binding Preview, Converter={x:Static ObjectConverters.IsNotNull}}" />
+
+                <!-- Folder tiles: up to a 3x3 grid of the previews found beneath the folder. -->
+                <ItemsControl IsVisible="{Binding HasCollage}"
+                              ItemsSource="{Binding CollageImages}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="{Binding CollageColumns}" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="media:IImage">
+                            <lmr:FastImage Source="{Binding}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Grid IsVisible="{Binding ShowPlaceholder}"
+                      RowDefinitions="*,Auto,*"
+                      ColumnDefinitions="*,Auto,*">
+                    <Viewbox Grid.Row="1"
+                             Grid.Column="1"
+                             Width="56"
+                             Height="56"
+                             Stretch="Uniform">
+                        <Path x:Name="PlaceholderGlyph"
+                              Fill="{DynamicResource AppThumbnailGlyphBrush}" />
+                    </Viewbox>
+                </Grid>
+
+                <Border x:Name="HoverScrim"
+                        IsVisible="False"
+                        IsHitTestVisible="False"
+                        Background="{DynamicResource AppArtOverlayBrush}" />
+
+                <Panel x:Name="CompactBadge" IsHitTestVisible="False">
+                    <Border IsVisible="{Binding Video, Converter={x:Static ObjectConverters.IsNotNull}}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom"
+                            Margin="4"
+                            Padding="4"
+                            CornerRadius="4"
+                            Background="{DynamicResource AppPageBackgroundBrush}">
+                        <Viewbox Width="12" Height="12">
+                            <Path Data="{StaticResource IconPlay}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                        </Viewbox>
+                    </Border>
+                </Panel>
+
+                <Panel x:Name="TileDetails">
+                <!-- Tells a folder from a video at a glance, including the folder tiles whose
+                     collage leaves no placeholder glyph to read. Scrimmed rather than themed:
+                     it sits over arbitrary preview frames. -->
+                <Border HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="6"
+                        Padding="5"
+                        CornerRadius="6"
+                        IsHitTestVisible="False"
+                        Background="#99000000">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <Viewbox Width="16" Height="16" Stretch="Uniform">
+                            <Path x:Name="TypeGlyph" Fill="White" />
+                        </Viewbox>
+                        <Viewbox Width="16"
+                                 Height="16"
+                                 Stretch="Uniform"
+                                 IsVisible="{Binding IsWatched}">
+                            <Path Data="{StaticResource IconCheck}"
+                                  Fill="White" />
+                        </Viewbox>
+                    </StackPanel>
+                </Border>
+
+                <!-- Video actions, opposite the type badge. Scrimmed because they sit over arbitrary
+                     preview frames; resume precedes the more general favorite action. -->
+                <StackPanel HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Margin="6"
+                            Orientation="Horizontal"
+                            Spacing="4">
+                    <Button Padding="5"
+                            CornerRadius="6"
+                            BorderThickness="0"
+                            Background="#99000000"
+                            IsVisible="{Binding CanResume}"
+                            Command="{Binding ResumeCommand}"
+                            ToolTip.Tip="{Binding Video_ResumePlayback, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox Width="16" Height="16" Stretch="Uniform">
+                            <Path Data="{StaticResource IconResume}" Fill="White" />
+                        </Viewbox>
+                    </Button>
+                    <Button Padding="5"
+                            CornerRadius="6"
+                            BorderThickness="0"
+                            Background="#99000000"
+                            IsVisible="{Binding CanFavorite}"
+                            Command="{Binding ToggleFavoriteCommand}"
+                            ToolTip.Tip="{Binding FavoriteToolTip}">
+                        <Viewbox Width="16" Height="16" Stretch="Uniform">
+                            <Path Data="{Binding FavoriteIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                  Fill="White" />
+                        </Viewbox>
+                    </Button>
+                </StackPanel>
+
+                <!-- Background set in code-behind: the same page-background fade the album banner uses,
+                     so the caption stays readable over preview frames. -->
+                <Border x:Name="FadeOverlay"
+                        VerticalAlignment="Bottom"
+                        Height="86"
+                        IsVisible="{Binding ShowPlaceholder, Converter={x:Static BoolConverters.Not}}"
+                        IsHitTestVisible="False" />
+
+                <StackPanel VerticalAlignment="Bottom"
+                            Margin="10,0,10,8"
+                            Spacing="1">
+                    <TextBlock Text="{Binding Title}"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               MaxLines="2"
+                               TextWrapping="Wrap"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip.Tip="{Binding Title}"
+                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    <TextBlock Text="{Binding DisplaySubtitle}"
+                               IsVisible="{Binding ShowSubtitle}"
+                               FontSize="11"
+                               MaxLines="1"
+                               TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                </StackPanel>
+
+                <ProgressBar VerticalAlignment="Bottom"
+                             Height="4"
+                             Minimum="0"
+                             Maximum="1"
+                             Value="{Binding PlaybackProgressRatio}"
+                             IsVisible="{Binding HasPlaybackProgress}"
+                             IsHitTestVisible="False"
+                             Background="Transparent"
+                             Foreground="{DynamicResource AppAccentBrush}" />
+                </Panel>
+            </Panel>
+        </Border>
+    </Border>
+</UserControl>

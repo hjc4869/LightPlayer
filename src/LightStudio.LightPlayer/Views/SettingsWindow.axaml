@@ -1,0 +1,98 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls"
+        xmlns:chrome="using:Avalonia.Controls.Chrome"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:controls="using:LightStudio.LightPlayer.Controls"
+        xmlns:pages="using:LightStudio.LightPlayer.Views.Pages"
+        xmlns:shell="using:LightStudio.LightPlayer.ViewModels"
+        xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+        xmlns:strings="using:LightStudio.LightPlayer.Strings"
+        mc:Ignorable="d"
+        d:DesignWidth="900"
+        d:DesignHeight="640"
+        x:Class="LightStudio.LightPlayer.Views.SettingsWindow"
+        x:DataType="vm:SettingsPageViewModel"
+        Title="{Binding Title}"
+        Width="1000"
+        Height="640"
+        MinWidth="640"
+        MinHeight="420"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True">
+    <Window.Styles>
+        <StyleInclude Source="/Themes/NavigationPane.axaml" />
+        <StyleInclude Source="/Themes/ClientWindowChrome.axaml" />
+    </Window.Styles>
+
+    <Border x:Name="ClientWindowFrame" ClipToBounds="True"
+            Background="{DynamicResource AppShellBackgroundBrush}">
+        <Panel>
+            <!-- The main window's Apple layout in miniature: its sidebar beside the page, under a toolbar. -->
+            <Grid ColumnDefinitions="Auto,*">
+                <!-- The selected section scrolls under the toolbar, as pages do under the shell's toolbar. -->
+                <Panel Grid.Column="1">
+                    <pages:SettingsPageView Margin="0,52,0,0"
+                                            controls:ShellChrome.ScrollUnderInsets="0,52,0,0" />
+                    <Panel Height="52" VerticalAlignment="Top">
+                        <lmr:BackdropBorder chrome:WindowDecorationProperties.ElementRole="TitleBar"
+                                            BackdropStyle="Blur"
+                                            FallbackColor="{DynamicResource AppQueueBackdropColor}"
+                                            TintColor="{DynamicResource AppQueueBackdropTintColor}" />
+                        <TextBlock chrome:WindowDecorationProperties.ElementRole="TitleBar"
+                                   Text="{Binding Title}"
+                                   Margin="24,0"
+                                   FontSize="15"
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"
+                                   MaxLines="1"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                    </Panel>
+                </Panel>
+
+                <!-- Drawn after the page so the sidebar material gathers the colors of the page beside it. -->
+                <Panel Grid.Column="0" Width="{x:Static shell:ShellViewModel.AppleSidebarWidth}">
+                    <Border Background="{DynamicResource AppNavSurfaceBrush}" />
+                    <lmr:BackdropBorder IsHitTestVisible="False"
+                                        BackdropStyle="Blur"
+                                        LightSpill="{DynamicResource AppNavLightSpill}"
+                                        FallbackColor="{DynamicResource AppNavBackdropColor}"
+                                        TintColor="{DynamicResource AppNavBackdropTintColor}" />
+                    <DockPanel Classes="navPane apple expanded" ClipToBounds="True">
+                        <!-- Clears the window controls and drags the window, as the shell's sidebar does. -->
+                        <Border DockPanel.Dock="Top"
+                                Height="52"
+                                Background="Transparent"
+                                chrome:WindowDecorationProperties.ElementRole="TitleBar" />
+                        <pages:SettingsSidebarView />
+                    </DockPanel>
+                </Panel>
+            </Grid>
+            <StackPanel x:Name="ClientWindowControls" IsVisible="False"
+                        Orientation="Horizontal" Width="84" Height="52" Margin="8,0,0,0"
+                        HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Button x:Name="CloseWindowButton" Theme="{StaticResource ClientWindowControlButton}"
+                        Background="#FF5F57" Click="OnCloseWindowClick"
+                        ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        AutomationProperties.Name="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Path Data="{StaticResource IconClose}" />
+                </Button>
+                <Button x:Name="MinimizeWindowButton" Theme="{StaticResource ClientWindowControlButton}"
+                        Background="#FEBC2E" Click="OnMinimizeWindowClick"
+                        IsEnabled="{Binding $parent[Window].CanMinimize}"
+                        ToolTip.Tip="{Binding VideoPlayer_Minimize, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        AutomationProperties.Name="{Binding VideoPlayer_Minimize, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Path Data="{StaticResource IconWindowMinimize}" />
+                </Button>
+                <Button x:Name="MaximizeWindowButton" Theme="{StaticResource ClientWindowControlButton}"
+                        Background="#28C840" Click="OnMaximizeWindowClick"
+                        IsEnabled="{Binding $parent[Window].CanMaximize}">
+                    <Path />
+                </Button>
+            </StackPanel>
+        </Panel>
+    </Border>
+</Window>

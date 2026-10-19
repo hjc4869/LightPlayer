@@ -1,10 +1,13 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
              xmlns:models="using:LightStudio.LightPlayer.Models"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             xmlns:animations="using:LightStudio.LightPlayer.Animations"
              mc:Ignorable="d"
              d:DesignWidth="900"
              d:DesignHeight="640"
@@ -29,38 +32,84 @@
         </Style>
         <!-- When the artist has no detail page (e.g. "Various"), the command is
              disabled; keep the label flat so it reads as plain text rather than a
-             greyed-out control. -->
+             grayed-out control. -->
         <Style Selector="Button.metaLink:disabled /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent" />
         </Style>
+
+        <!-- Back affordance floating over the narrow-mode artwork: it sits on top of the
+             cover image (not the faded strip), so it carries its own scrim instead of
+             relying on the page background. -->
+        <Style Selector="Button.bannerBack">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="7" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="Button.bannerBack /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#73000000" />
+        </Style>
+        <Style Selector="Button.bannerBack:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#A6000000" />
+        </Style>
     </UserControl.Styles>
 
-    <Panel>
+    <controls:PageSearchHost Search="{Binding PageSearch}">
+    <Grid RowDefinitions="Auto,*">
+        <controls:MultiSelectBar DataContext="{Binding Selection}" />
         <!-- Loading -->
-        <ProgressBar IsVisible="{Binding IsLoading}"
-                     IsIndeterminate="True"
-                     Width="140"
-                     Height="4"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center" />
+        <StackPanel Grid.Row="1" IsVisible="{Binding IsLoading}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+            <ProgressBar IsIndeterminate="{Binding IsLoading}"
+                         Width="140"
+                         Height="4" />
+            <TextBlock Text="{Binding Common_Loading, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       HorizontalAlignment="Center"
+                       FontSize="13"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <!-- Load failure: the album could not be read (renamed, removed, or the server is
+             unreachable), which would otherwise be shown as an empty page. -->
+        <StackPanel Grid.Row="1" IsVisible="{Binding HasLoadError}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="12">
+            <controls:EmptyState Icon="{StaticResource IconWarning}"
+                                 Header="{Binding Shell_WarnLoadPage, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding LoadErrorText}" />
+            <!-- The page header (and its back button) lives in the content, so the back affordance
+                 is repeated here for hosts where the shell has none. -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+                <Button Command="{Binding BackCommand}"
+                        IsVisible="{Binding ShowBackButton}"
+                        Content="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                <Button Command="{Binding RetryCommand}"
+                        Content="{Binding Common_Retry, Source={x:Static strings:LocalizedStrings.Instance}}" />
+            </StackPanel>
+        </StackPanel>
 
         <!-- Content -->
-        <ScrollViewer IsVisible="{Binding ShowContent}">
-            <Grid Margin="32" ColumnDefinitions="Auto,*">
+        <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowContent}">
+            <Grid MaxWidth="1200" Margin="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='6,32,6,32'}" ColumnDefinitions="Auto,*,Auto">
                 <!-- Album art + info; collapses to a single column when the page is narrow. -->
                 <StackPanel x:Name="AlbumArtPanel"
+                            controls:PageSearchHost.Target="{Binding}"
                             Grid.Column="0"
                             Width="200"
-                            Margin="0,0,28,0"
+                            Margin="32,0,14,0"
                             Spacing="10">
                     <controls:MediaThumbnail Width="200"
+                                             animations:ConnectedArtwork.Key="{Binding ArtworkKey}"
                                              Height="200"
                                              CornerRadius="6"
                                              Source="{Binding CoverImage}"
                                              PlaceholderKind="Album" />
                     <Button Classes="metaLink"
                             Command="{Binding OpenArtistCommand}"
-                            ToolTip.Tip="Go to artist">
+                            ToolTip.Tip="{Binding Common_GoToArtist, Source={x:Static strings:LocalizedStrings.Instance}}">
                         <TextBlock Text="{Binding ArtistName}"
                                    FontSize="14"
                                    TextWrapping="Wrap"
@@ -74,46 +123,53 @@
                                Foreground="{DynamicResource AppSecondaryTextBrush}" />
                 </StackPanel>
 
-                <!-- Title bar + track list -->
-                <Grid Grid.Column="1" RowDefinitions="Auto,*">
-                    <DockPanel Grid.Row="0" Margin="0,4,0,12">
-                        <Button DockPanel.Dock="Left"
+                <!-- Title bar + narrow-mode art banner + track list -->
+                <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*">
+                    <DockPanel x:Name="HeaderBar" Grid.Row="0" Margin="0,0,6,12"
+                               controls:PageSearchHost.Target="{Binding}">
+                        <Button x:Name="BackButton"
+                                DockPanel.Dock="Left"
                                 Classes="icon"
                                 VerticalAlignment="Center"
-                                Margin="0,0,8,0"
+                                Margin="0,0,2,0"
+                                IsVisible="{Binding ShowBackButton}"
                                 Command="{Binding BackCommand}"
-                                ToolTip.Tip="Back">
+                                ToolTip.Tip="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}">
                             <Viewbox Width="20" Height="20">
                                 <Path Data="{StaticResource IconArrowLeft}"
                                       Fill="{DynamicResource AppPrimaryTextBrush}" />
                             </Viewbox>
                         </Button>
-                        <StackPanel DockPanel.Dock="Right"
+                        <!-- alignment -->
+                        <Border Grid.Column="0"
+                                Width="10"
+                                Height="20"
+                                IsVisible="{Binding !ShowBackButton}"/> 
+                        <StackPanel x:Name="HeaderActions"
+                                    DockPanel.Dock="Right"
                                     Orientation="Horizontal"
                                     Spacing="2"
+                                    Margin="0,0,6,0"
                                     VerticalAlignment="Center">
-                            <Button Classes="icon" Command="{Binding PlayCommand}" ToolTip.Tip="Play">
+                            <Button Classes="icon" Command="{Binding PlayCommand}" ToolTip.Tip="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}">
                                 <Viewbox Width="18" Height="18">
                                     <Path Data="{StaticResource IconPlay}" Fill="{DynamicResource AppPrimaryTextBrush}" />
                                 </Viewbox>
                             </Button>
-                            <Button Classes="icon" Command="{Binding ShuffleCommand}" ToolTip.Tip="Shuffle">
+                            <Button Classes="icon" Command="{Binding ShuffleCommand}" ToolTip.Tip="{Binding Common_Shuffle, Source={x:Static strings:LocalizedStrings.Instance}}">
                                 <Viewbox Width="18" Height="18">
                                     <Path Data="{StaticResource IconShuffleAll}" Fill="{DynamicResource AppPrimaryTextBrush}" />
                                 </Viewbox>
                             </Button>
-                            <Button Classes="icon" Command="{Binding AddToQueueCommand}" ToolTip.Tip="Add to queue">
-                                <Viewbox Width="18" Height="18">
-                                    <Path Data="{StaticResource IconAdd}" Fill="{DynamicResource AppPrimaryTextBrush}" />
-                                </Viewbox>
-                            </Button>
-                            <Button Classes="icon" Command="{Binding AddToPlaylistCommand}" ToolTip.Tip="Add to playlist">
+                            <controls:AddToQueueButton Classes="icon" IconSize="18" Command="{Binding AddToQueueCommand}" ToolTip.Tip="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            <Button Classes="icon" Command="{Binding AddToPlaylistCommand}" ToolTip.Tip="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}">
                                 <Viewbox Width="18" Height="18">
                                     <Path Data="{StaticResource IconPlaylist}" Fill="{DynamicResource AppPrimaryTextBrush}" />
                                 </Viewbox>
                             </Button>
                         </StackPanel>
-                        <TextBlock Text="{Binding AlbumTitle}"
+                        <TextBlock x:Name="HeaderTitle"
+                                   Text="{Binding AlbumTitle}"
                                    FontSize="24"
                                    FontWeight="SemiBold"
                                    VerticalAlignment="Center"
@@ -122,15 +178,66 @@
                                    Foreground="{DynamicResource AppPrimaryTextBrush}" />
                     </DockPanel>
 
-                    <ItemsControl Margin="16,0,0,0" Grid.Row="1" ItemsSource="{Binding Tracks}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:TrackRowModel">
-                                <controls:TrackRow />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <!-- Replaces the side art column while the page is narrow; carries the
+                         album title, metadata and the album actions over the artwork. -->
+                    <Panel x:Name="NarrowArtBanner"
+                              controls:PageSearchHost.Target="{Binding}"
+                           Grid.Row="1"
+                           Margin="0,0,0,10"
+                           IsVisible="False">
+                        <controls:AlbumArtBanner x:Name="ArtBanner"
+                                                 animations:ConnectedArtwork.Key="{Binding ArtworkKey}"
+                                                 Source="{Binding CoverImage}"
+                                                 Title="{Binding AlbumTitle}"
+                                                 ArtistName="{Binding ArtistName}"
+                                                 ArtistCommand="{Binding OpenArtistCommand}"
+                                                 Meta="{Binding MetaLine}" />
+                        <!-- Only shown when the page is narrow while the shell is still wide
+                             (e.g. the queue pane is open): the parent supplies the narrow
+                             half of the condition, ShowBackButton the wide-shell half, so
+                             this is the one case where no other back affordance exists. -->
+                        <Button x:Name="BannerBackButton"
+                                Classes="bannerBack"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Margin="8"
+                                IsVisible="{Binding ShowBackButton}"
+                                Command="{Binding BackCommand}"
+                                ToolTip.Tip="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <Viewbox Width="18" Height="18">
+                                <Path Data="{StaticResource IconArrowLeft}"
+                                      Fill="#FFFFFF" />
+                            </Viewbox>
+                        </Button>
+                    </Panel>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="Auto,*">
+                        <!-- alignment -->
+                        <Border x:Name="TrackListIndent"
+                                Grid.Column="0"
+                                Width="28"
+                                Height="20"
+                                IsVisible="False"/> 
+                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Tracks}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <VirtualizingStackPanel Orientation="Vertical" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:TrackRowModel">
+                                    <controls:SelectionItem>
+                                        <controls:TrackRow />
+                                    </controls:SelectionItem>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
                 </Grid>
+                
+                <Border Grid.Column="2" Width="16" IsVisible="{Binding #AlbumArtPanel.IsVisible}" />
             </Grid>
         </ScrollViewer>
-    </Panel>
+    </Grid>
+    </controls:PageSearchHost>
 </UserControl>

@@ -8,7 +8,7 @@ namespace LightStudio.LightPlayer.ViewModels;
 /// <summary>
 /// A single entry in the navigation rail.
 /// </summary>
-public partial class NavigationItemViewModel : ObservableObject
+public partial class NavigationItemViewModel : ViewModelBase
 {
     private readonly Action<NavigationItemViewModel> onSelected;
 
@@ -29,6 +29,9 @@ public partial class NavigationItemViewModel : ObservableObject
     public string Title => Route.Title;
 
     public string IconKey => Route.IconKey;
+
+    /// <summary>Whether the entry opens the library section of the Apple layout's sidebar.</summary>
+    public bool StartsLibrarySection { get; internal set; }
 
     public IRelayCommand SelectCommand { get; }
 }

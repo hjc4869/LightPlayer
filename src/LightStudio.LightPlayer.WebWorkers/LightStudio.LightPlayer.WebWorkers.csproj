@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <!--
+    Threaded .NET WebAssembly runtime that hosts the FfmpegShim decoders inside a dedicated Web Worker.
+    Playback has one managed owner; bounded background jobs share the runtime and native resources.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(TargetFramework)-browser</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmBuildNative>true</WasmBuildNative>
+    <WasmEnableThreads>true</WasmEnableThreads>
+    <WasmEnableSIMD>true</WasmEnableSIMD>
+    <WasmAllowUndefinedSymbols>true</WasmAllowUndefinedSymbols>
+    <WasmNativeStrip>true</WasmNativeStrip>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <CompressionEnabled>false</CompressionEnabled>
+    <RunAOTCompilation>true</RunAOTCompilation>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>full</TrimMode>
+    <WasmBitcodeCompileOptimizationFlag>-O3</WasmBitcodeCompileOptimizationFlag>
+    <EmccLinkOptimizationFlag>-O3</EmccLinkOptimizationFlag>
+    <EmccCompileOptimizationFlag>-O3</EmccCompileOptimizationFlag>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <WasmEnvironmentVariable Include="MONO_GC_PARAMS" Value="soft-heap-limit=64m,nursery-size=4m,default-allowance-ratio=1" />
+    <NativeFileReference Include="source-bridge.cpp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LightStudio.Ffmpeg" />
+    <PackageReference Include="LightStudio.Photos" />
+    <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" />
+    <ProjectReference Include="..\LightStudio.FfmpegShim\LightStudio.FfmpegShim.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\LightMediaRenderer\Software\*.cs" Link="Software\%(Filename)%(Extension)" />
+    <Compile Include="..\LightMediaRenderer\Rendering\VideoColorGamut.cs" Link="Software\VideoColorGamut.cs" />
+    <!-- The desktop photo decoder's parsers and JPEG XR pixel storage, so both read a photo the same way. -->
+    <Compile Include="..\LightStudio.LightPlayer\Services\PhotoDecoder.GainMaps.cs" Link="Photos\PhotoDecoder.GainMaps.cs" />
+    <Compile Include="..\LightStudio.LightPlayer\Services\PhotoDecoder.Containers.cs" Link="Photos\PhotoDecoder.Containers.cs" />
+    <Compile Include="..\LightStudio.LightPlayer\Services\PhotoDecoder.Metadata.cs" Link="Photos\PhotoDecoder.Metadata.cs" />
+    <Compile Include="..\LightStudio.LightPlayer\Services\PhotoDecoder.Jpeg.cs" Link="Photos\PhotoDecoder.Jpeg.cs" />
+    <Compile Include="..\LightStudio.LightPlayer\Services\PhotoDecoder.DngPreviews.cs" Link="Photos\PhotoDecoder.DngPreviews.cs" />
+    <Compile Include="..\LightStudio.LightPlayer\Services\PhotoDecoder.Previews.cs" Link="Photos\PhotoDecoder.Previews.cs" />
+    <Compile Include="..\LightStudio.LightPlayer\Services\PhotoDecoder.JxrColor.cs" Link="Photos\PhotoDecoder.JxrColor.cs" />
+  </ItemGroup>
+
+  <Target Name="SelectWorkerImageCodec" BeforeTargets="PrepareForBuild"
+          Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(TargetFrameworkVersion)', '11.0'))">
+    <ItemGroup>
+      <NativeFileReference Remove="@(NativeFileReference)" Condition="'%(NativeFileReference.Filename)' == 'libSkiaSharp'" />
+      <NativeFileReference Include="$(SkiaSharpStaticLibraryPath)/5.0.6/mt,simd/libSkiaSharp.a" />
+    </ItemGroup>
+  </Target>
+
+  <Import Project="../../build/WasmWorkerRuntime.targets" />
+  <PropertyGroup>
+    <NativeBindingsEnabled>true</NativeBindingsEnabled>
+  </PropertyGroup>
+</Project>

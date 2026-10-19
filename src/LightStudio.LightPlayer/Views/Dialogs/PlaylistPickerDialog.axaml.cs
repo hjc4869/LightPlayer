@@ -14,7 +14,7 @@ public sealed record PlaylistPickResult(PlaylistModel? Existing, bool CreateNew)
 
 /// <summary>
 /// Lets the user pick a destination playlist or request a new one. Closes with a
-/// <see cref="PlaylistPickResult"/>, or null when cancelled.
+/// <see cref="PlaylistPickResult"/>, or null when canceled.
 /// </summary>
 public partial class PlaylistPickerDialog : Window
 {

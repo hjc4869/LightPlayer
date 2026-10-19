@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lightplayer.example/schemas/video-scale-stage-v1.schema.json",
+  "title": "Light Player video scale stage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "name", "inputDomain", "output", "passes"],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source": {
+      "type": "string"
+    },
+    "sourceSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "inputDomain": {
+      "const": "signal-rgb"
+    },
+    "minimumScale": {
+      "type": "number",
+      "minimum": 0,
+      "default": 0
+    },
+    "maximumScale": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "output": {
+      "type": "string",
+      "minLength": 1
+    },
+    "passes": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/pass"
+      }
+    }
+  },
+  "$defs": {
+    "relativeFile": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![\\\\/])(?!.*(?:^|[\\\\/])\\.\\.(?:[\\\\/]|$)).+$"
+    },
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reference", "numerator", "denominator"],
+      "properties": {
+        "reference": {
+          "enum": ["source", "destination"]
+        },
+        "numerator": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "denominator": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "pass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shader", "inputs", "output"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "shader": {
+          "$ref": "#/$defs/relativeFile"
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "output": {
+          "type": "string",
+          "minLength": 1
+        },
+        "width": {
+          "$ref": "#/$defs/dimension"
+        },
+        "height": {
+          "$ref": "#/$defs/dimension"
+        },
+        "widthScale": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "heightScale": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sizeUniforms": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  }
+}

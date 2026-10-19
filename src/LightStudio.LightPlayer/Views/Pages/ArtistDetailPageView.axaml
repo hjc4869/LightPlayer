@@ -1,8 +1,10 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
              xmlns:models="using:LightStudio.LightPlayer.Models"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
              mc:Ignorable="d"
@@ -10,33 +12,103 @@
              d:DesignHeight="640"
              x:Class="LightStudio.LightPlayer.Views.Pages.ArtistDetailPageView"
              x:DataType="vm:ArtistDetailPageViewModel">
-    <Panel>
+    <controls:PageSearchHost Search="{Binding PageSearch}">
+    <Grid RowDefinitions="Auto,*">
+        <controls:MultiSelectBar DataContext="{Binding Selection}" />
         <!-- Loading -->
-        <ProgressBar IsVisible="{Binding IsLoading}"
-                     IsIndeterminate="True"
-                     Width="140"
-                     Height="4"
-                     HorizontalAlignment="Center"
-                     VerticalAlignment="Center" />
+        <StackPanel Grid.Row="1" IsVisible="{Binding IsLoading}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+            <ProgressBar IsIndeterminate="{Binding IsLoading}"
+                         Width="140"
+                         Height="4" />
+            <TextBlock Text="{Binding Common_Loading, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       HorizontalAlignment="Center"
+                       FontSize="13"
+                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+
+        <!-- Load failure: the artist could not be read (renamed, removed, or the server is
+             unreachable), which would otherwise be shown as an empty page. -->
+        <StackPanel Grid.Row="1" IsVisible="{Binding HasLoadError}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="12">
+            <controls:EmptyState Icon="{StaticResource IconWarning}"
+                                 Header="{Binding Shell_WarnLoadPage, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                 Description="{Binding LoadErrorText}" />
+            <!-- The page header (and its back button) lives in the content, so the back affordance
+                 is repeated here for hosts where the shell has none. -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+                <Button Command="{Binding BackCommand}"
+                        IsVisible="{Binding ShowBackButton}"
+                        Content="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                <Button Command="{Binding RetryCommand}"
+                        Content="{Binding Common_Retry, Source={x:Static strings:LocalizedStrings.Instance}}" />
+            </StackPanel>
+        </StackPanel>
 
         <!-- Content -->
-        <ScrollViewer IsVisible="{Binding ShowContent}">
-            <StackPanel Margin="32" Spacing="20">
-                <!-- Hero header: back, artist name, shuffle all, then the stats line. -->
-                <StackPanel Spacing="6">
-                    <Grid ColumnDefinitions="Auto,*,Auto">
-                        <Button Grid.Column="0"
+        <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowContent}">
+            <StackPanel x:Name="PageContent" Spacing="20">
+                <Grid x:Name="HeaderArea" ClipToBounds="True">
+                <Panel x:Name="HeaderBackdrop" IsVisible="False" IsHitTestVisible="False"
+                       RenderOptions.BitmapInterpolationMode="HighQuality">
+                    <Panel.Background>
+                        <ImageBrush Source="{Binding HeaderBackground}" Stretch="UniformToFill" />
+                    </Panel.Background>
+                    <Border Background="{DynamicResource AppPageBackgroundBrush}">
+                        <Border.OpacityMask>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                                <GradientStop Color="#00FFFFFF" Offset="0" />
+                                <GradientStop Color="#0DFFFFFF" Offset="0.40" />
+                                <GradientStop Color="#4DFFFFFF" Offset="0.56" />
+                                <GradientStop Color="#ADFFFFFF" Offset="0.75" />
+                                <GradientStop Color="#FFFFFFFF" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.OpacityMask>
+                    </Border>
+                    <Border Background="{DynamicResource AppPageBackgroundBrush}">
+                        <Border.OpacityMask>
+                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+                                <GradientStop Color="#A3FFFFFF" Offset="0" />
+                                <GradientStop Color="#6BFFFFFF" Offset="0.38" />
+                                <GradientStop Color="#14FFFFFF" Offset="0.74" />
+                                <GradientStop Color="#00FFFFFF" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.OpacityMask>
+                    </Border>
+                </Panel>
+                <Grid x:Name="HeaderContent" MaxWidth="1200">
+                <!-- Hero header: back, artist name, actions, then the stats line. -->
+                <StackPanel x:Name="HeaderText" Margin="0,32,6,0" Spacing="6"
+                            VerticalAlignment="Bottom" controls:PageSearchHost.Target="{Binding}">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                        <!-- alignment -->
+                        <Border Grid.Column="0"
+                                Width="16"
+                                Height="20"
+                                IsVisible="{Binding #HeaderActions.IsVisible}"/>
+                        <Button Grid.Column="1"
                                 Classes="icon"
                                 VerticalAlignment="Center"
-                                Margin="0,0,10,0"
+                                Margin="16,0,10,0"
+                                IsVisible="{Binding ShowBackButton}"
                                 Command="{Binding BackCommand}"
-                                ToolTip.Tip="Back">
+                                ToolTip.Tip="{Binding Common_Back, Source={x:Static strings:LocalizedStrings.Instance}}">
                             <Viewbox Width="20" Height="20">
                                 <Path Data="{StaticResource IconArrowLeft}"
                                       Fill="{DynamicResource AppPrimaryTextBrush}" />
                             </Viewbox>
                         </Button>
-                        <TextBlock Grid.Column="1"
+
+                        <!-- alignment -->
+                        <Border Grid.Column="1"
+                                Width="16"
+                                Height="20"
+                                IsVisible="{Binding !ShowBackButton}"/>
+                        <TextBlock Grid.Column="2"
                                    Text="{Binding ArtistName}"
                                    FontSize="36"
                                    FontWeight="Light"
@@ -44,42 +116,99 @@
                                    MaxLines="1"
                                    TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                        <Button Grid.Column="2"
-                                Classes="icon"
-                                VerticalAlignment="Center"
-                                Padding="12,8"
-                                Command="{Binding ShuffleCommand}"
-                                ToolTip.Tip="Shuffle all">
-                            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                                <Grid Width="34" Height="34">
-                                    <Ellipse Stroke="{DynamicResource AppPrimaryTextBrush}" StrokeThickness="2" />
-                                    <Viewbox Width="14" Height="14">
-                                        <Path Data="{StaticResource IconPlay}" Fill="{DynamicResource AppPrimaryTextBrush}" />
-                                    </Viewbox>
-                                </Grid>
-                                <TextBlock Text="SHUFFLE ALL"
-                                           VerticalAlignment="Center"
-                                           FontSize="16"
-                                           FontWeight="SemiBold" />
-                            </StackPanel>
-                        </Button>
+                        <StackPanel x:Name="HeaderActions"
+                                    Grid.Column="3"
+                                    Orientation="Horizontal"
+                                    Spacing="2"
+                                    Margin="0,0,18,0"
+                                    VerticalAlignment="Center">
+                            <Button Classes="icon" Command="{Binding PlayCommand}" ToolTip.Tip="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="18" Height="18">
+                                    <Path Data="{StaticResource IconPlay}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <Button Classes="icon" Command="{Binding ShuffleCommand}" ToolTip.Tip="{Binding Common_Shuffle, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="18" Height="18">
+                                    <Path Data="{StaticResource IconShuffleAll}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                            <controls:AddToQueueButton Classes="icon" IconSize="18" Command="{Binding AddToQueueCommand}" ToolTip.Tip="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            <Button Classes="icon" Command="{Binding AddToPlaylistCommand}" ToolTip.Tip="{Binding Common_AddToPlaylist, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="18" Height="18">
+                                    <Path Data="{StaticResource IconPlaylist}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                            </Button>
+                        </StackPanel>
                     </Grid>
-                    <TextBlock Text="{Binding MetaLine}"
-                               Margin="46,0,0,0"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    <Grid ColumnDefinitions="Auto,Auto,*">
+                        <!-- alignment -->
+                        <Border Grid.Column="0"
+                                Width="62"
+                                Height="20"
+                                IsVisible="{Binding ShowBackButton}"/>
+                        <!-- alignment -->
+                        <Border Grid.Column="0"
+                                Width="16"
+                                Height="20"
+                                IsVisible="{Binding !ShowBackButton}"/>
+                        <!-- alignment -->
+                        <Border Grid.Column="1"
+                                Width="16"
+                                Height="20"
+                                IsVisible="{Binding #HeaderActions.IsVisible}"/>
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding MetaLine}"
+                                   Margin="0,0,0,0"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    </Grid>
                 </StackPanel>
+                </Grid>
+                </Grid>
 
-                <!-- One block per album: cover, title, actions and its track rows. -->
-                <ItemsControl ItemsSource="{Binding AlbumSections}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="models:ArtistAlbumSectionModel">
-                            <controls:AlbumSection Margin="0,6,0,18" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <StackPanel MaxWidth="1200" Spacing="20" Margin="0,0,0,32">
+                <Border IsVisible="{Binding HasPartialFailures}"
+                        Margin="16,0"
+                        Padding="12,8"
+                        CornerRadius="6"
+                        Background="{DynamicResource AppPanelBackgroundBrush}"
+                        BorderBrush="{DynamicResource AppFavoriteBrush}"
+                        BorderThickness="1">
+                    <TextBlock Text="{Binding PartialFailureText}"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               Foreground="{DynamicResource AppFavoriteBrush}" />
+                </Border>
+
+                <Grid Margin="0,0,6,0" ColumnDefinitions="Auto,Auto,*,Auto">
+                    <!-- alignment -->
+                    <Border Grid.Column="0"
+                            Width="44"
+                            Height="20"
+                            IsVisible="{Binding ShowBackButton}"/>
+                    <!-- alignment -->
+                    <Border Grid.Column="1"
+                            Width="16"
+                            Height="20"
+                            IsVisible="{Binding #HeaderActions.IsVisible}"/>
+                    <!-- One block per album: cover, title, actions and its track rows. -->
+                    <ItemsControl Grid.Column="2" ItemsSource="{Binding AlbumSections}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:ArtistAlbumSectionModel">
+                                <controls:AlbumSection Margin="4,6,0,18" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <!-- alignment -->
+                    <Border Grid.Column="3"
+                            Width="16"
+                            Height="20"
+                            IsVisible="{Binding #HeaderActions.IsVisible}"/>
+                </Grid>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
-    </Panel>
+    </Grid>
+    </controls:PageSearchHost>
 </UserControl>

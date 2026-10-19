@@ -1,0 +1,134 @@
+<UserControl xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls" xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             x:Class="LightStudio.LightPlayer.Controls.PageSearchBar"
+             x:DataType="models:PageSearchModel"
+             ClipToBounds="False"
+             Classes.backdrop="{DynamicResource AppHasBackdropEffects}"
+             Classes.apple="{DynamicResource AppIsAppleChrome}"
+             IsVisible="{Binding IsOpen, FallbackValue=False}">
+    <UserControl.Styles>
+        <Style Selector="Border#FindBorder">
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="BoxShadow" Value="0 2 8 0 #26000000" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+        </Style>
+        <Style Selector="lmr|BackdropBorder#FindBackdrop">
+            <Setter Property="CornerRadius" Value="5" />
+        </Style>
+        <Style Selector="ProgressBar#FindProgress">
+            <Setter Property="Margin" Value="1,0,1,-4" />
+        </Style>
+        <Style Selector="Button.findAction">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="controls|PageSearchBar.backdrop">
+            <Style Selector="^ TextBox#QueryBox /template/ Border#PART_BorderElement">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropFieldBrush}" />
+            </Style>
+            <Style Selector="^ Button.findAction:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropHoverBrush}" />
+            </Style>
+            <Style Selector="^ Button.findAction:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropPressedBrush}" />
+            </Style>
+        </Style>
+        <Style Selector="controls|PageSearchBar.apple">
+            <Style Selector="^ Border#FindBorder">
+                <Setter Property="CornerRadius" Value="999" />
+                <Setter Property="BoxShadow" Value="none" />
+                <Setter Property="BorderBrush" Value="{x:Null}" />
+            </Style>
+            <Style Selector="^ lmr|BackdropBorder#FindBackdrop">
+                <Setter Property="CornerRadius" Value="999" />
+            </Style>
+            <Style Selector="^ TextBox#QueryBox">
+                <Setter Property="CornerRadius" Value="16" />
+            </Style>
+            <Style Selector="^ ProgressBar#FindProgress">
+                <Setter Property="Margin" Value="8,0,8,-4" />
+            </Style>
+            <Style Selector="^ Button.findAction">
+                <Setter Property="CornerRadius" Value="16" />
+            </Style>
+        </Style>
+    </UserControl.Styles>
+    <Border x:Name="FindBorder"
+            Background="Transparent"
+            BorderThickness="1">
+        <lmr:BackdropBorder x:Name="FindBackdrop"
+                                 Padding="6"
+                                 BackdropStyle="{DynamicResource AppBackdropStyle}"
+                                 FallbackColor="{DynamicResource AppPanelBackdropColor}"
+                                 TintColor="{DynamicResource AppPanelBackdropTintColor}">
+            <Grid ColumnDefinitions="*,Auto,32,32,32">
+                <TextBox x:Name="QueryBox"
+                         Foreground="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}"
+                         Text="{Binding Query, Mode=TwoWay}"
+                         PlaceholderText="{Binding PageSearch_Find, Source={x:Static strings:LocalizedStrings.Instance}}"
+                         AutomationProperties.Name="{Binding PageSearch_Find, Source={x:Static strings:LocalizedStrings.Instance}}"
+                         MinWidth="40"
+                         Height="32"
+                         Padding="8,4"
+                         VerticalContentAlignment="Center" />
+                <ProgressBar x:Name="FindProgress" IsVisible="{Binding IsSearching}" IsIndeterminate="{Binding IsSearching}"
+                             Height="2" MinHeight="0" MinWidth="0"
+                             VerticalAlignment="Bottom" IsHitTestVisible="False" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding PositionText}"
+                           AutomationProperties.Name="{Binding MatchCountText}"
+                           FontSize="12"
+                           MinWidth="42"
+                           MaxWidth="76"
+                           Margin="6,0"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center"
+                           TextAlignment="Center"
+                           Foreground="{lmr:BackdropForeground ResourceKey=AppSecondaryTextBrush}">
+                    <ToolTip.Tip>
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{Binding MatchCountText}" />
+                            <TextBlock Text="{Binding PageSearch_Partial, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       IsVisible="{Binding IsPartial}" />
+                        </StackPanel>
+                    </ToolTip.Tip>
+                </TextBlock>
+                <Button Grid.Column="2" Classes="icon findAction"
+                        Command="{Binding PreviousCommand}"
+                        ToolTip.Tip="{Binding PageSearch_Previous, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        AutomationProperties.Name="{Binding PageSearch_Previous, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox Width="16" Height="16">
+                          <Path Data="{StaticResource IconChevronUp}" Stretch="Uniform"
+                              Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                        </Viewbox>
+                </Button>
+                <Button Grid.Column="3" Classes="icon findAction"
+                        Command="{Binding NextCommand}"
+                        ToolTip.Tip="{Binding PageSearch_Next, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        AutomationProperties.Name="{Binding PageSearch_Next, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox Width="16" Height="16">
+                          <Path Data="{StaticResource IconChevronDown}" Stretch="Uniform"
+                              Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                        </Viewbox>
+                </Button>
+                <Button Grid.Column="4" Classes="icon findAction"
+                        Command="{Binding CloseCommand}"
+                        ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        AutomationProperties.Name="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}">
+                        <Viewbox Width="14" Height="14">
+                          <Path Data="{StaticResource IconClose}" Stretch="Uniform"
+                              Fill="{lmr:BackdropForeground ResourceKey=AppPrimaryTextBrush}" />
+                        </Viewbox>
+                </Button>
+            </Grid>
+        </lmr:BackdropBorder>
+    </Border>
+</UserControl>

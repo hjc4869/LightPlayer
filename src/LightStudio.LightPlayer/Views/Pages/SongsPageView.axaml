@@ -1,114 +1,191 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
              xmlns:models="using:LightStudio.LightPlayer.Models"
+             xmlns:views="using:LightStudio.LightPlayer.Views"
+             xmlns:shellvm="using:LightStudio.LightPlayer.ViewModels"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
              mc:Ignorable="d"
              d:DesignWidth="860"
              d:DesignHeight="640"
              x:Class="LightStudio.LightPlayer.Views.Pages.SongsPageView"
              x:DataType="vm:SongsPageViewModel">
-    <Panel>
+    <UserControl.Resources>
+        <DataTemplate x:Key="TrackItemTemplate" DataType="models:TrackRowModel" x:DataType="models:TrackRowModel">
+            <controls:SelectionItem Classes.folder="{Binding IsFolder}">
+                <controls:TrackRow SizeChanged="OnTrackRowSizeChanged" />
+            </controls:SelectionItem>
+        </DataTemplate>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="Grid.selecting controls|SelectionItem.folder">
+            <Setter Property="Margin" Value="32,0,0,0" />
+        </Style>
+        <Style Selector="Button.columnHeader">
+            <Setter Property="Command" Value="{Binding $parent[views:ShellView].((shellvm:ShellViewModel)DataContext).SortByColumnCommand}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="ToolTip.Tip" Value="{Binding $self.Content}" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                        <Grid ColumnDefinitions="*,12" Margin="0,0,4,0">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                       VerticalAlignment="Center"
+                                       TextTrimming="CharacterEllipsis" />
+                            <Viewbox Grid.Column="1" Width="8" Height="8" Opacity="0">
+                                <Path Classes="sortDirection" Data="{StaticResource IconChevronUp}"
+                                      Fill="{TemplateBinding Foreground}" />
+                            </Viewbox>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="Button.columnHeader:pointerover, Button.columnHeader:focus-visible">
+            <Setter Property="Background" Value="{DynamicResource AppSubtleHoverBrush}" />
+        </Style>
+        <Style Selector="Button.columnHeader.sorted">
+            <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+        </Style>
+        <Style Selector="Button.columnHeader.sorted /template/ Viewbox">
+            <Setter Property="Opacity" Value="1" />
+        </Style>
+        <Style Selector="Grid.descending Button.columnHeader /template/ Path.sortDirection">
+            <Setter Property="Data" Value="{StaticResource IconChevronDown}" />
+        </Style>
+    </UserControl.Styles>
+    <Grid RowDefinitions="Auto,Auto,*" Classes.selecting="{Binding Selection.IsActive}">
+        <controls:MultiSelectBar DataContext="{Binding Selection}" />
+        <controls:PageAddressBarSlot Grid.Row="1" AddressBar="{Binding AddressBar}" />
         <!-- Loading -->
-        <StackPanel IsVisible="{Binding IsLoading}"
+        <StackPanel Grid.Row="2" IsVisible="{Binding IsLoading}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Spacing="10">
-            <ProgressBar IsIndeterminate="True" Width="140" Height="4" />
-            <TextBlock Text="Loading songs..."
+            <ProgressBar IsIndeterminate="{Binding IsLoading}" Width="140" Height="4" />
+            <TextBlock Text="{Binding Songs_Loading, Source={x:Static strings:LocalizedStrings.Instance}}"
                        HorizontalAlignment="Center"
                        FontSize="13"
                        Foreground="{DynamicResource AppSecondaryTextBrush}" />
         </StackPanel>
 
         <!-- Empty -->
-        <controls:EmptyState IsVisible="{Binding ShowEmpty}"
+        <controls:EmptyState Grid.Row="2" IsVisible="{Binding ShowEmpty}"
                              Header="{Binding EmptyHeader}"
                              Description="{Binding EmptyDescription}" />
 
         <!-- Content -->
-        <Grid IsVisible="{Binding ShowContent}" RowDefinitions="Auto,*" Margin="12,32,12,12">
-            <Grid Grid.Row="0"
-                  x:Name="HeaderGrid"
+        <Grid Grid.Row="2" IsVisible="{Binding ShowContent}"
+              RowDefinitions="Auto,*">
+                        <Border Grid.Row="0"
+                                        IsVisible="{Binding !IsNarrow}"
+                                        Margin="32,16,32,0"
+                                        Padding="12,0">
+                        <Grid x:Name="HeaderGrid"
+                                    Classes.descending="{Binding $parent[views:ShellView].((shellvm:ShellViewModel)DataContext).IsSortDescending}"
                   Height="32"
-                  Margin="12,0"
+                                    Margin="{Binding Selection.IsActive, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='0|32,0,0,0'}"
                   ColumnDefinitions="1.4*,1*,1*,70,90,60">
-                <TextBlock Grid.Column="0" Margin="16,0,0,0" Text="Title" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock x:Name="ArtistHeader" Grid.Column="1" Text="Artist" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock x:Name="AlbumHeader" Grid.Column="2" Text="Album" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock x:Name="YearHeader" Grid.Column="3" Text="Year" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock x:Name="GenreHeader" Grid.Column="4" Text="Genre" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock Grid.Column="5" Text="Length" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Right" VerticalAlignment="Center" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <Button x:Name="TitleHeader" Grid.Column="0" Classes="columnHeader"
+                    Classes.sorted="{Binding $parent[views:ShellView].((shellvm:ShellViewModel)DataContext).IsSortByTitle}"
+                    CommandParameter="{x:Static models:LibrarySortField.Title}"
+                    Content="{Binding Common_ColumnTitle, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                <Button x:Name="ArtistHeader" Grid.Column="1" Classes="columnHeader"
+                    Classes.sorted="{Binding $parent[views:ShellView].((shellvm:ShellViewModel)DataContext).IsSortByArtistName}"
+                    CommandParameter="{x:Static models:LibrarySortField.ArtistName}"
+                    Content="{Binding Common_ColumnArtist, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                <Button x:Name="AlbumHeader" Grid.Column="2" Classes="columnHeader"
+                    Classes.sorted="{Binding $parent[views:ShellView].((shellvm:ShellViewModel)DataContext).IsSortByAlbumName}"
+                    CommandParameter="{x:Static models:LibrarySortField.AlbumName}"
+                    Content="{Binding Common_ColumnAlbum, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                <Button x:Name="YearHeader" Grid.Column="3" Classes="columnHeader"
+                    Classes.sorted="{Binding $parent[views:ShellView].((shellvm:ShellViewModel)DataContext).IsSortByYear}"
+                    CommandParameter="{x:Static models:LibrarySortField.Year}"
+                    Content="{Binding Common_ColumnYear, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                <Button x:Name="GenreHeader" Grid.Column="4" Classes="columnHeader"
+                    Classes.sorted="{Binding $parent[views:ShellView].((shellvm:ShellViewModel)DataContext).IsSortByGenre}"
+                    CommandParameter="{x:Static models:LibrarySortField.Genre}"
+                    Content="{Binding Common_ColumnGenre, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                <Button x:Name="LengthHeader" Grid.Column="5" Classes="columnHeader"
+                    HorizontalContentAlignment="Right"
+                    Classes.sorted="{Binding $parent[views:ShellView].((shellvm:ShellViewModel)DataContext).IsSortByDuration}"
+                    CommandParameter="{x:Static models:LibrarySortField.Duration}"
+                    Content="{Binding Common_ColumnLength, Source={x:Static strings:LocalizedStrings.Instance}}" />
             </Grid>
+            </Border>
 
-            <!-- Flat list (virtualized): repeater is the direct ScrollViewer child so it gets a bounded viewport. -->
-            <ScrollViewer Grid.Row="1" IsVisible="{Binding ShowFlat}">
-                <ItemsRepeater ItemsSource="{Binding Items}">
-                    <ItemsRepeater.Layout>
-                        <StackLayout Orientation="Vertical" />
-                    </ItemsRepeater.Layout>
-                    <ItemsRepeater.ItemTemplate>
-                        <DataTemplate x:DataType="models:TrackRowModel">
-                            <controls:TrackRow />
-                        </DataTemplate>
-                    </ItemsRepeater.ItemTemplate>
-                </ItemsRepeater>
-            </ScrollViewer>
-
-            <!-- Grouped list: virtualized via VirtualizingStackPanel. Group headers and track rows are
-                 flattened into one LibraryListEntry collection and a single item template switches on
-                 IsHeader, so every container has the same shape (no cross-type recycling glitches).
-                 VirtualizingStackPanel is used instead of ItemsRepeater's StackLayout because the latter
-                 mis-estimates the scroll extent for non-uniform item heights, leaving the scrollbar thumb
-                 floating around the middle (Avalonia #3041). A plain ItemsControl (rather than ListBox)
-                 hosts it so there is no selection chrome, matching the flat list's behavior. -->
-            <ItemsControl Grid.Row="1"
-                          IsVisible="{Binding ShowGroups}"
-                          ItemsSource="{Binding GroupedItems}">
-                <ItemsControl.Template>
-                    <ControlTemplate>
-                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                                      VerticalScrollBarVisibility="Auto">
-                            <ItemsPresenter Name="PART_ItemsPresenter"
-                                            ItemsPanel="{TemplateBinding ItemsPanel}" />
-                        </ScrollViewer>
-                    </ControlTemplate>
-                </ItemsControl.Template>
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <VirtualizingStackPanel />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate x:DataType="models:LibraryListEntry">
-                        <Panel>
-                            <!-- Group header -->
-                            <StackPanel IsVisible="{Binding IsHeader}" Margin="0,0,0,2">
-                                <TextBlock Text="{Binding HeaderKey}"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"
-                                           Margin="12,12,0,4"
-                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                                <Border Height="1" Margin="12,0,12,2" Background="{DynamicResource AppDividerBrush}" />
-                            </StackPanel>
-
-                            <!-- Track row -->
-                            <ContentControl Content="{Binding Item}"
-                                            IsVisible="{Binding !IsHeader}"
-                                            HorizontalAlignment="Stretch"
-                                            HorizontalContentAlignment="Stretch">
-                                <ContentControl.ContentTemplate>
-                                    <DataTemplate x:DataType="models:TrackRowModel">
-                                        <controls:TrackRow />
-                                    </DataTemplate>
-                                </ContentControl.ContentTemplate>
-                            </ContentControl>
-                        </Panel>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <Grid Grid.Row="1" RowDefinitions="*,Auto">
+                <!-- Virtualized list: the list is the direct ScrollViewer child so it gets a bounded viewport. -->
+                <ScrollViewer x:Name="SongsScrollViewer" IsVisible="{Binding !GroupingEnabled}">
+                    <ItemsControl ItemsSource="{Binding Items}"
+                                  ItemTemplate="{StaticResource TrackItemTemplate}"
+                                  Margin="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,0,32,0|5,0,5,0'}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <controls:IncrementalVirtualizingStackPanel TotalCount="{Binding TotalItemCount}"
+                                                                            Orientation="Vertical" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                    </ItemsControl>
+                </ScrollViewer>
+                <controls:GroupedItemsView x:Name="GroupedView" Model="{Binding Grouping}"
+                                           IsVisible="{Binding GroupingEnabled}"
+                                           IsList="True" MinItemHeight="60" RowSpacing="0"
+                                           HeaderPadding="12,0"
+                                           ItemTemplate="{StaticResource TrackItemTemplate}"
+                                           ContentInset="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,0,32,0|5,0,5,0'}" />
+                <Panel Grid.Row="1" Height="36">
+                    <Panel.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                            <Binding Path="IsLoadingMore" />
+                            <Binding Path="HasLoadMoreError" />
+                        </MultiBinding>
+                    </Panel.IsVisible>
+                    <ProgressBar IsVisible="{Binding IsLoadingMore}"
+                                 IsIndeterminate="{Binding IsLoadingMore}"
+                                 Width="100"
+                                 Height="3"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center" />
+                    <Button IsVisible="{Binding HasLoadMoreError}"
+                            Command="{Binding RetryLoadMoreCommand}"
+                            Content="{Binding Common_Retry, Source={x:Static strings:LocalizedStrings.Instance}}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+                </Panel>
+            </Grid>
         </Grid>
-    </Panel>
+
+        <Border Grid.Row="2" IsVisible="{Binding HasPartialFailures}"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                MaxWidth="640"
+                Margin="16,8"
+                Padding="12,8"
+                CornerRadius="6"
+                Background="{DynamicResource AppPanelBackgroundBrush}"
+                BorderBrush="{DynamicResource AppFavoriteBrush}"
+                BorderThickness="1">
+            <TextBlock Text="{Binding PartialFailureText}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Foreground="{DynamicResource AppFavoriteBrush}" />
+        </Border>
+    </Grid>
 </UserControl>

@@ -4,15 +4,15 @@ using System.Collections.Generic;
 namespace LightStudio.LightPlayer.Services;
 
 /// <summary>
-/// Enforces a single running instance and routes file-open / activation requests
-/// from secondary launches to the primary instance.
+/// Enforces a single running instance and routes launch activation requests from
+/// secondary launches to the primary instance.
 /// </summary>
 /// <remarks>
 /// The desktop launches a fresh process for every "Open with" / command-line
-/// invocation (this is always the case under Flatpak). <see cref="TryActivate"/>
-/// lets the first process become the primary owner; later processes forward their
-/// activation to it and exit, so the user keeps a single window whose queue is
-/// replaced by the newly opened files.
+/// invocation. <see cref="TryActivate"/> lets the first process become the primary owner;
+/// later processes forward their
+/// activation to it and exit, so the user keeps a single window for local files
+/// and stream links.
 /// </remarks>
 public interface ISingleInstanceService : IDisposable
 {
@@ -26,8 +26,8 @@ public interface ISingleInstanceService : IDisposable
     bool TryActivate(IReadOnlyList<string> activationPaths);
 
     /// <summary>
-    /// Raised on the primary instance when a secondary instance opens files. Paths
-    /// are already resolved to local paths. May be raised on a background thread.
+    /// Raised on the primary instance when a secondary instance opens targets. Values
+    /// are resolved local paths or normalized HTTP(S) URLs. May be raised on a background thread.
     /// </summary>
     event Action<IReadOnlyList<string>>? FilesOpened;
 
@@ -39,8 +39,7 @@ public interface ISingleInstanceService : IDisposable
 }
 
 /// <summary>
-/// Default no-op implementation for platforms without single-instance IPC wired
-/// in. Every process becomes its own primary, matching the prior behavior.
+/// Default no-op implementation for platforms without single-instance IPC.
 /// </summary>
 public sealed class NoopSingleInstanceService : ISingleInstanceService
 {

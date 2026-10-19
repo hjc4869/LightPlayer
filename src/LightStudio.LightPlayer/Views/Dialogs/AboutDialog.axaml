@@ -1,24 +1,43 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:strings="using:LightStudio.LightPlayer.Strings"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        d:DesignWidth="380"
-        d:DesignHeight="240"
+        d:DesignWidth="520"
+        d:DesignHeight="480"
         x:Class="LightStudio.LightPlayer.Views.Dialogs.AboutDialog"
-        Width="380"
+        Width="520"
         SizeToContent="Height"
         CanResize="False"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner"
-        Title="About">
-    <StackPanel Margin="24" Spacing="12" HorizontalAlignment="Center">
-        <TextBlock Text="Light Player" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+        Title="{Binding Common_About, Source={x:Static strings:LocalizedStrings.Instance}}">
+    <StackPanel Margin="24" Spacing="12">
+        <TextBlock Text="{Binding About_ProductName, Source={x:Static strings:LocalizedStrings.Instance}}" FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
         <TextBlock x:Name="VersionText" FontSize="13" HorizontalAlignment="Center"
+                   TextWrapping="Wrap" TextAlignment="Center"
                    Foreground="{DynamicResource AppSecondaryTextBrush}" />
-        <TextBlock Text="A cross-platform music player built with Avalonia."
+        <TextBlock Text="{Binding About_Tagline, Source={x:Static strings:LocalizedStrings.Instance}}"
                    FontSize="12" HorizontalAlignment="Center" TextWrapping="Wrap"
                    Foreground="{DynamicResource AppSecondaryTextBrush}" />
-        <Button x:Name="OkButton" Content="OK" IsDefault="True" HorizontalAlignment="Center" Margin="0,8,0,0" />
+        <Button x:Name="GitHubLink" Classes="link" HorizontalAlignment="Center" FontSize="12"
+                Content="{Binding About_GitHubProject, Source={x:Static strings:LocalizedStrings.Instance}}" />
+        <Border BorderBrush="{DynamicResource AppDividerBrush}" BorderThickness="1" CornerRadius="4">
+            <ScrollViewer Height="260" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <SelectableTextBlock x:Name="LicenseText" Margin="12,10" FontSize="11.5" TextWrapping="Wrap"
+                                     Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            </ScrollViewer>
+        </Border>
+        <WrapPanel Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" HorizontalAlignment="Center" Margin="0,4,0,0">
+            <Button x:Name="ExportLogsButton"
+                    Content="{Binding About_ExportLogs, Source={x:Static strings:LocalizedStrings.Instance}}" />
+            <Button x:Name="BrowserDiagnosticsButton"
+                Content="{Binding About_BrowserDiagnostics, Source={x:Static strings:LocalizedStrings.Instance}}"
+                IsVisible="False" />
+            <Button x:Name="ResetIndexDatabaseButton"
+                    Content="{Binding About_ResetIndexDatabase, Source={x:Static strings:LocalizedStrings.Instance}}" />
+            <Button x:Name="OkButton" Content="{Binding Common_OK, Source={x:Static strings:LocalizedStrings.Instance}}" IsDefault="True" />
+        </WrapPanel>
     </StackPanel>
 </Window>

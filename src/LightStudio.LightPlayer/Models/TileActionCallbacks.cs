@@ -4,7 +4,7 @@ namespace LightStudio.LightPlayer.Models;
 
 /// <summary>
 /// Callbacks a browse page wires to each <see cref="LibraryTileModel"/> so its
-/// open and hover-overlay actions reach the shell. Any unset callback makes the
+/// open, context-menu, and hover-overlay actions reach the shell. Any unset callback makes the
 /// matching command a no-op.
 /// </summary>
 public sealed class TileActionCallbacks
@@ -15,6 +15,14 @@ public sealed class TileActionCallbacks
     /// <summary>Replaces the queue with the tile's tracks and starts playing.</summary>
     public Action<LibraryTileModel>? Play { get; init; }
 
+    public Action<LibraryTileModel>? PlayNext { get; init; }
+
     /// <summary>Appends the tile's tracks to the end of the queue.</summary>
     public Action<LibraryTileModel>? AddToQueue { get; init; }
+
+    public Action<LibraryTileModel>? AddToPlaylist { get; init; }
+
+    public Action<LibraryTileModel>? OpenArtist { get; init; }
+
+    public Action<LibraryTileModel>? OpenContainingFolder { get; init; }
 }

@@ -1,0 +1,93 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:chrome="using:Avalonia.Controls.Chrome"
+        xmlns:strings="using:LightStudio.LightPlayer.Strings">
+    <Styles.Resources>
+        <ControlTheme x:Key="AppleCsdWindowDecorations"
+                      TargetType="chrome:WindowDrawnDecorations"
+                      BasedOn="{StaticResource {x:Type chrome:WindowDrawnDecorations}}">
+            <Setter Property="DefaultShadowThickness" Value="32" />
+            <Style Selector="^ /template/ Border#PART_WindowBorder">
+                <Setter Property="CornerRadius" Value="12" />
+            </Style>
+            <Style Selector="^:has-border /template/ Border#PART_WindowBorder">
+                <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+            </Style>
+            <Style Selector="^:has-shadow /template/ Border#PART_WindowBorder">
+                <Setter Property="BoxShadow" Value="0 8 24 0 #33000000, 0 2 6 0 #26000000" />
+            </Style>
+            <Style Selector="^:maximized /template/ Border#PART_WindowBorder">
+                <Setter Property="CornerRadius" Value="0" />
+            </Style>
+        </ControlTheme>
+        <ControlTheme x:Key="ClientWindowControlButton" TargetType="Button">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="chrome:WindowDecorationProperties.ElementRole" Value="User" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Panel Background="Transparent">
+                        <Border Width="14" Height="14" CornerRadius="7"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#33000000" BorderThickness="0.5">
+                            <ContentPresenter Content="{TemplateBinding Content}"
+                                              HorizontalContentAlignment="Center"
+                                              VerticalContentAlignment="Center" />
+                        </Border>
+                    </Panel>
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:disabled">
+                <Setter Property="Opacity" Value="0.4" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="Opacity" Value="0.7" />
+            </Style>
+        </ControlTheme>
+    </Styles.Resources>
+
+    <Style Selector="Window.appleCsd">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="TransparencyBackgroundFallback" Value="Transparent" />
+        <Setter Property="WindowDecorationsTheme" Value="{StaticResource AppleCsdWindowDecorations}" />
+    </Style>
+    <Style Selector="Window.appleCsd Border#ClientWindowFrame">
+        <Setter Property="Margin" Value="{Binding $parent[Window].WindowDecorationMargin}" />
+    </Style>
+    <Style Selector="Window.roundedCsd Border#ClientWindowFrame">
+        <Setter Property="CornerRadius" Value="11" />
+    </Style>
+    <Style Selector="StackPanel#ClientWindowControls Path">
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Height" Value="8" />
+        <Setter Property="Stretch" Value="Uniform" />
+        <Setter Property="Fill" Value="#99000000" />
+        <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="StackPanel#ClientWindowControls:pointerover Path, StackPanel#ClientWindowControls Button:focus-visible Path">
+        <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button#MinimizeWindowButton Path">
+        <Setter Property="Height" Value="1" />
+        <Setter Property="Stretch" Value="Fill" />
+    </Style>
+    <Style Selector="Button#MaximizeWindowButton">
+        <Setter Property="ToolTip.Tip" Value="{Binding VideoPlayer_Maximize, Source={x:Static strings:LocalizedStrings.Instance}}" />
+        <Setter Property="AutomationProperties.Name" Value="{Binding VideoPlayer_Maximize, Source={x:Static strings:LocalizedStrings.Instance}}" />
+    </Style>
+    <Style Selector="Button#MaximizeWindowButton.maximized">
+        <Setter Property="ToolTip.Tip" Value="{Binding Common_Restore, Source={x:Static strings:LocalizedStrings.Instance}}" />
+        <Setter Property="AutomationProperties.Name" Value="{Binding Common_Restore, Source={x:Static strings:LocalizedStrings.Instance}}" />
+    </Style>
+    <Style Selector="Button#MaximizeWindowButton Path">
+        <Setter Property="Data" Value="{StaticResource IconWindowMaximize}" />
+    </Style>
+    <Style Selector="Button#MaximizeWindowButton.maximized Path">
+        <Setter Property="Data" Value="{StaticResource IconWindowRestore}" />
+    </Style>
+</Styles>

@@ -15,11 +15,25 @@ public partial class MediaPropertiesDialog : Window
         OkButton.Click += OnOk;
     }
 
-    public MediaPropertiesDialog(string header, IReadOnlyList<MediaPropertyItem> properties)
+    public MediaPropertiesDialog(string header)
         : this()
     {
         HeaderText.Text = header;
+    }
+
+    public MediaPropertiesDialog(string header, IReadOnlyList<MediaPropertyItem> properties)
+        : this(header)
+    {
+        SetProperties(header, properties);
+    }
+
+    internal void SetProperties(string header, IReadOnlyList<MediaPropertyItem> properties)
+    {
+        HeaderText.Text = header;
         PropertiesList.ItemsSource = properties;
+        LoadingProgressBar.IsIndeterminate = false;
+        LoadingPanel.IsVisible = false;
+        PropertiesScrollViewer.IsVisible = true;
     }
 
     private void OnOk(object? sender, RoutedEventArgs e) => Close();

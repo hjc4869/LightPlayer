@@ -1,0 +1,149 @@
+<Project>
+  <!--
+    Import from Directory.Build.targets. Propagates the binding selection of each project to the projects it
+    references, generates bindings for projects with NativeBindingsEnabled, and adds direct-call registrations and
+    link inputs to statically linked NativeAOT executables.
+  -->
+  <PropertyGroup>
+    <!-- Browser heads import the .NET wasm workload's Emscripten toolchain; referenced binding owners receive it. -->
+    <_NativeBindingsExecutableExtension Condition="$([MSBuild]::IsOSPlatform('Windows'))">.exe</_NativeBindingsExecutableExtension>
+    <NativeBindingsClang Condition="'$(NativeBindingsClang)' == '' and '$(NativeBindingsRuntime)' == 'browser-wasm' and '$(EmscriptenUpstreamBinPath)' != ''">$(EmscriptenUpstreamBinPath)clang$(_NativeBindingsExecutableExtension)</NativeBindingsClang>
+    <NativeBindingsSymbolTool Condition="'$(NativeBindingsSymbolTool)' == '' and '$(NativeBindingsRuntime)' == 'browser-wasm' and '$(EmscriptenUpstreamBinPath)' != ''">$(EmscriptenUpstreamBinPath)llvm-nm$(_NativeBindingsExecutableExtension)</NativeBindingsSymbolTool>
+    <NativeBindingsSysroot Condition="'$(NativeBindingsSysroot)' == '' and '$(NativeBindingsRuntime)' == 'browser-wasm' and '$(EmscriptenCacheSdkCacheDir)' != ''">$([MSBuild]::NormalizeDirectory('$(EmscriptenCacheSdkCacheDir)', 'sysroot'))</NativeBindingsSysroot>
+
+    <_NativeBindingsSelectionProperties>NativeBindingsRuntime;NativeBindingsProfile;NativeBindingsStatic;NativeBindingsEmitImports;NativeBindingsImportName;NativeBindingsTypeNamespace;NativeBindingsPackageDirectory;NativeBindingsNdkDirectory;NativeBindingsClang;NativeBindingsLibClang;NativeBindingsSymbolTool;NativeBindingsSysroot;NativeBindingsDeploymentTarget</_NativeBindingsSelectionProperties>
+    <_NativeBindingsReferenceProperties>NativeBindingsRuntime=$(NativeBindingsRuntime);NativeBindingsProfile=$(NativeBindingsProfile);NativeBindingsStatic=$(NativeBindingsStatic);NativeBindingsEmitImports=$(NativeBindingsEmitImports);NativeBindingsTypeNamespace=$(NativeBindingsTypeNamespace)</_NativeBindingsReferenceProperties>
+    <_NativeBindingsReferenceProperties Condition="'$(NativeBindingsImportName)' != ''">$(_NativeBindingsReferenceProperties);NativeBindingsImportName=$(NativeBindingsImportName)</_NativeBindingsReferenceProperties>
+    <_NativeBindingsReferenceProperties Condition="'$(NativeBindingsPackageDirectory)' != ''">$(_NativeBindingsReferenceProperties);NativeBindingsPackageDirectory=$(NativeBindingsPackageDirectory)</_NativeBindingsReferenceProperties>
+    <_NativeBindingsReferenceProperties Condition="'$(NativeBindingsNdkDirectory)' != ''">$(_NativeBindingsReferenceProperties);NativeBindingsNdkDirectory=$(NativeBindingsNdkDirectory)</_NativeBindingsReferenceProperties>
+    <_NativeBindingsReferenceProperties Condition="'$(AndroidSdkDirectory)' != ''">$(_NativeBindingsReferenceProperties);AndroidSdkDirectory=$(AndroidSdkDirectory)</_NativeBindingsReferenceProperties>
+    <_NativeBindingsReferenceProperties Condition="'$(NativeBindingsClang)' != ''">$(_NativeBindingsReferenceProperties);NativeBindingsClang=$(NativeBindingsClang)</_NativeBindingsReferenceProperties>
+    <_NativeBindingsReferenceProperties Condition="'$(NativeBindingsLibClang)' != ''">$(_NativeBindingsReferenceProperties);NativeBindingsLibClang=$(NativeBindingsLibClang)</_NativeBindingsReferenceProperties>
+    <_NativeBindingsReferenceProperties Condition="'$(NativeBindingsSymbolTool)' != ''">$(_NativeBindingsReferenceProperties);NativeBindingsSymbolTool=$(NativeBindingsSymbolTool)</_NativeBindingsReferenceProperties>
+    <_NativeBindingsReferenceProperties Condition="'$(NativeBindingsSysroot)' != ''">$(_NativeBindingsReferenceProperties);NativeBindingsSysroot=$(NativeBindingsSysroot)</_NativeBindingsReferenceProperties>
+    <_NativeBindingsReferenceProperties Condition="'$(NativeBindingsDeploymentTarget)' != ''">$(_NativeBindingsReferenceProperties);NativeBindingsDeploymentTarget=$(NativeBindingsDeploymentTarget)</_NativeBindingsReferenceProperties>
+    <!-- Android multi-RID inner builds skip compilation of references; bindings must compile for each ABI instead. -->
+    <_NativeBindingsReferenceProperties Condition="'$(SkipCompilerExecution)' == 'true' and $(NativeBindingsRuntime.StartsWith('android-'))">$(_NativeBindingsReferenceProperties);SkipCompilerExecution=false</_NativeBindingsReferenceProperties>
+    <_NativeBindingsReferenceGlobalPropertiesToRemove Condition="'$(SkipCompilerExecution)' == 'true' and $(NativeBindingsRuntime.StartsWith('android-'))">_ComputeFilesToPublishForRuntimeIdentifiers;_OuterIntermediateAssembly;_OuterIntermediateSatelliteAssembliesWithTargetPath;_OuterOutputPath;_OuterIntermediateOutputPath;_OuterCustomViewMapFile</_NativeBindingsReferenceGlobalPropertiesToRemove>
+
+    <_NativeBindingsExecutable Condition="('$(OutputType)' == 'Exe' or '$(OutputType)' == 'WinExe') and '$(NativeBindingsBuildTool)' != 'true'">true</_NativeBindingsExecutable>
+    <_NativeBindingsDirectLink Condition="'$(NativeBindingsStatic)' == 'true' and '$(NativeBindingsRuntime)' != 'browser-wasm'">true</_NativeBindingsDirectLink>
+    <_NativeBindingsSystemLink Condition="'$(_NativeBindingsExecutable)' == 'true' and '$(_NativeBindingsDirectLink)' == 'true' and '$(NativeBindingsPackageDirectory)' == '' and ('$(NativeBindingsPkgConfigModules)' != '' or '$(NativeBindingsLibraries)' != '')">true</_NativeBindingsSystemLink>
+    <_NativeBindingsHost>$(DOTNET_HOST_PATH)</_NativeBindingsHost>
+    <_NativeBindingsHost Condition="'$(_NativeBindingsHost)' == ''">dotnet</_NativeBindingsHost>
+  </PropertyGroup>
+
+  <!-- Projects without the .NET SDK (such as packaging projects) resolve no selection; their references select their own. -->
+  <ItemGroup Condition="'$(NativeBindingsRuntime)' != ''">
+    <_NativeBindingsToolReference Include="@(ProjectReference->WithMetadataValue('OutputItemType', 'Analyzer'))" />
+    <_NativeBindingsToolReference Include="@(ProjectReference->WithMetadataValue('ReferenceOutputAssembly', 'false'))" />
+    <_NativeBindingsReference Include="@(ProjectReference)" Exclude="@(_NativeBindingsToolReference)" />
+    <ProjectReference Update="@(_NativeBindingsReference)">
+      <AdditionalProperties>%(ProjectReference.AdditionalProperties);$(_NativeBindingsReferenceProperties)</AdditionalProperties>
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(_NativeBindingsReferenceGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+    </ProjectReference>
+    <ProjectReference Update="@(_NativeBindingsToolReference)">
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(_NativeBindingsSelectionProperties)</GlobalPropertiesToRemove>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Target Name="ConfigureTransitiveNativeBindingReferences" AfterTargets="IncludeTransitiveProjectReferences"
+          Condition="'$(NativeBindingsRuntime)' != ''">
+    <ItemGroup>
+      <ProjectReference Update="@(_TransitiveProjectReferences)">
+        <AdditionalProperties>%(ProjectReference.AdditionalProperties);$(_NativeBindingsReferenceProperties)</AdditionalProperties>
+        <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(_NativeBindingsReferenceGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+      </ProjectReference>
+    </ItemGroup>
+  </Target>
+
+  <!-- Build-host tools: framework-dependent and independent of the consumer's runtime, AOT, and selection settings. -->
+  <ItemGroup Condition="'$(NativeBindingsEnabled)' == 'true' or '$(_NativeBindingsSystemLink)' == 'true'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Parser/NativeBindings.Parser.csproj"
+                      ReferenceOutputAssembly="false" Private="false" OutputItemType="NativeBindingsParserAssembly"
+                      GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishAot;PublishTrimmed;PlatformTarget;$(_NativeBindingsSelectionProperties)" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(NativeBindingsEnabled)' == 'true'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Generator/NativeBindings.Generator.csproj"
+                      ReferenceOutputAssembly="false" Private="false" OutputItemType="Analyzer"
+                      GlobalPropertiesToRemove="RuntimeIdentifier;SelfContained;PublishAot;PublishTrimmed;PlatformTarget;$(_NativeBindingsSelectionProperties)" />
+    <CompilerVisibleProperty Include="NativeBindingsRuntime" />
+    <CompilerVisibleProperty Include="NativeBindingsEmitImports" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(_NativeBindingsExecutable)' == 'true' and '$(_NativeBindingsDirectLink)' == 'true'">
+    <DirectPInvoke Include="$(NativeBindingsImportName)" Exclude="@(DirectPInvoke)" />
+  </ItemGroup>
+
+  <Target Name="_PrepareNativeBindingsOptions">
+    <PropertyGroup>
+      <_NativeBindingsCompilerArguments>@(NativeBindingsCompilerArgument)</_NativeBindingsCompilerArguments>
+    </PropertyGroup>
+    <ItemGroup>
+      <_NativeBindingsOption Include="runtime=$([MSBuild]::Escape('$(NativeBindingsRuntime)'))" />
+      <_NativeBindingsOption Include="profile=$([MSBuild]::Escape('$(NativeBindingsProfile)'))" />
+      <_NativeBindingsOption Include="static=$(NativeBindingsStatic)" />
+      <_NativeBindingsOption Include="importName=$([MSBuild]::Escape('$(NativeBindingsImportName)'))" />
+      <_NativeBindingsOption Include="typeNamespace=$([MSBuild]::Escape('$(NativeBindingsTypeNamespace)'))" />
+      <_NativeBindingsOption Include="packageDirectory=$([MSBuild]::Escape('$(NativeBindingsPackageDirectory)'))" />
+      <_NativeBindingsOption Include="pkgConfig=$([MSBuild]::Escape('$(NativeBindingsPkgConfig)'))" />
+      <_NativeBindingsOption Include="pkgConfigModules=$([MSBuild]::Escape('$(NativeBindingsPkgConfigModules)'))" />
+      <_NativeBindingsOption Include="includeDirectories=$([MSBuild]::Escape('$(NativeBindingsIncludeDirectory)'))" />
+      <_NativeBindingsOption Include="libraryDirectories=$([MSBuild]::Escape('$(NativeBindingsLibraryDirectory)'))" />
+      <_NativeBindingsOption Include="libraries=$([MSBuild]::Escape('$(NativeBindingsLibraries)'))" />
+      <_NativeBindingsOption Include="compilerArguments=$([MSBuild]::Escape('$(_NativeBindingsCompilerArguments)'))" />
+      <_NativeBindingsOption Include="sysroot=$([MSBuild]::Escape('$(NativeBindingsSysroot)'))" />
+      <_NativeBindingsOption Include="clang=$([MSBuild]::Escape('$(NativeBindingsClang)'))" />
+      <_NativeBindingsOption Include="libClang=$([MSBuild]::Escape('$(NativeBindingsLibClang)'))" />
+      <_NativeBindingsOption Include="symbolTool=$([MSBuild]::Escape('$(NativeBindingsSymbolTool)'))" />
+      <_NativeBindingsOption Include="ndk=$([MSBuild]::Escape('$(NativeBindingsNdkDirectory)'))" />
+      <_NativeBindingsOption Include="androidSdk=$([MSBuild]::Escape('$(AndroidSdkDirectory)'))" />
+      <_NativeBindingsOption Include="deploymentTarget=$([MSBuild]::Escape('$(NativeBindingsDeploymentTarget)'))" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="GenerateNativeBindingsManifest" BeforeTargets="CoreCompile"
+          DependsOnTargets="ResolveProjectReferences;_PrepareNativeBindingsOptions"
+          Condition="'$(NativeBindingsEnabled)' == 'true'">
+    <PropertyGroup>
+      <NativeBindingsManifest>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)nativebindings/bindings.nativebindings.xml'))</NativeBindingsManifest>
+    </PropertyGroup>
+    <ItemGroup>
+      <_NativeBindingsOption Include="output=$([MSBuild]::Escape('$(NativeBindingsManifest)'))" />
+      <_NativeBindingsOption Include="sources=$([MSBuild]::Escape('$(NativeBindingsManifest).sources'))" />
+      <_NativeBindingsOption Include="defineConstants=$([MSBuild]::Escape('$(DefineConstants)'))" />
+    </ItemGroup>
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(NativeBindingsManifest)'))" />
+    <WriteLinesToFile File="$(NativeBindingsManifest).sources" Lines="@(Compile->'%(FullPath)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <WriteLinesToFile File="$(NativeBindingsManifest).options" Lines="@(_NativeBindingsOption)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <Exec Condition="'$(DesignTimeBuild)' != 'true'"
+          Command="&quot;$(_NativeBindingsHost)&quot; &quot;@(NativeBindingsParserAssembly)&quot; --options &quot;$(NativeBindingsManifest).options&quot;" />
+    <ItemGroup>
+      <AdditionalFiles Include="$(NativeBindingsManifest)" />
+      <FileWrites Include="$(NativeBindingsManifest);$(NativeBindingsManifest).sources;$(NativeBindingsManifest).options;$(NativeBindingsManifest).fingerprint" />
+      <FileWrites Include="$([System.IO.Path]::GetDirectoryName('$(NativeBindingsManifest)'))/*.c;$([System.IO.Path]::GetDirectoryName('$(NativeBindingsManifest)'))/*.diagnostics.txt" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ValidateNativeBindingsLinkage" BeforeTargets="PrepareForBuild"
+          Condition="'$(_NativeBindingsExecutable)' == 'true' and '$(_NativeBindingsDirectLink)' == 'true' and '$(PublishAot)' != 'true'">
+    <Error Text="Statically linked native bindings for $(NativeBindingsRuntime) require NativeAOT (PublishAot=true). Use dynamic linking (NativeBindingsStatic=false) for other builds." />
+  </Target>
+
+  <!-- System libraries have no package link integration; resolve their archives and dependencies for the native linker. -->
+  <Target Name="ResolveNativeBindingsLinkInputs" BeforeTargets="SetupOSSpecificProps" DependsOnTargets="_PrepareNativeBindingsOptions"
+          Condition="'$(_NativeBindingsSystemLink)' == 'true'">
+    <PropertyGroup>
+      <_NativeBindingsLinkOptions>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)nativebindings/link.options'))</_NativeBindingsLinkOptions>
+    </PropertyGroup>
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(_NativeBindingsLinkOptions)'))" />
+    <WriteLinesToFile File="$(_NativeBindingsLinkOptions)" Lines="@(_NativeBindingsOption)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <Exec Command="&quot;$(_NativeBindingsHost)&quot; &quot;@(NativeBindingsParserAssembly)&quot; --link-inputs --options &quot;$(_NativeBindingsLinkOptions)&quot;"
+          ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" ItemName="_NativeBindingsLinkInput" />
+    </Exec>
+    <ItemGroup>
+      <NativeLibrary Include="@(_NativeBindingsLinkInput)" />
+    </ItemGroup>
+  </Target>
+</Project>

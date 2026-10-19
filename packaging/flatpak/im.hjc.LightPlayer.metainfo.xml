@@ -8,21 +8,21 @@
   <project_license>LicenseRef-proprietary</project_license>
 
   <name>Light Player</name>
-  <summary>Play and organize your local music library</summary>
+  <summary>Play and organize your local media library</summary>
 
   <description>
     <p>
-      Light Player is a cross-platform desktop music player. Scan your local
-      folders into a browsable library of songs, albums, and artists, build
-      playlists, and enjoy gapless playback with lyrics and cover art.
+      Light Player is a cross-platform desktop media player. Scan your local
+      folders into a browsable music and video library, build playlists, and
+      enjoy playback with cover art, lyrics, chapters, and subtitles.
     </p>
     <p>Features:</p>
     <ul>
-      <li>Browse your library by song, album, and artist</li>
-      <li>Create and manage playlists</li>
+      <li>Browse music by song, album, and artist, or browse videos by folder</li>
+      <li>Create and manage music and video playlists</li>
       <li>Search across your collection</li>
       <li>Media-key and "now playing" integration (MPRIS)</li>
-      <li>Open audio files directly to replace the current queue</li>
+      <li>Open audio and video files directly from your file manager</li>
     </ul>
   </description>
 
@@ -35,12 +35,16 @@
   <categories>
     <category>AudioVideo</category>
     <category>Audio</category>
+    <category>Video</category>
     <category>Player</category>
+    <category>Graphics</category>
+    <category>Photography</category>
+    <category>Viewer</category>
   </categories>
 
   <content_rating type="oars-1.1" />
 
   <releases>
-    <release version="1.0.0" date="2026-07-03" />
+    <release version="2.0.0" date="2026-10-16" />
   </releases>
 </component>

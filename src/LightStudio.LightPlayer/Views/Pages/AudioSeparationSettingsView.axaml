@@ -1,0 +1,148 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:services="using:LightStudio.LightPlayer.Services"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             x:Class="LightStudio.LightPlayer.Views.Pages.AudioSeparationSettingsView"
+             x:DataType="vm:AudioSeparationSettingsViewModel">
+    <UserControl.Styles>
+        <Style Selector="controls|SettingRow TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="ComboBox#AudioModelSelector /template/ TextBlock">
+            <Setter Property="TextWrapping" Value="NoWrap" />
+        </Style>
+    </UserControl.Styles>
+    <StackPanel Spacing="8" MaxWidth="680" HorizontalAlignment="Stretch" Margin="0,12,0,8">
+        <StackPanel Spacing="4" Margin="0,0,0,4">
+            <TextBlock Text="{Binding AudioSeparation_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap" Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Text="{Binding AudioSeparation_Subtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       FontSize="13" TextWrapping="Wrap" Foreground="{DynamicResource AppSecondaryTextBrush}" />
+        </StackPanel>
+        <Border Classes="settingsGroup">
+            <StackPanel>
+                <controls:SettingRow IsGrouped="True"
+                                     Header="{Binding AudioSeparation_Enable, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <controls:SettingRow.ActionContent>
+                        <ToggleSwitch x:Name="EnableSeparation" OnContent="" OffContent="" IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                      IsEnabled="{Binding CanConfigure}" />
+                    </controls:SettingRow.ActionContent>
+                </controls:SettingRow>
+                <controls:SettingRow IsGrouped="True" HasTopDivider="True"
+                                     Header="{Binding AudioSeparation_Model, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <controls:SettingRow.ActionContent>
+                        <ComboBox x:Name="AudioModelSelector" Width="150" ItemsSource="{Binding InstalledModels}"
+                                  SelectedItem="{Binding SelectedModel, Mode=TwoWay}" IsEnabled="{Binding CanSelectModel}"
+                                  PlaceholderText="{Binding Inference_NoModel, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                  ToolTip.Tip="{Binding SelectedModel.Name}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="services:InferenceInstalledModel">
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="280" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </controls:SettingRow.ActionContent>
+                </controls:SettingRow>
+                <controls:SettingRow IsGrouped="True" HasTopDivider="True"
+                                     Header="{Binding Inference_Device, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <controls:SettingRow.DescriptionContent>
+                        <TextBlock Text="{Binding DeviceFallbackDescription}" IsVisible="{Binding IsDeviceFallback}"
+                                   Classes="settingDescription" TextWrapping="Wrap" FontSize="12" />
+                    </controls:SettingRow.DescriptionContent>
+                    <controls:SettingRow.ActionContent>
+                        <ComboBox x:Name="AudioDeviceSelector" Width="150" ItemsSource="{Binding Devices}"
+                                  SelectedItem="{Binding SelectedDevice, Mode=TwoWay}" IsEnabled="{Binding !IsChanging}"
+                                  ToolTip.Tip="{Binding SelectedDevice.Name}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="services:InferenceDevice">
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="280" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </controls:SettingRow.ActionContent>
+                </controls:SettingRow>
+                <controls:SettingRow IsGrouped="True" HasTopDivider="True"
+                                     Header="{Binding Inference_Models, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <controls:SettingRow.ActionContent>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="ImportAudioModel" Classes="icon" Click="OnImportClick" IsEnabled="{Binding CanImport}"
+                                    ToolTip.Tip="{Binding AudioSeparation_Import, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconImport}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                            </Button>
+                            <Button x:Name="ToggleAudioModels" Classes="icon" Click="OnToggleModelsClick"
+                                    ToolTip.Tip="{Binding Inference_Models, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Grid Width="16" Height="16">
+                                    <Viewbox IsVisible="{Binding !#AudioModelCatalog.IsVisible}">
+                                        <Path Data="{StaticResource IconChevronDown}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                    </Viewbox>
+                                    <Viewbox IsVisible="{Binding #AudioModelCatalog.IsVisible}">
+                                        <Path Data="{StaticResource IconChevronUp}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                    </Viewbox>
+                                </Grid>
+                            </Button>
+                        </StackPanel>
+                    </controls:SettingRow.ActionContent>
+                    <controls:SettingRow.RowsContent>
+                        <ItemsControl x:Name="AudioModelCatalog" ItemsSource="{Binding Models}" IsVisible="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:InferenceModelSettingsViewModel">
+                                    <controls:SettingRow IsGrouped="True" HasTopDivider="True" Header="{Binding Name}" Description="{Binding Description}">
+                                        <controls:SettingRow.DescriptionContent>
+                                            <StackPanel Spacing="4" Margin="0,6,0,0">
+                                                <Button Classes="link" Content="{Binding DownloadUri.Host}" Click="OnModelLinkClick"
+                                                        IsVisible="{Binding HasDownloadLink}" HorizontalAlignment="Left" FontSize="12"
+                                                        ToolTip.Tip="{Binding DownloadUri}" />
+                                                <StackPanel IsVisible="{Binding HasTransfer}" Spacing="4">
+                                                    <TextBlock Text="{Binding StatusText}" FontSize="12" ToolTip.Tip="{Binding Error}"
+                                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                                    <TextBlock Text="{Binding ProgressText}" IsVisible="{Binding HasProgress}" FontSize="12"
+                                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                                    <ProgressBar Value="{Binding Progress}" IsVisible="{Binding HasProgress}" Height="3" MinHeight="0" MinWidth="0" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </controls:SettingRow.DescriptionContent>
+                                        <controls:SettingRow.ActionContent>
+                                            <Grid ColumnDefinitions="32,32" ColumnSpacing="8" Width="72" Height="32">
+                                                <Button Grid.Column="1" Classes="icon" Width="32" Height="32"
+                                                        Command="{Binding DownloadCommand}" IsVisible="{Binding ShowDownload}"
+                                                        ToolTip.Tip="{Binding Inference_Download, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconDownload}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                                                </Button>
+                                                <Button Grid.Column="1" Classes="icon" Width="32" Height="32"
+                                                        Command="{Binding DeleteCommand}" IsVisible="{Binding ShowDelete}"
+                                                        ToolTip.Tip="{Binding Common_Delete, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconDelete}" Fill="{DynamicResource AppSecondaryTextBrush}" /></Viewbox>
+                                                </Button>
+                                                <Button Classes="icon" Width="32" Height="32" Command="{Binding PauseCommand}" IsVisible="{Binding ShowPause}"
+                                                        ToolTip.Tip="{Binding Inference_PauseDownload, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconPause}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                                                </Button>
+                                                <Button Classes="icon" Width="32" Height="32" Command="{Binding DownloadCommand}" IsVisible="{Binding ShowResume}"
+                                                        ToolTip.Tip="{Binding Inference_ResumeDownload, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconPlay}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                                                </Button>
+                                                <Button Grid.Column="1" Classes="icon" Width="32" Height="32"
+                                                        Command="{Binding CancelCommand}" IsVisible="{Binding HasTransfer}"
+                                                        ToolTip.Tip="{Binding Common_Cancel, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                    <Viewbox Width="16" Height="16"><Path Data="{StaticResource IconClose}" Fill="{DynamicResource AppPrimaryTextBrush}" /></Viewbox>
+                                                </Button>
+                                            </Grid>
+                                        </controls:SettingRow.ActionContent>
+                                    </controls:SettingRow>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </controls:SettingRow.RowsContent>
+                </controls:SettingRow>
+            </StackPanel>
+        </Border>
+        <TextBlock Text="{Binding ProviderDescription}" FontSize="12" TextWrapping="Wrap"
+                   Foreground="{DynamicResource AppSecondaryTextBrush}"
+                   IsVisible="{Binding ProviderDescription, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <TextBlock Text="{Binding Status.Error}" FontSize="12" TextWrapping="Wrap"
+                   Foreground="{DynamicResource AppFavoriteBrush}"
+                   IsVisible="{Binding Status.Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+</UserControl>

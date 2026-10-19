@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using FFmpeg.AutoGen;
+using LightStudio.NativeBindings.Types;
 
 namespace LightStudio.FfmpegShim
 {
@@ -25,17 +25,23 @@ namespace LightStudio.FfmpegShim
         public TimeSpan Duration { get; private set; }
         public IReadOnlyDictionary<string, string> AllProperties { get; private set; }
         internal unsafe FfmpegMediaInfo(long duration, AVDictionary* metadata)
+            : this(new TimeSpan(duration), new AVDictionaryWrapper(metadata))
         {
-            Duration = new TimeSpan(duration);
-            AllProperties = new AVDictionaryWrapper(metadata);
-            Title = AllProperties["title"];
-            Album = AllProperties["album"];
-            AlbumArtist = AllProperties["album_artist"];
-            Artist = AllProperties["artist"];
-            Composer = AllProperties["composer"];
-            Date = AllProperties["date"];
+        }
 
-            var track = AllProperties["track"];
+        /// <summary>Describes media from tags read elsewhere. Lookups should ignore case, as FFmpeg's do.</summary>
+        public FfmpegMediaInfo(TimeSpan duration, IReadOnlyDictionary<string, string> properties)
+        {
+            Duration = duration;
+            AllProperties = properties;
+            Title = Get("title");
+            Album = Get("album");
+            AlbumArtist = Get("album_artist");
+            Artist = Get("artist");
+            Composer = Get("composer");
+            Date = Get("date");
+
+            var track = Get("track");
             if (track == null)
             {
                 TrackNumber = null;
@@ -53,7 +59,7 @@ namespace LightStudio.FfmpegShim
                 TotalTracks = null;
             }
 
-            var disc = AllProperties["disc"];
+            var disc = Get("disc");
             if (disc==null)
             {
                 DiscNumber = null;
@@ -71,12 +77,14 @@ namespace LightStudio.FfmpegShim
                 TotalDiscs = null;
             }
 
-            Genre = AllProperties["genre"];
-            Performer = AllProperties["performer"];
-            Grouping = AllProperties["grouping"];
-            Comments = AllProperties["comment"];
-            Copyright = AllProperties["copyright"];
-            Description = AllProperties["description"];
+            Genre = Get("genre");
+            Performer = Get("performer");
+            Grouping = Get("grouping");
+            Comments = Get("comment");
+            Copyright = Get("copyright");
+            Description = Get("description");
         }
+
+        private string Get(string key) => AllProperties.TryGetValue(key, out string value) ? value : null;
     }
 }

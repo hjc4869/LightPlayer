@@ -1,0 +1,11 @@
+<Project>
+  <!--
+    Import from Directory.Build.props. Every project then resolves its native binding selection after its own
+    project file is evaluated and before the SDK computes output paths, so outputs are separated per selection.
+  -->
+  <PropertyGroup>
+    <NativeBindingsDirectory>$(MSBuildThisFileDirectory)</NativeBindingsDirectory>
+    <_NativeBindingsChainedBeforeSdkTargets>$(BeforeMicrosoftNETSdkTargets)</_NativeBindingsChainedBeforeSdkTargets>
+    <BeforeMicrosoftNETSdkTargets>$(MSBuildThisFileDirectory)NativeBindings.Selection.targets</BeforeMicrosoftNETSdkTargets>
+  </PropertyGroup>
+</Project>

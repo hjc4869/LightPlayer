@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:controls="using:LightStudio.LightPlayer.Controls"
@@ -10,27 +11,34 @@
              x:Class="LightStudio.LightPlayer.Views.Pages.SampleRateSettingsSectionView"
              x:DataType="vm:SampleRateSettingsSectionViewModel">
     <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
-        <StackPanel Spacing="4" Margin="0,0,0,4">
-            <TextBlock Text="Sample rate"
+        <StackPanel Spacing="4" Margin="0,0,0,4" IsVisible="{Binding ShowHeader}">
+            <TextBlock Text="{Binding SampleRateSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
                        FontSize="22"
                        FontWeight="SemiBold"
                        Foreground="{DynamicResource AppPrimaryTextBrush}" />
-            <TextBlock Text="Choose the audio output sample rate."
-                       FontSize="13"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
         </StackPanel>
 
-        <controls:SettingRow Header="Always resample"
-                             Description="Always resample audio to a specific sample rate">
+        <Border Classes="settingsGroup"
+            Classes.joinedAbove="{Binding !ShowHeader}">
+            <StackPanel>
+        <Border Classes="settingsDivider" IsVisible="{Binding !ShowHeader}" />
+        <controls:SettingRow Header="{Binding SampleRateSettings_AlwaysResampleHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True">
             <controls:SettingRow.ActionContent>
-                <ToggleSwitch IsChecked="{Binding AlwaysResample, Mode=TwoWay}" />
+                <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding AlwaysResample, Mode=TwoWay}" />
             </controls:SettingRow.ActionContent>
         </controls:SettingRow>
 
-        <controls:SettingRow Header="Preferred rate"
-                             Description="Choose the preferred sample rate.">
+        <controls:SettingRow Header="{Binding SampleRateSettings_PreferredRateHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
+            <controls:SettingRow.Styles>
+                <Style Selector="TextBlock">
+                    <Setter Property="TextWrapping" Value="Wrap" />
+                </Style>
+            </controls:SettingRow.Styles>
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="100"
+                <ComboBox Width="150"
                           ItemsSource="{Binding Options}"
                           SelectedItem="{Binding SelectedOption, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
@@ -42,15 +50,16 @@
             </controls:SettingRow.ActionContent>
         </controls:SettingRow>
 
-        <controls:SettingRow Header="System sample rate"
-                             Description="The current output rate of the system mixer.">
+        <controls:SettingRow Header="{Binding SampleRateSettings_SystemRateHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                             IsGrouped="True"
+                             HasTopDivider="True">
             <controls:SettingRow.ActionContent>
                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <TextBlock Text="{Binding SystemSampleRate}"
                                VerticalAlignment="Center"
                                Foreground="{DynamicResource AppSecondaryTextBrush}" />
                     <Button Classes="icon"
-                            ToolTip.Tip="Refresh"
+                            ToolTip.Tip="{Binding Common_Refresh, Source={x:Static strings:LocalizedStrings.Instance}}"
                             Command="{Binding RefreshSystemSampleRateCommand}">
                         <Viewbox Width="16" Height="16">
                             <Path Data="{StaticResource IconRefresh}"
@@ -60,9 +69,10 @@
                 </StackPanel>
             </controls:SettingRow.ActionContent>
         </controls:SettingRow>
+            </StackPanel>
+        </Border>
 
-
-        <TextBlock Text="Sample rate settings will be applied when playing the next track."
+        <TextBlock Text="{Binding SampleRateSettings_NextTrackPrompt, Source={x:Static strings:LocalizedStrings.Instance}}"
                    IsVisible="{Binding NextTrackPromptVisible}"
                    FontSize="12"
                    Margin="2,-2,2,2"

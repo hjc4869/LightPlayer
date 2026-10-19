@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+        xmlns:pages="using:LightStudio.LightPlayer.Views.Pages"
+        mc:Ignorable="d"
+        d:DesignWidth="520"
+        d:DesignHeight="620"
+        x:Class="LightStudio.LightPlayer.Views.Dialogs.RemoteLibraryEditorDialog"
+        x:DataType="vm:RemoteLibraryEditorViewModel"
+        Width="520"
+        Height="620"
+        MinWidth="420"
+        MinHeight="420"
+        Padding="18"
+        Background="{DynamicResource AppPageBackgroundBrush}"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Title="{Binding Header}">
+    <pages:RemoteLibraryEditorView />
+</Window>

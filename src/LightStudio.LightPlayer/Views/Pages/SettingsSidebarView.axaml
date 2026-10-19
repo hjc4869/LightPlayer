@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:conv="using:LightStudio.LightPlayer.Converters"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="220"
+             d:DesignHeight="600"
+             x:Class="LightStudio.LightPlayer.Views.Pages.SettingsSidebarView"
+             x:DataType="vm:SettingsPageViewModel">
+    <!--
+        The settings sections as entries of the Apple layout's sidebar. Hosted inside a
+        DockPanel.navPane, whose styles (Themes/NavigationPane.axaml) draw them exactly as the
+        shell's navigation entries.
+    -->
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <ItemsControl Margin="0,4,0,10" ItemsSource="{Binding Sections}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SettingsNavigationItemViewModel">
+                    <StackPanel>
+                        <Panel IsVisible="{Binding IsCategory}">
+                            <TextBlock Classes="navSection" Text="{Binding Title}" />
+                        </Panel>
+                        <Button Classes="nav"
+                                Classes.selected="{Binding IsSelected}"
+                                IsVisible="{Binding !IsCategory}"
+                                Command="{Binding $parent[ItemsControl].((vm:SettingsPageViewModel)DataContext).SelectSectionCommand}"
+                                CommandParameter="{Binding}">
+                            <Panel>
+                                <Border Classes="navIndicator" />
+                                <StackPanel Classes="navContent"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <Viewbox Classes="navGlyph">
+                                        <Path Classes="navIcon"
+                                              Data="{Binding IconKey, Converter={x:Static conv:IconKeyConverter.Instance}}" />
+                                    </Viewbox>
+                                    <TextBlock Classes="navLabel"
+                                               Text="{Binding Title}"
+                                               VerticalAlignment="Center"
+                                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                </StackPanel>
+                            </Panel>
+                        </Button>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </ScrollViewer>
+</UserControl>

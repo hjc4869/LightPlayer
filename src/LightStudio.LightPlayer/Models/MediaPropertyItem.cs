@@ -1,4 +1,7 @@
 namespace LightStudio.LightPlayer.Models;
 
-/// <summary>A single name/value row shown in the media properties dialog.</summary>
-public sealed record MediaPropertyItem(string Key, string Value);
+/// <summary>
+/// A single row of the media properties dialog: either a name/value pair, or a section header that
+/// introduces the rows below it (the container, one stream, and so on).
+/// </summary>
+public sealed record MediaPropertyItem(string Key, string Value, bool IsSection = false);
