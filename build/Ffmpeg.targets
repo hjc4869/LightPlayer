@@ -24,8 +24,8 @@
 
   <PropertyGroup>
     <!-- Pinned upstream build. Keep the tag and the version in sync with each other. -->
-    <FFmpegBuildTag Condition="'$(FFmpegBuildTag)' == ''">autobuild-2026-09-20-13-11</FFmpegBuildTag>
-    <FFmpegBuildVersion Condition="'$(FFmpegBuildVersion)' == ''">n9.0.2-3-ga5923073bf</FFmpegBuildVersion>
+    <FFmpegBuildTag Condition="'$(FFmpegBuildTag)' == ''">autobuild-2026-09-30-13-08</FFmpegBuildTag>
+    <FFmpegBuildVersion Condition="'$(FFmpegBuildVersion)' == ''">n9.0.2-17-g2a571b6068</FFmpegBuildVersion>
     <FFmpegReleaseSeries Condition="'$(FFmpegReleaseSeries)' == ''">9.0</FFmpegReleaseSeries>
     <FFmpegDownloadBaseUrl Condition="'$(FFmpegDownloadBaseUrl)' == ''">https://github.com/BtbN/FFmpeg-Builds/releases/download/$(FFmpegBuildTag)</FFmpegDownloadBaseUrl>
     <!-- One cache for the whole repository so every head downloads each archive at most once. -->
