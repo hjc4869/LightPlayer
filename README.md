@@ -2,10 +2,25 @@
 
 Light Player is a cross-platform media player built with [Avalonia](https://avaloniaui.net/) and
 .NET 10. It combines this device's indexed folders with zero or more Light Player servers in one
-browsable music/video library, while preserving source-qualified playlists, queues, history,
-artwork, subtitles, lyrics, and playback routing. Audio is decoded through FFmpeg and played back
-via PulseAudio on Linux, Core Audio on macOS, WASAPI on Windows, AAudio on Android, or Web Audio in
-the browser.
+browsable music/video library, with support for playlists, queues, history, artwork, subtitles,
+and lyrics.
+
+### New features
+
+- **Video playback** -- Play videos from local folders, remote libraries, Blu-ray folders and ISO
+  images, and streaming links, with hardware-accelerated decoding, rich subtitle support, chapters,
+  Picture-in-Picture, and custom scaling shaders.
+- **Photo viewer and library** -- View photos in a wide range of formats, from JPEG, PNG, and HEIC
+  to AVIF, JPEG XL, JPEG XR, animated images, and camera RAW, with smooth zooming and gestures. Find
+  photos by describing what is in them with on-device smart search.
+- **HDR and advanced color** -- Videos and photos show their full brightness and wide color gamut
+  on HDR displays, and colors stay accurate on wide-gamut and SDR screens. When HDR output is
+  unavailable, HDR content is tone mapped with high-quality, adjustable curves.
+- **Dynamic HDR** -- Dolby Vision and HDR10+ videos follow their scene-by-scene metadata for more
+  faithful brightness and contrast on both HDR and SDR displays.
+- **HDR photos with gain maps** -- HDR photos from modern phones and cameras, such as those taken
+  on iPhone, Pixel, and Galaxy devices, light up on HDR displays and adapt to the brightness your
+  screen has available, while still looking right on SDR screens.
 
 ## Platform support
 
