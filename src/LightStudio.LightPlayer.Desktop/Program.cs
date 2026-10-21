@@ -178,7 +178,10 @@ sealed class Program
         // app offers a theme derived from it and starts on that rather than on a shipped family.
         PlatformServices.SupportsSystemAccentTheme = true;
 #elif LINUX
-        var suffix = $"LightStudioLightPlayer.instance{Environment.ProcessId}";
+        var flatpakId = Environment.GetEnvironmentVariable("FLATPAK_ID");
+        var suffix = !string.IsNullOrEmpty(flatpakId)
+            ? flatpakId
+            : $"LightStudioLightPlayer.instance{Environment.ProcessId}";
         SystemMediaControlsFactory.Register(() => new MprisSystemMediaControls("LightPlayer", suffix));
         var screenSaver = new ScreenSaverInhibitor("LightPlayer", "Playing video");
         PlatformServices.KeepScreenOnRequested = screenSaver.SetKeepScreenOn;

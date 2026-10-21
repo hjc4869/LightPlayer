@@ -42,10 +42,6 @@ finish-args:
   - --socket=pulseaudio
   # Online lyrics search.
   - --share=network
-  # MPRIS "now playing" / media-key integration. Owning the app id itself (for the
-  # single-instance channel) is always allowed by the sandbox, so only the MPRIS
-  # name needs to be declared here.
-  - --own-name=org.mpris.MediaPlayer2.LightStudioLightPlayer.*
   - --talk-name=com.canonical.AppMenu.Registrar
   # Holding off the screensaver while video plays.
   - --talk-name=org.freedesktop.ScreenSaver

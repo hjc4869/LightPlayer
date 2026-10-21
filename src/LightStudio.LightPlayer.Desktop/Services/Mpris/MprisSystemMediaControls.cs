@@ -659,8 +659,7 @@ internal sealed class MprisSystemMediaControls : IPathMethodHandler, ISystemMedi
             var conn = new DBusConnection(address);
             await conn.ConnectAsync();
 
-            // Serve the object first, then claim the well-known name. The instance
-            // suffix keeps the name unique per process, so no owner conflict occurs.
+            // Serve the object before claiming the well-known name.
             conn.AddMethodHandler(this);
             await conn.RequestNameAsync(busName, RequestNameOptions.None);
 
