@@ -4,7 +4,7 @@
     <InstallerArchitecture Condition="'$(InstallerArchitecture)' == ''">x64</InstallerArchitecture>
     <InstallerPlatform>$(InstallerArchitecture)</InstallerPlatform>
     <PackageUpgradeCode>4b98f85c-b2aa-470e-abff-b2820ab71817</PackageUpgradeCode>
-    <MsiVersion Condition="'$(MsiVersion)' == ''">2.0.0</MsiVersion>
+    <MsiVersion Condition="'$(MsiVersion)' == ''">2.1.0</MsiVersion>
     <PublishDirectory Condition="'$(PublishDirectory)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\windows-installer\$(InstallerArchitecture)\publish</PublishDirectory>
     <OutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\windows-installer\$(InstallerArchitecture)\msi\</OutputPath>
     <IntermediateOutputPath>$(MSBuildThisFileDirectory)..\..\artifacts\obj\LightPlayerSetup\package\$(InstallerArchitecture)\</IntermediateOutputPath>

@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using LightMediaRenderer.Avalonia.Controls;
 using LightMediaRenderer.Contracts;
@@ -16,6 +17,12 @@ public sealed record PhotoDecodeRequest(IMultiMediaPlatformIO Platform, string P
 {
     public PhotoPreviewRequest? Preview { get; init; }
     public bool? RenderRaw { get; init; }
+
+    /// <summary>
+    /// Decodes the whole picture for processing rather than display: container tile grids are assembled
+    /// in parallel instead of becoming tile sources, and display-only measurements are skipped.
+    /// </summary>
+    public bool WholeImage { get; init; }
 }
 
 /// <summary>
@@ -33,10 +40,23 @@ public interface IImageDecoder
     Task<VideoFrame?> DecodePhotoAsync(PhotoDecodeRequest request, IProgress<Size>? displaySize, CancellationToken cancellationToken);
     Task<StillImageThumbnail?> DecodePhotoThumbnailAsync(PhotoDecodeRequest request, int maxDimension, CancellationToken cancellationToken);
 
-    /// <summary>Encodes an upright thumbnail that fits <paramref name="maxDimension"/> as JPEG, or returns null for no picture.</summary>
+    /// <summary>
+    /// Encodes an upright thumbnail that fits <paramref name="maxDimension"/>, or returns null for no picture. Decoders
+    /// that support it keep wide-gamut color, gain maps and HDR; others encode sRGB JPEG.
+    /// </summary>
     Task<byte[]?> EncodePhotoThumbnailAsync(PhotoDecodeRequest request, int maxDimension, CancellationToken cancellationToken);
     Task<FastImageSource> DecodeArtworkAsync(ArtworkBuffer content, int pixelSize, CancellationToken cancellationToken);
     Task<Bitmap?> DecodeBitmapAsync(byte[] content, int? width, BitmapInterpolationMode interpolationMode, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Decodes an encoded thumbnail at least <paramref name="width"/> pixels across where the codec can reduce it.
+    /// Decoders that support it keep wide-gamut color, HDR transfer and gain maps for the renderer.
+    /// </summary>
+    async Task<IImage?> DecodeThumbnailAsync(byte[] content, int width, CancellationToken cancellationToken) =>
+        await DecodeBitmapAsync(content, width, BitmapInterpolationMode.MediumQuality, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>Whether <see cref="DecodeThumbnailAsync"/> decodes JPEG XL.</summary>
+    bool CanDecodeJpegXl => false;
 
     /// <summary>
     /// Decodes a picture <paramref name="width"/> pixels across and applies a Gaussian blur with standard deviation
@@ -59,12 +79,6 @@ public static class ImageDecoding
             cancellationToken.ThrowIfCancellationRequested();
         }
         return image;
-    }
-
-    public static PhotoColorProfile? CreateColorProfile(byte[] profile, int primaries, int transfer)
-    {
-        using var space = PhotoDecoder.CreateColorSpace(profile, primaries, transfer);
-        return space is null ? null : PhotoDecoder.CreateGpuProfile(space, relativeHdr: false);
     }
 
     private static IImageDecoder decoder = new InProcessImageDecoder();
@@ -144,6 +158,23 @@ public static class ImageDecoding
         return bitmap;
     }
 
+    public static bool CanDecodeJpegXl => Decoder.CanDecodeJpegXl;
+
+    public static async Task<IImage?> DecodeThumbnailAsync(byte[]? content, int width, CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (content is not { Length: > 0 })
+            return null;
+        IImage? image = await Decoder.DecodeThumbnailAsync(content, width, cancellationToken).ConfigureAwait(false);
+        if (cancellationToken.IsCancellationRequested)
+        {
+            (image as IDisposable)?.Dispose();
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+        return image;
+    }
+
     public static async Task<Bitmap?> DecodeBackdropAsync(
         byte[]? content, int width, float blurSigma, CancellationToken cancellationToken = default)
     {
@@ -189,10 +220,10 @@ internal sealed class InProcessImageDecoder : IImageDecoder
             cancellationToken.ThrowIfCancellationRequested();
             VideoFrame? frame = request.Preview is { } preview
                 ? PhotoDecoder.DecodePreview(stream, preview, cancellationToken)
-                : PhotoDecoder.Decode(stream, cancellationToken, request.RenderRaw, request.Path);
+                : PhotoDecoder.Decode(stream, cancellationToken, request.RenderRaw, request.Path, useTiles: !request.WholeImage);
             try
             {
-                if (frame is { ColorTransfer: VideoColorTransfer.Pq, GainMap: null, PhotoAnimation: null })
+                if (!request.WholeImage && frame is { ColorTransfer: VideoColorTransfer.Pq, GainMap: null, PhotoAnimation: null })
                     frame.PhotoPeakLuminance = await MeasurePhotoPeakAsync(frame, cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 return frame;
@@ -257,13 +288,32 @@ internal sealed class InProcessImageDecoder : IImageDecoder
         async () =>
         {
             using Stream stream = await request.Platform.OpenMediaFileAsync(request.Path, cancellationToken).ConfigureAwait(false);
-            StillImageThumbnail? thumbnail = request.RenderRaw == false
-                ? PhotoDecoder.DecodeDngThumbnail(stream, maxDimension, cancellationToken) : null;
-            thumbnail ??= PhotoBitmap.DecodeThumbnail(stream, maxDimension, leaveOpen: true, cancellationToken);
-            if (thumbnail is null)
-                return null;
-            return VideoPreviewFactory.EncodeJpeg(thumbnail.Pixels, thumbnail.Width, thumbnail.Height)
-                ?? throw new InvalidDataException("The thumbnail could not be encoded.");
+            return await PhotoThumbnailEncoder.EncodePhotoAsync(stream, maxDimension, request.RenderRaw, cancellationToken)
+                .ConfigureAwait(false);
+        },
+        cancellationToken);
+
+    public bool CanDecodeJpegXl => canDecodeJpegXl.Value;
+
+    private static readonly Lazy<bool> canDecodeJpegXl =
+        new(() => StillImage.IsDecoderAvailable(LightStudio.NativeBindings.Types.AVCodecID.AV_CODEC_ID_JPEGXL));
+
+    public Task<IImage?> DecodeThumbnailAsync(byte[] content, int width, CancellationToken cancellationToken) => Task.Run<IImage?>(
+        () =>
+        {
+            VideoFrame? frame = PhotoDecoder.DecodeThumbnailFrame(content, width, cancellationToken);
+            if (frame is null)
+                return BitmapDecoder.DecodeToWidth(content, width, BitmapInterpolationMode.MediumQuality);
+            try
+            {
+                if (frame is { ColorTransfer: VideoColorTransfer.Pq, GainMap: null })
+                    frame.PhotoPeakLuminance = LightMediaRenderer.Shaders.VideoFramePipeline.MeasurePhotoPeak(frame, cancellationToken);
+                return new PhotoFrameImage(frame);
+            }
+            finally
+            {
+                frame.Release();
+            }
         },
         cancellationToken);
 

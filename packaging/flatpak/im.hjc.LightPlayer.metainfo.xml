@@ -2,13 +2,13 @@
 <component type="desktop-application">
   <id>im.hjc.LightPlayer</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>LicenseRef-proprietary=https://github.com/hjc4869/LightPlayer/blob/v2.0.0/LICENSE</project_license>
+  <project_license>LicenseRef-proprietary=https://github.com/hjc4869/LightPlayer/blob/v2.1.0/LICENSE</project_license>
 
-  <name>Light Player</name>
+  <name>Light Media Center</name>
   <summary>Play and organize your media library</summary>
   <description>
     <p>
-      Light Player is a cross-platform media player built with Avalonia and .NET 10. It combines this device's indexed folders with zero or more Light Player servers in one browsable music/video library, with support for playlists, queues, history, artwork, subtitles, and lyrics.
+      Light Media Center is a cross-platform media player built with Avalonia and .NET 10. It combines this device's indexed folders with zero or more Light Media Center servers in one browsable music/video library, with support for playlists, queues, history, artwork, subtitles, and lyrics.
     </p>
     <ul>
       <li>Video playback: Play videos from local folders, remote libraries, Blu-ray folders and ISO images, and streaming links, with hardware-accelerated decoding, rich subtitle support, chapters, Picture-in-Picture, and custom scaling shaders.</li>
@@ -40,21 +40,21 @@
 
   <screenshots>
     <screenshot type="default">
-      <image type="source">https://github.com/hjc4869/LightPlayer/raw/refs/tags/v2.0.1/packaging/screenshots/lp-screenshot-0.png</image>
+      <image type="source">https://github.com/hjc4869/LightPlayer/raw/refs/tags/v2.1.0/packaging/screenshots/lp-screenshot-0.png</image>
     </screenshot>
     <screenshot>
-      <image type="source">https://github.com/hjc4869/LightPlayer/raw/refs/tags/v2.0.1/packaging/screenshots/lp-screenshot-1.png</image>
+      <image type="source">https://github.com/hjc4869/LightPlayer/raw/refs/tags/v2.1.0/packaging/screenshots/lp-screenshot-1.png</image>
     </screenshot>
     <screenshot>
-      <image type="source">https://github.com/hjc4869/LightPlayer/raw/refs/tags/v2.0.1/packaging/screenshots/lp-screenshot-2.png</image>
+      <image type="source">https://github.com/hjc4869/LightPlayer/raw/refs/tags/v2.1.0/packaging/screenshots/lp-screenshot-2.png</image>
     </screenshot>
   </screenshots>
 
   <releases>
-    <release version="2.0.1" date="2026-10-21">
-      <url type="details">https://github.com/hjc4869/LightPlayer/releases/tag/v2.0.1</url>
+    <release version="2.1.0" date="2026-10-28">
+      <url type="details">https://github.com/hjc4869/LightPlayer/releases/tag/v2.1.0</url>
       <description>
-        <p>Light Player 2.0 adds a home page, remote libraries, video playback, a photo library with indexing and search, and audio stem separation.</p>
+        <p>Light Media Center 2.0 adds a home page, remote libraries, video playback, a photo library with indexing and search, and audio stem separation.</p>
       </description>
     </release>
   </releases>

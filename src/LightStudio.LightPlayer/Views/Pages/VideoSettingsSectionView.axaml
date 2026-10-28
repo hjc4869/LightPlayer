@@ -9,19 +9,8 @@
              d:DesignHeight="500"
              x:Class="LightStudio.LightPlayer.Views.Pages.VideoSettingsSectionView"
              x:DataType="vm:VideoSettingsSectionViewModel">
-    <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
-        <StackPanel Spacing="4" Margin="0,0,0,4">
-            <TextBlock Text="{Binding Title}"
-                       FontSize="22"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
-            <TextBlock Text="{Binding Description}"
-                       FontSize="13"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
-        </StackPanel>
-
-        <Border Classes="settingsGroup">
-            <StackPanel>
+    <Border Classes="settingsGroup" MaxWidth="680" HorizontalAlignment="Stretch" VerticalAlignment="Top">
+        <StackPanel>
         <controls:SettingRow Header="{Binding BufferHeader}"
                              IsGrouped="True">
             <controls:SettingRow.ActionContent>
@@ -92,56 +81,6 @@
                 <ToggleSwitch OnContent=""
                               OffContent=""
                               IsChecked="{Binding PreferHardwareProcessing, Mode=TwoWay}" />
-            </controls:SettingRow.ActionContent>
-        </controls:SettingRow>
-            </StackPanel>
-        </Border>
-
-
-        <Border Classes="settingsGroup">
-            <StackPanel>
-        <controls:SettingRow Header="{Binding HdrPassthroughHeader}"
-                     Description="{Binding HdrPassthroughDescription}"
-                     IsVisible="{Binding SupportsAdvancedColorOutput}"
-                     IsGrouped="True">
-            <controls:SettingRow.ActionContent>
-                <ToggleSwitch OnContent=""
-                              OffContent=""
-                              IsChecked="{Binding EnableHdrPassthrough, Mode=TwoWay}" />
-            </controls:SettingRow.ActionContent>
-        </controls:SettingRow>
-
-        <controls:SettingRow Header="{Binding Bt709InterpretationHeader}"
-                             Description="{Binding Bt709InterpretationDescription}"
-                             IsGrouped="True"
-                             HasTopDivider="{Binding SupportsAdvancedColorOutput}">
-            <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          ItemsSource="{Binding Bt709InterpretationOptions}"
-                          SelectedItem="{Binding SelectedBt709Interpretation, Mode=TwoWay}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="vm:VideoSettingsOption">
-                            <TextBlock Text="{Binding Title}" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </controls:SettingRow.ActionContent>
-        </controls:SettingRow>
-
-        <controls:SettingRow Header="{Binding PanelBitDepthHeader}"
-                             Description="{Binding PanelBitDepthDescription}"
-                             IsGrouped="True"
-                             HasTopDivider="True">
-            <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          ItemsSource="{Binding PanelBitDepthOptions}"
-                          SelectedItem="{Binding SelectedPanelBitDepth, Mode=TwoWay}">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate x:DataType="vm:VideoSettingsOption">
-                            <TextBlock Text="{Binding Title}" />
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
             </controls:SettingRow.ActionContent>
         </controls:SettingRow>
 
@@ -273,7 +212,6 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-            </StackPanel>
-        </Border>
-    </StackPanel>
+        </StackPanel>
+    </Border>
 </UserControl>

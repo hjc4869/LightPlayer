@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Media.Imaging;
+using Avalonia.Media;
 using LightStudio.FfmpegShim.Media;
 using LightStudio.LightPlayer.Models;
 using LightStudio.Logging;
@@ -157,7 +157,7 @@ public sealed class PhotoFolderService
     /// Returns a cached tile thumbnail or decodes one, and returns null when the picture cannot be
     /// read. Already upright: a tile is plain pixels with nowhere to carry camera rotation metadata.
     /// </summary>
-    public async Task<Bitmap?> GetThumbnailAsync(string path, CancellationToken cancellationToken = default)
+    public async Task<IImage?> GetThumbnailAsync(string path, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(path))
             return null;
@@ -219,6 +219,6 @@ public sealed class PhotoFolderService
         }
     }
 
-    private static Task<Bitmap?> DecodeAsync(byte[]? encoded, CancellationToken cancellationToken) =>
-        ImageDecoding.DecodeBitmapAsync(encoded, VideoPreviewService.DecodeWidth, cancellationToken: cancellationToken);
+    private static Task<IImage?> DecodeAsync(byte[]? encoded, CancellationToken cancellationToken) =>
+        ImageDecoding.DecodeThumbnailAsync(encoded, VideoPreviewService.DecodeWidth, cancellationToken);
 }

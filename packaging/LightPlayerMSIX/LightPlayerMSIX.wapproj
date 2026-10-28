@@ -69,7 +69,9 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" PrivateAssets="all" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\LightStudio.LightPlayer.Desktop\LightStudio.LightPlayer.Desktop.csproj" />
+    <ProjectReference Include="..\..\src\LightStudio.LightPlayer.Desktop\LightStudio.LightPlayer.Desktop.csproj">
+      <AdditionalProperties Condition="'$(BuildAppxUploadPackageForUap)' == 'true'">IsStoreRelease=true</AdditionalProperties>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <PRIResource Include="Resources.resw" />

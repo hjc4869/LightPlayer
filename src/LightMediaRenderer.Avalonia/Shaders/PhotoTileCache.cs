@@ -21,7 +21,7 @@ internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action
     private static readonly PhotoColorProfile LinearAlphaColor = new([1, 1, 0, 1, 0, 0, 0],
         [1, 0, 0, 0, 1, 0, 0, 0, 1], hasAlpha: true);
     private readonly IPhotoTileSource source = frame.PhotoTiles!;
-    private readonly bool preferThroughput = PhotoDecodeResources.PreferThroughput;
+    private readonly bool preferThroughput = PhotoDecodeResources.PreferThroughput && !frame.PhotoTiles!.AlwaysPreferMemory;
     private readonly object sync = new();
     private readonly CancellationTokenSource cancellation = new();
     private readonly Dictionary<Work, Tile> details = [];
@@ -618,6 +618,7 @@ internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action
         samples.ColorPrimaries = VideoColorPrimaries.Bt2020;
         samples.ColorTransfer = frame.ColorTransfer;
         samples.HdrPeakLuminance = frame.HdrPeakLuminance;
+        samples.PhotoPeakLuminance = frame.PhotoPeakLuminance;
         samples.HdrMasteringLuminance = frame.HdrMasteringLuminance;
         samples.ColorRange = VideoColorRange.Full;
         samples.FieldOrder = VideoFieldOrder.Progressive;

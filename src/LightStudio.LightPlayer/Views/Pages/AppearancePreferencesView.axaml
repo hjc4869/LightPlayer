@@ -101,6 +101,52 @@
                     </ComboBox.ItemTemplate>
                 </ComboBox>
             </Grid>
+
+            <Border Classes="settingsDivider"
+                    IsVisible="{Binding ShowLiquidGlassFrost}" />
+
+            <Grid ColumnDefinitions="*,Auto"
+                  Margin="16,12"
+                  IsVisible="{Binding ShowLiquidGlassFrost}">
+                <TextBlock Text="{Binding ThemeColor_GlassFrostHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingName"
+                           FontSize="14"
+                           TextWrapping="Wrap"
+                           VerticalAlignment="Center" />
+                <!-- Overlapping panes mark the ends: clear glass shows the pane behind it, frosted glass hides it. -->
+                <Grid Grid.Column="1"
+                      Margin="16,0,0,0"
+                      Width="200"
+                      ColumnDefinitions="Auto,*,Auto"
+                      ColumnSpacing="8"
+                      VerticalAlignment="Center">
+                    <Panel Width="20" Height="16" VerticalAlignment="Center">
+                        <Path Data="M4,1H10A3,3 0 0 1 13,4V8A3,3 0 0 1 10,11H4A3,3 0 0 1 1,8V4A3,3 0 0 1 4,1Z"
+                              Stroke="{DynamicResource AppSecondaryTextBrush}"
+                              StrokeThickness="1.2" />
+                        <Path Data="M9,5H16A3,3 0 0 1 19,8V12A3,3 0 0 1 16,15H9A3,3 0 0 1 6,12V8A3,3 0 0 1 9,5Z"
+                              Stroke="{DynamicResource AppSecondaryTextBrush}"
+                              StrokeThickness="1.2" />
+                    </Panel>
+                    <Slider Grid.Column="1"
+                            Minimum="0"
+                            Maximum="1"
+                            SmallChange="0.05"
+                            LargeChange="0.25"
+                            VerticalAlignment="Center"
+                            Value="{Binding LiquidGlassFrost, Mode=TwoWay}"
+                            AutomationProperties.Name="{Binding ThemeColor_GlassFrostHeader, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                    <Panel Grid.Column="2" Width="20" Height="16" VerticalAlignment="Center">
+                        <Path Data="M4,1H10A3,3 0 0 1 13,4V8A3,3 0 0 1 10,11H4A3,3 0 0 1 1,8V4A3,3 0 0 1 4,1Z"
+                              Stroke="{DynamicResource AppSecondaryTextBrush}"
+                              StrokeThickness="1.2" />
+                        <Path Data="M9,5H16A3,3 0 0 1 19,8V12A3,3 0 0 1 16,15H9A3,3 0 0 1 6,12V8A3,3 0 0 1 9,5Z"
+                              Fill="{DynamicResource AppSecondaryTextBrush}"
+                              Stroke="{DynamicResource AppSecondaryTextBrush}"
+                              StrokeThickness="1.2" />
+                    </Panel>
+                </Grid>
+            </Grid>
         </StackPanel>
     </Border>
 </UserControl>

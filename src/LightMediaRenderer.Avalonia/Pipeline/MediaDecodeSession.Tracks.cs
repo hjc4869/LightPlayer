@@ -155,8 +155,8 @@ public sealed partial class MediaDecodeSession
             }
             else
             {
-                textDocuments[track] = SubtitleLoader.Parse(await engine.ReadSubtitleScriptAsync(file, stream.Index, token)
-                    .ConfigureAwait(false));
+                string script = await engine.ReadSubtitleScriptAsync(file, stream.Index, token).ConfigureAwait(false);
+                textDocuments[track] = track.IsPlainText ? SubtitleLoader.ParsePlainText(script) : SubtitleLoader.Parse(script);
             }
 
             added.Add(track);
@@ -288,8 +288,9 @@ public sealed partial class MediaDecodeSession
             return SubtitleLoader.Load(buffer, track.Source);
         }
 
-        return SubtitleLoader.Parse(await input.ReadSubtitleScriptAsync(engine, track.StreamIndex, SidecarOf(track), token)
-            .ConfigureAwait(false));
+        string converted = await input.ReadSubtitleScriptAsync(engine, track.StreamIndex, SidecarOf(track), token)
+            .ConfigureAwait(false);
+        return track.IsPlainText ? SubtitleLoader.ParsePlainText(converted) : SubtitleLoader.Parse(converted);
     }
 
     private string? SidecarOf(SubtitleTrack track) => IsOwnedByMainSource(track.StreamIndex, track.Source) ? null : track.Source;

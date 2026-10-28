@@ -24,6 +24,9 @@
         <DataTemplate DataType="vm:PhotoIndexSettingsViewModel">
             <views:PhotoIndexSettingsView />
         </DataTemplate>
+        <DataTemplate DataType="vm:DisplaySettingsViewModel">
+            <views:DisplaySettingsSectionView DataContext="{Binding Video}" />
+        </DataTemplate>
         <DataTemplate DataType="vm:CustomFiltersSettingsViewModel">
             <views:CustomFiltersSettingsView DataContext="{Binding Video}" />
         </DataTemplate>

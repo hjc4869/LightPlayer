@@ -55,6 +55,11 @@ public sealed class SettingsContentSectionViewModel(string titleKey, object cont
     public object Content { get; } = content;
 }
 
+public sealed class DisplaySettingsViewModel(VideoSettingsSectionViewModel video) : ViewModelBase
+{
+    public VideoSettingsSectionViewModel Video { get; } = video;
+}
+
 public sealed class CustomFiltersSettingsViewModel(VideoSettingsSectionViewModel video) : ViewModelBase
 {
     public VideoSettingsSectionViewModel Video { get; } = video;

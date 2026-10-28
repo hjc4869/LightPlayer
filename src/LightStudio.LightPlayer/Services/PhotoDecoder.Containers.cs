@@ -219,7 +219,7 @@ internal static unsafe partial class PhotoDecoder
         }
     }
 
-    private sealed class IsoImageItems
+    private sealed partial class IsoImageItems
     {
         private readonly Dictionary<uint, Item> items = [];
         private readonly List<(uint Type, byte[] Data)> properties = [];
@@ -232,6 +232,9 @@ internal static unsafe partial class PhotoDecoder
         private sealed class Item
         {
             public uint Type;
+
+            /// <summary>The MIME type and content encoding of a <c>mime</c> item.</summary>
+            public string? ContentType, ContentEncoding;
             public readonly List<int> Properties = [];
         }
 
@@ -279,8 +282,21 @@ internal static unsafe partial class PhotoDecoder
                 uint id = entry[0] == 2 ? reader.UInt16() : reader.UInt32();
                 ushort protection = reader.UInt16();
                 uint itemType = reader.UInt32();
-                if (reader.Valid && protection == 0)
-                    GetItem(id).Type = itemType;
+                if (!reader.Valid || protection != 0)
+                    continue;
+                Item item = GetItem(id);
+                item.Type = itemType;
+                if (itemType != FourCc("mime"u8))
+                    continue;
+                // item_name, content_type and the optional content_encoding follow as null-terminated strings.
+                ReadOnlySpan<byte> strings = entry.AsSpan(entry[0] == 2 ? 12 : 14);
+                int end = strings.IndexOf((byte)0);
+                strings = end < 0 ? default : strings[(end + 1)..];
+                end = strings.IndexOf((byte)0);
+                item.ContentType = Encoding.UTF8.GetString(end < 0 ? strings : strings[..end]);
+                strings = end < 0 ? default : strings[(end + 1)..];
+                end = strings.IndexOf((byte)0);
+                item.ContentEncoding = Encoding.UTF8.GetString(end < 0 ? strings : strings[..end]);
             }
         }
 

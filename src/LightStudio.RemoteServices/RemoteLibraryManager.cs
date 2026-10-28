@@ -834,22 +834,22 @@ public sealed class RemoteLibraryManager : IRemoteLibraryManager
         if (!info.ApiImplemented)
         {
             throw new RemoteLibraryIncompatibleException(
-                $"{definition.Address} does not implement the Light Player server API.");
+                $"{definition.Address} does not implement the Light Media Center server API.");
         }
         if (requireForwardingConfirmation && probe.UsesForwardTarget && !serverProbe.ForwardingConfirmed)
         {
             throw new RemoteLibraryIncompatibleException(
-                "This browser host does not relay other Light Player targets. Use a proxy-only host for multiple remote libraries.");
+                "This browser host does not relay other Light Media Center targets. Use a proxy-only host for multiple remote libraries.");
         }
         if (!string.Equals(info.Name, "LightPlayer", StringComparison.Ordinal))
         {
-            throw new RemoteLibraryIncompatibleException($"{definition.Address} is not a Light Player server.");
+            throw new RemoteLibraryIncompatibleException($"{definition.Address} is not a Light Media Center server.");
         }
 
         if (info.ProxyOnly && !probe.UsesForwardTarget)
         {
             throw new RemoteLibraryIncompatibleException(
-                $"{definition.Address} only relays to other Light Player servers; name the server itself instead.");
+                $"{definition.Address} only relays to other Light Media Center servers; name the server itself instead.");
         }
 
         if (!info.AuthenticationRequired)

@@ -503,9 +503,10 @@
             </ControlTheme>
 
             <!-- One side of the slider track. The inner part keeps the Fluent part name, so view styles
-                 for slider tracks apply in either style. -->
+                 for slider tracks apply in either style. It reaches beneath the thumb while pressed. -->
             <ControlTheme x:Key="MacSliderHorizontalTrackPart" TargetType="RepeatButton">
                 <Setter Property="Focusable" Value="False" />
+                <Setter Property="ClipToBounds" Value="False" />
                 <Setter Property="Template">
                     <ControlTemplate>
                         <Panel Background="Transparent">
@@ -520,6 +521,7 @@
 
             <ControlTheme x:Key="MacSliderVerticalTrackPart" TargetType="RepeatButton">
                 <Setter Property="Focusable" Value="False" />
+                <Setter Property="ClipToBounds" Value="False" />
                 <Setter Property="Template">
                     <ControlTemplate>
                         <Panel Background="Transparent">
@@ -604,6 +606,13 @@
                                        Value="{TemplateBinding Value, Mode=TwoWay}"
                                        IsDirectionReversed="{TemplateBinding IsDirectionReversed}"
                                        Orientation="Horizontal">
+                                    <controls:MacSliderTrackState.RangeEnd>
+                                        <MultiBinding Converter="{x:Static controls:MacSliderTrackState.RangeEndConverter}">
+                                            <Binding Path="Value" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding Path="Minimum" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding Path="Maximum" RelativeSource="{RelativeSource TemplatedParent}" />
+                                        </MultiBinding>
+                                    </controls:MacSliderTrackState.RangeEnd>
                                     <Track.IncreaseButton>
                                         <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource MacSliderHorizontalTrackPart}"
                                                       Background="{TemplateBinding Background}" CornerRadius="0,3,3,0" />
@@ -628,6 +637,13 @@
                                        Value="{TemplateBinding Value, Mode=TwoWay}"
                                        IsDirectionReversed="{TemplateBinding IsDirectionReversed}"
                                        Orientation="Vertical">
+                                    <controls:MacSliderTrackState.RangeEnd>
+                                        <MultiBinding Converter="{x:Static controls:MacSliderTrackState.RangeEndConverter}">
+                                            <Binding Path="Value" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding Path="Minimum" RelativeSource="{RelativeSource TemplatedParent}" />
+                                            <Binding Path="Maximum" RelativeSource="{RelativeSource TemplatedParent}" />
+                                        </MultiBinding>
+                                    </controls:MacSliderTrackState.RangeEnd>
                                     <Track.IncreaseButton>
                                         <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource MacSliderVerticalTrackPart}"
                                                       Background="{TemplateBinding Background}" CornerRadius="3,3,0,0" />
@@ -701,6 +717,42 @@
                     </Style>
                     <Style Selector="^ /template/ RepeatButton#PART_DecreaseButton">
                         <Setter Property="Padding" Value="0,0,0,-10" />
+                    </Style>
+                </Style>
+                <!-- At either end of the range, one half spans the whole thumb: the track at the minimum, the fill at the maximum. -->
+                <Style Selector="^:pressed /template/ Track[(controls|MacSliderTrackState.RangeEnd)=Minimum] > RepeatButton#PART_DecreaseButton, ^:pressed /template/ Track[(controls|MacSliderTrackState.RangeEnd)=Maximum] > RepeatButton#PART_IncreaseButton">
+                    <Setter Property="Padding" Value="0" />
+                </Style>
+                <Style Selector="^:pressed:horizontal">
+                    <Style Selector="^ /template/ Track[(controls|MacSliderTrackState.RangeEnd)=Minimum] > RepeatButton#PART_IncreaseButton">
+                        <Setter Property="Padding" Value="-20,0,0,0" />
+                    </Style>
+                    <Style Selector="^ /template/ Track[(controls|MacSliderTrackState.RangeEnd)=Maximum] > RepeatButton#PART_DecreaseButton">
+                        <Setter Property="Padding" Value="0,0,-20,0" />
+                    </Style>
+                </Style>
+                <Style Selector="^:pressed:horizontal[IsDirectionReversed=True]">
+                    <Style Selector="^ /template/ Track[(controls|MacSliderTrackState.RangeEnd)=Minimum] > RepeatButton#PART_IncreaseButton">
+                        <Setter Property="Padding" Value="0,0,-20,0" />
+                    </Style>
+                    <Style Selector="^ /template/ Track[(controls|MacSliderTrackState.RangeEnd)=Maximum] > RepeatButton#PART_DecreaseButton">
+                        <Setter Property="Padding" Value="-20,0,0,0" />
+                    </Style>
+                </Style>
+                <Style Selector="^:pressed:vertical">
+                    <Style Selector="^ /template/ Track[(controls|MacSliderTrackState.RangeEnd)=Minimum] > RepeatButton#PART_IncreaseButton">
+                        <Setter Property="Padding" Value="0,0,0,-20" />
+                    </Style>
+                    <Style Selector="^ /template/ Track[(controls|MacSliderTrackState.RangeEnd)=Maximum] > RepeatButton#PART_DecreaseButton">
+                        <Setter Property="Padding" Value="0,-20,0,0" />
+                    </Style>
+                </Style>
+                <Style Selector="^:pressed:vertical[IsDirectionReversed=True]">
+                    <Style Selector="^ /template/ Track[(controls|MacSliderTrackState.RangeEnd)=Minimum] > RepeatButton#PART_IncreaseButton">
+                        <Setter Property="Padding" Value="0,-20,0,0" />
+                    </Style>
+                    <Style Selector="^ /template/ Track[(controls|MacSliderTrackState.RangeEnd)=Maximum] > RepeatButton#PART_DecreaseButton">
+                        <Setter Property="Padding" Value="0,0,0,-20" />
                     </Style>
                 </Style>
                 <Style Selector="^:focus-visible /template/ Thumb#MacSliderThumb">
@@ -1008,15 +1060,18 @@
                                       Stroke="{TemplateBinding Foreground}" StrokeThickness="1.3"
                                       StrokeLineCap="Round" StrokeJoin="Round"
                                       Data="M 0.9,3.9 L 4,0.8 L 7.1,3.9 M 0.9,7.1 L 4,10.2 L 7.1,7.1" />
+                                <!-- The border margin keeps the shadow inside the transparent popup window. -->
                                 <Popup Name="PART_Popup"
+                                       Classes="macMenu"
                                        WindowManagerAddShadowHint="False"
                                        IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
-                                       MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
-                                       MaxHeight="{TemplateBinding MaxDropDownHeight}"
                                        PlacementTarget="MacPopupBezel"
                                        IsLightDismissEnabled="True"
                                        InheritsTransform="True">
                                     <Border Name="PopupBorder"
+                                            Margin="16,11,16,21"
+                                            MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"
+                                            MaxHeight="{TemplateBinding MaxDropDownHeight}"
                                             Background="{DynamicResource MacMenuFill}"
                                             BorderBrush="{DynamicResource MacMenuBorder}"
                                             BorderThickness="1"
@@ -1060,6 +1115,10 @@
 
     <Style Selector=":is(TopLevel)">
         <Setter Property="(Classes.appleControls)" Value="{DynamicResource AppIsAppleChrome}" />
+    </Style>
+
+    <Style Selector="Popup.macMenu > PopupRoot">
+        <Setter Property="TransparencyBackgroundFallback" Value="Transparent" />
     </Style>
 
     <Style Selector=":is(TopLevel).appleControls">
@@ -1117,6 +1176,23 @@
         <Style Selector="^ Button:not(.icon):not(.miniIcon):not(.link):not(.accent):not(.tileButton):not(.nav)">
             <Setter Property="Theme" Value="{StaticResource MacSettingsButton}" />
         </Style>
+        <!-- Compact accent buttons sit beside plain ones, so they take the default button's bezel. -->
+        <Style Selector="^ Button.accent.compact">
+            <Setter Property="Theme" Value="{StaticResource MacSettingsButton}" />
+            <Setter Property="Padding" Value="12,0.5,12,0" />
+            <Style Selector="^:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Opacity" Value="1" />
+            </Style>
+            <Style Selector="^:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppMacAccentPressedBrush}" />
+            </Style>
+            <Style Selector="^:disabled">
+                <Setter Property="Foreground" Value="{DynamicResource MacDisabledLabelBrush}" />
+                <Style Selector="^ /template/ ContentPresenter#PART_ContentPresenter">
+                    <Setter Property="Background" Value="{DynamicResource MacControlFillDisabled}" />
+                </Style>
+            </Style>
+        </Style>
     </Style>
 
     <!-- Controls in a window that is not key lose their accent emphasis and focus rings. -->
@@ -1127,6 +1203,15 @@
         </Style>
         <Style Selector="^ Button[IsDefault=True]:not(.icon):not(.miniIcon):not(.link):not(.accent):not(.tileButton):not(.nav):pressed">
             <Setter Property="Background" Value="{DynamicResource MacControlFillPressed}" />
+        </Style>
+        <Style Selector="^ Button.accent.compact:not(:disabled)">
+            <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />
+            <Style Selector="^ /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource MacControlFill}" />
+            </Style>
+            <Style Selector="^:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource MacControlFillPressed}" />
+            </Style>
         </Style>
         <Style Selector="^ ToggleSwitch:checked /template/ controls|MacSwitchTrack#MacSwitchTrack">
             <Setter Property="Background" Value="{DynamicResource MacSwitchInactiveOnFill}" />

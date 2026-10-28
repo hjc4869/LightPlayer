@@ -23,6 +23,12 @@ public enum VideoOutputColorSpace
     /// the negotiated volume supplies the white scale and highlight-mapping policy.
     /// </summary>
     ScRgbLinear,
+
+    /// <summary>Display P3 primaries with a pure 2.2 power law, confined to <c>[0, 1]</c>.</summary>
+    DisplayP3,
+
+    /// <summary>BT.2020 primaries with a pure 2.2 power law, confined to <c>[0, 1]</c>.</summary>
+    Bt2020,
 }
 
 public readonly record struct VideoHdrOutputMapping(
@@ -33,6 +39,12 @@ public readonly record struct VideoHdrOutputMapping(
     bool RelativeLuminance = false,
     bool PlatformToneMapping = false,
     double ReferenceWhiteScale = 1);
+
+/// <summary>
+/// What a tone curve targets when its options leave them to the display. The reference white is
+/// null when the display reports none.
+/// </summary>
+public readonly record struct VideoDisplayToneTarget(double Headroom, double PeakNits, double? ReferenceWhiteNits = null);
 
 /// <summary>The shape of the curve a bounded surface's signal is shown through.</summary>
 public enum VideoSurfaceTransferKind
@@ -142,6 +154,12 @@ public static class VideoSurfaceTransfers
     /// <summary>What to undo, taking the platform's answer where there is one.</summary>
     public static VideoSurfaceTransfer For(VideoOutputColorVolume? colorVolume) =>
         Reported(colorVolume) ?? StandardRange;
+
+    /// <summary>The drawing surface's encoding, independent of the display's preferred encoding.</summary>
+    public static VideoSurfaceTransfer For(VideoOutputColorSpace target, VideoOutputColorVolume? colorVolume) =>
+        target is VideoOutputColorSpace.DisplayP3 or VideoOutputColorSpace.Bt2020
+            ? VideoSurfaceTransfer.Gamma22
+            : For(colorVolume);
 }
 
 public static class VideoOutputColorSpaceExtensions
@@ -153,6 +171,14 @@ public static class VideoOutputColorSpaceExtensions
     /// <summary>Whether the target can carry values outside <c>[0, 1]</c>.</summary>
     public static bool IsExtendedRange(this VideoOutputColorSpace target) =>
         target == VideoOutputColorSpace.ScRgbLinear;
+
+    public static VideoColorPrimaries GetPrimaries(this VideoOutputColorSpace target) => target switch
+    {
+        VideoOutputColorSpace.Srgb or VideoOutputColorSpace.ScRgbLinear => VideoColorPrimaries.Bt709,
+        VideoOutputColorSpace.DisplayP3 => VideoColorPrimaries.DisplayP3,
+        VideoOutputColorSpace.Bt2020 => VideoColorPrimaries.Bt2020,
+        _ => throw new ArgumentOutOfRangeException(nameof(target), target, "Unknown output color space."),
+    };
 
     /// <summary>
     /// Whether the reported rendering target permits highlights above diffuse white.
@@ -176,10 +202,41 @@ public static class VideoOutputColorSpaceExtensions
         double.IsFinite(volume.HeadroomRatio.Value) &&
         double.IsFinite(volume.TargetLuminance.Value.MaximumNits!.Value);
 
+    /// <summary>The display's reported diffuse white, or null when it reports none.</summary>
+    public static double? ReportedReferenceWhiteNits(VideoOutputColorVolume? colorVolume) =>
+        colorVolume?.ReferenceWhiteNits is > 0 and var nits && double.IsFinite(nits) ? nits : null;
+
+    /// <summary>
+    /// What <see cref="VideoSdrToneMappingOptions.TargetHeadroom"/>,
+    /// <see cref="VideoSdrToneMappingOptions.TargetMaximumNits"/>, and
+    /// <see cref="VideoSdrToneMappingOptions.ReferenceWhiteNits"/> resolve to when they are null.
+    /// </summary>
+    public static VideoDisplayToneTarget ResolveDisplayToneTarget(
+        this VideoOutputColorSpace target,
+        bool hdrPassthrough,
+        VideoOutputColorVolume? colorVolume)
+    {
+        bool knownWhite = target.IsExtendedRange() &&
+            colorVolume?.ReferenceWhiteScale is > 0 and var scale && double.IsFinite(scale);
+        double headroom = knownWhite && hdrPassthrough &&
+            colorVolume?.ToneMapping is VideoToneMappingMode.Client or VideoToneMappingMode.Platform &&
+            colorVolume?.HeadroomRatio is >= 1 and var ratio && double.IsFinite(ratio)
+                ? ratio
+                : 1;
+        double? reportedWhite = ReportedReferenceWhiteNits(colorVolume);
+        double white = reportedWhite ?? HdrReferenceWhiteNits;
+        double peak = white * headroom;
+        if (headroom > 1 && target.UsesAbsoluteLuminance(hdrPassthrough, colorVolume))
+            peak = Math.Max(Math.Min(peak, colorVolume!.Value.TargetLuminance!.Value.MaximumNits!.Value), white);
+        return new VideoDisplayToneTarget(peak / white, peak, reportedWhite);
+    }
+
     /// <summary>
     /// Resolves source-light normalization and mapping ownership from the negotiated contract.
     /// Client targets with reported or nominal white and peak use absolute tone mapping;
     /// incomplete luminance uses relative headroom, with SDR when current headroom is unknown.
+    /// Non-null options select their client-side curve unless platform mapping is available and
+    /// the options leave every target to the display.
     /// </summary>
     public static VideoHdrOutputMapping ResolveHdrOutput(
         this VideoOutputColorSpace target,
@@ -216,7 +273,11 @@ public static class VideoOutputColorSpaceExtensions
                 linearNitsPerUnit * headroom)
             : HdrReferenceWhiteNits * headroom;
         double physicalNitsScale = 1;
-        bool customTarget = sdrToneMapping is { TargetHeadroom: not null } or { TargetMaximumNits: not null };
+        bool bt2446A = sdrToneMapping?.Algorithm == VideoSdrToneMappingAlgorithm.Bt2446A;
+        double? targetHeadroom = bt2446A ? null : sdrToneMapping?.TargetHeadroom;
+        double? targetMaximum = bt2446A ? sdrToneMapping!.TargetMaximumNits : null;
+        bool customTarget = sdrToneMapping is not null &&
+            (!platform || targetHeadroom is not null || targetMaximum is not null);
         if (customTarget)
         {
             VideoSdrToneMappingOptions options = sdrToneMapping!;
@@ -230,16 +291,15 @@ public static class VideoOutputColorSpaceExtensions
             platform = false;
             if (headroom <= 1)
                 absolute = false;
-            double? targetMaximum = options.Algorithm == VideoSdrToneMappingAlgorithm.Bt2446A
-                ? options.TargetMaximumNits : null;
             double reportedWhite = colorVolume?.ReferenceWhiteNits ?? HdrReferenceWhiteNits;
-            linearNitsPerUnit = options.Algorithm != VideoSdrToneMappingAlgorithm.Bt2446A
-                ? options.ReferenceWhiteNits
+            double referenceWhite = options.ResolveReferenceWhiteNits(colorVolume);
+            linearNitsPerUnit = !bt2446A
+                ? referenceWhite
                 : headroom > 1 && double.IsFinite(reportedWhite) && reportedWhite > 0
                     ? reportedWhite
-                    : targetMaximum ?? options.ReferenceWhiteNits;
+                    : targetMaximum ?? referenceWhite;
             targetPeak = headroom > 1
-                ? Math.Min(targetMaximum ?? linearNitsPerUnit * (options.TargetHeadroom ?? headroom),
+                ? Math.Min(targetMaximum ?? linearNitsPerUnit * (targetHeadroom ?? headroom),
                     linearNitsPerUnit * headroom)
                 : linearNitsPerUnit;
             if (absolute)
@@ -253,8 +313,8 @@ public static class VideoOutputColorSpaceExtensions
         {
             VideoSdrToneMappingOptions options = sdrToneMapping ?? VideoSdrToneMappingOptions.Default;
             options.Validate();
-            linearNitsPerUnit = options.ReferenceWhiteNits;
-            targetPeak = options.ReferenceWhiteNits;
+            linearNitsPerUnit = options.ResolveReferenceWhiteNits(colorVolume);
+            targetPeak = linearNitsPerUnit;
             absolute = false;
         }
 

@@ -1,14 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>lmpios</AssemblyName>
+    <AssemblyName>lmcios</AssemblyName>
     <RootNamespace>LightStudio.LightPlayer.iOS</RootNamespace>
     <TargetFramework>$(TargetFramework)-ios</TargetFramework>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">iossimulator-arm64</RuntimeIdentifier>
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
     <Nullable>enable</Nullable>
     <ApplicationId>im.hjc.LightPlayer</ApplicationId>
-    <ApplicationTitle>Light Player</ApplicationTitle>
+    <ApplicationTitle>Light Media Center</ApplicationTitle>
     <AppIcon>AppIcon</AppIcon>
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>1.1</ApplicationDisplayVersion>
@@ -22,12 +22,14 @@
 
   <ItemGroup>
     <PackageReference Include="LightStudio.Onnx" />
-    <ProjectReference Include="..\LightStudio.Inference.Onnx\LightStudio.Inference.Onnx.csproj" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" />
+    <PackageReference Include="MathNet.Numerics" />
     <LinkerArgument Include="-framework" />
     <LinkerArgument Include="CoreML" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\LightStudio.LightPlayer.Desktop\Inference\Onnx\**\*.cs" Link="Inference\Onnx\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\LightStudio.LightPlayer.Desktop\Apple\PlaybackThread.cs" Link="Playback\PlaybackThread.cs" />
     <Compile Include="..\LightStudio.LightPlayer.Desktop\Apple\VideoToolboxSurfaceImporter.cs" Link="Playback\VideoToolboxSurfaceImporter.cs" />
     <Compile Include="..\LightStudio.LightPlayer.Desktop\Apple\VideoToolboxVideoScaler.cs" Link="Playback\VideoToolboxVideoScaler.cs" />

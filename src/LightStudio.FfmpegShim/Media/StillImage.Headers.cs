@@ -187,7 +187,10 @@ public static partial class StillImage
         return codestream[..filled] is [0xff, 0x0a, ..] ? ReadJxlSize(codestream[2..filled]) : default;
     }
 
-    /// <summary>Reads the JPEG XL <c>SizeHeader</c> that follows the codestream signature.</summary>
+    /// <summary>
+    /// Reads the JPEG XL <c>SizeHeader</c> that follows the codestream signature, transposed when the
+    /// codestream orientation turns the picture a quarter, as its decoder outputs it.
+    /// </summary>
     private static (int Width, int Height) ReadJxlSize(ReadOnlySpan<byte> data)
     {
         Span<byte> padded = stackalloc byte[16];
@@ -208,8 +211,11 @@ public static partial class StillImage
             height = Size();
             width = WidthFromRatio(height, Read(3)) ?? Size();
         }
-        return consumed <= available && height <= int.MaxValue && width <= int.MaxValue
-            ? ((int)width, (int)height) : default;
+        // ImageMetadata starts with all_default, then extra_fields, then orientation - 1.
+        uint orientation = Read(1) == 0 && Read(1) == 1 ? Read(3) + 1 : 1;
+        if (consumed > available || height > int.MaxValue || width > int.MaxValue)
+            return default;
+        return orientation >= 5 ? ((int)height, (int)width) : ((int)width, (int)height);
 
         uint Read(int count)
         {

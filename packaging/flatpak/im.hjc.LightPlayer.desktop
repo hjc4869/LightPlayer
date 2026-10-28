@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Light Player
+Name=Light Media Center
 GenericName=Media Player
 Comment=Play and organize your music, videos and photos
-Exec=lmp %U
+Exec=lmc %U
 Icon=im.hjc.LightPlayer
 Terminal=false
 Categories=AudioVideo;Audio;Video;Player;Graphics;Photography;Viewer;

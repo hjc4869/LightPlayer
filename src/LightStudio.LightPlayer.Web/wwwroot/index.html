@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Light Player">
+  <meta name="apple-mobile-web-app-title" content="Light Media Center">
   <meta name="description" content="A music and video player for your own library, on your own devices.">
   <script>
     (function () {
@@ -71,7 +71,7 @@
       window.addEventListener('hashchange', function () { capturePairingLaunch(true); });
     })();
   </script>
-  <title>Light Player Web</title>
+  <title>Light Media Center Web</title>
   <style>
     :root {
       --page-background: #f6f6f6;
@@ -242,7 +242,7 @@
 
   <div id="boot" role="status" aria-live="polite">
     <div id="boot-spinner"></div>
-    <div id="boot-title">Light Player</div>
+    <div id="boot-title">Light Media Center</div>
     <div id="boot-bar"><div id="boot-bar-fill"></div></div>
     <div id="boot-status">Starting…</div>
     <div id="boot-error">
@@ -316,7 +316,7 @@
           failed = false;
           boot.style.display = '';
           boot.classList.remove('hidden', 'error');
-          titleEl.textContent = 'Light Player';
+          titleEl.textContent = 'Light Media Center';
           statusEl.textContent = text;
           document.getElementById('boot-spinner').style.display = 'none';
           document.getElementById('boot-bar').style.display = 'none';
@@ -376,7 +376,7 @@
           boot.style.display = '';
           boot.classList.remove('hidden');
           boot.classList.add('error');
-          titleEl.textContent = 'Light Player could not start';
+          titleEl.textContent = 'Light Media Center could not start';
           messageEl.textContent = message;
           var text = describe(error);
           detailsText.textContent = text;

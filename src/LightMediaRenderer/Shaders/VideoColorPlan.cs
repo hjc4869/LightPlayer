@@ -99,9 +99,17 @@ internal sealed class VideoColorPlan
                 return "SMPTE ST 2094-40 (HDR10+)";
             if (SceneAdaptiveToneMap)
                 return "PQ scene-adaptive spline";
-            if (Bt2446AToneMap)
-                return "BT.2446 Method A";
-            return "BT.2390";
+            return StaticToneCurve switch
+            {
+                VideoSdrToneMappingAlgorithm.Bt2446A => "BT.2446 Method A",
+                VideoSdrToneMappingAlgorithm.Clip => "clip",
+                VideoSdrToneMappingAlgorithm.Mobius => "Mobius",
+                VideoSdrToneMappingAlgorithm.Reinhard => "Reinhard",
+                VideoSdrToneMappingAlgorithm.Hable => "Hable filmic",
+                VideoSdrToneMappingAlgorithm.Gamma => "gamma with knee",
+                VideoSdrToneMappingAlgorithm.Linear => "PQ linear",
+                _ => "BT.2390",
+            };
         }
     }
 
@@ -121,7 +129,8 @@ internal sealed class VideoColorPlan
 
     public bool SceneAdaptiveToneMap { get; private init; }
 
-    private bool Bt2446AToneMap { get; init; }
+    /// <summary>The curve applied when neither HDR10+ nor the scene-adaptive spline is.</summary>
+    private VideoSdrToneMappingAlgorithm StaticToneCurve { get; init; } = VideoSdrToneMappingAlgorithm.Bt2390;
 
     public bool ScaleScene { get; private init; }
 
@@ -158,17 +167,16 @@ internal sealed class VideoColorPlan
     public bool IsLinear => Transfer != VideoTransferStage.Direct;
 
     /// <summary>
-    /// Whether a frame says anything about its own light. One that does not is shown as it arrived,
-    /// which is what an already interleaved picture on a bounded surface wants.
+    /// Whether a frame's light or the output primaries require color conversion.
     /// </summary>
-    public static bool NeedsColorProcessing(VideoFrame frame) =>
+    public static bool NeedsColorProcessing(VideoFrame frame, VideoOutputColorSpace target) =>
         frame.PhotoColor is not null ||
         frame.DolbyVision.IsPresent ||
         frame.Hdr10Plus.IsPresent ||
         (frame.ColorTransfer == VideoColorTransfer.Bt709 && VideoSurfaceTransfers.ForBt709() is not null) ||
         frame.ColorTransfer is VideoColorTransfer.Srgb or VideoColorTransfer.Pq or
             VideoColorTransfer.Hlg or VideoColorTransfer.Linear ||
-        VideoColorGamut.NeedsConversion(frame.ColorPrimaries);
+        VideoColorGamut.NeedsConversion(frame.ColorPrimaries, target.GetPrimaries());
 
     /// <summary>
     /// Whether the frame's rows were sampled at two instants, and so have to be read a field at a
@@ -196,15 +204,15 @@ internal sealed class VideoColorPlan
         VideoColorTransfer colorTransfer = dolbyVision ? VideoColorTransfer.Pq : frame.ColorTransfer;
         VideoColorPrimaries colorPrimaries = dolbyVision ? VideoColorPrimaries.Bt2020 : frame.ColorPrimaries;
         bool hdr = colorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
-        VideoColorGamut.GamutConversion gamut = VideoColorGamut.ToBt709(colorPrimaries);
-        bool wideGamut = VideoColorGamut.NeedsConversion(colorPrimaries);
+        VideoColorPrimaries outputPrimaries = target.GetPrimaries();
+        VideoColorGamut.GamutConversion gamut = VideoColorGamut.ToTarget(colorPrimaries, outputPrimaries);
         bool extended = target.IsExtendedRange();
         VideoSurfaceTransfer? bt709Interpretation = VideoSurfaceTransfers.ForBt709();
         bool readSdrAsMastered = colorTransfer == VideoColorTransfer.Bt709 &&
             bt709Interpretation is null && extended &&
             VideoOutputColorSpaceExtensions.HasHdrHeadroom(colorVolume);
 
-        VideoSurfaceTransfer surfaceTransfer = VideoSurfaceTransfers.For(colorVolume);
+        VideoSurfaceTransfer surfaceTransfer = VideoSurfaceTransfers.For(target, colorVolume);
         VideoSurfaceTransfer sourceTransfer = colorTransfer == VideoColorTransfer.Srgb
             ? VideoSurfaceTransfer.Srgb
             : colorTransfer == VideoColorTransfer.Bt709 && bt709Interpretation is { } bt709Transfer
@@ -213,10 +221,7 @@ internal sealed class VideoColorPlan
             ? VideoSurfaceTransfer.Bt1886
             : surfaceTransfer;
 
-        // Only a source that says something about its light is color managed. One that does not is
-        // still linearised where a filter needs it, or where the surface takes light rather than a
-        // signal, but its primaries and range are left alone.
-        bool colorManaged = NeedsColorProcessing(frame);
+        bool colorManaged = NeedsColorProcessing(frame, target);
         VideoTransferStage transfer = colorTransfer switch
         {
             VideoColorTransfer.Pq => VideoTransferStage.Pq,
@@ -250,9 +255,11 @@ internal sealed class VideoColorPlan
         if (sdrToneMap && sourcePeak <= toneMapPeak)
             toneMap = false;
         VideoSdrToneMappingOptions toneOptions = sdrToneMapping ?? VideoSdrToneMappingOptions.Default;
-        bool customToneMap = sdrToneMap || toneOptions.TargetHeadroom is not null || toneOptions.TargetMaximumNits is not null;
+        bool customToneMap = sdrToneMap || sdrToneMapping is not null;
         if (customToneMap)
             toneOptions.Validate();
+        if (customToneMap && VideoShaderToneCurves.Supports(toneOptions.Algorithm) && sourcePeak <= (float)toneMapPeak)
+            toneMap = false;
 
         double unitScale = hdrOutput.ReferenceWhiteScale;
         double sceneScale = (hdr ? 1.0 / linearNitsPerUnit : 1.0) * unitScale;
@@ -279,7 +286,7 @@ internal sealed class VideoColorPlan
         int outputBitDepth = ResolveOutputBitDepth(extended, panelBitDepth);
         bool dither = outputBitDepth > 0 &&
             (debanding != VideoDebandingQuality.Off || hdr || layout.BitDepth > outputBitDepth);
-        bool convertGamut = wideGamut && colorManaged;
+        bool convertGamut = VideoColorGamut.NeedsConversion(colorPrimaries, outputPrimaries) && colorManaged;
         bool scaleScene = Math.Abs(sceneScale - 1) > 1e-9;
 
         var uniforms = new Dictionary<string, float[]>(StringComparer.Ordinal);
@@ -342,8 +349,10 @@ internal sealed class VideoColorPlan
         bool sceneAdaptiveToneMap = toneMap && !hdr10PlusToneMap && (customToneMap
             ? toneOptions.Algorithm is VideoSdrToneMappingAlgorithm.Auto or VideoSdrToneMappingAlgorithm.Spline
             : dolbyVision || hdr10Plus);
-        bool bt2446AToneMap = toneMap && customToneMap &&
-            toneOptions.Algorithm == VideoSdrToneMappingAlgorithm.Bt2446A;
+        VideoSdrToneMappingAlgorithm staticToneCurve = toneMap && customToneMap &&
+            toneOptions.Algorithm is not (VideoSdrToneMappingAlgorithm.Auto or VideoSdrToneMappingAlgorithm.Spline)
+                ? toneOptions.Algorithm
+                : VideoSdrToneMappingAlgorithm.Bt2390;
         if (hdr10PlusToneMap)
         {
             AddHdr10PlusToneUniforms(
@@ -364,7 +373,7 @@ internal sealed class VideoColorPlan
                 NitsToPq((float)toneMapPeak),
                 customToneMap ? toneOptions : HdrSplineOptions);
         }
-        else if (bt2446AToneMap)
+        else if (staticToneCurve == VideoSdrToneMappingAlgorithm.Bt2446A)
         {
             uniforms[VideoShaderUniforms.ToneParams] =
             [
@@ -373,6 +382,11 @@ internal sealed class VideoColorPlan
                 1 + 32 * MathF.Pow(sourcePeak / 10000, 1 / 2.4f),
                 1 + 32 * MathF.Pow((float)toneMapPeak / 10000, 1 / 2.4f),
             ];
+        }
+        else if (VideoShaderToneCurves.Supports(staticToneCurve))
+        {
+            uniforms[VideoShaderUniforms.ToneParams] =
+                VideoShaderToneCurves.Parameters(toneOptions, sourcePeak, (float)toneMapPeak);
         }
         else if (toneMap)
         {
@@ -436,7 +450,7 @@ internal sealed class VideoColorPlan
             Hdr10Plus = hdr10Plus,
             Hdr10PlusToneMap = hdr10PlusToneMap,
             SceneAdaptiveToneMap = sceneAdaptiveToneMap,
-            Bt2446AToneMap = bt2446AToneMap,
+            StaticToneCurve = staticToneCurve,
             ScaleScene = scaleScene,
             ConvertGamut = convertGamut,
             Fit = fit,
@@ -496,8 +510,71 @@ internal sealed class VideoColorPlan
             hdrPassthrough && hdr,
             sdrToneMapping,
             componentGain: VideoColorGamut.MaximumComponentGain(
-                dolbyVision ? VideoColorPrimaries.Bt2020 : frame.ColorPrimaries),
+                dolbyVision ? VideoColorPrimaries.Bt2020 : frame.ColorPrimaries, target.GetPrimaries()),
             colorVolume: colorVolume);
+    }
+
+    /// <summary>
+    /// Maps neutral BT.2020 PQ luminance through the curve <see cref="Create"/> selects for static
+    /// metadata, writing output relative to SDR white before the surface's white scale.
+    /// </summary>
+    public static VideoHdrOutputMapping EvaluateToneCurve(
+        VideoOutputColorSpace target,
+        bool hdrPassthrough,
+        VideoOutputColorVolume? colorVolume,
+        VideoSdrToneMappingOptions? sdrToneMapping,
+        float sourcePeak,
+        ReadOnlySpan<float> sourceNits,
+        Span<float> output)
+    {
+        VideoHdrOutputMapping hdrOutput = target.ResolveHdrOutput(
+            sourcePeak,
+            hdrPassthrough,
+            sdrToneMapping,
+            componentGain: VideoColorGamut.MaximumComponentGain(VideoColorPrimaries.Bt2020, target.GetPrimaries()),
+            colorVolume: colorVolume);
+        bool toneMap = !(target.IsExtendedRange() && hdrPassthrough && !hdrOutput.AdaptsToDisplay);
+        float linearNitsPerUnit = (float)hdrOutput.LinearNitsPerUnit;
+        float toneMapPeak = (float)Math.Max(hdrOutput.ToneMapPeakNits, 1);
+        bool sdrToneMap = toneMap && toneMapPeak <= linearNitsPerUnit;
+        if (sdrToneMap && sourcePeak <= toneMapPeak)
+            toneMap = false;
+        VideoSdrToneMappingOptions toneOptions = sdrToneMapping ?? VideoSdrToneMappingOptions.Default;
+        bool customToneMap = sdrToneMap || sdrToneMapping is not null;
+        if (customToneMap)
+            toneOptions.Validate();
+        bool shaderCurve = customToneMap && VideoShaderToneCurves.Supports(toneOptions.Algorithm);
+        if (shaderCurve && sourcePeak <= toneMapPeak)
+            toneMap = false;
+
+        if (toneMap && shaderCurve)
+        {
+            int count = Math.Min(sourceNits.Length, output.Length);
+            float[] clamped = new float[count];
+            for (int index = 0; index < count; index++)
+                clamped[index] = Math.Clamp(sourceNits[index], 0, sourcePeak);
+            VideoShaderToneCurves.Evaluate(toneOptions.Algorithm,
+                VideoShaderToneCurves.Parameters(toneOptions, sourcePeak, toneMapPeak), clamped, output);
+            for (int index = 0; index < count; index++)
+                output[index] /= linearNitsPerUnit;
+            return hdrOutput;
+        }
+
+        VideoToneCurve curve = !toneMap
+            ? new VideoToneCurve()
+            : customToneMap && toneOptions.Algorithm is VideoSdrToneMappingAlgorithm.Auto or VideoSdrToneMappingAlgorithm.Spline
+                ? VideoToneCurve.Spline(0, 0, NitsToPq(sourcePeak), NitsToPq(toneMapPeak), toneOptions)
+                : customToneMap && toneOptions.Algorithm == VideoSdrToneMappingAlgorithm.Bt2446A
+                    ? VideoToneCurve.Bt2446A(sourcePeak, toneMapPeak)
+                    : VideoToneCurve.Bt2390(sourcePeak, toneMapPeak, customToneMap ? toneOptions.Bt2390KneeOffset : 0.5f);
+        for (int index = 0; index < sourceNits.Length && index < output.Length; index++)
+        {
+            float nits = Math.Clamp(sourceNits[index], 0, sourcePeak);
+            float mapped = curve.Kind == SoftwareToneCurve.None ? nits : VideoCpuColorPipeline.MapLuminance(curve, (ScalarColor)nits).Value;
+            output[index] = mapped / linearNitsPerUnit;
+        }
+
+        return hdrOutput;
     }
 
     private static float ResolveSourcePeak(VideoFrame frame, VideoOutputColorSpace target,
@@ -512,7 +589,8 @@ internal sealed class VideoColorPlan
             ? frame.DolbyVision.EffectivePeakLuminance
             : frame.Hdr10Plus.IsPresent && !frame.DolbyVision.IsPresent && frame.Hdr10Plus.EffectivePeakLuminance > 0
                 ? frame.Hdr10Plus.EffectivePeakLuminance
-                : frame.HdrPeakLuminance;
+                : frame.PhotoPeakLuminance is > 0 and var measured && double.IsFinite(measured)
+                    ? measured : frame.HdrPeakLuminance;
         return (float)VideoOutputColorSpaceExtensions.EffectiveHdrSourcePeak(peak);
     }
 
@@ -659,7 +737,12 @@ internal sealed class VideoColorPlan
             builder
                 .AddUniform(VideoShaderUniforms.SourceLuma)
                 .AddUniform(VideoShaderUniforms.ToneParams)
-                .AddStage(Bt2446AToneMap ? VideoColorStages.ToneBt2446A : VideoColorStages.ToneBt2390);
+                .AddStage(StaticToneCurve switch
+                {
+                    VideoSdrToneMappingAlgorithm.Bt2390 => VideoColorStages.ToneBt2390,
+                    VideoSdrToneMappingAlgorithm.Bt2446A => VideoColorStages.ToneBt2446A,
+                    var curve => VideoShaderToneCurves.Stage(curve),
+                });
         }
         else
         {

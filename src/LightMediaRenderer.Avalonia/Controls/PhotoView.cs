@@ -96,6 +96,9 @@ public partial class PhotoView : Control
     public static readonly DirectProperty<PhotoView, VideoSdrToneMappingOptions> AutomaticToneMappingProperty =
         AvaloniaProperty.RegisterDirect<PhotoView, VideoSdrToneMappingOptions>(nameof(AutomaticToneMapping), view => view.AutomaticToneMapping);
 
+    public static readonly DirectProperty<PhotoView, VideoDisplayToneTarget> DisplayToneTargetProperty =
+        AvaloniaProperty.RegisterDirect<PhotoView, VideoDisplayToneTarget>(nameof(DisplayToneTarget), view => view.DisplayToneTarget);
+
     public static readonly DirectProperty<PhotoView, bool> IsExtendedRangeOutputProperty =
         AvaloniaProperty.RegisterDirect<PhotoView, bool>(nameof(IsExtendedRangeOutput), view => view.IsExtendedRangeOutput);
 
@@ -156,6 +159,9 @@ public partial class PhotoView : Control
     private int reportedHdrOutput;
     private bool supportsHdrOutput;
     private VideoSdrToneMappingOptions? reportedAutomaticToneMapping;
+    private readonly object displayToneTargetSync = new();
+    private VideoDisplayToneTarget? reportedDisplayToneTarget;
+    private VideoDisplayToneTarget displayToneTarget = new(1, VideoOutputColorSpaceExtensions.HdrReferenceWhiteNits);
     private VideoSdrToneMappingOptions automaticToneMapping = VideoSdrToneMappingOptions.Default with
     {
         Algorithm = VideoSdrToneMappingAlgorithm.Spline,
@@ -340,6 +346,8 @@ public partial class PhotoView : Control
         {
             if (TransitionBounds is { } transition)
                 return transition;
+            if (SourceKey is not null && initialZoomPending && current.Frame is null)
+                return default;
 
             Size natural = current.Frame is { } frame ? NaturalSize(frame, Rotation) : PreviewSize(PreviewSource, PreviewNaturalSize);
             if (current.Frame is null && Rotation % 180 == 90)
@@ -437,6 +445,13 @@ public partial class PhotoView : Control
     {
         get => automaticToneMapping;
         private set => SetAndRaise(AutomaticToneMappingProperty, ref automaticToneMapping, value);
+    }
+
+    /// <summary>What the tone mapping targets left to the display currently resolve to.</summary>
+    public VideoDisplayToneTarget DisplayToneTarget
+    {
+        get => displayToneTarget;
+        private set => SetAndRaise(DisplayToneTargetProperty, ref displayToneTarget, value);
     }
 
     public bool SupportsHdrOutput
@@ -699,7 +714,7 @@ public partial class PhotoView : Control
             hdrOutputChanged: ReportHdrOutput,
             compositor: ElementComposition.GetElementVisual(this)?.Compositor,
             toneMapping: frame is { GainMap: null, ColorTransfer: VideoColorTransfer.Pq } ? ToneMapping : null,
-            toneMappingOutputChanged: ReferenceEquals(frame, current.Frame) && ToneMapping is null &&
+            toneMappingOutputChanged: ReferenceEquals(frame, current.Frame) &&
                 frame is { GainMap: null, ColorTransfer: VideoColorTransfer.Pq } ? ReportAutomaticToneMapping : null));
         bool hasHdrContent = hdrPassthrough && HdrContentHint.IsHdr(frame);
         if (hasHdrContent)
@@ -722,8 +737,23 @@ public partial class PhotoView : Control
 
     private double RenderScaling => TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
 
-    private void ReportAutomaticToneMapping(VideoHdrOutputMapping output)
+    private void ReportAutomaticToneMapping(VideoHdrOutputMapping output, VideoDisplayToneTarget display)
     {
+        VideoDisplayToneTarget? previousDisplay;
+        lock (displayToneTargetSync)
+        {
+            previousDisplay = reportedDisplayToneTarget;
+            reportedDisplayToneTarget = display;
+        }
+        if (previousDisplay != display)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (topLevel is not null)
+                    DisplayToneTarget = display;
+            });
+        }
+
         bool sdr = output.ToneMapPeakNits <= output.LinearNitsPerUnit;
         var algorithm = !output.AdaptsToDisplay ? VideoSdrToneMappingAlgorithm.Auto : sdr
             ? VideoSdrToneMappingAlgorithm.Spline : VideoSdrToneMappingAlgorithm.Bt2390;
@@ -1269,7 +1299,7 @@ public partial class PhotoView : Control
     private void OnSourceChanged(AvaloniaPropertyChangedEventArgs e)
     {
         StopPhotoAnimation();
-        Rect? previous = current.Frame is null && PreviewSource is not null && SourceKey is not null
+        Rect? previous = current.Frame is null && PreviewSource is not null && SourceKey is not null && !initialZoomPending
             ? previewBounds ?? PreviewDestination(PreviewNaturalSize) : null;
         current.Set(e.NewValue as VideoFrame);
         current.ShareCache(this.previous);
@@ -1303,7 +1333,7 @@ public partial class PhotoView : Control
                 ? previewBounds ?? PreviewDestination((Size)args.OldValue!)
                 : null;
         bool initialZoomApplied = ApplyInitialZoomIfReady();
-        if (from is { } start)
+        if (!initialZoomApplied && from is { } start)
             AnimatePreviewSize(start, PreviewDestination(PreviewNaturalSize));
         if (initialZoomApplied)
         {
@@ -1423,6 +1453,8 @@ public partial class PhotoView : Control
         Interlocked.Exchange(ref reportedHdrOutput, 0);
         SupportsHdrOutput = false;
         Interlocked.Exchange(ref reportedAutomaticToneMapping, null);
+        lock (displayToneTargetSync)
+            reportedDisplayToneTarget = null;
 
         gesturing = false;
         contacts.Clear();

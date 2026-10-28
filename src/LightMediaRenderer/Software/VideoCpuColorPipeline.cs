@@ -17,14 +17,19 @@ internal sealed class VideoCpuColorPipeline
     private readonly float[] doviLinear = new float[9];
     private readonly float[] luma;
     private readonly bool hdr;
+    private readonly bool sceneLight;
     private readonly bool managed;
     private readonly bool convertGamut;
     private readonly float sourcePeak;
     private readonly float sourceExponent;
 
-    public VideoCpuColorPipeline(VideoFrame frame, VideoSdrToneMappingOptions? options = null)
+    /// <param name="sceneLight">
+    /// Decodes to untouched linear light: absolute sources in nits and relative ones with SDR white at 1.
+    /// </param>
+    public VideoCpuColorPipeline(VideoFrame frame, VideoSdrToneMappingOptions? options = null, bool sceneLight = false)
     {
         this.frame = frame;
+        this.sceneLight = sceneLight;
         bool dovi = frame.DolbyVision.IsPresent;
         hdr = dovi || frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
         VideoColorPrimaries primaries = dovi ? VideoColorPrimaries.Bt2020 : frame.ColorPrimaries;
@@ -47,10 +52,14 @@ internal sealed class VideoCpuColorPipeline
                 ? VideoSdrToneMappingAlgorithm.Auto : VideoSdrToneMappingAlgorithm.Bt2390,
         };
         options.Validate();
-        if (options.ReferenceWhiteNits != ReferenceWhiteNits ||
+        if (options.Algorithm is not (VideoSdrToneMappingAlgorithm.Auto or VideoSdrToneMappingAlgorithm.Spline or
+            VideoSdrToneMappingAlgorithm.Bt2390 or VideoSdrToneMappingAlgorithm.Bt2446A))
+            throw new ArgumentException($"Software previews do not implement the {options.Algorithm} tone curve.",
+                nameof(options));
+        if (options.ReferenceWhiteNits is not (null or ReferenceWhiteNits) ||
             options.TargetHeadroom is not (null or 1) || options.TargetMaximumNits is not (null or 200))
             throw new ArgumentException("Software previews require a 200-nit white and 1x headroom.", nameof(options));
-        tone = !hdr || sourcePeak <= ReferenceWhiteNits ? new VideoToneCurve() :
+        tone = sceneLight || !hdr || sourcePeak <= ReferenceWhiteNits ? new VideoToneCurve() :
             !dovi && frame.Hdr10Plus.IsPresent && options.Algorithm == VideoSdrToneMappingAlgorithm.Auto &&
                 frame.Hdr10Plus.Windows[0] is { ToneMapping: true, AnchorCount: > 0 } &&
                 frame.Hdr10Plus.TargetedSystemDisplayMaximumLuminance > 0
@@ -179,6 +188,31 @@ internal sealed class VideoCpuColorPipeline
         }
     }
 
+    /// <summary>
+    /// Converts samples to the nonlinear RGB signal the source was coded in, keeping its transfer and
+    /// primaries. Dolby Vision has no such signal and is reconstructed through <see cref="Decode"/>.
+    /// </summary>
+    public void DecodeSignal(Span<float> r, Span<float> g, Span<float> b)
+    {
+        ValidateChannels(r, g, b);
+        if (frame.DolbyVision.IsPresent)
+            throw new InvalidOperationException("Dolby Vision pictures are only defined once reshaped into light.");
+        bool planar = VideoPlanarLayout.IsPlanar(frame.Format);
+        for (int x = 0; x < r.Length; x++)
+        {
+            float y = r[x], cb = g[x], cr = b[x];
+            if (planar)
+            {
+                r[x] = matrix[0] * y + matrix[1] * cb + matrix[2] * cr + matrix[3];
+                g[x] = matrix[4] * y + matrix[5] * cb + matrix[6] * cr + matrix[7];
+                b[x] = matrix[8] * y + matrix[9] * cb + matrix[10] * cr + matrix[11];
+            }
+            r[x] = Math.Clamp(r[x], 0, 1);
+            g[x] = Math.Clamp(g[x], 0, 1);
+            b[x] = Math.Clamp(b[x], 0, 1);
+        }
+    }
+
     private void DecodePixel<T>(ref T r, ref T g, ref T b, T er, T eg, T eb, bool enhancement)
         where T : struct, IColorMath<T>
     {
@@ -255,11 +289,11 @@ internal sealed class VideoCpuColorPipeline
         if (tone.Kind != SoftwareToneCurve.None)
         {
             T luminance = T.Max((T)luma[0] * r + (T)luma[1] * g + (T)luma[2] * b, 0);
-            T mapped = MapLuminance(luminance);
+            T mapped = MapLuminance(tone, luminance);
             T scale = T.SelectGreater(luminance, 1e-6f, mapped / T.Max(luminance, 1e-6f), 0);
             r = r * scale; g = g * scale; b = b * scale;
         }
-        if (hdr)
+        if (hdr && !sceneLight)
         {
             r = r * (T)(1 / ReferenceWhiteNits);
             g = g * (T)(1 / ReferenceWhiteNits);
@@ -267,14 +301,14 @@ internal sealed class VideoCpuColorPipeline
         }
     }
 
-    private T MapLuminance<T>(T luminance) where T : struct, IColorMath<T>
+    internal static T MapLuminance<T>(VideoToneCurve tone, T luminance) where T : struct, IColorMath<T>
     {
         float[] p = tone.Parameters;
         if (tone.Kind == SoftwareToneCurve.Hdr10Plus)
         {
             T normalized = Clamp(luminance / (T)MathF.Max(p[0], 1e-6f), 0, 1);
             T t = Clamp((normalized - (T)p[2]) / (T)MathF.Max(1 - p[2], 1e-6f), 0, 1);
-            T forward = Bezier(t, false), reverse = Bezier(t, true);
+            T forward = Bezier(tone, t, false), reverse = Bezier(tone, t, true);
             T value = T.SelectGreater(t, 0.5f, reverse, forward);
             T mapped = (T)p[3] + (T)(1 - p[3]) * Clamp(value, 0, 1);
             if (p[2] > 1e-6f)
@@ -313,7 +347,7 @@ internal sealed class VideoCpuColorPipeline
         return PqToNits(T.Min(encoded * (T)p[0], p[1]));
     }
 
-    private T Bezier<T>(T t, bool reverse) where T : struct, IColorMath<T>
+    private static T Bezier<T>(VideoToneCurve tone, T t, bool reverse) where T : struct, IColorMath<T>
     {
         T ratio = reverse ? ((T)1 - t) / T.Max(t, 1e-6f) : t / T.Max((T)1 - t, 1e-6f);
         T basis = T.Pow(reverse ? t : (T)1 - t, 16);

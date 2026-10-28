@@ -9,9 +9,13 @@ internal static class AvaloniaVideoOutput
 {
     public static VideoOutputColorSpace GetOutputColorSpace(this ISkiaSharpApiLease lease) =>
 #if LMR_AVALONIA_FORK
-        lease.ColorFormat.ColorSpace == PlatformColorSpace.ScRgbLinear
-            ? VideoOutputColorSpace.ScRgbLinear
-            : VideoOutputColorSpace.Srgb;
+        lease.ColorFormat.ColorSpace switch
+        {
+            PlatformColorSpace.ScRgbLinear => VideoOutputColorSpace.ScRgbLinear,
+            PlatformColorSpace.DisplayP3 => VideoOutputColorSpace.DisplayP3,
+            PlatformColorSpace.Rec2020 => VideoOutputColorSpace.Bt2020,
+            _ => VideoOutputColorSpace.Srgb,
+        };
 #else
         VideoOutputColorSpace.Srgb;
 #endif

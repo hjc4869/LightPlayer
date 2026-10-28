@@ -62,6 +62,14 @@ public sealed class SubtitleOption(SubtitleTrack? track)
     public string DisplayName { get; } = track?.DisplayName ?? Strings.Resources.VideoPlayer_SubtitlesOff;
 }
 
+/// <summary>One entry of the plain text subtitle font picker; the entry with no family keeps the generated font.</summary>
+public sealed class SubtitleFontOption(string? family)
+{
+    public string? Family { get; } = family;
+
+    public string DisplayName { get; } = family ?? Strings.Resources.VideoPlayer_SubtitleFontDefault;
+}
+
 /// <summary>One way to place subtitle luminance onto an extended-linear output.</summary>
 public sealed class SubtitleBrightnessOption(
     SubtitleBrightness mode,
@@ -198,6 +206,7 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
     private RemoteTranscodeOverride transcodeOverride = RemoteTranscodeOverride.None;
     private bool isShaderPackageLoaded;
     private bool isVideoRenditionLoaded;
+    private bool subtitleFontsRequested;
     private IStreamingMediaSourceProvider? currentStreamProvider;
     private Uri? currentStreamUri;
     private int streamOpenInProgress;
@@ -380,10 +389,27 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
     private AudioTrack? selectedAudioTrack;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanSetSubtitleFont))]
     private SubtitleTrack? selectedSubtitleTrack;
 
     [ObservableProperty]
     private SubtitleOption? selectedSubtitleOption;
+
+    /// <summary>Font size of plain text subtitles, in script pixels of a 288-line frame.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PlainTextSubtitleFontSize))]
+    private decimal subtitleFontSize;
+
+    /// <summary>Installed families behind an entry that keeps the generated font; filled on first use.</summary>
+    [ObservableProperty]
+    private IReadOnlyList<SubtitleFontOption> subtitleFontOptions;
+
+    [ObservableProperty]
+    private SubtitleFontOption? selectedSubtitleFontOption;
+
+    /// <summary>Font family of plain text subtitles, or null for the generated font.</summary>
+    [ObservableProperty]
+    private string? plainTextSubtitleFontFamily;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SubtitleBrightnessMode))]
@@ -421,6 +447,12 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
 
     [ObservableProperty]
     private int displayPanelBitDepth;
+
+    /// <summary>The active tone mapping options, or null for the built-in mapping.</summary>
+    [ObservableProperty]
+    private VideoSdrToneMappingOptions? toneMapping;
+
+    public PhotoToneMappingViewModel ToneProfiles { get; }
 
     /// <summary>Width over height of the picture, or 0 before anything is known about it.</summary>
     [ObservableProperty]
@@ -504,7 +536,21 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
         enableHdrPassthrough = settingsStore.EnableHdrPassthrough;
         VideoSurfaceTransfers.Bt709Preference = settingsStore.VideoBt709Interpretation;
         displayPanelBitDepth = settingsStore.DisplayPanelBitDepth;
+        ToneProfiles = new PhotoToneMappingViewModel(settingsStore, forVideo: true);
+        toneMapping = ToneProfiles.Options;
+        ToneProfiles.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(PhotoToneMappingViewModel.Options))
+                ToneMapping = ToneProfiles.Options;
+        };
         isAutoPlayNextEnabled = settingsStore.AutoPlayNextVideo;
+        subtitleFontSize = settingsStore.SubtitleFontSize;
+        string savedFontFamily = settingsStore.SubtitleFontFamily;
+        plainTextSubtitleFontFamily = savedFontFamily.Length > 0 ? savedFontFamily : null;
+        subtitleFontOptions = plainTextSubtitleFontFamily is null
+            ? [new SubtitleFontOption(null)]
+            : [new SubtitleFontOption(null), new SubtitleFontOption(plainTextSubtitleFontFamily)];
+        selectedSubtitleFontOption = subtitleFontOptions[^1];
         Player = new MediaPlayer(playerOptions = new MediaPlayerOptions
         {
             SourceProviderFactory = MediaSourceProviders.Create,
@@ -657,6 +703,11 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
     public SubtitleBrightness SubtitleBrightnessMode =>
         SelectedSubtitleBrightnessOption?.Mode ?? DefaultSubtitleBrightnessMode;
 
+    public double PlainTextSubtitleFontSize => (double)SubtitleFontSize;
+
+    /// <summary>Whether the subtitle on screen has no authored styles, so its font is the player's.</summary>
+    public bool CanSetSubtitleFont => SelectedSubtitleTrack?.IsPlainText == true;
+
     /// <summary>The engine the view's <c>VideoView</c> renders.</summary>
     public MediaPlayer Player { get; }
 
@@ -748,6 +799,11 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
     }
 
     public IRelayCommand TogglePlaylistCommand { get; }
+
+    /// <summary>Whether the frame on screen can be saved as an image file on this platform.</summary>
+    public bool CanSaveScreenshot => PlatformServices.VideoScreenshotEncoder is not null;
+
+    public string ScreenshotShortcutText => OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() ? "\u2318 + S" : "Ctrl + S";
 
     public IRelayCommand ToggleShortcutsCommand { get; }
 
@@ -882,6 +938,7 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
             PreferHardwareProcessing = settingsStore.PreferHardwareVideoProcessing;
             EnableHdrPassthrough = settingsStore.EnableHdrPassthrough;
             DisplayPanelBitDepth = settingsStore.DisplayPanelBitDepth;
+            ToneProfiles.Reload(settingsStore.ToneMapping);
             ApplySubtitleBrightness(saved: null);
             RebuildShaderPackageOptions(video: null, selectedOverride: null);
             subtitleSourceKinds.Clear();
@@ -1054,6 +1111,7 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
         PreferHardwareProcessing = settingsStore.PreferHardwareVideoProcessing;
         EnableHdrPassthrough = settingsStore.EnableHdrPassthrough;
         DisplayPanelBitDepth = settingsStore.DisplayPanelBitDepth;
+        ToneProfiles.Reload(settingsStore.ToneMapping);
         var video = sourcedVideo.Value;
         currentVideo = video;
         currentSourceId = sourcedVideo.SourceId;
@@ -2169,6 +2227,53 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
 
     partial void OnIsAutoPlayNextEnabledChanged(bool value) => settingsStore.AutoPlayNextVideo = value;
 
+    partial void OnSubtitleFontSizeChanged(decimal value)
+    {
+        int size = SubtitleFontSizeSettings.Normalize((int)Math.Round(value));
+        if (size != value)
+        {
+            SubtitleFontSize = size;
+            return;
+        }
+
+        settingsStore.SubtitleFontSize = size;
+    }
+
+    partial void OnSelectedSubtitleFontOptionChanged(SubtitleFontOption? value)
+    {
+        // The picker clears its selection while its list is replaced.
+        if (value is null)
+            return;
+
+        PlainTextSubtitleFontFamily = value.Family;
+        settingsStore.SubtitleFontFamily = value.Family ?? string.Empty;
+    }
+
+    private async Task LoadSubtitleFontsAsync()
+    {
+        IReadOnlyList<string> families;
+        try
+        {
+            families = await Task.Run(AssSubtitleRenderer.GetAvailableFontFamilies);
+        }
+        catch (Exception exception)
+        {
+            AppLog.Warning("Video.Subtitles", "Could not list subtitle fonts.", exception);
+            return;
+        }
+
+        string? current = PlainTextSubtitleFontFamily;
+        var options = new List<SubtitleFontOption>(families.Count + 2) { new(null) };
+        // A saved family that is no longer installed stays selectable; the renderer falls back for it.
+        if (current is not null && !families.Contains(current, StringComparer.OrdinalIgnoreCase))
+            options.Add(new(current));
+        options.AddRange(families.Select(family => new SubtitleFontOption(family)));
+
+        SubtitleFontOptions = options;
+        SelectedSubtitleFontOption = options.First(option =>
+            string.Equals(option.Family, current, StringComparison.OrdinalIgnoreCase));
+    }
+
     partial void OnSelectedShaderPackageChanged(VideoShaderPackageOption value)
     {
         if (!isShaderPackageLoaded)
@@ -2207,6 +2312,12 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
     partial void OnSelectedSubtitleTrackChanged(SubtitleTrack? value)
     {
         SyncSubtitleOption();
+
+        if (CanSetSubtitleFont && !subtitleFontsRequested)
+        {
+            subtitleFontsRequested = true;
+            _ = LoadSubtitleFontsAsync();
+        }
 
         if (suppressTrackSync)
         {

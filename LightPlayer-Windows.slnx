@@ -1,0 +1,71 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/packaging/">
+    <Project Path="packaging/LightPlayerMSIX/LightPlayerMSIX.wapproj" Type="c7167f0d-bc9f-4e6e-afe1-012c56b48db5" Id="a26d1987-90c6-44cd-8ee9-7ff0bbe28a3e">
+      <Deploy />
+    </Project>
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/LightMediaRenderer.Avalonia/LightMediaRenderer.Avalonia.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightMediaRenderer/LightMediaRenderer.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.Logging/LightStudio.Logging.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.LightPlayer.Desktop/LightStudio.LightPlayer.Desktop.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.LightPlayer/LightStudio.LightPlayer.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.RemoteApi/LightStudio.RemoteApi.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.LocalServices/LightStudio.LocalServices.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.RemoteServices/LightStudio.RemoteServices.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.FfmpegShim/LightStudio.FfmpegShim.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.MediaLibraryCore/LightStudio.MediaLibraryCore.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.Lyrics.Jint/LightStudio.Lyrics.Jint.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+    <Project Path="src/LightStudio.MediaLibraryCore.Contracts/LightStudio.MediaLibraryCore.Contracts.csproj">
+      <Platform Solution="*|ARM64" Project="ARM64" />
+      <Platform Solution="*|x64" Project="x64" />
+    </Project>
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/LightStudio.LightPlayer.Generators/LightStudio.LightPlayer.Generators.csproj" />
+  </Folder>
+  <Folder Name="/tools/NativeBindings/" />
+  <Folder Name="/tools/NativeBindings/Generator/">
+    <Project Path="tools/NativeBindings/Generator/NativeBindings.Generator.csproj" />
+  </Folder>
+  <Folder Name="/tools/NativeBindings/Parser/">
+    <Project Path="tools/NativeBindings/Parser/NativeBindings.Parser.csproj" />
+  </Folder>
+</Solution>

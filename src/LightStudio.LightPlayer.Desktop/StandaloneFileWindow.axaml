@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:strings="using:LightStudio.LightPlayer.Strings"
+        x:Class="LightStudio.LightPlayer.Desktop.StandaloneFileWindow"
+        x:ClassModifier="internal"
+        Width="1000" Height="700" MinWidth="320" MinHeight="240">
+    <Border x:Name="ClientWindowFrame" ClipToBounds="True" Background="Black">
+        <Panel>
+            <ContentControl x:Name="MediaHost"
+                            HorizontalContentAlignment="Stretch"
+                            VerticalContentAlignment="Stretch" />
+            <StackPanel x:Name="ClientWindowControls" IsVisible="False"
+                        Orientation="Horizontal" Width="84" Height="52" Margin="8,0,0,0"
+                        HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Button x:Name="CloseWindowButton" Theme="{StaticResource ClientWindowControlButton}"
+                        Background="#FF5F57" Click="OnCloseWindowClick"
+                        ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        AutomationProperties.Name="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Path Data="{StaticResource IconClose}" />
+                </Button>
+                <Button x:Name="MinimizeWindowButton" Theme="{StaticResource ClientWindowControlButton}"
+                        Background="#FEBC2E" Click="OnMinimizeWindowClick"
+                        IsEnabled="{Binding $parent[Window].CanMinimize}"
+                        ToolTip.Tip="{Binding VideoPlayer_Minimize, Source={x:Static strings:LocalizedStrings.Instance}}"
+                        AutomationProperties.Name="{Binding VideoPlayer_Minimize, Source={x:Static strings:LocalizedStrings.Instance}}">
+                    <Path Data="{StaticResource IconWindowMinimize}" />
+                </Button>
+                <Button x:Name="MaximizeWindowButton" Theme="{StaticResource ClientWindowControlButton}"
+                        Background="#28C840" Click="OnMaximizeWindowClick"
+                        IsEnabled="{Binding $parent[Window].CanMaximize}">
+                    <Path />
+                </Button>
+            </StackPanel>
+        </Panel>
+    </Border>
+</Window>

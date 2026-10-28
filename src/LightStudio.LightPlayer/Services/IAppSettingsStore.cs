@@ -31,6 +31,18 @@ public static class VideoPanelBitDepthSettings
     public static int Normalize(int value) => value is 6 or 8 or 10 ? value : Automatic;
 }
 
+/// <summary>Font size of plain text subtitles such as SubRip, in script pixels of a 288-line frame.</summary>
+public static class SubtitleFontSizeSettings
+{
+    public const int Default = 18;
+
+    public const int Minimum = 8;
+
+    public const int Maximum = 48;
+
+    public static int Normalize(int value) => Math.Clamp(value, Minimum, Maximum);
+}
+
 public interface IAppSettingsStore
 {
     IReadOnlyList<string> LibraryFolderPaths { get; }
@@ -63,6 +75,9 @@ public interface IAppSettingsStore
     /// <see cref="PlatformServices.SupportsAppleChrome"/> is false.
     /// </summary>
     bool EnableAppleChrome { get; set; }
+
+    /// <summary>How frosted liquid glass appears, from 0 for clear to 1 for frosted.</summary>
+    double LiquidGlassFrost { get; set; }
 
     /// <summary>The user-authored color themes, in creation order.</summary>
     IReadOnlyList<CustomColorThemeRecord> CustomColorThemes { get; }
@@ -131,6 +146,12 @@ public interface IAppSettingsStore
     /// <summary>Whether reaching the end of a video opens the next entry of its list by itself.</summary>
     bool AutoPlayNextVideo { get; set; }
 
+    /// <summary>Font size of subtitles without authored styles; see <see cref="SubtitleFontSizeSettings"/>.</summary>
+    int SubtitleFontSize { get; set; }
+
+    /// <summary>Font family of subtitles without authored styles, or empty for the generated font.</summary>
+    string SubtitleFontFamily { get; set; }
+
     /// <summary>Whether newly opened videos may use a hardware decoder.</summary>
     bool EnableHardwareDecoding { get; set; }
 
@@ -139,9 +160,10 @@ public interface IAppSettingsStore
 
     bool PreferPhotoDecodePerformance { get; set; }
 
-    VideoSdrToneMappingOptions? PreferredPhotoToneMapping { get; }
+    /// <summary>Named HDR tone mapping profiles and the defaults for images and videos.</summary>
+    ToneMappingSettings ToneMapping { get; }
 
-    Task SetPreferredPhotoToneMappingAsync(VideoSdrToneMappingOptions? options);
+    Task SetToneMappingAsync(ToneMappingSettings settings);
 
     /// <summary>Device and per-call arguments chosen for each hardware device type.</summary>
     IReadOnlyDictionary<string, HardwareDecoderConfiguration> HardwareDecoderConfigurations { get; }

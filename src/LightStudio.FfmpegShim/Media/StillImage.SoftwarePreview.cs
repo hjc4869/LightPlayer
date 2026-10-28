@@ -1,7 +1,10 @@
 using System;
+using System.Buffers;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using LightMediaRenderer.Contracts;
+using LightMediaRenderer.Rendering;
 using LightMediaRenderer.Software;
 using LightStudio.FfmpegShim.Core;
 using LightStudio.NativeBindings.Types;
@@ -37,6 +40,72 @@ public static unsafe partial class StillImage
             pixels.Dispose();
             throw;
         }
+    }
+
+    /// <summary>
+    /// Converts a region of CPU-backed frame pixels to linear BT.2020 light with straight alpha and
+    /// without tone mapping. Absolute-luminance sources produce nits; others put SDR white at 1.
+    /// </summary>
+    /// <param name="target">Single-float RGBA destination of the region's first pixel.</param>
+    /// <param name="targetStride">Distance between destination rows, in float components.</param>
+    public static void RenderScene(VideoFrame frame, int left, int top, int width, int height,
+        IntPtr target, int targetStride, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        if (frame.Data == IntPtr.Zero || frame.Surface.IsValid || frame.Format == VideoPixelFormat.ExternalTexture)
+            throw new ArgumentException("Scene conversion requires CPU-accessible pixels.", nameof(frame));
+        if (left < 0 || top < 0 || width <= 0 || height <= 0 || left > frame.Width - width ||
+            top > frame.Height - height || targetStride < width * 4)
+            throw new ArgumentOutOfRangeException(nameof(width), "The region does not fit the frame or the target.");
+
+        var color = new VideoCpuColorPipeline(frame, sceneLight: true);
+        VideoColorPrimaries primaries = frame.DolbyVision.IsPresent || frame.PhotoColor is not null
+            ? VideoColorPrimaries.Bt2020 : frame.ColorPrimaries;
+        float[] gamut = primaries == VideoColorPrimaries.Bt2020 ? null :
+            Array.ConvertAll(VideoColorGamut.Matrix(primaries, VideoColorPrimaries.Bt2020), value => (float)value);
+        VideoFrame enhancement = frame.DolbyVision.EnhancementLayerResidual ? frame.EnhancementLayer : null;
+        int workers = OperatingSystem.IsBrowser() ? 1 : Math.Clamp((int)((long)width * height / 262144), 1,
+            Math.Min(Environment.ProcessorCount, height));
+        Parallel.For(0, workers, new ParallelOptions { MaxDegreeOfParallelism = workers, CancellationToken = cancellationToken },
+            worker =>
+            {
+                float[] scratch = ArrayPool<float>.Shared.Rent(width * 7);
+                Span<float> r = scratch.AsSpan(0, width), g = scratch.AsSpan(width, width), b = scratch.AsSpan(width * 2, width),
+                    alpha = scratch.AsSpan(width * 3, width), er = scratch.AsSpan(width * 4, width),
+                    eg = scratch.AsSpan(width * 5, width), eb = scratch.AsSpan(width * 6, width);
+                int first = (int)((long)height * worker / workers), last = (int)((long)height * (worker + 1) / workers);
+                for (int row = first; row < last; row++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int y = top + row;
+                    VideoCpuPreview.SampleRow(frame, left, y, r, g, b, alpha);
+                    if (enhancement is not null)
+                    {
+                        for (int x = 0; x < width; x++)
+                            VideoCpuPreview.Sample(enhancement, (left + x) * MathF.Min((float)enhancement.Width / frame.Width, 1),
+                                (y + 0.5f) * MathF.Min((float)enhancement.Height / frame.Height, 1) - 0.5f,
+                                out er[x], out eg[x], out eb[x], out _);
+                    }
+                    color.Decode(r, g, b, er, eg, eb);
+                    float* output = (float*)target + (long)row * targetStride;
+                    for (int x = 0; x < width; x++)
+                    {
+                        float red = r[x], green = g[x], blue = b[x];
+                        if (gamut is not null)
+                        {
+                            red = gamut[0] * r[x] + gamut[1] * g[x] + gamut[2] * b[x];
+                            green = gamut[3] * r[x] + gamut[4] * g[x] + gamut[5] * b[x];
+                            blue = gamut[6] * r[x] + gamut[7] * g[x] + gamut[8] * b[x];
+                        }
+                        output[x * 4] = red;
+                        output[x * 4 + 1] = green;
+                        output[x * 4 + 2] = blue;
+                        output[x * 4 + 3] = Math.Clamp(alpha[x], 0, 1);
+                    }
+                }
+
+                ArrayPool<float>.Shared.Return(scratch);
+            });
     }
 
     private static ReadOnlySpan<byte> ReadSoftwareProfile(AVFrame* frame)

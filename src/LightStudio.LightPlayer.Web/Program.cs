@@ -192,6 +192,8 @@ internal static class Program
         // starts on its own could do nothing but raise warnings.
         PlatformServices.SupportsStartupLibraryScan = false;
         PlatformServices.SupportsSampleRateSettings = false;
+        PlatformServices.PhotoExport = new BrowserPhotoExportService();
+        PlatformServices.VideoScreenshotEncoder = null;
     #if LMR_AVALONIA_FORK
         PlatformServices.SupportsAdvancedColorOutput = true;
     #endif

@@ -66,7 +66,28 @@ public sealed class AppearancePreferencesViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void OnBackdropStyleChanged() => OnPropertyChanged(nameof(ShowBackdropStyle));
+    /// <summary>True while liquid glass applies anywhere in the app.</summary>
+    public bool ShowLiquidGlassFrost =>
+        themeService.IsAppleChromeEnabled || themeService.BackdropStyle == BackdropStyle.LiquidGlassContentOnly;
+
+    public double LiquidGlassFrost
+    {
+        get => themeService.LiquidGlassFrost;
+        set
+        {
+            if (themeService.LiquidGlassFrost == value)
+                return;
+
+            themeService.LiquidGlassFrost = value;
+            OnPropertyChanged();
+        }
+    }
+
+    private void OnBackdropStyleChanged()
+    {
+        OnPropertyChanged(nameof(ShowBackdropStyle));
+        OnPropertyChanged(nameof(ShowLiquidGlassFrost));
+    }
 
     public void Dispose() => themeService.BackdropStyleChanged -= OnBackdropStyleChanged;
 }

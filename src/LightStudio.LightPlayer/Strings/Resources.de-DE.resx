@@ -122,7 +122,7 @@
     <value>Indexdatenbank zurücksetzen</value>
   </data>
   <data name="About_ResetIndexDatabaseConfirm" xml:space="preserve">
-    <value>Light Player wird geschlossen. Die Bibliotheks- und semantischen Suchindizes werden beim nächsten App-Start zurückgesetzt. Ihre Einstellungen, Wiedergabelisten und Mediendateien bleiben erhalten.</value>
+    <value>Light Media Center wird geschlossen. Die Bibliotheks- und semantischen Suchindizes werden beim nächsten App-Start zurückgesetzt. Ihre Einstellungen, Wiedergabelisten und Mediendateien bleiben erhalten.</value>
   </data>
   <data name="About_ResetIndexDatabaseManualScan" xml:space="preserve">
     <value>Sie müssen Ihre Bibliothek nach dem nächsten Start manuell scannen.</value>
@@ -137,7 +137,7 @@
     <value>Zurücksetzen und neu laden</value>
   </data>
   <data name="About_ProductName" xml:space="preserve">
-    <value>Light Player</value>
+    <value>Light Media Center</value>
   </data>
   <data name="About_Tagline" xml:space="preserve">
     <value>Ein plattformübergreifender Medienplayer, gebaut mit Avalonia.</value>
@@ -428,7 +428,7 @@
     <value>Es können Nutzungsbedingungen von Drittanbieterdiensten gelten.</value>
   </data>
   <data name="InitialSetup_Title" xml:space="preserve">
-    <value>Willkommen bei Light</value>
+    <value>Willkommen bei Light Media Center</value>
   </data>
   <data name="LanguageSettings_InterfaceLanguageHeader" xml:space="preserve">
     <value>Sprache der Benutzeroberfläche</value>
@@ -531,7 +531,7 @@
     <value>Bibliothek durchsuchen</value>
   </data>
   <data name="LibrarySettings_Subtitle" xml:space="preserve">
-    <value>Lege fest, wo Light nach Musik und Videos sucht.</value>
+    <value>Lege fest, wo Light Media Center nach Musik und Videos sucht.</value>
   </data>
   <data name="LibrarySettings_Title" xml:space="preserve">
     <value>Bibliotheksordner</value>
@@ -978,7 +978,7 @@
     <value>Ausgabegerät</value>
   </data>
   <data name="AudioSettings_ExclusiveDescription" xml:space="preserve">
-    <value>Light Player exklusiven Zugriff auf das gewählte Gerät geben. Andere Anwendungen können dann möglicherweise keinen Ton wiedergeben.</value>
+    <value>Light Media Center exklusiven Zugriff auf das gewählte Gerät geben. Andere Anwendungen können dann möglicherweise keinen Ton wiedergeben.</value>
   </data>
   <data name="AudioSettings_ExclusiveHeader" xml:space="preserve">
     <value>Exklusivmodus</value>
@@ -991,12 +991,6 @@
   </data>
   <data name="AudioSettings_UnavailableDevice" xml:space="preserve">
     <value>Gewähltes Gerät (nicht verfügbar)</value>
-  </data>
-  <data name="VideoSettings_Title" xml:space="preserve">
-    <value>Video</value>
-  </data>
-  <data name="VideoSettings_Subtitle" xml:space="preserve">
-    <value>Wähle die Einstellungen für Videokonvertierung, Skalierung und Dekodierung.</value>
   </data>
   <data name="VideoSettings_BufferHeader" xml:space="preserve">
     <value>Videopuffer</value>
@@ -1029,7 +1023,7 @@
     <value>Erweiterte Farbausgabe (WCG / HDR)</value>
   </data>
   <data name="VideoSettings_HdrPassthroughDescription" xml:space="preserve">
-    <value>Light neu starten, um die Änderung anzuwenden.</value>
+    <value>Light Media Center neu starten, um die Änderung anzuwenden.</value>
   </data>
   <data name="VideoSettings_Bt709InterpretationHeader" xml:space="preserve"><value>BT.709-Interpretation</value></data>
   <data name="VideoSettings_Bt709InterpretationDescription" xml:space="preserve"><value>Wählen Sie die Übertragungsfunktion für BT.709-Videos.</value></data>
@@ -1114,7 +1108,7 @@
     <value>Bibliothek</value>
   </data>
   <data name="SettingsSection_PlaybackTitle" xml:space="preserve">
-    <value>Wiedergabe</value>
+    <value>Wiedergabe &amp; Anzeige</value>
   </data>
   <data name="SettingsSection_SampleRateListTitle" xml:space="preserve">
     <value>Abtastrate</value>
@@ -1546,7 +1540,7 @@
     <value>QR-Code anzeigen</value>
   </data>
   <data name="RemoteApiSettings_PairingQrInstruction" xml:space="preserve">
-    <value>Installiere Light Player auf Android und scanne diesen QR-Code dann mit der Kamera-App des Systems. Dieser Code läuft in 5 Minuten ab.</value>
+    <value>Installiere Light Media Center auf Android und scanne diesen QR-Code dann mit der Kamera-App des Systems. Dieser Code läuft in 5 Minuten ab.</value>
   </data>
   <data name="RemoteApiSettings_PairingCopied" xml:space="preserve">
     <value>Kopiert</value>
@@ -1658,6 +1652,15 @@
   </data>
   <data name="VideoPlayer_SubtitleTrack" xml:space="preserve">
     <value>Untertitelspur</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFontSize" xml:space="preserve">
+    <value>Schriftgröße</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFont" xml:space="preserve">
+    <value>Schriftart</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFontDefault" xml:space="preserve">
+    <value>Standard</value>
   </data>
   <data name="VideoPlayer_SubtitleBrightness" xml:space="preserve">
     <value>Untertitelhelligkeit</value>
@@ -1799,6 +1802,15 @@
   </data>
   <data name="VideoPlayer_ShortcutHelp" xml:space="preserve">
     <value>Diese Liste anzeigen</value>
+  </data>
+  <data name="VideoPlayer_Screenshot" xml:space="preserve">
+    <value>Screenshot speichern</value>
+  </data>
+  <data name="VideoPlayer_ScreenshotSaved" xml:space="preserve">
+    <value>Screenshot gespeichert</value>
+  </data>
+  <data name="VideoPlayer_ScreenshotFailed" xml:space="preserve">
+    <value>Der Screenshot konnte nicht gespeichert werden.</value>
   </data>
   <data name="VideoPlayer_Muted" xml:space="preserve">
     <value>Stumm</value>
@@ -1998,7 +2010,7 @@
     <value>Entfernte Bibliotheken</value>
   </data>
   <data name="RemoteLibraries_Description" xml:space="preserve">
-    <value>Füge eigenständige Light-Player-Bibliotheken hinzu und kombiniere sie.</value>
+    <value>Füge eigenständige Light-Media-Center-Bibliotheken hinzu und kombiniere sie.</value>
   </data>
   <data name="RemoteLibraries_RemoteOnlyDescription" xml:space="preserve">
     <value>Lokale Bibliotheksordner sind hier nicht verfügbar, daher können nur entfernte Bibliotheken verwendet werden.</value>
@@ -2082,7 +2094,7 @@
     <value>Dienst</value>
   </data>
   <data name="RemoteLibraries_ProviderLightPlayer" xml:space="preserve">
-    <value>Light Player</value>
+    <value>Light Media Center</value>
   </data>
   <data name="RemoteLibraries_ProviderNextcloudMusic" xml:space="preserve">
     <value>Nextcloud Music</value>
@@ -2091,7 +2103,7 @@
     <value>WebDAV</value>
   </data>
   <data name="RemoteLibraries_WebDavRangeRequired" xml:space="preserve">
-    <value>Dieser WebDAV-Server unterstützt keine HTTP-Bytebereichsanfragen, die Light Player für Remote-Medien benötigt.</value>
+    <value>Dieser WebDAV-Server unterstützt keine HTTP-Bytebereichsanfragen, die Light Media Center für Remote-Medien benötigt.</value>
   </data>
   <data name="RemoteLibraries_ConnectedAsFormat" xml:space="preserve">
     <value>Verbunden als {0}</value>
@@ -2350,6 +2362,9 @@
   <data name="ThemeColor_BackdropOff" xml:space="preserve">
     <value>Aus</value>
   </data>
+  <data name="ThemeColor_GlassFrostHeader" xml:space="preserve">
+    <value>Mattierung des Flüssigglases</value>
+  </data>
   <data name="Common_OpenInNewWindow" xml:space="preserve">
     <value>In neuem Fenster öffnen</value>
   </data>
@@ -2441,8 +2456,9 @@
   <data name="SettingsPage_LocalLibrary" xml:space="preserve"><value>Lokale Bibliothek</value></data>
   <data name="SettingsPage_RemoteLibrary" xml:space="preserve"><value>Remote-Bibliothek</value></data>
   <data name="SettingsPage_PhotoIndex" xml:space="preserve"><value>Fotoindizierung</value></data>
+  <data name="SettingsPage_Display" xml:space="preserve"><value>Anzeige</value></data>
   <data name="SettingsPage_AudioPlayback" xml:space="preserve"><value>Audiowiedergabe</value></data>
-  <data name="SettingsPage_VideoPlayback" xml:space="preserve"><value>Videowiedergabe</value></data>
+  <data name="SettingsPage_VideoPlayback" xml:space="preserve"><value>Videos und Fotos</value></data>
   <data name="SettingsPage_CustomFilters" xml:space="preserve"><value>Benutzerdefinierte Filter</value></data>
   <data name="SettingsPage_ServerStreaming" xml:space="preserve"><value>Server-Streaming</value></data>
   <data name="LibrarySettings_MusicLibraryHeader" xml:space="preserve"><value>Musikbibliothek</value></data>
@@ -2478,7 +2494,107 @@
   <data name="Photo_ToneSlopeTuning" xml:space="preserve"><value>Steigungsanpassung</value></data>
   <data name="Photo_ToneSlopeOffset" xml:space="preserve"><value>Steigungsversatz</value></data>
   <data name="Photo_ToneContrast" xml:space="preserve"><value>Kontrast</value></data>
-  <data name="Photo_ToneReset" xml:space="preserve"><value>Auf Automatisch zurücksetzen</value></data>
-  <data name="Photo_ToneSave" xml:space="preserve"><value>Als bevorzugte Tonwertkurve speichern</value></data>
-  <data name="Photo_ToneClear" xml:space="preserve"><value>Gespeicherte Voreinstellung löschen</value></data>
+  <data name="Photo_ToneClip" xml:space="preserve"><value>Abschneiden</value></data>
+  <data name="Photo_ToneMobius" xml:space="preserve"><value>Möbius</value></data>
+  <data name="Photo_ToneHable" xml:space="preserve"><value>Filmisch (Hable)</value></data>
+  <data name="Photo_ToneGamma" xml:space="preserve"><value>Gamma</value></data>
+  <data name="Photo_ToneLinear" xml:space="preserve"><value>Linear</value></data>
+  <data name="Photo_ToneKneePoint" xml:space="preserve"><value>Kniepunkt</value></data>
+  <data name="Photo_ToneExposure" xml:space="preserve"><value>Belichtung</value></data>
+  <data name="Photo_ToneAutomaticDescription" xml:space="preserve"><value>Folgt der HDR10+-Kurve eines Videos, sofern vorhanden, und verwendet sonst den PQ-Spline.</value></data>
+  <data name="Photo_ToneSplineDescription" xml:space="preserve"><value>Gleicht Mitteltonkontrast und Lichterdetails aus und passt sich der Szenenhelligkeit an, wenn ein Video sie angibt.</value></data>
+  <data name="Photo_ToneBt2390Description" xml:space="preserve"><value>Kurve aus dem Rundfunkstandard. Lässt Schatten und Mitteltöne unverändert und komprimiert Lichter sanft.</value></data>
+  <data name="Photo_ToneBt2446ADescription" xml:space="preserve"><value>Umwandlung nach Rundfunkstandard für sorgfältig gemasterte Inhalte, ausgerichtet auf eine Zielspitzenhelligkeit.</value></data>
+  <data name="Photo_ToneClipDescription" xml:space="preserve"><value>Zeigt alles im Bereich des Displays exakt an und schneidet hellere Lichter ab. Ideal, wenn Genauigkeit wichtiger ist als Lichterdetails.</value></data>
+  <data name="Photo_ToneMobiusDescription" xml:space="preserve"><value>Hält Helligkeit und Farbe unterhalb des Kniepunkts exakt und lässt Lichter darüber sanft auslaufen. Bevorzugt Genauigkeit vor Lichterdetails.</value></data>
+  <data name="Photo_ToneReinhardDescription" xml:space="preserve"><value>Komprimiert den gesamten Bereich sanft. Erhält die Gesamthelligkeit, glättet aber feine Details und Kontrast.</value></data>
+  <data name="Photo_ToneHableDescription" xml:space="preserve"><value>Filmähnliche Kurve, die Details in Schatten und Lichtern erhält, auf Kosten eines etwas dunkleren, weicheren Bildes.</value></data>
+  <data name="Photo_ToneGammaDescription" xml:space="preserve"><value>Hält die Helligkeit unterhalb des Kniepunkts exakt und komprimiert jede Helligkeitsstufe darüber gleichmäßig, sodass Strukturen in hellen Bereichen erhalten bleiben.</value></data>
+  <data name="Photo_ToneLinearDescription" xml:space="preserve"><value>Komprimiert alle Helligkeitsstufen gleichmäßig und erhält jedes Licht auf Kosten der Gesamthelligkeit. Eine höhere Belichtung hellt das Bild auf; Lichter, die nicht mehr passen, werden abgeschnitten.</value></data>
+  <data name="ToneMapping_Description" xml:space="preserve"><value>Legen Sie fest, wie die Helligkeit von HDR-Bildern und -Videos an Ihr Display angepasst wird.</value></data>
+  <data name="ToneMapping_ImageDefaultHeader" xml:space="preserve"><value>Bilder mit absoluter Leuchtdichte</value></data>
+  <data name="ToneMapping_ImageDefaultDescription" xml:space="preserve"><value>HDR-Bilder mit absoluter Helligkeit, etwa PQ- und JPEG-XR-Fotos.</value></data>
+  <data name="ToneMapping_VideoDefaultHeader" xml:space="preserve"><value>HDR-Videos</value></data>
+  <data name="ToneMapping_VideoDefaultDescription" xml:space="preserve"><value>HDR10-, HLG-, HDR10+- und Dolby-Vision-Videos.</value></data>
+  <data name="ToneMapping_BuiltIn" xml:space="preserve"><value>Integriert</value></data>
+  <data name="ToneMapping_Profile" xml:space="preserve"><value>Profil</value></data>
+  <data name="ToneMapping_ProfilesHeader" xml:space="preserve"><value>Profile</value></data>
+  <data name="ToneMapping_ProfilesDescription" xml:space="preserve"><value>Erstellen Sie benannte Tonwertkurven und prüfen Sie sie im Diagramm.</value></data>
+  <data name="ToneMapping_AddProfile" xml:space="preserve"><value>Profil hinzufügen</value></data>
+  <data name="ToneMapping_DeleteProfile" xml:space="preserve"><value>Profil löschen</value></data>
+  <data name="ToneMapping_DeleteTitle" xml:space="preserve"><value>Tonemapping-Profil löschen</value></data>
+  <data name="ToneMapping_DeleteMessageFormat" xml:space="preserve"><value>„{0}“ löschen? Medien, die es verwenden, nutzen wieder das integrierte Tonemapping.</value></data>
+  <data name="ToneMapping_Name" xml:space="preserve"><value>Profilname</value></data>
+  <data name="ToneMapping_NewProfileFormat" xml:space="preserve"><value>Profil {0}</value></data>
+  <data name="ToneMapping_NameRequired" xml:space="preserve"><value>Geben Sie einen Profilnamen ein.</value></data>
+  <data name="ToneMapping_NameExists" xml:space="preserve"><value>Ein Profil mit diesem Namen ist bereits vorhanden.</value></data>
+  <data name="ToneMapping_Locked" xml:space="preserve"><value>Folgt dem Display. Auswählen, um einen eigenen Wert festzulegen.</value></data>
+  <data name="ToneMapping_Unlocked" xml:space="preserve"><value>Auswählen, um dem Display zu folgen.</value></data>
+  <data name="ToneMapping_InputAxis" xml:space="preserve"><value>Eingangsleuchtdichte (Nits)</value></data>
+  <data name="ToneMapping_OutputAxis" xml:space="preserve"><value>Ausgabe (SDR-Weiß = 1)</value></data>
+  <data name="ToneMapping_CurrentHeadroomFormat" xml:space="preserve"><value>Aktuelle Reserve {0}</value></data>
+  <data name="ToneMapping_PotentialHeadroomFormat" xml:space="preserve"><value>Mögliche Reserve {0}</value></data>
+  <data name="ToneMapping_HdrHint" xml:space="preserve"><value>HDR für diese Vorschau anfordern</value></data>
+  <data name="ToneMapping_HdrHintHeadroom" xml:space="preserve"><value>Angeforderte HDR-Reserve</value></data>
+  <data name="ToneMapping_Revert" xml:space="preserve"><value>Änderungen verwerfen</value></data>
+  <data name="ToneMapping_Save" xml:space="preserve"><value>Profil speichern</value></data>
+  <data name="ToneMapping_SaveAs" xml:space="preserve"><value>Als neues Profil speichern</value></data>
+  <data name="Photo_SaveAs" xml:space="preserve"><value>Speichern unter</value></data>
+  <data name="Photo_SaveFormat" xml:space="preserve"><value>Format</value></data>
+  <data name="Photo_SaveEncoder" xml:space="preserve"><value>Encoder</value></data>
+  <data name="Photo_SavePixelFormat" xml:space="preserve"><value>Pixelformat</value></data>
+  <data name="Photo_SaveQuality" xml:space="preserve"><value>Qualität</value></data>
+  <data name="Photo_SaveSpeed" xml:space="preserve"><value>Geschwindigkeit</value></data>
+  <data name="Photo_SaveSpeedSlower" xml:space="preserve"><value>Langsam, kleiner</value></data>
+  <data name="Photo_SaveSpeedBalanced" xml:space="preserve"><value>Ausgewogen</value></data>
+  <data name="Photo_SaveSpeedFaster" xml:space="preserve"><value>Schnell, größer</value></data>
+  <data name="Photo_SaveSize" xml:space="preserve"><value>Größe</value></data>
+  <data name="Photo_SaveWidth" xml:space="preserve"><value>Breite</value></data>
+  <data name="Photo_SaveHeight" xml:space="preserve"><value>Höhe</value></data>
+  <data name="Photo_SaveScale" xml:space="preserve"><value>Skalierung</value></data>
+  <data name="Photo_SaveKeepAspect" xml:space="preserve"><value>Seitenverhältnis beibehalten</value></data>
+  <data name="Photo_SaveResize" xml:space="preserve"><value>Größe anpassen</value></data>
+  <data name="Photo_SaveResizeStretch" xml:space="preserve"><value>Strecken</value></data>
+  <data name="Photo_SaveResizeFit" xml:space="preserve"><value>Einpassen mit Rand</value></data>
+  <data name="Photo_SaveResizeFill" xml:space="preserve"><value>Füllen, beschneiden</value></data>
+  <data name="Photo_SaveTransparent" xml:space="preserve"><value>Transparenter Hintergrund</value></data>
+  <data name="Photo_SaveBackground" xml:space="preserve"><value>Hintergrundfarbe</value></data>
+  <data name="Photo_SaveHdr" xml:space="preserve"><value>HDR</value></data>
+  <data name="Photo_SaveKeepHdr" xml:space="preserve"><value>HDR beibehalten</value></data>
+  <data name="Photo_SaveKeepGainMap" xml:space="preserve"><value>HDR-Verstärkungskarte beibehalten</value></data>
+  <data name="Photo_SaveCreateGainMap" xml:space="preserve"><value>HDR-Verstärkungskarte erstellen</value></data>
+  <data name="Photo_SaveHdrFormat" xml:space="preserve"><value>HDR-Format</value></data>
+  <data name="Photo_SaveHdrGainMap" xml:space="preserve"><value>Verstärkungskarte</value></data>
+  <data name="Photo_SaveHdrPq" xml:space="preserve"><value>PQ</value></data>
+  <data name="Photo_SaveApplyToneMapping" xml:space="preserve"><value>Tonemapping anwenden</value></data>
+  <data name="Photo_SaveTargetPeak" xml:space="preserve"><value>Spitzenleuchtdichte (Nits)</value></data>
+  <data name="Photo_SaveSdrWhite" xml:space="preserve"><value>SDR-Weißleuchtdichte (Nits)</value></data>
+  <data name="Photo_SaveWarnNoHdr" xml:space="preserve"><value>Dieses Format kann kein HDR speichern, daher wird das Bild in SDR gespeichert.</value></data>
+  <data name="Photo_SaveWarnHdrLost" xml:space="preserve"><value>Das Bild wird in SDR gespeichert, ohne seine HDR-Spitzlichter.</value></data>
+  <data name="Photo_SaveWarnSdrLost" xml:space="preserve"><value>Die im Foto gespeicherte SDR-Version wird nicht übernommen. Displays ohne HDR führen das Tonemapping selbst durch.</value></data>
+  <data name="Photo_SaveWarnLuminanceLost" xml:space="preserve"><value>Die Helligkeit wird relativ zum SDR-Weiß gespeichert, daher bleibt die ursprüngliche absolute Leuchtdichte nicht erhalten.</value></data>
+  <data name="Photo_SaveFailed" xml:space="preserve"><value>Das Bild konnte nicht gespeichert werden.</value></data>
+  <data name="Photo_SaveTooLarge" xml:space="preserve"><value>Das Bild ist zu groß, um es in dieser Größe zu speichern.</value></data>
+  <data name="Photo_SavePixelYuv" xml:space="preserve"><value>YUV {0}, {1} Bit</value></data>
+  <data name="Photo_SavePixelRgb" xml:space="preserve"><value>RGB, {0} Bit</value></data>
+  <data name="Photo_SavePixelRgba" xml:space="preserve"><value>RGB mit Alpha, {0} Bit</value></data>
+  <data name="Photo_SavePixelGray" xml:space="preserve"><value>Graustufen, {0} Bit</value></data>
+  <data name="Photo_SavePixelLossless" xml:space="preserve"><value>{0}, verlustfrei</value></data>
+  <data name="Photo_SaveHardwareEncoder" xml:space="preserve"><value>{0} (Hardware)</value></data>
+  <data name="Photo_SaveTiles" xml:space="preserve"><value>Als Kacheln speichern</value></data>
+  <data name="Photo_SaveTileWidth" xml:space="preserve"><value>Kachelbreite</value></data>
+  <data name="Photo_SaveTileHeight" xml:space="preserve"><value>Kachelhöhe</value></data>
+  <data name="Photo_SaveMetadata" xml:space="preserve"><value>Metadaten</value></data>
+  <data name="Photo_SaveMetadataAll" xml:space="preserve"><value>Alle</value></data>
+  <data name="Photo_SaveMetadataRendering" xml:space="preserve"><value>Nur Darstellung</value></data>
+  <data name="Photo_SaveMetadataAllDescription" xml:space="preserve"><value>Behält Kameradetails, Datumsangaben, Aufnahmeort und Beschreibungen des Fotos bei.</value></data>
+  <data name="Photo_SaveMetadataRenderingDescription" xml:space="preserve"><value>Entfernt Kameradetails, Datumsangaben, Aufnahmeort und Beschreibungen und behält nur, was die Darstellung des Fotos beeinflusst.</value></data>
+  <data name="Photo_SaveColor" xml:space="preserve"><value>Farbe</value></data>
+  <data name="Photo_SaveColorSpace" xml:space="preserve"><value>Farbraum</value></data>
+  <data name="Photo_SaveColorSpaceAutomatic" xml:space="preserve"><value>Automatisch</value></data>
+  <data name="Photo_SaveGamutMapping" xml:space="preserve"><value>Farben außerhalb des Farbraums</value></data>
+  <data name="Photo_SaveGamutCompress" xml:space="preserve"><value>Weich komprimieren</value></data>
+  <data name="Photo_SaveGamutPreserveHue" xml:space="preserve"><value>Farbton beibehalten</value></data>
+  <data name="Photo_SaveGamutClip" xml:space="preserve"><value>Abschneiden</value></data>
+  <data name="Photo_SaveWarnGamut" xml:space="preserve"><value>Dieses Foto kann Farben außerhalb des gewählten Farbraums enthalten, die nicht exakt gespeichert werden können.</value></data>
 </root>

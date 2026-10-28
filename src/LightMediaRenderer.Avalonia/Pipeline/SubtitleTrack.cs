@@ -46,6 +46,9 @@ public sealed class SubtitleTrack
     /// <summary>Whether the track is made of positioned bitmap compositions.</summary>
     public bool IsBitmap { get; }
 
+    /// <summary>Whether the track is text without authored styles, such as SubRip or WebVTT.</summary>
+    public bool IsPlainText => !IsBitmap && CodecName is not ("ass" or "ssa");
+
     public string CodecName { get; }
 
     public string? Language { get; }

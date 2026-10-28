@@ -24,7 +24,6 @@
         ExtendClientAreaToDecorationsHint="True">
     <Window.Styles>
         <StyleInclude Source="/Themes/NavigationPane.axaml" />
-        <StyleInclude Source="/Themes/ClientWindowChrome.axaml" />
     </Window.Styles>
 
     <Border x:Name="ClientWindowFrame" ClipToBounds="True"

@@ -60,7 +60,7 @@ internal sealed class OverlayDialogService : IDialogService
             return Task.CompletedTask;
         }
 
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "2.0.0.0";
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "2.1.0.0";
         var body = new StackPanel { Spacing = 12 };
         body.Children.Add(CenteredText(Strings.Resources.About_ProductName, 22, FontWeight.SemiBold));
         body.Children.Add(CenteredSecondary(string.Format(Strings.Resources.About_VersionFormat, version, BuildInfo.SourceVersion), 13, wrap: true));

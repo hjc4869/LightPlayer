@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using LightMediaRenderer.Contracts;
 using LightMediaRenderer.Subtitles.Text;
 using LightMediaRenderer.Subtitles;
@@ -22,9 +21,12 @@ internal sealed class SubtitleLayoutEngine : IDisposable
     private readonly SubtitleFontCache fonts = new();
     private readonly TextShaper shaper = new();
     private readonly List<Piece> pieces = [];
+    private readonly List<(Piece Piece, float Offset)> joined = [];
+    private bool quantizeGlyphs;
 
     public EventLayout Layout(SegmentedEvent segmented, AssScriptInfo info)
     {
+        quantizeGlyphs = segmented.IsAnimated;
         var layout = new EventLayout
         {
             Alignment = segmented.Alignment,
@@ -50,6 +52,8 @@ internal sealed class SubtitleLayoutEngine : IDisposable
             Clip = segmented.Clip,
             ClipPath = BuildClipPath(segmented.Clip),
             IsAnimated = segmented.IsAnimated,
+            AnimationStart = segmented.AnimationStart,
+            AnimationEnd = segmented.AnimationEnd,
             MarginL = segmented.MarginL,
             MarginR = segmented.MarginR,
             MarginV = segmented.MarginV,
@@ -179,7 +183,7 @@ internal sealed class SubtitleLayoutEngine : IDisposable
 
         // ASS font sizes measure the OS/2 window height, not the em square.
         double emSize = style.FontSize / font.DesignHeight;
-        SKFont sized = fonts.GetSizedFont(font, emSize, style.ScaleX, style.ScaleY, style.Italic);
+        SKFont sized = fonts.GetSizedFont(font, emSize, style.ScaleX, style.ScaleY, style.Italic, quantizeGlyphs);
 
         float advanceScale = (float)(emSize * style.ScaleX);
         float spacing = (float)(style.Spacing * style.ScaleX);
@@ -279,6 +283,7 @@ internal sealed class SubtitleLayoutEngine : IDisposable
 
         void Commit()
         {
+            FlushJoined();
             if (current.Runs.Count == 0)
             {
                 current.Ascent = defaultAscent;
@@ -293,13 +298,28 @@ internal sealed class SubtitleLayoutEngine : IDisposable
             lineWidth = 0;
         }
 
+        void FlushJoined()
+        {
+            if (joined.Count == 0)
+                return;
+
+            current.Runs.Add(BuildRun(joined));
+            joined.Clear();
+        }
+
         void Append(Piece piece)
         {
-            if (piece.Path is not null || (piece.Font is not null && piece.Glyphs.Length > 0))
+            if (piece.Path is not null)
             {
-                LayoutRun? run = BuildRun(piece, lineWidth);
-                if (run is not null)
-                    current.Runs.Add(run);
+                FlushJoined();
+                current.Runs.Add(BuildPathRun(piece, lineWidth));
+            }
+            else if (piece.Font is not null && piece.Glyphs.Length > 0)
+            {
+                // Every word is shaped on its own, but a line of one style draws as a single blob.
+                if (joined.Count > 0 && !CanJoin(joined[0].Piece, piece))
+                    FlushJoined();
+                joined.Add((piece, lineWidth));
             }
 
             current.Ascent = Math.Max(current.Ascent, piece.Ascent);
@@ -307,6 +327,7 @@ internal sealed class SubtitleLayoutEngine : IDisposable
             lineWidth += piece.Width;
         }
 
+        joined.Clear();
         foreach (Piece piece in pieces)
         {
             if (piece.IsBreak)
@@ -323,7 +344,7 @@ internal sealed class SubtitleLayoutEngine : IDisposable
                 continue;
             }
 
-            if (wrap && current.Runs.Count > 0 && lineWidth + pendingWidth + piece.Width > maxWidth)
+            if (wrap && (current.Runs.Count > 0 || joined.Count > 0) && lineWidth + pendingWidth + piece.Width > maxWidth)
             {
                 Commit();
                 Append(piece);
@@ -340,53 +361,57 @@ internal sealed class SubtitleLayoutEngine : IDisposable
         Commit();
     }
 
-    private static LayoutRun? BuildRun(Piece piece, float offsetX)
+    private static bool CanJoin(Piece first, Piece next)
+        => ReferenceEquals(first.Style, next.Style) && ReferenceEquals(first.Font, next.Font);
+
+    private static LayoutRun BuildPathRun(Piece piece, float offsetX) => new()
     {
-        if (piece.Path is not null)
+        Style = piece.Style,
+        Path = piece.Path,
+        Font = piece.Font,
+        OffsetX = offsetX,
+        Width = piece.Width,
+    };
+
+    /// <summary>Concatenates consecutive pieces of one style and font into a single glyph run.</summary>
+    private static LayoutRun BuildRun(List<(Piece Piece, float Offset)> parts)
+    {
+        Piece first = parts[0].Piece;
+        float start = parts[0].Offset;
+        int count = 0;
+        foreach ((Piece piece, _) in parts)
+            count += piece.Glyphs.Length;
+
+        var positions = new SKPoint[count];
+        var ids = new ushort[count];
+        float advanceScale = (float)(first.EmSize * first.Style.ScaleX);
+        float verticalScale = (float)(first.EmSize * first.Style.ScaleY);
+        float spacing = (float)(first.Style.Spacing * first.Style.ScaleX);
+        float width = 0;
+        int index = 0;
+
+        foreach ((Piece piece, float offset) in parts)
         {
-            return new LayoutRun
+            float pen = offset - start;
+            foreach (ShapedGlyph glyph in piece.Glyphs)
             {
-                Style = piece.Style,
-                Path = piece.Path,
-                Font = piece.Font,
-                OffsetX = offsetX,
-                Width = piece.Width,
-            };
+                ids[index] = glyph.Glyph;
+                positions[index] = new SKPoint(pen + (glyph.OffsetX * advanceScale), glyph.OffsetY * verticalScale);
+                pen += (glyph.Advance * advanceScale) + spacing;
+                index++;
+            }
+
+            width += piece.Width;
         }
-
-        var positions = new SKPoint[piece.Glyphs.Length];
-        var ids = new ushort[piece.Glyphs.Length];
-        float advanceScale = (float)(piece.EmSize * piece.Style.ScaleX);
-        float verticalScale = (float)(piece.EmSize * piece.Style.ScaleY);
-        float spacing = (float)(piece.Style.Spacing * piece.Style.ScaleX);
-        float pen = 0;
-
-        for (int i = 0; i < piece.Glyphs.Length; i++)
-        {
-            ShapedGlyph glyph = piece.Glyphs[i];
-            ids[i] = glyph.Glyph;
-            positions[i] = new SKPoint(pen + (glyph.OffsetX * advanceScale), glyph.OffsetY * verticalScale);
-            pen += (glyph.Advance * advanceScale) + spacing;
-        }
-
-        SKTextBlob? blob = SKTextBlob.CreatePositioned(
-            MemoryMarshal.AsBytes(ids.AsSpan()),
-            SKTextEncoding.GlyphId,
-            piece.Font!,
-            positions);
-
-        if (blob is null)
-            return null;
 
         return new LayoutRun
         {
-            Style = piece.Style,
-            Blob = blob,
-            Font = piece.Font!,
+            Style = first.Style,
+            Font = first.Font!,
             GlyphIndices = ids,
             GlyphPositions = positions,
-            OffsetX = offsetX,
-            Width = piece.Width,
+            OffsetX = start,
+            Width = width,
         };
     }
 

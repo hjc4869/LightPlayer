@@ -55,7 +55,7 @@ internal static unsafe partial class PhotoDecoder
         using SKData? gainData = source.EncodedGain is { } bytes ? SKData.CreateCopy(bytes) : null;
         using SKCodec? gainCodec = gainData is null ? null : SKCodec.Create(gainData);
         if (primaryCodec is not null && gainCodec is not null)
-            return Reconstruct(primaryCodec, gainCodec, source.Metadata, cancellationToken, primaryData, gainData);
+            return Reconstruct(primaryCodec, gainCodec, source.Metadata, cancellationToken, primaryData, gainData, useTiles);
 
         stream.Position = origin;
         if (ReconstructContainerGpu(stream, source, cancellationToken, useTiles) is { } direct)

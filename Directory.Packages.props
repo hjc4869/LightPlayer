@@ -3,9 +3,10 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 
     <Flatpak Condition="'$(Flatpak)' == ''">false</Flatpak>
-    <LightStudioFfmpegVersion Condition="'$(LightStudioFfmpegVersion)' == ''">9.0.2.6</LightStudioFfmpegVersion>
+    <LightStudioFfmpegVersion Condition="'$(LightStudioFfmpegVersion)' == ''">9.0.2</LightStudioFfmpegVersion>
     <AvaloniaVersion>12.1.4</AvaloniaVersion>
-    <AvaloniaForkVersion>12.1.5-lightplayer.0</AvaloniaForkVersion>
+    <AvaloniaForkVersion>12.1.5-custom.20</AvaloniaForkVersion>
+    <AvaloniaForkSha256>5a6fbc41ed8a128a3ece00e3925301ca2ba6a47f62d04863baa2e2fa4bf17630</AvaloniaForkSha256>
     <AvaloniaPlatformVersion Condition="'$(UseAvaloniaFork)' == 'true'">$(AvaloniaForkVersion)</AvaloniaPlatformVersion>
     <AvaloniaPlatformVersion Condition="'$(UseAvaloniaFork)' != 'true'">$(AvaloniaVersion)</AvaloniaPlatformVersion>
   </PropertyGroup>
@@ -35,14 +36,13 @@
     <PackageVersion Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.1.301" />
     <PackageVersion Include="HarfBuzzSharp.NativeAssets.WebAssembly" Version="14.2.1.301" />
     <PackageVersion Include="LightStudio.AvaloniaStatic" Version="12.1.4" />
-    <PackageVersion Condition="'$(UseAvaloniaFork)' == 'true'" Include="LightStudio.AvaloniaStatic.Native" Version="$(AvaloniaPlatformVersion)" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageVersion Include="LightStudio.Ffmpeg" Version="$(LightStudioFfmpegVersion)" />
     <PackageVersion Include="LightStudio.Fonts" Version="1.0.0" />
     <PackageVersion Include="LightStudio.GeoNames" Version="1.0.0" />
-    <PackageVersion Include="LightStudio.Photos" Version="1.0.8" />
+    <PackageVersion Include="LightStudio.Photos" Version="1.0.0" />
   </ItemGroup>
 
   <!-- Audio backends -->
@@ -56,12 +56,13 @@
     <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.3" />
     <PackageVersion Include="SQLitePCLRaw.bundle_sqlite3" Version="2.1.11" />
     <PackageVersion Include="SQLitePCLRaw.provider.winsqlite3" Version="2.1.11" />
-    <PackageVersion Include="LightStudio.sqlite-vec" Version="0.1.9.6" />
+    <PackageVersion Include="LightStudio.sqlite-vec" Version="0.1.9" />
   </ItemGroup>
 
   <!-- Inferencing -->
   <ItemGroup>
-    <PackageVersion Include="LightStudio.Onnx" Version="1.30.0.5" />
+    <PackageVersion Include="LightStudio.Onnx" Version="1.30.0" />
+    <PackageVersion Include="LightStudio.WebGPU" Version="156.0.0.0" />
     <PackageVersion Include="Microsoft.Windows.AI.MachineLearning" Version="2.3.42" />
     <PackageVersion Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
     <PackageVersion Include="MathNet.Numerics" Version="5.0.0" />
@@ -85,12 +86,41 @@
     <PackageVersion Include="Terminal.Gui" Version="2.4.17" />
     <PackageVersion Include="Tmds.DBus.Protocol" Version="0.94.1" />
     <PackageVersion Include="Xamarin.AndroidX.Core.SplashScreen" Version="1.0.1.15" />
-    <PackageVersion Include="Xamarin.Google.AI.Edge.LiteRT" Version="2.1.5" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
     <PackageVersion Include="WixToolset.BootstrapperApplications.wixext" Version="5.0.2" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <GitHubNuGetAsset Include="Avalonia-NuGet-$(AvaloniaForkVersion).zip" Condition="'$(UseAvaloniaFork)' == 'true'"
+                     Url="https://github.com/hjc4869/Avalonia/releases/download/$(AvaloniaForkVersion)/Avalonia-NuGet-$(AvaloniaForkVersion).zip"
+                     Sha256="$(AvaloniaForkSha256)" />
+    <GitHubNuGetAsset Include="LightStudio.AvaloniaStatic.12.1.4.nupkg"
+                     Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/avalonia-static-v12.1.4/LightStudio.AvaloniaStatic.12.1.4.nupkg"
+                     Sha256="3e46882ec65d504daa78ad8cdcbb80159774cbd32891c55ed1dd0007f753626e" />
+    <GitHubNuGetAsset Include="LightStudio.WebGPU.156.0.0.nupkg"
+                     Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/webgpu-v156.0.0/LightStudio.WebGPU.156.0.0.nupkg"
+                     Sha256="f210ff8f7ece16efb0a8d99d52f152c659901347439cafa53ec2f698d2b8d663" />
+    <GitHubNuGetAsset Include="LightStudio.Onnx.1.30.0.nupkg"
+                     Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/onnx-v1.30.0/LightStudio.Onnx.1.30.0.nupkg"
+                     Sha256="0e073a808f30b21266c9e89985c64ec0105fef79fa1bea82a77f9fe24494a51c" />
+    <GitHubNuGetAsset Include="LightStudio.GeoNames.1.0.0.nupkg"
+                     Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/geonames-v1.0.0/LightStudio.GeoNames.1.0.0.nupkg"
+                     Sha256="c65a579d85be8c77d07f08fa582ea7f90c324abb0062b5d9d64bd7472e7c7f03" />
+    <GitHubNuGetAsset Include="LightStudio.Fonts.1.0.0.nupkg"
+                     Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/fonts-v1.0.0/LightStudio.Fonts.1.0.0.nupkg"
+                     Sha256="7bcd692380ce09a3340d6c40b98c253a9af73b9090472ef546a8276d66037968" />
+    <GitHubNuGetAsset Include="LightStudio.Ffmpeg.$(LightStudioFfmpegVersion).nupkg"
+                     Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/ffmpeg-v$(LightStudioFfmpegVersion)/LightStudio.Ffmpeg.$(LightStudioFfmpegVersion).nupkg"
+                     Sha256="d1b35cd478bf32fc13c90a873333e0ddea036927a4516c8478b6350ae64014d7" />
+    <GitHubNuGetAsset Include="LightStudio.Photos.1.0.0.nupkg"
+                     Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/photos-v1.0.0/LightStudio.Photos.1.0.0.nupkg"
+                     Sha256="3136ce572ed7f48c231e5a3b2a23993db6d340bd336d29ddcaa5c1974b6f489a" />
+    <GitHubNuGetAsset Include="LightStudio.sqlite-vec.0.1.9.nupkg"
+                     Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/sqlite-vec-v0.1.9/LightStudio.sqlite-vec.0.1.9.nupkg"
+                     Sha256="fed9f65a3d0fdb967fc387ccbaefc2ce44aa5d268a51bc397bb3e00b3c85ba5a" />
   </ItemGroup>
 </Project>

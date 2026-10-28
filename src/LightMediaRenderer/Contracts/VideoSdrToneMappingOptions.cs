@@ -9,17 +9,41 @@ public enum VideoSdrToneMappingAlgorithm
     Spline,
     Bt2390,
     Bt2446A,
+
+    /// <summary>Keeps luminance within the target exact and clips everything brighter.</summary>
+    Clip,
+
+    /// <summary>Linear up to <see cref="VideoSdrToneMappingOptions.LinearKnee"/>, then a Mobius roll-off.</summary>
+    Mobius,
+
+    /// <summary>Reinhard's global curve, shaped by <see cref="VideoSdrToneMappingOptions.ReinhardContrast"/>.</summary>
+    Reinhard,
+
+    /// <summary>John Hable's filmic curve with toe and shoulder.</summary>
+    Hable,
+
+    /// <summary>Linear up to <see cref="VideoSdrToneMappingOptions.LinearKnee"/>, then a power law in log-log space.</summary>
+    Gamma,
+
+    /// <summary>Uniform PQ scale from source peak to target peak, times <see cref="VideoSdrToneMappingOptions.LinearExposure"/>.</summary>
+    Linear,
 }
 
 /// <summary>HDR tone curves and optional display targets.</summary>
 public sealed record VideoSdrToneMappingOptions
 {
+    /// <summary>Reference white used when the display reports none to follow.</summary>
+    public const double DefaultReferenceWhiteNits = 200;
+
     public static VideoSdrToneMappingOptions Default { get; } = new();
 
     public VideoSdrToneMappingAlgorithm Algorithm { get; init; } = VideoSdrToneMappingAlgorithm.Auto;
 
-    /// <summary>Nominal luminance mapped to SDR white, in nits, from 1 to 10000.</summary>
-    public double ReferenceWhiteNits { get; init; } = 200;
+    /// <summary>
+    /// Nominal luminance mapped to SDR white, in nits, from 1 to 10000, or null to follow the display's
+    /// reported diffuse white.
+    /// </summary>
+    public double? ReferenceWhiteNits { get; init; } = DefaultReferenceWhiteNits;
 
     public double? TargetHeadroom { get; init; }
 
@@ -52,13 +76,28 @@ public sealed record VideoSdrToneMappingOptions
     /// <summary>Spline contrast, from 0 to 1.5; higher values favor midtone contrast over highlight detail.</summary>
     public float SplineContrast { get; init; } = 0.5f;
 
+    /// <summary>Fraction of the target peak that Mobius and gamma keep unchanged, from 0.01 to 0.99.</summary>
+    public float LinearKnee { get; init; } = 0.3f;
+
+    /// <summary>
+    /// Reinhard contrast, from 0.01 to 0.99; higher values brighten midtones and compress highlights harder.
+    /// </summary>
+    public float ReinhardContrast { get; init; } = 0.5f;
+
+    /// <summary>Linear curve gain in PQ, from 0.25 to 4; output above the target peak clips.</summary>
+    public float LinearExposure { get; init; } = 1;
+
+    public double ResolveReferenceWhiteNits(VideoOutputColorVolume? colorVolume) =>
+        ReferenceWhiteNits ?? VideoOutputColorSpaceExtensions.ReportedReferenceWhiteNits(colorVolume) ??
+        DefaultReferenceWhiteNits;
+
     public void Validate()
     {
-        if (Algorithm is not (VideoSdrToneMappingAlgorithm.Auto or VideoSdrToneMappingAlgorithm.Spline or
-            VideoSdrToneMappingAlgorithm.Bt2390 or VideoSdrToneMappingAlgorithm.Bt2446A))
+        if (!Enum.IsDefined(Algorithm))
             throw new ArgumentOutOfRangeException(nameof(Algorithm), Algorithm, "Unknown tone-mapping algorithm.");
 
-        ValidateRange(ReferenceWhiteNits, nameof(ReferenceWhiteNits), 1, 10000);
+        if (ReferenceWhiteNits is { } white)
+            ValidateRange(white, nameof(ReferenceWhiteNits), 1, 10000);
         if (TargetHeadroom is { } headroom)
             ValidateRange(headroom, nameof(TargetHeadroom), 1, 100);
         if (TargetMaximumNits is { } maximum)
@@ -71,6 +110,9 @@ public sealed record VideoSdrToneMappingOptions
         ValidateRange(SlopeTuning, nameof(SlopeTuning), 0, 10);
         ValidateRange(SlopeOffset, nameof(SlopeOffset), 0, 1);
         ValidateRange(SplineContrast, nameof(SplineContrast), 0, 1.5);
+        ValidateRange(LinearKnee, nameof(LinearKnee), 0.01f, 0.99f);
+        ValidateRange(ReinhardContrast, nameof(ReinhardContrast), 0.01f, 0.99f);
+        ValidateRange(LinearExposure, nameof(LinearExposure), 0.25, 4);
     }
 
     private static void ValidateRange(double value, string name, double minimum, double maximum)

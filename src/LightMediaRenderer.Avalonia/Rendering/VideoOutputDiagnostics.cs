@@ -91,8 +91,9 @@ public static class VideoOutputDiagnostics
             SurfaceObserved = true,
             SurfaceEncoding = lease.GetSurfaceEncoding(),
             SurfaceColorSpace = lease.GetSurfaceColorSpaceName(),
-            SurfaceTransfer = VideoSurfaceTransfers.For(colorVolume),
-            SurfaceTransferReported = VideoSurfaceTransfers.Reported(colorVolume) is not null,
+            SurfaceTransfer = VideoSurfaceTransfers.For(target, colorVolume),
+            SurfaceTransferReported = target is VideoOutputColorSpace.DisplayP3 or VideoOutputColorSpace.Bt2020 ||
+                VideoSurfaceTransfers.Reported(colorVolume) is not null,
             SdrTransfer = transfer == VideoColorTransfer.Bt709 ? VideoSurfaceTransfers.ForBt709() : null,
             SdrReadAsMastered = transfer == VideoColorTransfer.Bt709 &&
                 VideoSurfaceTransfers.ForBt709() is null && target.IsExtendedRange() &&
@@ -462,7 +463,7 @@ public sealed record VideoOutputStatus
             (true, _) => $"{TargetName}, absolute HDR ({LuminanceBasis}), " +
                 (HdrAdaptedToDisplay ? $"tone/gamut mapped to {ToneMapPeakNits:0} nits" : "no client highlight compression"),
             (_, true) => $"{TargetName} ({NitsText})",
-            _ => "sRGB",
+            _ => TargetName,
         };
 
         // Said outright, because a wide gamut surface that is being tone mapped into anyway looks
@@ -534,8 +535,13 @@ public sealed record VideoOutputStatus
             (ScalingDeclined.Length > 0 ? $": {ScalingDeclined}" : string.Empty)
         : Scaling.ToString();
 
-    private string TargetName =>
-        Target == VideoOutputColorSpace.ScRgbLinear ? "scRGB linear" : "sRGB";
+    private string TargetName => Target switch
+    {
+        VideoOutputColorSpace.ScRgbLinear => "scRGB linear",
+        VideoOutputColorSpace.DisplayP3 => "Display P3",
+        VideoOutputColorSpace.Bt2020 => "BT.2020",
+        _ => "sRGB",
+    };
 
     private string NitsText => OutputNitsPerUnit is { } white
         ? $"{LuminanceBasis} white {white:0.##} nits, target peak " +

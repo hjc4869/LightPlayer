@@ -1,0 +1,86 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels"
+             xmlns:pages="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="340"
+             d:DesignHeight="400"
+             x:Class="LightStudio.LightPlayer.Controls.ToneMappingEditor"
+             x:DataType="vm:ToneMappingEditorViewModel">
+    <StackPanel Spacing="10">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock Text="{Binding Photo_ToneCurve, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       VerticalAlignment="Center"
+                       TextWrapping="Wrap" />
+            <ComboBox Grid.Column="1"
+                      Width="{Binding $parent[controls:ToneMappingEditor].SelectorWidth}"
+                      ItemsSource="{Binding CurveOptions}"
+                      SelectedItem="{Binding SelectedCurve, Mode=TwoWay}"
+                      AutomationProperties.Name="{Binding Photo_ToneCurve, Source={x:Static strings:LocalizedStrings.Instance}}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="pages:VideoSettingsOption">
+                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+        </Grid>
+        <TextBlock Text="{Binding CurveDescription}"
+                   Classes="settingDescription"
+                   FontSize="12"
+                   TextWrapping="Wrap" />
+        <ItemsControl ItemsSource="{Binding Parameters}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Spacing="8" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ToneParameterViewModel">
+                    <Grid ColumnDefinitions="*,Auto,Auto" RowDefinitions="Auto,Auto">
+                        <TextBlock Text="{Binding Label}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,8,0"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Classes="miniIcon"
+                                Margin="0,0,4,0"
+                                IsVisible="{Binding IsLockable}"
+                                Command="{Binding ToggleLockCommand}"
+                                ToolTip.Tip="{Binding LockToolTip}"
+                                AutomationProperties.Name="{Binding LockToolTip}">
+                            <Panel Width="14" Height="14">
+                                <Viewbox IsVisible="{Binding IsLocked}">
+                                    <Path Data="{StaticResource IconLock}"
+                                          Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                </Viewbox>
+                                <Viewbox IsVisible="{Binding !IsLocked}">
+                                    <Path Data="{StaticResource IconLockOpen}"
+                                          Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                </Viewbox>
+                            </Panel>
+                        </Button>
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding ValueText}"
+                                   VerticalAlignment="Center" />
+                        <!-- The range is bound before the value so the value is never clamped to the defaults. -->
+                        <Slider Grid.Row="1"
+                                Grid.ColumnSpan="3"
+                                Minimum="{Binding Minimum}"
+                                Maximum="{Binding Maximum}"
+                                SmallChange="{Binding Step}"
+                                LargeChange="{Binding LargeChange}"
+                                TickFrequency="{Binding Step}"
+                                IsSnapToTickEnabled="True"
+                                IsEnabled="{Binding !IsLocked}"
+                                Value="{Binding SliderValue, Mode=TwoWay}"
+                                AutomationProperties.Name="{Binding Label}" />
+                    </Grid>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

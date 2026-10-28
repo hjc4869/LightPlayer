@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>$(TargetFramework)-browser</TargetFramework>
     <OutputType>Exe</OutputType>
-    <AssemblyName>lmpweb</AssemblyName>
+    <AssemblyName>lmcweb</AssemblyName>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

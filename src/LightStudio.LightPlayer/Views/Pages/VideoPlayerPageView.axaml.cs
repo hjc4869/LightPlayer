@@ -130,6 +130,12 @@ public partial class VideoPlayerPageView : UserControl
         ToolTip.SetShowDelay(SeekBar, 150);
         SeekBar.PointerMoved += OnSeekPointerMoved;
 
+        Video.PropertyChanged += (_, args) =>
+        {
+            if (args.Property == VideoView.AutomaticToneMappingProperty || args.Property == VideoView.DisplayToneTargetProperty)
+                UpdateToneMappingControls();
+        };
+
         DataContextChanged += (_, _) => AttachViewModel();
 
         AttachedToVisualTree += async (_, _) =>
@@ -196,7 +202,29 @@ public partial class VideoPlayerPageView : UserControl
         PlayPauseButton.MinHeight = playButtonSize;
         PlayPauseGlyph.Width = playGlyphSize;
         PlayPauseGlyph.Height = playGlyphSize;
+        UpdateSettingsPopupSize();
         UpdateDeckNavigation();
+    }
+
+    private void OnSettingsFlyoutOpening(object? sender, EventArgs args)
+    {
+        UpdateSettingsPopupSize();
+        UpdateToneMappingControls();
+    }
+
+    private void UpdateSettingsPopupSize()
+    {
+        SettingsContent.Width = Math.Max(160, Math.Min(280, Bounds.Width - 64));
+        SettingsScroll.MaxHeight = Math.Max(80, Math.Min(460, Bounds.Height - 100));
+    }
+
+    private void UpdateToneMappingControls()
+    {
+        if (ViewModel is { } model)
+        {
+            model.ToneProfiles.Editor.AutomaticOptions = Video.AutomaticToneMapping;
+            model.ToneProfiles.Editor.DisplayTarget = Video.DisplayToneTarget;
+        }
     }
 
     private void UpdateDeckNavigation()
@@ -715,6 +743,7 @@ public partial class VideoPlayerPageView : UserControl
             SetPlaylistOpen(subscribedModel.IsPlaylistOpen, animate: false);
         }
 
+        UpdateToneMappingControls();
         ApplyStageCursor();
     }
 

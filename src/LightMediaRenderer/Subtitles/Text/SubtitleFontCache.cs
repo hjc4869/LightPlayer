@@ -26,6 +26,9 @@ namespace LightMediaRenderer.Subtitles.Text;
 /// </remarks>
 internal sealed class SubtitleFontCache : IDisposable
 {
+    /// <summary>Quantized sizes are this many steps per factor of e apart.</summary>
+    private const double SizeStepsPerE = 256;
+
     private readonly SKFontManager manager = SKFontManager.Default;
     private readonly Dictionary<FontRequest, SubtitleFont?> byRequest = [];
     private readonly Dictionary<FontRequest, FallbackChain> chains = [];
@@ -59,13 +62,23 @@ internal sealed class SubtitleFontCache : IDisposable
 
     /// <summary>Builds the drawing font; <c>\fscx</c> and <c>\fscy</c> are baked into it.</summary>
     /// <param name="emSize">Em size in script pixels, already converted from the ASS font size.</param>
-    public SKFont GetSizedFont(SubtitleFont font, double emSize, double scaleX, double scaleY, bool italic)
+    /// <param name="quantize">
+    /// Snaps size and stretch to steps of about 0.4%, for text that <c>\t</c> resizes. Skia rasterizes
+    /// every distinct size anew, so this lets consecutive frames share glyph images; the layout still
+    /// places each glyph at its exact position, and the snapping itself is far below a pixel.
+    /// </param>
+    public SKFont GetSizedFont(SubtitleFont font, double emSize, double scaleX, double scaleY, bool italic, bool quantize = false)
     {
         // Skia scales horizontally after sizing, so vertical scale goes into the size and the
-        // horizontal scale becomes their ratio. Both end up exact.
+        // horizontal scale becomes their ratio. Both end up exact unless quantized.
         float height = (float)Math.Max(1.0, emSize * scaleY);
         float horizontal = scaleY > 0 ? (float)(scaleX / scaleY) : 1f;
         float skew = italic && font.SyntheticItalic ? -0.25f : 0f;
+        if (quantize)
+        {
+            height = Quantize(height);
+            horizontal = Quantize(horizontal);
+        }
 
         var key = new SizedFontKey(font, height, horizontal, skew);
         if (sizedFonts.TryGetValue(key, out SKFont? cached))
@@ -84,6 +97,11 @@ internal sealed class SubtitleFontCache : IDisposable
         sizedFonts[key] = created;
         return created;
     }
+
+    private static float Quantize(float value)
+        => value > 0 && float.IsFinite(value)
+            ? (float)Math.Exp(Math.Round(Math.Log(value) * SizeStepsPerE) / SizeStepsPerE)
+            : value;
 
     public void Dispose()
     {

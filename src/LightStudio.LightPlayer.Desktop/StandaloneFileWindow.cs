@@ -10,7 +10,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Chrome;
 using Avalonia.Input;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using LightStudio.LightPlayer.Controls;
@@ -29,11 +28,12 @@ using LightStudio.MediaLibraryCore.IO;
 
 namespace LightStudio.LightPlayer.Desktop;
 
-internal sealed class StandaloneFileWindow : Window
+internal sealed partial class StandaloneFileWindow : Window
 {
     private static readonly StringComparer PathComparer = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
         ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
     private readonly IAppSettingsStore settings;
+    private readonly IThemeService themeService;
     private readonly DesktopMultimediaPlatformIO platform;
     private readonly IClientMediaResolver resolver;
     private readonly DesktopDialogService dialogs = new();
@@ -47,29 +47,26 @@ internal sealed class StandaloneFileWindow : Window
 
     public StandaloneFileWindow(string path, IAppSettingsStore settings)
     {
+        InitializeComponent();
         this.settings = settings;
         platform = new DesktopMultimediaPlatformIO(AppPaths.DataDirectory);
         platform.InitializePlatform();
         resolver = new CapturedPlatformMediaResolver(platform);
-        _ = new AvaloniaThemeService(settings);
+        PlatformServices.ConfigureWindowChrome?.Invoke(this);
+        themeService = new AvaloniaThemeService(settings);
+        themeService.BackdropStyleChanged += ApplyTitleBar;
         PlatformServices.FileShareService ??= new DesktopFileShareService();
         PlatformServices.VideoShaderPackages = new VideoShaderPackageCatalog(
             Path.Combine(AppPaths.DataDirectory, "video-shader-packages"));
         Title = Path.GetFileName(path);
-        Width = 1000;
-        Height = 700;
-        MinWidth = 320;
-        MinHeight = 240;
-        Background = Brushes.Black;
         if (OperatingSystem.IsMacOS())
         {
-            ExtendClientAreaToDecorationsHint = true;
             Styles.Add(new Style(selector => selector.OfType<Border>().Name("TitleBar"))
             {
                 Setters = { new Setter(WindowDecorationProperties.ElementRoleProperty, WindowDecorationsElementRole.TitleBar) },
             });
-            ApplyTitleBar();
         }
+        ApplyTitleBar();
         Opened += (_, _) =>
         {
             ApplyTitleBar();
@@ -105,6 +102,7 @@ internal sealed class StandaloneFileWindow : Window
         };
         Closed += (_, _) =>
         {
+            themeService.BackdropStyleChanged -= ApplyTitleBar;
             cancellation.Cancel();
             shortcuts?.Dispose();
             Content = null;
@@ -120,19 +118,49 @@ internal sealed class StandaloneFileWindow : Window
     {
         base.OnPropertyChanged(change);
         if (change.Property == WindowStateProperty)
+        {
+            var fullScreen = WindowState == WindowState.FullScreen;
+            if (fullScreen)
+                previousWindowState = change.GetOldValue<WindowState>();
+            if (viewer is PhotoViewerPageViewModel photo)
+                photo.IsFullScreen = fullScreen;
+            else if (viewer is VideoPlayerPageViewModel video)
+                video.IsFullScreen = fullScreen;
             ApplyTitleBar();
+        }
     }
+
+    private bool UseCustomWindowControls =>
+        PlatformServices.SupportsClientSideWindowControls && themeService?.IsAppleChromeEnabled == true;
 
     private void ApplyTitleBar()
     {
-        if (!OperatingSystem.IsMacOS())
+        if (!IsInitialized)
             return;
 
+        if (PlatformServices.SupportsClientSideWindowControls)
+            WindowDecorations = UseCustomWindowControls ? WindowDecorations.BorderOnly : WindowDecorations.Full;
+
+        ExtendClientAreaToDecorationsHint = OperatingSystem.IsMacOS() || UseCustomWindowControls;
         var windowed = WindowState != WindowState.FullScreen;
-        ShellChrome.SetWindowControlsInset(this, windowed ? new Thickness(80, 0, 0, 0) : default);
+        Classes.Set("appleCsd", UseCustomWindowControls);
+        Classes.Set("roundedCsd", UseCustomWindowControls && WindowState == WindowState.Normal);
+        ClientWindowControls.IsVisible = UseCustomWindowControls && windowed;
+        MaximizeWindowButton.Classes.Set("maximized", WindowState == WindowState.Maximized);
+        ShellChrome.SetWindowControlsInset(this, windowed && ExtendClientAreaToDecorationsHint
+            ? new Thickness(UseCustomWindowControls ? 104 : 80, 0, 0, 0)
+            : default);
         if (PlatformServices.ApplyToolbarTitleBar is { } apply && TryGetPlatformHandle() is { } handle)
-            apply(handle.Handle, windowed);
+            apply(handle.Handle, ExtendClientAreaToDecorationsHint && windowed);
     }
+
+    private void OnCloseWindowClick(object? sender, Avalonia.Interactivity.RoutedEventArgs args) => Close();
+
+    private void OnMinimizeWindowClick(object? sender, Avalonia.Interactivity.RoutedEventArgs args) =>
+        WindowState = WindowState.Minimized;
+
+    private void OnMaximizeWindowClick(object? sender, Avalonia.Interactivity.RoutedEventArgs args) =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
 
     internal static bool IsVisualFile(string path)
     {
@@ -183,7 +211,7 @@ internal sealed class StandaloneFileWindow : Window
             ?? throw new InvalidOperationException("The application executable path is unavailable.");
         var start = new ProcessStartInfo(executable) { UseShellExecute = false };
         if (string.Equals(Path.GetFileNameWithoutExtension(executable), "dotnet", StringComparison.OrdinalIgnoreCase))
-            start.ArgumentList.Add(Path.Combine(AppContext.BaseDirectory, "lmp.dll"));
+            start.ArgumentList.Add(Path.Combine(AppContext.BaseDirectory, "lmc.dll"));
         foreach (var argument in arguments)
             start.ArgumentList.Add(argument);
         using var process = Process.Start(start)
@@ -209,10 +237,13 @@ internal sealed class StandaloneFileWindow : Window
                         PreviewMaxDimension = 480,
                         ShowProperties = (media, title) => _ = dialogs.ShowPropertiesAsync(media, title, resolver),
                         RevealInFileManager = file => _ = RevealAsync(file),
-                    });
+                    })
+                {
+                    IsFullScreen = WindowState == WindowState.FullScreen,
+                };
                 viewer = model;
                 DataContext = model;
-                Content = new PhotoViewerPageView { DataContext = model };
+                MediaHost.Content = new PhotoViewerPageView { DataContext = model };
             }
             else
             {
@@ -269,6 +300,7 @@ internal sealed class StandaloneFileWindow : Window
                     keepOn => PlatformServices.KeepScreenOnRequested?.Invoke(keepOn),
                     null, Close, persistSubtitleImports: false)
                 {
+                    IsFullScreen = WindowState == WindowState.FullScreen,
                     OpenContainingFolder = video => _ = RevealAsync(video.Value.Path),
                     ShowProperties = video => _ = AppErrorReporter.GuardAsync(() => dialogs.ShowPropertiesAsync(
                         new MediaReference(video.SourceId, video.Value.Path),
@@ -276,7 +308,7 @@ internal sealed class StandaloneFileWindow : Window
                 };
                 viewer = model;
                 DataContext = model;
-                Content = new VideoPlayerPageView { DataContext = model };
+                MediaHost.Content = new VideoPlayerPageView { DataContext = model };
                 shortcuts = new VideoKeyboardShortcutHandler(this, useGlobalHandlers: true, standalonePlayer: model);
                 await model.OpenAsync(selected, videos, resume: false);
             }
@@ -318,7 +350,7 @@ internal sealed class StandaloneFileWindow : Window
         }
     }
 
-    private async Task<Bitmap?> LoadPreviewAsync(MediaReference media, CancellationToken token)
+    private async Task<IImage?> LoadPreviewAsync(MediaReference media, CancellationToken token)
     {
         var thumbnail = await ImageDecoding.DecodePhotoThumbnailAsync(
             new PhotoDecodeRequest(platform, media.Path), 480, token).ConfigureAwait(false);
@@ -332,12 +364,9 @@ internal sealed class StandaloneFileWindow : Window
 
     private void SetFullScreen(bool fullScreen)
     {
-        if (fullScreen)
-        {
-            previousWindowState = WindowState;
+        if (fullScreen && WindowState != WindowState.FullScreen)
             WindowState = WindowState.FullScreen;
-        }
-        else if (WindowState == WindowState.FullScreen)
+        else if (!fullScreen && WindowState == WindowState.FullScreen)
             WindowState = previousWindowState;
     }
 

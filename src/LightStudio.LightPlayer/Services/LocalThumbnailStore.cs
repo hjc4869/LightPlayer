@@ -10,7 +10,7 @@ namespace LightStudio.LightPlayer.Services;
 
 public sealed class LocalThumbnailStore(string directory) : IThumbnailStore
 {
-    private const int FormatVersion = 1;
+    private const int FormatVersion = 2;
     private const int HeaderLength = sizeof(int) + 2 * sizeof(long) + SHA256.HashSizeInBytes;
 
     public IStorageCache GetCache(ThumbnailMemoryCache thumbnails, ThumbnailCacheKind kind) =>

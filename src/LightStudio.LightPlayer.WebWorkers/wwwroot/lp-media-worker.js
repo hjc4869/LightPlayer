@@ -11,7 +11,7 @@ const poolLimit = Math.max(2, threadLimit);
 const pumpBudgetMilliseconds = 8;
 const statusIntervalMilliseconds = 250;
 const webCodecs = new Map();
-const payloadMethods = new Set(["probeVideo", "albumCover", "image", "bitmapSubtitles"]);
+const payloadMethods = new Set(["probeVideo", "albumCover", "image", "bitmapSubtitles", "photoExport"]);
 const frameMethods = new Set(["photoOpen", "photoTiles", "photoAnimationRead"]);
 const updates = { allowances: new Map(), releases: [], positions: new Map(), speeds: new Map(), faults: [] };
 const pendingFrames = { frames: [], objects: [] };
@@ -97,6 +97,9 @@ async function handle(message) {
             return;
         case "cancel-photo-tiles":
             photos.cancel(message);
+            return;
+        case "cancel-photo-export":
+            await worker.CancelPhotoExport(message.operation);
             return;
         case "source-closed":
             await worker.ReleaseSource(message.source);

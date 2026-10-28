@@ -23,7 +23,7 @@ internal static class ServerConfigurationTui
         using IApplication app = Application.Create();
         app.Init();
 
-        using var window = new Window { Title = $"Light Player server -- {path}" };
+        using var window = new Window { Title = $"Light Media Center server -- {path}" };
 
         var serverTab = new ServerSettingsTab(config);
         var libraryTab = new LibrarySettingsTab(app, config);

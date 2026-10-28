@@ -21,15 +21,15 @@
     <string>APPL</string>
 
     <key>CFBundleName</key>
-    <string>Light Player</string>
+    <string>Light Media Center</string>
     <key>CFBundleDisplayName</key>
-    <string>Light Player</string>
+    <string>Light Media Center</string>
     <key>CFBundleIdentifier</key>
     <string>im.hjc.LightPlayer</string>
 
     <!-- Native executable emitted by the desktop head's NativeAOT publish. -->
     <key>CFBundleExecutable</key>
-    <string>lmp</string>
+    <string>lmc</string>
 
     <!-- AppIcon.icns is generated from the app icon by the Makefile. -->
     <key>CFBundleIconFile</key>

@@ -21,12 +21,30 @@ public sealed class AssDocument
         new(StringComparer.OrdinalIgnoreCase);
 
     private readonly List<AssStyle> styles = [];
-    private readonly List<AssDialogue> events = [];
+    private readonly List<AssDialogue> events;
 
     private Dictionary<AssStyle, SubtitleScript>? scriptsByStyle;
     private SubtitleScript documentScript;
 
-    internal AssScriptInfo ScriptInfo { get; } = new();
+    public AssDocument()
+    {
+        ScriptInfo = new();
+        events = [];
+    }
+
+    private AssDocument(AssScriptInfo scriptInfo, List<AssDialogue> events)
+    {
+        ScriptInfo = scriptInfo;
+        this.events = events;
+    }
+
+    /// <summary>
+    /// Whether the script came from a format without styles of its own, such as SubRip, so its
+    /// look is generated rather than authored.
+    /// </summary>
+    public bool IsPlainText { get; internal set; }
+
+    internal AssScriptInfo ScriptInfo { get; }
 
     internal IReadOnlyList<AssStyle> Styles => styles;
 
@@ -45,6 +63,32 @@ public sealed class AssDocument
     {
         using FileStream stream = File.OpenRead(path);
         return Load(stream);
+    }
+
+    /// <summary>
+    /// A plain text script with every style drawn in <paramref name="fontName"/> at
+    /// <paramref name="fontSize"/> script pixels, sharing this document's events. An empty name or a
+    /// non-positive size keeps the generated value; authored scripts return this document.
+    /// </summary>
+    public AssDocument WithPlainTextStyle(string? fontName, double fontSize)
+    {
+        bool rename = !string.IsNullOrWhiteSpace(fontName);
+        bool resize = fontSize > 0;
+        if (!IsPlainText || (!rename && !resize))
+            return this;
+
+        var styled = new AssDocument(ScriptInfo, events) { IsPlainText = true };
+        foreach (AssStyle style in styles)
+        {
+            AssStyle copy = style.Clone();
+            if (rename)
+                copy.FontName = fontName!;
+            if (resize)
+                copy.FontSize = fontSize;
+            styled.AddStyle(copy);
+        }
+
+        return styled;
     }
 
     /// <summary>Resolves a style name, falling back to <c>Default</c> and then to built-in defaults.</summary>

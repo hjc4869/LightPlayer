@@ -215,11 +215,12 @@ public sealed partial class VideoSettingsSectionViewModel : SettingsSectionViewM
         VideoShaderPackageCatalog? shaderPackages = null,
         IDialogService? dialogService = null,
         IReadOnlyList<string>? availableHardwareDeviceTypes = null)
-        : base("VideoSettings_Title", "VideoSettings_Subtitle")
+        : base(nameof(Strings.Resources.SettingsPage_VideoPlayback), string.Empty)
     {
         this.settingsStore = settingsStore;
         this.shaderPackages = shaderPackages;
         this.dialogService = dialogService;
+        ToneMapping = new ToneMappingSettingsViewModel(settingsStore, dialogService);
 
         ScalingOptions =
         [
@@ -326,6 +327,8 @@ public sealed partial class VideoSettingsSectionViewModel : SettingsSectionViewM
     public IReadOnlyList<VideoSettingsOption> HardwareDecoderOptions { get; }
 
     public IReadOnlyList<VideoSettingsOption> PhotoDecodePreferenceOptions { get; }
+
+    public ToneMappingSettingsViewModel ToneMapping { get; }
 
     public bool SupportsPhotoDecodePreference => PlatformServices.SupportsPhotoDecodePreference;
 

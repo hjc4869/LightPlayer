@@ -3,23 +3,6 @@
         xmlns:chrome="using:Avalonia.Controls.Chrome"
         xmlns:strings="using:LightStudio.LightPlayer.Strings">
     <Styles.Resources>
-        <ControlTheme x:Key="AppleCsdWindowDecorations"
-                      TargetType="chrome:WindowDrawnDecorations"
-                      BasedOn="{StaticResource {x:Type chrome:WindowDrawnDecorations}}">
-            <Setter Property="DefaultShadowThickness" Value="32" />
-            <Style Selector="^ /template/ Border#PART_WindowBorder">
-                <Setter Property="CornerRadius" Value="12" />
-            </Style>
-            <Style Selector="^:has-border /template/ Border#PART_WindowBorder">
-                <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
-            </Style>
-            <Style Selector="^:has-shadow /template/ Border#PART_WindowBorder">
-                <Setter Property="BoxShadow" Value="0 8 24 0 #33000000, 0 2 6 0 #26000000" />
-            </Style>
-            <Style Selector="^:maximized /template/ Border#PART_WindowBorder">
-                <Setter Property="CornerRadius" Value="0" />
-            </Style>
-        </ControlTheme>
         <ControlTheme x:Key="ClientWindowControlButton" TargetType="Button">
             <Setter Property="Width" Value="28" />
             <Setter Property="Height" Value="32" />
@@ -49,12 +32,166 @@
                 <Setter Property="Opacity" Value="0.7" />
             </Style>
         </ControlTheme>
+        <ControlTheme x:Key="AppleCsdWindowDecorations"
+                      TargetType="chrome:WindowDrawnDecorations"
+                      BasedOn="{StaticResource {x:Type chrome:WindowDrawnDecorations}}">
+            <Setter Property="DefaultTitleBarHeight" Value="52" />
+            <Setter Property="DefaultShadowThickness" Value="32" />
+            <Setter Property="Template">
+                <WindowDrawnDecorationsTemplate>
+                    <chrome:WindowDrawnDecorationsContent>
+                        <chrome:WindowDrawnDecorationsContent.Underlay>
+                            <Panel x:Name="PART_UnderlayWrapper">
+                                <Border x:Name="PART_WindowBorder"
+                                        Background="{DynamicResource AppShellBackgroundBrush}"
+                                        BorderThickness="{TemplateBinding FrameThickness}"
+                                        BorderBrush="{DynamicResource AppDividerBrush}"
+                                        CornerRadius="12"
+                                        IsHitTestVisible="False" />
+                                <Panel x:Name="PART_TitleBar" VerticalAlignment="Top"
+                                       Height="{TemplateBinding TitleBarHeight}"
+                                       IsVisible="{TemplateBinding HasTitleBar}"
+                                       Background="Transparent"
+                                       chrome:WindowDecorationProperties.ElementRole="TitleBar" />
+                            </Panel>
+                        </chrome:WindowDrawnDecorationsContent.Underlay>
+                        <chrome:WindowDrawnDecorationsContent.Overlay>
+                            <Panel x:Name="PART_OverlayWrapper">
+                                <Panel x:Name="PART_TitleTextPanel" VerticalAlignment="Top"
+                                       Height="{TemplateBinding TitleBarHeight}"
+                                       IsHitTestVisible="False"
+                                       IsVisible="{TemplateBinding HasTitleBar}">
+                                    <TextBlock Text="{TemplateBinding Title}" Margin="104,0"
+                                               VerticalAlignment="Center" HorizontalAlignment="Stretch"
+                                               TextAlignment="Center" TextTrimming="CharacterEllipsis"
+                                               MaxLines="1" FontSize="15" FontWeight="Bold"
+                                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                </Panel>
+                                <StackPanel x:Name="PART_OverlayPanel" Classes="clientWindowControls"
+                                            Orientation="Horizontal" HorizontalAlignment="Left"
+                                            VerticalAlignment="Top" Margin="8,0,0,0"
+                                            Height="{TemplateBinding TitleBarHeight}"
+                                            IsVisible="{TemplateBinding HasTitleBar}">
+                                    <Button x:Name="PART_CloseButton"
+                                            Theme="{StaticResource ClientWindowControlButton}"
+                                            Background="#FF5F57"
+                                            chrome:WindowDecorationProperties.ElementRole="CloseButton"
+                                            ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <Path Data="{StaticResource IconClose}" />
+                                    </Button>
+                                    <Button x:Name="PART_MinimizeButton" Classes="minimizeWindowButton"
+                                            Theme="{StaticResource ClientWindowControlButton}"
+                                            Background="#FEBC2E"
+                                            chrome:WindowDecorationProperties.ElementRole="MinimizeButton"
+                                            ToolTip.Tip="{Binding VideoPlayer_Minimize, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <Path Data="{StaticResource IconWindowMinimize}" />
+                                    </Button>
+                                    <Button x:Name="PART_MaximizeButton"
+                                            Theme="{StaticResource ClientWindowControlButton}"
+                                            Background="#28C840"
+                                            chrome:WindowDecorationProperties.ElementRole="MaximizeButton">
+                                        <Path />
+                                    </Button>
+                                </StackPanel>
+                            </Panel>
+                        </chrome:WindowDrawnDecorationsContent.Overlay>
+                        <chrome:WindowDrawnDecorationsContent.FullscreenPopover>
+                            <Panel Height="{TemplateBinding DefaultTitleBarHeight}"
+                                   Background="{DynamicResource AppShellBackgroundBrush}"
+                                   VerticalAlignment="Top"
+                                   chrome:WindowDecorationProperties.ElementRole="DecorationsElement">
+                                <TextBlock Text="{TemplateBinding Title}" Margin="104,0"
+                                           VerticalAlignment="Center" TextAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" MaxLines="1"
+                                           FontSize="15" FontWeight="Bold"
+                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                <StackPanel Classes="clientWindowControls" Orientation="Horizontal"
+                                            HorizontalAlignment="Left" Margin="8,0,0,0" Height="52">
+                                    <Button x:Name="PART_PopoverCloseButton"
+                                            Theme="{StaticResource ClientWindowControlButton}"
+                                            Background="#FF5F57"
+                                            chrome:WindowDecorationProperties.ElementRole="CloseButton"
+                                            ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <Path Data="{StaticResource IconClose}" />
+                                    </Button>
+                                    <Button x:Name="PART_PopoverFullScreenButton"
+                                            Theme="{StaticResource ClientWindowControlButton}"
+                                            Background="#28C840"
+                                            chrome:WindowDecorationProperties.ElementRole="FullScreenButton"
+                                            ToolTip.Tip="{Binding Common_Restore, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <Path Data="{StaticResource IconWindowRestore}" />
+                                    </Button>
+                                </StackPanel>
+                            </Panel>
+                        </chrome:WindowDrawnDecorationsContent.FullscreenPopover>
+                    </chrome:WindowDrawnDecorationsContent>
+                </WindowDrawnDecorationsTemplate>
+            </Setter>
+            <Style Selector="^:has-shadow /template/ Border#PART_WindowBorder">
+                <Setter Property="BoxShadow" Value="0 8 24 0 #33000000, 0 2 6 0 #26000000" />
+            </Style>
+            <Style Selector="^:has-border /template/ StackPanel#PART_OverlayPanel">
+                <Setter Property="Margin" Value="8,1,0,0" />
+            </Style>
+            <Style Selector="^ /template/ Button:disabled">
+                <Setter Property="Opacity" Value="0.4" />
+            </Style>
+            <Style Selector="^:maximized /template/ Border#PART_WindowBorder, ^:fullscreen /template/ Border#PART_WindowBorder">
+                <Setter Property="CornerRadius" Value="0" />
+            </Style>
+            <Style Selector="^ /template/ Button#PART_MaximizeButton">
+                <Setter Property="ToolTip.Tip" Value="{Binding VideoPlayer_Maximize, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                <Setter Property="AutomationProperties.Name" Value="{Binding VideoPlayer_Maximize, Source={x:Static strings:LocalizedStrings.Instance}}" />
+            </Style>
+            <Style Selector="^ /template/ Button#PART_MaximizeButton Path">
+                <Setter Property="Data" Value="{StaticResource IconWindowMaximize}" />
+            </Style>
+            <Style Selector="^:maximized /template/ Button#PART_MaximizeButton">
+                <Setter Property="ToolTip.Tip" Value="{Binding Common_Restore, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                <Setter Property="AutomationProperties.Name" Value="{Binding Common_Restore, Source={x:Static strings:LocalizedStrings.Instance}}" />
+            </Style>
+            <Style Selector="^:maximized /template/ Button#PART_MaximizeButton Path">
+                <Setter Property="Data" Value="{StaticResource IconWindowRestore}" />
+            </Style>
+        </ControlTheme>
+        <ControlTheme x:Key="AppleCsdWindow" TargetType="Window"
+                      BasedOn="{StaticResource {x:Type Window}}">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border x:Name="AppleWindowSurface" ClipToBounds="True"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="0,0,11,11"
+                            Margin="{TemplateBinding WindowDecorationMargin}">
+                        <VisualLayerManager x:Name="PART_VisualLayerManager">
+                            <ContentPresenter x:Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              Margin="{TemplateBinding Padding}"
+                                              HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </VisualLayerManager>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^[WindowDecorations=BorderOnly] /template/ Border#AppleWindowSurface">
+                <Setter Property="CornerRadius" Value="11" />
+            </Style>
+            <Style Selector="^[WindowState=Maximized] /template/ Border#AppleWindowSurface, ^[WindowState=FullScreen] /template/ Border#AppleWindowSurface">
+                <Setter Property="CornerRadius" Value="0" />
+            </Style>
+        </ControlTheme>
     </Styles.Resources>
 
-    <Style Selector="Window.appleCsd">
+    <Style Selector=":is(Window)">
+        <Setter Property="(Classes.appleWindowDecorations)" Value="{DynamicResource AppIsAppleCsd}" />
+    </Style>
+    <Style Selector="Window.appleWindowDecorations">
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="TransparencyBackgroundFallback" Value="Transparent" />
         <Setter Property="WindowDecorationsTheme" Value="{StaticResource AppleCsdWindowDecorations}" />
+    </Style>
+    <Style Selector="Window.appleWindowDecorations:not(.appleCsd)">
+        <Setter Property="Theme" Value="{StaticResource AppleCsdWindow}" />
     </Style>
     <Style Selector="Window.appleCsd Border#ClientWindowFrame">
         <Setter Property="Margin" Value="{Binding $parent[Window].WindowDecorationMargin}" />
@@ -62,17 +199,20 @@
     <Style Selector="Window.roundedCsd Border#ClientWindowFrame">
         <Setter Property="CornerRadius" Value="11" />
     </Style>
-    <Style Selector="StackPanel#ClientWindowControls Path">
+    <Style Selector="StackPanel.clientWindowControls Button">
+        <Setter Property="Theme" Value="{StaticResource ClientWindowControlButton}" />
+    </Style>
+    <Style Selector="StackPanel#ClientWindowControls Path, StackPanel.clientWindowControls Path">
         <Setter Property="Width" Value="8" />
         <Setter Property="Height" Value="8" />
         <Setter Property="Stretch" Value="Uniform" />
         <Setter Property="Fill" Value="#99000000" />
         <Setter Property="Opacity" Value="0" />
     </Style>
-    <Style Selector="StackPanel#ClientWindowControls:pointerover Path, StackPanel#ClientWindowControls Button:focus-visible Path">
+    <Style Selector="StackPanel#ClientWindowControls:pointerover Path, StackPanel#ClientWindowControls Button:focus-visible Path, StackPanel.clientWindowControls:pointerover Path, StackPanel.clientWindowControls Button:focus-visible Path">
         <Setter Property="Opacity" Value="1" />
     </Style>
-    <Style Selector="Button#MinimizeWindowButton Path">
+    <Style Selector="Button#MinimizeWindowButton Path, Button.minimizeWindowButton Path">
         <Setter Property="Height" Value="1" />
         <Setter Property="Stretch" Value="Fill" />
     </Style>

@@ -16,6 +16,8 @@ The available packages are:
 
 ## Linux Flatpak
 
+To build a bundle from source, follow the [Flatpak build instructions](build.md#flatpak).
+
 With Flatpak installed, add Flathub for runtime dependencies and install the downloaded bundle
 from a terminal in the download directory:
 
@@ -25,7 +27,7 @@ flatpak install --user ./im.hjc.LightPlayer-x86_64.flatpak
 ```
 
 On ARM64, use `im.hjc.LightPlayer-aarch64.flatpak` instead. Accept the prompts to install
-the required runtime. Launch Light Player from the application menu or run:
+the required runtime. Launch Light Media Center from the application menu or run:
 
 ```sh
 flatpak run im.hjc.LightPlayer
@@ -36,6 +38,39 @@ To update, download the new bundle for your architecture and install it over the
 ```sh
 flatpak install --user --reinstall ./im.hjc.LightPlayer-x86_64.flatpak
 ```
+
+### Wayland HDR
+
+For GNOME users with an HDR display and HDR enabled in the desktop's display settings, we
+recommend manually enabling perceptual HDR presentation:
+
+```sh
+flatpak override --user --env=LIGHTPLAYER_WAYLAND_PERCEPTUAL_HDR=1 im.hjc.LightPlayer
+```
+
+Use this only with HDR displays, not SDR displays. Keep Light Media Center's HDR passthrough enabled
+and use its native Wayland backend. To disable the override when using an SDR display:
+
+```sh
+flatpak override --user --unset-env=LIGHTPLAYER_WAYLAND_PERCEPTUAL_HDR im.hjc.LightPlayer
+```
+
+### Custom window decorations
+
+KDE users who want app-drawn window decorations (CSD), similar to GNOME, can force them with:
+
+```sh
+flatpak override --user --env=LIGHTPLAYER_WAYLAND_FORCE_CSD=1 im.hjc.LightPlayer
+```
+
+To restore the desktop's normal window decorations:
+
+```sh
+flatpak override --user --unset-env=LIGHTPLAYER_WAYLAND_FORCE_CSD im.hjc.LightPlayer
+```
+
+These overrides persist for future launches. Fully close and restart Light Media Center after changing
+them.
 
 ## iOS signing and sideloading
 
@@ -55,7 +90,7 @@ For example, use AltStore Classic:
    restart, and confirm the change.
 3. Download `LightPlayer-ios-arm64.ipa` to the device's Files app. In AltStore Classic, open
    **My Apps**, tap **+**, and select the IPA. Use the same Apple Account as AltServer when prompted;
-   AltStore signs and installs Light Player. Keep AltServer running and the device connected by USB,
+   AltStore signs and installs Light Media Center. Keep AltServer running and the device connected by USB,
    or use the same Wi-Fi network with Wi-Fi sync enabled.
 
 With a free Apple Account, signed apps expire after seven days and only three sideloaded apps can
@@ -63,7 +98,7 @@ be active at once, including AltStore Classic. Use **Refresh All** in AltStore b
 while AltServer is reachable; background refresh also requires that connection. A paid Apple
 Developer Program membership permits longer signing validity.
 
-To update Light Player, import the newer IPA through the same tool and Apple Account, keeping the
+To update Light Media Center, import the newer IPA through the same tool and Apple Account, keeping the
 same app identity so it updates the existing installation and preserves its data.
 
 ## macOS
@@ -71,9 +106,9 @@ same app identity so it updates the existing installation and preserves its data
 The app bundle is not notarized by Apple. After downloading the ZIP:
 
 1. Extract it and move the app bundle to **Applications**.
-2. Try opening Light Player once, then dismiss the macOS verification warning.
+2. Try opening Light Media Center once, then dismiss the macOS verification warning.
 3. Open **System Settings > Privacy & Security**, scroll to **Security**, and click **Open Anyway**
-   for Light Player. Authenticate if prompted, then confirm **Open**.
+   for Light Media Center. Authenticate if prompted, then confirm **Open**.
 
 Only approve the app if you trust the download. See
 [Apple's instructions for opening apps from outside the App Store](https://support.apple.com/en-us/102445).

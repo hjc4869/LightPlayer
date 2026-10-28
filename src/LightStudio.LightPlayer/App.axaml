@@ -32,5 +32,6 @@
         </Style>
         <StyleInclude Source="/Themes/ControlStyles.axaml" />
         <StyleInclude Source="/Themes/AppleControls.axaml" />
+        <StyleInclude Source="/Themes/ClientWindowChrome.axaml" />
     </Application.Styles>
 </Application>

@@ -144,6 +144,13 @@ public sealed class VideoFrame : IMediaQueueItem
 
     public bool CanDownloadPhotoSurface => DownloadPhotoSurfaceAsync is not null || DownloadPhotoSurface is not null;
 
+    /// <summary>
+    /// Copies a graphics-memory frame's samples into an owned CPU frame with the same description, or
+    /// null where its producer offers no copy. Call only while holding a reference, off the UI and
+    /// render threads.
+    /// </summary>
+    public Func<VideoFrame?>? DownloadSamples { get; set; }
+
     /// <summary>Returns owned software pixels, retaining this frame until the asynchronous download or native worker completes.</summary>
     public async ValueTask<VideoFrame?> DownloadPhotoAsync(CancellationToken cancellationToken = default)
     {
@@ -441,6 +448,7 @@ public sealed class VideoFrame : IMediaQueueItem
         PlaneSource = null;
         DownloadPhotoSurface = null;
         DownloadPhotoSurfaceAsync = null;
+        DownloadSamples = null;
         DolbyVision.Reset();
         EnhancementLayer = null;
         Hdr10Plus.Reset();
@@ -596,6 +604,7 @@ public sealed class VideoFrame : IMediaQueueItem
         PhotoSurface = null;
         DownloadPhotoSurface = null;
         DownloadPhotoSurfaceAsync = null;
+        DownloadSamples = null;
 
         if (owner is null)
             FreeBuffer();

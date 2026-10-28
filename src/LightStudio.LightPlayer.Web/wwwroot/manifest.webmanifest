@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Light Player",
-  "short_name": "Light Player",
+  "name": "Light Media Center",
+  "short_name": "Light Media Center",
   "description": "A music and video player for your own library, on your own devices.",
   "lang": "en",
   "dir": "ltr",

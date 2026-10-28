@@ -253,6 +253,7 @@ public static unsafe partial class StillImage
         public int Count => tiles.Length;
         public long EncodedBytes { get; }
         public bool HasScaledOverview { get; }
+        public bool AlwaysPreferMemory => true;
         public PhotoTileBounds GetBounds(int index) => index == -1 && HasScaledOverview
             ? new PhotoTileBounds(0, 0, Width, Height) : tiles[index].Bounds;
 
@@ -311,37 +312,24 @@ public static unsafe partial class StillImage
             {
                 InitializeHardware(cancellationToken);
                 var frames = new VideoFrame[requests.Length];
-                int hardwareFailed = 0;
+                StillImageHardwareDecoder decoder = hardware;
+                bool hardwareFailed = false;
                 try
                 {
-                    int workers = PhotoDecodeResources.PreferThroughput && !OperatingSystem.IsBrowser()
-                        ? Math.Min(requests.Length, Math.Min(Environment.ProcessorCount, 8)) : Math.Min(requests.Length, 1);
-                    if (workers == 0)
-                        return frames;
-                    var options = new ParallelOptions { MaxDegreeOfParallelism = workers, CancellationToken = cancellationToken };
-                    if (workers == 1)
-                        DecodeWorker(0);
-                    else
-                        Parallel.For(0, workers, options, DecodeWorker);
-                    cancellationToken.ThrowIfCancellationRequested();
-                    return frames;
-
-                    void DecodeWorker(int worker)
+                    for (int index = 0; index < requests.Length; index++)
                     {
-                        StillImageHardwareDecoder decoder = hardware;
-                        for (int index = worker; index < requests.Length; index += workers)
+                        PhotoTileRequest request = requests.Span[index];
+                        frames[index] = DecodeTile(request.Index == -1 && HasScaledOverview ? 0 : request.Index,
+                            request.Reduction, HasScaledOverview && request.Reduction > 1 ? null : decoder,
+                            cancellationToken, out bool failed);
+                        if (failed)
                         {
-                            PhotoTileRequest request = requests.Span[index];
-                            frames[index] = DecodeTile(request.Index == -1 && HasScaledOverview ? 0 : request.Index,
-                                request.Reduction, worker, HasScaledOverview && request.Reduction > 1 ? null : decoder,
-                                cancellationToken, out bool failed);
-                            if (failed)
-                            {
-                                decoder = null;
-                                Interlocked.Exchange(ref hardwareFailed, 1);
-                            }
+                            decoder = null;
+                            hardwareFailed = true;
                         }
                     }
+                    cancellationToken.ThrowIfCancellationRequested();
+                    return frames;
                 }
                 catch
                 {
@@ -351,7 +339,7 @@ public static unsafe partial class StillImage
                 }
                 finally
                 {
-                    if (hardwareFailed != 0)
+                    if (hardwareFailed)
                         ReleaseHardware();
                 }
             }
@@ -372,7 +360,7 @@ public static unsafe partial class StillImage
             }
         }
 
-        private VideoFrame DecodeTile(int index, int reduction, int worker, StillImageHardwareDecoder decoder,
+        private VideoFrame DecodeTile(int index, int reduction, StillImageHardwareDecoder decoder,
             CancellationToken cancellationToken, out bool hardwareFailed)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -387,7 +375,7 @@ public static unsafe partial class StillImage
                 AVStream item = default;
                 item.codecpar = parameters;
                 item.time_base = new AVRational { num = 1, den = 1 };
-                bool success = TryDecodeTile(&item, (AVPacket*)tile.Packet, decoded, decoder, worker, preserveHardware: true, reduction);
+                bool success = TryDecodeTile(&item, (AVPacket*)tile.Packet, decoded, decoder, 0, preserveHardware: true, reduction);
                 if (!success && decoder != null)
                 {
                     hardwareFailed = true;

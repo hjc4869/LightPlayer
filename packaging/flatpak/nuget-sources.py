@@ -5,8 +5,8 @@ Same idea as flatpak-builder-tools' flatpak-dotnet-generator.py (MIT): restore i
 the dotnet SDK extension sandbox, then emit one `file` source per package so the
 in-sandbox build can restore offline. The difference is that the download URL is
 resolved from the feed each package was *actually* restored from (recorded by NuGet in
-`.nupkg.metadata`) instead of assuming nuget.org, which is what this repo needs for the
-packages that come from the private lightstudio-lightplayer feed (see nuget.config).
+`.nupkg.metadata`) instead of assuming nuget.org. GitHub release ZIPs and individual
+NuGet packages are supplied as checksum-pinned assets from the evaluated MSBuild items.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ import urllib.request
 from pathlib import Path
 
 FLAT_CONTAINER = "PackageBaseAddress/3.0.0"
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def restore(
@@ -30,12 +31,12 @@ def restore(
     dotnet: str,
     freedesktop: str,
     dotnet_args: list[str],
-) -> None:
+) -> tuple[Path, list[dict[str, str]]]:
     """Run `dotnet restore` with the SDK extension, against the host file system."""
     shell_command = (
         f'PATH="$PATH:/usr/lib/sdk/dotnet{dotnet}/bin" '
         f'LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/lib/sdk/dotnet{dotnet}/lib" '
-        'exec dotnet restore "$@"'
+        'exec dotnet "$@"'
     )
     argv = [
         "flatpak",
@@ -50,14 +51,35 @@ def restore(
         "-c",
         shell_command,
         "--",
+    ]
+    restore_argv = argv + [
+        "restore",
         "--packages",
         str(packages_dir),
         str(project),
     ]
     if runtime:
-        argv += ["-r", runtime]
-    argv += dotnet_args
-    subprocess.run(argv, check=True)
+        restore_argv += ["-r", runtime]
+    restore_argv += dotnet_args
+    subprocess.run(restore_argv, check=True)
+
+    property_args = [
+        arg for arg in dotnet_args
+        if arg.lower().startswith(("-p:", "/p:", "-property:", "/property:"))
+    ]
+    if runtime:
+        property_args += [f"-p:RuntimeIdentifier={runtime}"]
+    evaluation = json.loads(subprocess.check_output(
+        argv + [
+            "msbuild", str(project),
+            "-getItem:GitHubNuGetAsset", "-getProperty:GitHubNuGetFeed",
+        ] + property_args,
+        text=True,
+    ))
+    return (
+        Path(evaluation["Properties"]["GitHubNuGetFeed"]).resolve(),
+        evaluation["Items"].get("GitHubNuGetAsset", []),
+    )
 
 
 def flat_container(source: str, cache: dict[str, str]) -> str:
@@ -78,10 +100,30 @@ def flat_container(source: str, cache: dict[str, str]) -> str:
     return cache[source]
 
 
-def collect_sources(packages_dir: Path, destdir: str) -> list[dict[str, str]]:
+def collect_sources(
+    packages_dir: Path,
+    destdir: str,
+    release_feed: Path,
+    release_assets: list[dict[str, str]],
+) -> list[dict[str, str]]:
     """Turn a restored packages folder into flatpak-builder `file` sources."""
     cache: dict[str, str] = {}
     sources = []
+    release_packages = set()
+    for asset in release_assets:
+        filename = asset["Identity"]
+        sha256 = asset["Sha256"]
+        marker = release_feed / f"{filename}.{sha256}.complete"
+        release_packages.update(name.lower() for name in marker.read_text().splitlines())
+        sources.append(
+            {
+                "type": "file",
+                "url": asset["Url"],
+                "sha256": sha256,
+                "dest": (release_feed.parent / "downloads").relative_to(REPO_ROOT).as_posix(),
+                "dest-filename": filename,
+            }
+        )
     # Layout: <packages>/<id>/<version>/<id>.<version>.nupkg.sha512 (both lower-cased,
     # which is also what the flat container expects).
     for hash_path in sorted(packages_dir.glob("*/*/*.nupkg.sha512")):
@@ -89,6 +131,10 @@ def collect_sources(packages_dir: Path, destdir: str) -> list[dict[str, str]]:
         version = hash_path.parent.name
         filename = f"{name}.{version}.nupkg"
         metadata = json.loads((hash_path.parent / ".nupkg.metadata").read_text())
+        if metadata["source"] == str(release_feed):
+            if filename not in release_packages:
+                raise SystemExit(f"error: no pinned GitHub release asset supplies {filename}")
+            continue
         base = flat_container(metadata["source"], cache)
         sha512 = binascii.hexlify(base64.b64decode(hash_path.read_text())).decode("ascii")
         sources.append(
@@ -142,7 +188,7 @@ def main() -> None:
     # host file system share (--filesystem=host) actually reaches.
     with tempfile.TemporaryDirectory(dir=output.parent) as tmp:
         packages_dir = Path(tmp).resolve()
-        restore(
+        release_feed, release_assets = restore(
             args.project.resolve(),
             packages_dir,
             args.runtime,
@@ -150,7 +196,7 @@ def main() -> None:
             args.freedesktop,
             args.dotnet_args,
         )
-        sources = collect_sources(packages_dir, args.destdir)
+        sources = collect_sources(packages_dir, args.destdir, release_feed, release_assets)
 
     if not sources:
         raise SystemExit("error: the restore produced no packages")

@@ -1,7 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="LightStudio.LightPlayer.Views.PictureInPictureWindow"
-        Title="Light Player"
+        Title="Light Media Center"
         Background="Black"
         WindowDecorations="BorderOnly"
         ShowInTaskbar="False"

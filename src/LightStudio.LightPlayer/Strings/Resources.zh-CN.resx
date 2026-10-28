@@ -122,7 +122,7 @@
     <value>重置索引数据库</value>
   </data>
   <data name="About_ResetIndexDatabaseConfirm" xml:space="preserve">
-    <value>Light 播放器将关闭。下次启动应用时将重置媒体库和语义搜索索引。您的设置、播放列表和媒体文件将予以保留。</value>
+    <value>Light Media Center 将关闭。下次启动应用时将重置媒体库和语义搜索索引。您的设置、播放列表和媒体文件将予以保留。</value>
   </data>
   <data name="About_ResetIndexDatabaseManualScan" xml:space="preserve">
     <value>下次启动后，您需要手动扫描媒体库。</value>
@@ -137,7 +137,7 @@
     <value>重置并刷新</value>
   </data>
   <data name="About_ProductName" xml:space="preserve">
-    <value>Light 播放器</value>
+    <value>Light Media Center</value>
   </data>
   <data name="About_Tagline" xml:space="preserve">
     <value>使用 AvaloniaUI 框架构建的跨平台媒体播放器。</value>
@@ -416,7 +416,7 @@
     <value>可能适用第三方服务的使用条款。</value>
   </data>
   <data name="InitialSetup_Title" xml:space="preserve">
-    <value>欢迎来到 Light 播放器</value>
+    <value>欢迎来到 Light Media Center</value>
   </data>
   <data name="LanguageSettings_InterfaceLanguageHeader" xml:space="preserve">
     <value>软件界面语言</value>
@@ -519,7 +519,7 @@
     <value>扫描媒体库</value>
   </data>
   <data name="LibrarySettings_Subtitle" xml:space="preserve">
-    <value>选择 Light 播放器扫描音乐和视频文件的位置。</value>
+    <value>选择 Light Media Center 扫描音乐和视频文件的位置。</value>
   </data>
   <data name="LibrarySettings_Title" xml:space="preserve">
     <value>媒体库目录</value>
@@ -929,13 +929,11 @@
   </data>
   <data name="AudioSettings_DefaultDevice" xml:space="preserve"><value>系统默认设备</value></data>
   <data name="AudioSettings_DeviceHeader" xml:space="preserve"><value>输出设备</value></data>
-  <data name="AudioSettings_ExclusiveDescription" xml:space="preserve"><value>允许 Light Player 独占所选设备；其他应用可能无法播放音频。</value></data>
+  <data name="AudioSettings_ExclusiveDescription" xml:space="preserve"><value>允许 Light Media Center 独占所选设备；其他应用可能无法播放音频。</value></data>
   <data name="AudioSettings_ExclusiveHeader" xml:space="preserve"><value>独占模式</value></data>
   <data name="AudioSettings_Subtitle" xml:space="preserve"><value>选择音频输出设备和播放模式。</value></data>
   <data name="AudioSettings_Title" xml:space="preserve"><value>音频输出</value></data>
   <data name="AudioSettings_UnavailableDevice" xml:space="preserve"><value>所选设备（不可用）</value></data>
-  <data name="VideoSettings_Title" xml:space="preserve"><value>视频</value></data>
-  <data name="VideoSettings_Subtitle" xml:space="preserve"><value>选择视频转换、缩放和解码首选项。</value></data>
   <data name="VideoSettings_BufferHeader" xml:space="preserve"><value>视频缓冲</value></data>
   <data name="VideoSettings_DebandingHeader" xml:space="preserve"><value>去色带</value></data>
   <data name="VideoSettings_DebandingOff" xml:space="preserve"><value>关闭</value></data>
@@ -946,7 +944,7 @@
   <data name="VideoSettings_DownscalingHeader" xml:space="preserve"><value>视频缩小</value></data>
   <data name="VideoSettings_PreferHardwareProcessingHeader" xml:space="preserve"><value>优先使用硬件处理视频</value></data>
   <data name="VideoSettings_HdrPassthroughHeader" xml:space="preserve"><value>高级色彩输出（WCG / HDR）</value></data>
-  <data name="VideoSettings_HdrPassthroughDescription" xml:space="preserve"><value>重启 Light 以应用更改。</value></data>
+  <data name="VideoSettings_HdrPassthroughDescription" xml:space="preserve"><value>重启 Light Media Center 以应用更改。</value></data>
   <data name="VideoSettings_Bt709InterpretationHeader" xml:space="preserve"><value>BT.709 解释方式</value></data>
   <data name="VideoSettings_Bt709InterpretationDescription" xml:space="preserve"><value>选择 BT.709 视频的传递函数。</value></data>
   <data name="VideoSettings_Bt709PlatformPreferred" xml:space="preserve"><value>平台首选</value></data>
@@ -1000,7 +998,7 @@
     <value>媒体库</value>
   </data>
   <data name="SettingsSection_PlaybackTitle" xml:space="preserve">
-    <value>播放</value>
+    <value>播放与显示</value>
   </data>
   <data name="SettingsSection_SampleRateListTitle" xml:space="preserve">
     <value>采样率</value>
@@ -1015,7 +1013,7 @@
     <value>检查更新</value>
   </data>
   <data name="Shell_CueFailureFormat" xml:space="preserve">
-    <value>{0}: 无法找到或打开{1}。 如果 CUE 文件在你的媒体库目录外，请尝试将 CUE 文件与音频轨道一同打开以便 Light 获取访问权限。</value>
+    <value>{0}: 无法找到或打开{1}。 如果 CUE 文件在你的媒体库目录外，请尝试将 CUE 文件与音频轨道一同打开以便 Light Media Center 获取访问权限。</value>
   </data>
   <data name="Shell_CueItsAudioFile" xml:space="preserve">
     <value>它指向的音频文件</value>
@@ -1444,7 +1442,7 @@
     <value>显示二维码</value>
   </data>
   <data name="RemoteApiSettings_PairingQrInstruction" xml:space="preserve">
-    <value>在 Android 上安装 Light Player，然后使用系统相机应用扫描此二维码。此二维码将在 5 分钟后过期。</value>
+    <value>在 Android 上安装 Light Media Center，然后使用系统相机应用扫描此二维码。此二维码将在 5 分钟后过期。</value>
   </data>
   <data name="RemoteApiSettings_PairingCopied" xml:space="preserve">
     <value>已复制</value>
@@ -1556,6 +1554,15 @@
   </data>
   <data name="VideoPlayer_SubtitleTrack" xml:space="preserve">
     <value>字幕轨道</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFontSize" xml:space="preserve">
+    <value>字体大小</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFont" xml:space="preserve">
+    <value>字体</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFontDefault" xml:space="preserve">
+    <value>默认</value>
   </data>
   <data name="VideoPlayer_SubtitleBrightness" xml:space="preserve">
     <value>字幕亮度</value>
@@ -1698,6 +1705,15 @@
   <data name="VideoPlayer_ShortcutHelp" xml:space="preserve">
     <value>显示此列表</value>
   </data>
+  <data name="VideoPlayer_Screenshot" xml:space="preserve">
+    <value>保存截图</value>
+  </data>
+  <data name="VideoPlayer_ScreenshotSaved" xml:space="preserve">
+    <value>截图已保存</value>
+  </data>
+  <data name="VideoPlayer_ScreenshotFailed" xml:space="preserve">
+    <value>无法保存截图。</value>
+  </data>
   <data name="VideoPlayer_Muted" xml:space="preserve">
     <value>已静音</value>
   </data>
@@ -1781,7 +1797,7 @@
   <data name="VideoPlayer_TranscodeApply" xml:space="preserve"><value>应用</value></data>
   <data name="LibrarySource_ThisDevice" xml:space="preserve"><value>本机</value></data>
   <data name="RemoteLibraries_Title" xml:space="preserve"><value>远程媒体库</value></data>
-  <data name="RemoteLibraries_Description" xml:space="preserve"><value>添加并合并多个独立的 Light Player 媒体库。</value></data>
+  <data name="RemoteLibraries_Description" xml:space="preserve"><value>添加并合并多个独立的 Light Media Center 媒体库。</value></data>
   <data name="RemoteLibraries_RemoteOnlyDescription" xml:space="preserve"><value>此处无法使用本地媒体库文件夹，因此只能使用远程媒体库。</value></data>
   <data name="RemoteLibraries_PreferDuplicates" xml:space="preserve"><value>优先使用高优先级的重复项</value></data>
   <data name="RemoteLibraries_PreferDuplicatesDescription" xml:space="preserve"><value>隐藏匹配专辑和歌曲中优先级较低的副本。</value></data>
@@ -1809,10 +1825,10 @@
   <data name="RemoteLibraries_EditHeader" xml:space="preserve"><value>编辑远程媒体库</value></data>
   <data name="RemoteLibraries_Advanced" xml:space="preserve"><value>高级连接设置</value></data>
   <data name="RemoteLibraries_Provider" xml:space="preserve"><value>服务</value></data>
-  <data name="RemoteLibraries_ProviderLightPlayer" xml:space="preserve"><value>Light Player</value></data>
+  <data name="RemoteLibraries_ProviderLightPlayer" xml:space="preserve"><value>Light Media Center</value></data>
   <data name="RemoteLibraries_ProviderNextcloudMusic" xml:space="preserve"><value>Nextcloud Music</value></data>
   <data name="RemoteLibraries_ProviderWebDav" xml:space="preserve"><value>WebDAV</value></data>
-  <data name="RemoteLibraries_WebDavRangeRequired" xml:space="preserve"><value>此 WebDAV 服务器不支持 HTTP 字节范围请求，而 Light Player 需要此功能才能访问远程媒体。</value></data>
+  <data name="RemoteLibraries_WebDavRangeRequired" xml:space="preserve"><value>此 WebDAV 服务器不支持 HTTP 字节范围请求，而 Light Media Center 需要此功能才能访问远程媒体。</value></data>
   <data name="RemoteLibraries_ConnectedAsFormat" xml:space="preserve"><value>已作为 {0} 连接</value></data>
   <data name="RemoteLibraries_ApiKey" xml:space="preserve"><value>Music API 密钥</value></data>
   <data name="RemoteLibraries_ApiKeyHint" xml:space="preserve"><value>在浏览器中连接，或粘贴在 Nextcloud Music 设置中生成的 API 密钥。</value></data>
@@ -1994,6 +2010,9 @@
   <data name="ThemeColor_BackdropOff" xml:space="preserve">
     <value>关闭</value>
   </data>
+  <data name="ThemeColor_GlassFrostHeader" xml:space="preserve">
+    <value>液态玻璃磨砂效果</value>
+  </data>
   <data name="Common_OpenInNewWindow" xml:space="preserve">
     <value>在新窗口中打开</value>
   </data>
@@ -2085,8 +2104,9 @@
   <data name="SettingsPage_LocalLibrary" xml:space="preserve"><value>本地媒体库</value></data>
   <data name="SettingsPage_RemoteLibrary" xml:space="preserve"><value>远程媒体库</value></data>
   <data name="SettingsPage_PhotoIndex" xml:space="preserve"><value>照片索引</value></data>
+  <data name="SettingsPage_Display" xml:space="preserve"><value>显示</value></data>
   <data name="SettingsPage_AudioPlayback" xml:space="preserve"><value>音频播放</value></data>
-  <data name="SettingsPage_VideoPlayback" xml:space="preserve"><value>视频播放</value></data>
+  <data name="SettingsPage_VideoPlayback" xml:space="preserve"><value>视频和照片</value></data>
   <data name="SettingsPage_CustomFilters" xml:space="preserve"><value>自定义滤镜</value></data>
   <data name="SettingsPage_ServerStreaming" xml:space="preserve"><value>服务器串流</value></data>
   <data name="LibrarySettings_MusicLibraryHeader" xml:space="preserve"><value>音乐库</value></data>
@@ -2122,7 +2142,107 @@
   <data name="Photo_ToneSlopeTuning" xml:space="preserve"><value>斜率调节</value></data>
   <data name="Photo_ToneSlopeOffset" xml:space="preserve"><value>斜率偏移</value></data>
   <data name="Photo_ToneContrast" xml:space="preserve"><value>对比度</value></data>
-  <data name="Photo_ToneReset" xml:space="preserve"><value>重置为自动</value></data>
-  <data name="Photo_ToneSave" xml:space="preserve"><value>保存为首选色调曲线</value></data>
-  <data name="Photo_ToneClear" xml:space="preserve"><value>清除已保存的偏好</value></data>
+  <data name="Photo_ToneClip" xml:space="preserve"><value>裁切</value></data>
+  <data name="Photo_ToneMobius" xml:space="preserve"><value>莫比乌斯</value></data>
+  <data name="Photo_ToneHable" xml:space="preserve"><value>电影感 (Hable)</value></data>
+  <data name="Photo_ToneGamma" xml:space="preserve"><value>伽马</value></data>
+  <data name="Photo_ToneLinear" xml:space="preserve"><value>线性</value></data>
+  <data name="Photo_ToneKneePoint" xml:space="preserve"><value>拐点</value></data>
+  <data name="Photo_ToneExposure" xml:space="preserve"><value>曝光</value></data>
+  <data name="Photo_ToneAutomaticDescription" xml:space="preserve"><value>视频带有 HDR10+ 曲线时沿用该曲线，否则使用 PQ 样条曲线。</value></data>
+  <data name="Photo_ToneSplineDescription" xml:space="preserve"><value>平衡中间调对比度与高光细节，并在视频提供场景亮度时随之调整。</value></data>
+  <data name="Photo_ToneBt2390Description" xml:space="preserve"><value>广播标准曲线。保持阴影和中间调不变，平滑压缩高光。</value></data>
+  <data name="Photo_ToneBt2446ADescription" xml:space="preserve"><value>面向精心母版制作内容的广播标准转换，以目标峰值亮度为准。</value></data>
+  <data name="Photo_ToneClipDescription" xml:space="preserve"><value>准确显示显示器范围内的所有内容，并裁切更亮的高光。适合重视准确度胜过高光细节的情况。</value></data>
+  <data name="Photo_ToneMobiusDescription" xml:space="preserve"><value>拐点以下的亮度和色彩保持准确，拐点以上的高光平缓过渡。优先保证准确度而非高光细节。</value></data>
+  <data name="Photo_ToneReinhardDescription" xml:space="preserve"><value>平滑压缩整个亮度范围。保持整体亮度，但会削弱细节与对比度。</value></data>
+  <data name="Photo_ToneHableDescription" xml:space="preserve"><value>类似胶片的曲线，同时保留阴影和高光细节，但画面会略暗、略柔和。</value></data>
+  <data name="Photo_ToneGammaDescription" xml:space="preserve"><value>拐点以下的亮度保持准确，拐点以上的每级亮度均匀压缩，保留明亮区域的质感。</value></data>
+  <data name="Photo_ToneLinearDescription" xml:space="preserve"><value>均匀压缩所有亮度，以整体亮度为代价保留全部高光。提高曝光可使画面变亮，超出范围的高光将被裁切。</value></data>
+  <data name="ToneMapping_Description" xml:space="preserve"><value>选择如何让 HDR 图像和视频的亮度适配你的显示器。</value></data>
+  <data name="ToneMapping_ImageDefaultHeader" xml:space="preserve"><value>绝对亮度图像</value></data>
+  <data name="ToneMapping_ImageDefaultDescription" xml:space="preserve"><value>存储绝对亮度的 HDR 图像，例如 PQ 和 JPEG XR 照片。</value></data>
+  <data name="ToneMapping_VideoDefaultHeader" xml:space="preserve"><value>HDR 视频</value></data>
+  <data name="ToneMapping_VideoDefaultDescription" xml:space="preserve"><value>HDR10、HLG、HDR10+ 和杜比视界视频。</value></data>
+  <data name="ToneMapping_BuiltIn" xml:space="preserve"><value>内置</value></data>
+  <data name="ToneMapping_Profile" xml:space="preserve"><value>配置文件</value></data>
+  <data name="ToneMapping_ProfilesHeader" xml:space="preserve"><value>配置文件</value></data>
+  <data name="ToneMapping_ProfilesDescription" xml:space="preserve"><value>创建命名的色调曲线，并在图表中查看效果。</value></data>
+  <data name="ToneMapping_AddProfile" xml:space="preserve"><value>添加配置文件</value></data>
+  <data name="ToneMapping_DeleteProfile" xml:space="preserve"><value>删除配置文件</value></data>
+  <data name="ToneMapping_DeleteTitle" xml:space="preserve"><value>删除色调映射配置文件</value></data>
+  <data name="ToneMapping_DeleteMessageFormat" xml:space="preserve"><value>要删除“{0}”吗？使用它的媒体将恢复为内置色调映射。</value></data>
+  <data name="ToneMapping_Name" xml:space="preserve"><value>配置文件名称</value></data>
+  <data name="ToneMapping_NewProfileFormat" xml:space="preserve"><value>配置文件 {0}</value></data>
+  <data name="ToneMapping_NameRequired" xml:space="preserve"><value>请输入配置文件名称。</value></data>
+  <data name="ToneMapping_NameExists" xml:space="preserve"><value>已存在同名配置文件。</value></data>
+  <data name="ToneMapping_Locked" xml:space="preserve"><value>跟随显示器。选择以设置自定义值。</value></data>
+  <data name="ToneMapping_Unlocked" xml:space="preserve"><value>选择以跟随显示器。</value></data>
+  <data name="ToneMapping_InputAxis" xml:space="preserve"><value>输入亮度（尼特）</value></data>
+  <data name="ToneMapping_OutputAxis" xml:space="preserve"><value>输出（SDR 白 = 1）</value></data>
+  <data name="ToneMapping_CurrentHeadroomFormat" xml:space="preserve"><value>当前余量 {0}</value></data>
+  <data name="ToneMapping_PotentialHeadroomFormat" xml:space="preserve"><value>潜在余量 {0}</value></data>
+  <data name="ToneMapping_HdrHint" xml:space="preserve"><value>为此预览请求 HDR</value></data>
+  <data name="ToneMapping_HdrHintHeadroom" xml:space="preserve"><value>请求的 HDR 余量</value></data>
+  <data name="ToneMapping_Revert" xml:space="preserve"><value>还原更改</value></data>
+  <data name="ToneMapping_Save" xml:space="preserve"><value>保存配置文件</value></data>
+  <data name="ToneMapping_SaveAs" xml:space="preserve"><value>另存为新配置文件</value></data>
+  <data name="Photo_SaveAs" xml:space="preserve"><value>另存为</value></data>
+  <data name="Photo_SaveFormat" xml:space="preserve"><value>格式</value></data>
+  <data name="Photo_SaveEncoder" xml:space="preserve"><value>编码器</value></data>
+  <data name="Photo_SavePixelFormat" xml:space="preserve"><value>像素格式</value></data>
+  <data name="Photo_SaveQuality" xml:space="preserve"><value>质量</value></data>
+  <data name="Photo_SaveSpeed" xml:space="preserve"><value>编码速度</value></data>
+  <data name="Photo_SaveSpeedSlower" xml:space="preserve"><value>较慢，文件较小</value></data>
+  <data name="Photo_SaveSpeedBalanced" xml:space="preserve"><value>平衡</value></data>
+  <data name="Photo_SaveSpeedFaster" xml:space="preserve"><value>较快，文件较大</value></data>
+  <data name="Photo_SaveSize" xml:space="preserve"><value>尺寸</value></data>
+  <data name="Photo_SaveWidth" xml:space="preserve"><value>宽度</value></data>
+  <data name="Photo_SaveHeight" xml:space="preserve"><value>高度</value></data>
+  <data name="Photo_SaveScale" xml:space="preserve"><value>缩放比例</value></data>
+  <data name="Photo_SaveKeepAspect" xml:space="preserve"><value>保持宽高比</value></data>
+  <data name="Photo_SaveResize" xml:space="preserve"><value>调整方式</value></data>
+  <data name="Photo_SaveResizeStretch" xml:space="preserve"><value>拉伸填充</value></data>
+  <data name="Photo_SaveResizeFit" xml:space="preserve"><value>适应并加边框</value></data>
+  <data name="Photo_SaveResizeFill" xml:space="preserve"><value>填充并裁剪边缘</value></data>
+  <data name="Photo_SaveTransparent" xml:space="preserve"><value>透明背景</value></data>
+  <data name="Photo_SaveBackground" xml:space="preserve"><value>背景颜色</value></data>
+  <data name="Photo_SaveHdr" xml:space="preserve"><value>HDR</value></data>
+  <data name="Photo_SaveKeepHdr" xml:space="preserve"><value>保留 HDR</value></data>
+  <data name="Photo_SaveKeepGainMap" xml:space="preserve"><value>保留 HDR 增益图</value></data>
+  <data name="Photo_SaveCreateGainMap" xml:space="preserve"><value>创建 HDR 增益图</value></data>
+  <data name="Photo_SaveHdrFormat" xml:space="preserve"><value>HDR 格式</value></data>
+  <data name="Photo_SaveHdrGainMap" xml:space="preserve"><value>增益图</value></data>
+  <data name="Photo_SaveHdrPq" xml:space="preserve"><value>PQ</value></data>
+  <data name="Photo_SaveApplyToneMapping" xml:space="preserve"><value>应用色调映射</value></data>
+  <data name="Photo_SaveTargetPeak" xml:space="preserve"><value>峰值亮度 (尼特)</value></data>
+  <data name="Photo_SaveSdrWhite" xml:space="preserve"><value>SDR 白色亮度 (尼特)</value></data>
+  <data name="Photo_SaveWarnNoHdr" xml:space="preserve"><value>此格式无法存储 HDR，因此图像将以 SDR 保存。</value></data>
+  <data name="Photo_SaveWarnHdrLost" xml:space="preserve"><value>图像将以 SDR 保存，不含 HDR 高光。</value></data>
+  <data name="Photo_SaveWarnSdrLost" xml:space="preserve"><value>不会保留照片中存储的 SDR 版本。不支持 HDR 的显示器将自行进行色调映射。</value></data>
+  <data name="Photo_SaveWarnLuminanceLost" xml:space="preserve"><value>亮度将相对于 SDR 白色存储，因此不会保留原始绝对亮度。</value></data>
+  <data name="Photo_SaveFailed" xml:space="preserve"><value>无法保存图像。</value></data>
+  <data name="Photo_SaveTooLarge" xml:space="preserve"><value>图像太大，无法以此尺寸保存。</value></data>
+  <data name="Photo_SavePixelYuv" xml:space="preserve"><value>YUV {0}，{1} 位</value></data>
+  <data name="Photo_SavePixelRgb" xml:space="preserve"><value>RGB，{0} 位</value></data>
+  <data name="Photo_SavePixelRgba" xml:space="preserve"><value>RGB 含 Alpha，{0} 位</value></data>
+  <data name="Photo_SavePixelGray" xml:space="preserve"><value>灰度，{0} 位</value></data>
+  <data name="Photo_SavePixelLossless" xml:space="preserve"><value>{0}，无损</value></data>
+  <data name="Photo_SaveHardwareEncoder" xml:space="preserve"><value>{0} (硬件)</value></data>
+  <data name="Photo_SaveTiles" xml:space="preserve"><value>分块保存</value></data>
+  <data name="Photo_SaveTileWidth" xml:space="preserve"><value>分块宽度</value></data>
+  <data name="Photo_SaveTileHeight" xml:space="preserve"><value>分块高度</value></data>
+  <data name="Photo_SaveMetadata" xml:space="preserve"><value>元数据</value></data>
+  <data name="Photo_SaveMetadataAll" xml:space="preserve"><value>全部</value></data>
+  <data name="Photo_SaveMetadataRendering" xml:space="preserve"><value>仅显示信息</value></data>
+  <data name="Photo_SaveMetadataAllDescription" xml:space="preserve"><value>保留照片的相机信息、日期、位置和描述。</value></data>
+  <data name="Photo_SaveMetadataRenderingDescription" xml:space="preserve"><value>移除相机信息、日期、位置和描述，仅保留影响照片显示效果的信息。</value></data>
+  <data name="Photo_SaveColor" xml:space="preserve"><value>颜色</value></data>
+  <data name="Photo_SaveColorSpace" xml:space="preserve"><value>色彩空间</value></data>
+  <data name="Photo_SaveColorSpaceAutomatic" xml:space="preserve"><value>自动</value></data>
+  <data name="Photo_SaveGamutMapping" xml:space="preserve"><value>色域外颜色</value></data>
+  <data name="Photo_SaveGamutCompress" xml:space="preserve"><value>平滑压缩</value></data>
+  <data name="Photo_SaveGamutPreserveHue" xml:space="preserve"><value>保持色相</value></data>
+  <data name="Photo_SaveGamutClip" xml:space="preserve"><value>裁切</value></data>
+  <data name="Photo_SaveWarnGamut" xml:space="preserve"><value>此照片可能包含所选色彩空间以外的颜色，这些颜色无法精确保存。</value></data>
 </root>

@@ -58,7 +58,7 @@ public class Application : AvaloniaAndroidApplication<App>
             deviceSettings,
             deviceShellState,
             Context.ApplicationInfo.NativeLibraryDir,
-            inferenceProvider: new LiteRtInferenceProvider());
+            inferenceProvider: new OnnxInferenceProvider());
         PlatformServices.LocalServicesFactory = () => localServices;
         remoteLibraries = new RemoteLibraryManager(
             AppPaths.DataDirectory,

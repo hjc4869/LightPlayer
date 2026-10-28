@@ -133,6 +133,14 @@ internal sealed class SegmentedEvent
     /// <summary>Set when a <c>\t</c> was seen, so the layout has to be rebuilt as time passes.</summary>
     public bool IsAnimated { get; set; }
 
+    /// <summary>
+    /// Seconds from the start of the event between which some <c>\t</c> is still changing; outside
+    /// that span every transition sits at its start or end value.
+    /// </summary>
+    public double AnimationStart { get; set; } = double.PositiveInfinity;
+
+    public double AnimationEnd { get; set; } = double.NegativeInfinity;
+
     public int MarginL { get; set; }
 
     public int MarginR { get; set; }

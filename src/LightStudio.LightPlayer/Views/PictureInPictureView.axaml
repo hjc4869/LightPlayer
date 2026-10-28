@@ -42,7 +42,10 @@
                              ShaderPackageOverride="{Binding ShaderPackageOverride}"
                              EnableHdrPassthrough="{Binding EnableHdrPassthrough}"
                              DisplayPanelBitDepth="{Binding DisplayPanelBitDepth}"
+                             ToneMapping="{Binding ToneMapping}"
                              SubtitleBrightnessMode="{Binding SubtitleBrightnessMode}"
+                             PlainTextSubtitleFontSize="{Binding PlainTextSubtitleFontSize}"
+                             PlainTextSubtitleFontFamily="{Binding PlainTextSubtitleFontFamily}"
                              Background="Black" />
 
             <!-- A window this small has no room for a deck that is always there, so it comes up

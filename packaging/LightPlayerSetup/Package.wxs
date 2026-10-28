@@ -1,7 +1,7 @@
 <?define SupportedExtensions = ".dsf;.dff;.cue;.wpl;.ogg;.oga;.wav;.wave;.mp3;.wma;.flac;.ape;.tak;.tta;.m3u;.m3u8;.m4a;.aac;.opus;.aiff;.aif;.mkv;.mp4;.m4v;.mov;.avi;.webm;.ts;.m2ts;.mts;.mpg;.mpeg;.wmv;.flv;.ogv;.rmvb;.3gp;.rv;.rvx;.3g2;.3gp2;.3gpp2;.dv;.fli;.flc;.m1u;.m4u;.mxu;.asf;.asx;.wax;.wmx;.wvx;.jpg;.jpeg;.jpe;.jfif;.png;.webp;.avif;.heic;.heif;.hif;.jxl;.jxr;.wdp;.hdp;.dng;.bmp;.dib;.gif;.tif;.tiff;.ppm;.pgm;.pnm;.tga;.exr;.hdr" ?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package
-    Name="Light Player"
+    Name="Light Media Center"
     Manufacturer="Light Studio"
     Version="$(MsiVersion)"
     UpgradeCode="$(PackageUpgradeCode)"
@@ -26,24 +26,24 @@
       <Directory Id="INSTALLFOLDER" Name="Light Player" />
     </StandardDirectory>
     <StandardDirectory Id="ProgramMenuFolder">
-      <Directory Id="ApplicationProgramsFolder" Name="Light Player" />
+      <Directory Id="ApplicationProgramsFolder" Name="Light Media Center" />
     </StandardDirectory>
 
     <ComponentGroup Id="PublishedFiles" Directory="INSTALLFOLDER">
       <Files Include="$(PublishDirectory)\**">
-        <Exclude Files="$(PublishDirectory)\lmp.exe" />
+        <Exclude Files="$(PublishDirectory)\lmc.exe" />
         <Exclude Files="$(PublishDirectory)\**\*.pdb" />
         <Exclude Files="$(PublishDirectory)\**\*.dbg" />
       </Files>
     </ComponentGroup>
 
     <Component Id="ApplicationExecutable" Directory="INSTALLFOLDER" Guid="*">
-      <File Id="LightPlayerExecutable" Source="$(PublishDirectory)\lmp.exe" KeyPath="yes">
+      <File Id="LightPlayerExecutable" Source="$(PublishDirectory)\lmc.exe" KeyPath="yes">
         <Shortcut
           Id="StartMenuShortcut"
           Directory="ApplicationProgramsFolder"
-          Name="Light Player"
-          Description="Light Player"
+          Name="Light Media Center"
+          Description="Light Media Center"
           WorkingDirectory="INSTALLFOLDER"
           Advertise="yes" />
       </File>
@@ -60,20 +60,20 @@
         Name="Light Player"
         Value="Software\Light Studio\Light Player\Capabilities"
         KeyPath="yes" />
-      <RegistryValue Root="HKLM" Key="Software\Light Studio\Light Player\Capabilities" Name="ApplicationName" Value="Light Player" />
-      <RegistryValue Root="HKLM" Key="Software\Light Studio\Light Player\Capabilities" Name="ApplicationDescription" Value="Light Player" />
+      <RegistryValue Root="HKLM" Key="Software\Light Studio\Light Player\Capabilities" Name="ApplicationName" Value="Light Media Center" />
+      <RegistryValue Root="HKLM" Key="Software\Light Studio\Light Player\Capabilities" Name="ApplicationDescription" Value="Light Media Center" />
       <RegistryValue Root="HKLM" Key="Software\Light Studio\Light Player\Capabilities" Name="ApplicationIcon" Value="[INSTALLFOLDER]LightPlayer.ico" />
 
-      <RegistryValue Root="HKLM" Key="Software\Classes\LightStudio.LightPlayer" Value="Light Player" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\LightStudio.LightPlayer" Value="Light Media Center" />
       <RegistryValue Root="HKLM" Key="Software\Classes\LightStudio.LightPlayer\DefaultIcon" Value="[INSTALLFOLDER]LightPlayer.ico" />
-      <RegistryValue Root="HKLM" Key="Software\Classes\LightStudio.LightPlayer\shell\open\command" Value="&quot;[INSTALLFOLDER]lmp.exe&quot; &quot;%1&quot;" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\LightStudio.LightPlayer\shell\open\command" Value="&quot;[INSTALLFOLDER]lmc.exe&quot; &quot;%1&quot;" />
 
-      <RegistryValue Root="HKLM" Key="Software\Classes\Applications\lmp.exe" Name="FriendlyAppName" Value="Light Player" />
-      <RegistryValue Root="HKLM" Key="Software\Classes\Applications\lmp.exe\DefaultIcon" Value="[INSTALLFOLDER]LightPlayer.ico" />
-      <RegistryValue Root="HKLM" Key="Software\Classes\Applications\lmp.exe\shell\open\command" Value="&quot;[INSTALLFOLDER]lmp.exe&quot; &quot;%1&quot;" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\Applications\lmc.exe" Name="FriendlyAppName" Value="Light Media Center" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\Applications\lmc.exe\DefaultIcon" Value="[INSTALLFOLDER]LightPlayer.ico" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\Applications\lmc.exe\shell\open\command" Value="&quot;[INSTALLFOLDER]lmc.exe&quot; &quot;%1&quot;" />
 
-      <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\lmp.exe" Value="[INSTALLFOLDER]lmp.exe" />
-      <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\lmp.exe" Name="Path" Value="[INSTALLFOLDER]" />
+      <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\lmc.exe" Value="[INSTALLFOLDER]lmc.exe" />
+      <RegistryValue Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\lmc.exe" Name="Path" Value="[INSTALLFOLDER]" />
 
       <?foreach Extension in $(SupportedExtensions)?>
       <RegistryValue
@@ -83,13 +83,13 @@
         Value="LightStudio.LightPlayer" />
       <RegistryValue
         Root="HKLM"
-        Key="Software\Classes\Applications\lmp.exe\SupportedTypes"
+        Key="Software\Classes\Applications\lmc.exe\SupportedTypes"
         Name="$(Extension)"
         Value="" />
       <?endforeach?>
     </Component>
 
-    <Feature Id="MainFeature" Title="Light Player">
+    <Feature Id="MainFeature" Title="Light Media Center">
       <ComponentGroupRef Id="PublishedFiles" />
       <ComponentRef Id="ApplicationExecutable" />
       <ComponentRef Id="WindowsApplicationRegistration" />

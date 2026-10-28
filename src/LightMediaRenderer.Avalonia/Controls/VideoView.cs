@@ -10,6 +10,7 @@ using Avalonia.Data;
 using Avalonia.Media;
 using Avalonia.Threading;
 using LightMediaRenderer.Contracts;
+using LightMediaRenderer.Rendering;
 using LightMediaRenderer.Shaders;
 using LightMediaRenderer.Subtitles;
 using LightStudio.FfmpegShim.Core;
@@ -37,6 +38,8 @@ namespace LightMediaRenderer.Avalonia.Controls;
 /// </remarks>
 public class VideoView : Control, IVideoSink, IVideoDrawFeedback
 {
+    private const double ScRgbNitsPerUnit = 80;
+
     public static readonly StyledProperty<MediaPlayer?> PlayerProperty =
         AvaloniaProperty.Register<VideoView, MediaPlayer?>(nameof(Player));
 
@@ -75,10 +78,28 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
     public static readonly StyledProperty<int> DisplayPanelBitDepthProperty =
         AvaloniaProperty.Register<VideoView, int>(nameof(DisplayPanelBitDepth));
 
+    public static readonly StyledProperty<VideoSdrToneMappingOptions?> ToneMappingProperty =
+        AvaloniaProperty.Register<VideoView, VideoSdrToneMappingOptions?>(nameof(ToneMapping));
+
+    public static readonly DirectProperty<VideoView, bool> IsHdrContentProperty =
+        AvaloniaProperty.RegisterDirect<VideoView, bool>(nameof(IsHdrContent), view => view.IsHdrContent);
+
+    public static readonly DirectProperty<VideoView, VideoSdrToneMappingOptions> AutomaticToneMappingProperty =
+        AvaloniaProperty.RegisterDirect<VideoView, VideoSdrToneMappingOptions>(nameof(AutomaticToneMapping), view => view.AutomaticToneMapping);
+
+    public static readonly DirectProperty<VideoView, VideoDisplayToneTarget> DisplayToneTargetProperty =
+        AvaloniaProperty.RegisterDirect<VideoView, VideoDisplayToneTarget>(nameof(DisplayToneTarget), view => view.DisplayToneTarget);
+
     public static readonly StyledProperty<SubtitleBrightnessMode> SubtitleBrightnessModeProperty =
         AvaloniaProperty.Register<VideoView, SubtitleBrightnessMode>(
             nameof(SubtitleBrightnessMode),
             SubtitleBrightnessMode.FollowVideo);
+
+    public static readonly StyledProperty<double> PlainTextSubtitleFontSizeProperty =
+        AvaloniaProperty.Register<VideoView, double>(nameof(PlainTextSubtitleFontSize));
+
+    public static readonly StyledProperty<string?> PlainTextSubtitleFontFamilyProperty =
+        AvaloniaProperty.Register<VideoView, string?>(nameof(PlainTextSubtitleFontFamily));
 
     public static readonly DirectProperty<VideoView, bool> IsExtendedRangeOutputProperty =
         AvaloniaProperty.RegisterDirect<VideoView, bool>(nameof(IsExtendedRangeOutput), view => view.IsExtendedRangeOutput);
@@ -111,12 +132,24 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
     private long drawnSequence;
     private TimeSpan currentFrameTime;
     private AssSubtitleRenderer? subtitleRenderer;
+    private AssDocument? styledSubtitlesSource;
+    private AssDocument? styledSubtitles;
+    private double styledSubtitlesFontSize;
+    private string? styledSubtitlesFontFamily;
     private BitmapSubtitleRenderer? bitmapSubtitleRenderer;
     private VideoRenderCaptureRequest? captureRequest;
     private DispatcherTimer? captureRedrawTimer;
     private int invalidationPending;
     private int reportedExtendedRange = -1;
     private bool isExtendedRangeOutput;
+    private bool isHdrContent;
+    private readonly object toneMappingOutputSync = new();
+    private (VideoHdrOutputMapping Output, VideoDisplayToneTarget Display)? reportedToneMappingOutput;
+    private VideoSdrToneMappingOptions automaticToneMapping = VideoSdrToneMappingOptions.Default with
+    {
+        Algorithm = VideoSdrToneMappingAlgorithm.Spline,
+    };
+    private VideoDisplayToneTarget displayToneTarget = new(1, VideoOutputColorSpaceExtensions.HdrReferenceWhiteNits);
     private bool syncingAudioTrack;
     private bool syncingSubtitleTrack;
     private bool syncingChapter;
@@ -135,7 +168,10 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
             ShaderPackageOverrideProperty,
             EnableHdrPassthroughProperty,
             DisplayPanelBitDepthProperty,
-            SubtitleBrightnessModeProperty);
+            ToneMappingProperty,
+            SubtitleBrightnessModeProperty,
+            PlainTextSubtitleFontSizeProperty,
+            PlainTextSubtitleFontFamilyProperty);
         PlayerProperty.Changed.AddClassHandler<VideoView>((view, e) => view.OnPlayerChanged(e));
         SelectedAudioTrackProperty.Changed.AddClassHandler<VideoView>((view, e) => view.OnSelectedAudioTrackChanged(e));
         SelectedSubtitleTrackProperty.Changed.AddClassHandler<VideoView>((view, e) => view.OnSelectedSubtitleTrackChanged(e));
@@ -247,11 +283,56 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
         set => SetValue(DisplayPanelBitDepthProperty, value);
     }
 
+    /// <summary>HDR tone curve and targets, or null for the renderer's automatic choice.</summary>
+    public VideoSdrToneMappingOptions? ToneMapping
+    {
+        get => GetValue(ToneMappingProperty);
+        set => SetValue(ToneMappingProperty, value);
+    }
+
+    public bool IsHdrContent
+    {
+        get => isHdrContent;
+        private set => SetAndRaise(IsHdrContentProperty, ref isHdrContent, value);
+    }
+
+    public VideoSdrToneMappingOptions AutomaticToneMapping
+    {
+        get => automaticToneMapping;
+        private set => SetAndRaise(AutomaticToneMappingProperty, ref automaticToneMapping, value);
+    }
+
+    public VideoDisplayToneTarget DisplayToneTarget
+    {
+        get => displayToneTarget;
+        private set => SetAndRaise(DisplayToneTargetProperty, ref displayToneTarget, value);
+    }
+
     /// <summary>How subtitles are composited on an extended-linear output.</summary>
     public SubtitleBrightnessMode SubtitleBrightnessMode
     {
         get => GetValue(SubtitleBrightnessModeProperty);
         set => SetValue(SubtitleBrightnessModeProperty, value);
+    }
+
+    /// <summary>
+    /// Font size, in script pixels of a 288-line frame, for subtitles without authored styles such
+    /// as SubRip; 0 keeps the generated size. Authored ASS scripts are unaffected.
+    /// </summary>
+    public double PlainTextSubtitleFontSize
+    {
+        get => GetValue(PlainTextSubtitleFontSizeProperty);
+        set => SetValue(PlainTextSubtitleFontSizeProperty, value);
+    }
+
+    /// <summary>
+    /// Font family for subtitles without authored styles such as SubRip; null or empty keeps the
+    /// generated font. Authored ASS scripts are unaffected.
+    /// </summary>
+    public string? PlainTextSubtitleFontFamily
+    {
+        get => GetValue(PlainTextSubtitleFontFamilyProperty);
+        set => SetValue(PlainTextSubtitleFontFamilyProperty, value);
     }
 
     /// <summary>Whether the most recent draw used an extended-linear output surface.</summary>
@@ -396,6 +477,55 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
         }
     }
 
+    /// <summary>
+    /// Captures the frame on screen as RGB pixels in memory, without subtitles: the decoded picture at
+    /// its stored resolution where <see cref="VideoFrameSnapshots.CanDecode"/> allows, otherwise the
+    /// next drawn output.
+    /// </summary>
+    /// <remarks>
+    /// The drawn output carries the view's scaling and display processing. HDR stays PQ where the output
+    /// surface is extended-range; anything else is 8-bit sRGB.
+    /// </remarks>
+    public async Task<VideoFrameSnapshot> CaptureFrameAsync(CancellationToken cancellationToken = default)
+    {
+        VideoFrame? frame;
+        lock (frameSync)
+            frame = currentFrame?.AddRef();
+        if (frame is null)
+            throw new InvalidOperationException("No video frame is on screen.");
+
+        bool hdr;
+        TimeSpan timestamp;
+        try
+        {
+            hdr = HdrContentHint.IsHdr(frame);
+            timestamp = double.IsFinite(frame.Pts) && frame.Pts > 0 ? TimeSpan.FromSeconds(frame.Pts) : TimeSpan.Zero;
+            if (!OperatingSystem.IsBrowser() && VideoFrameSnapshots.CanDecode(frame))
+            {
+                try
+                {
+                    return await Task.Run(() => VideoFrameSnapshots.Decode(frame, cancellationToken), cancellationToken)
+                        .ConfigureAwait(true);
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    AppLog.Warning("Video.Capture", "Could not read the decoded frame; capturing the drawn output instead.", exception);
+                }
+            }
+        }
+        finally
+        {
+            frame.Release();
+        }
+
+        VideoRenderCapture rendered = await CaptureRenderedFrameAsync(cancellationToken).ConfigureAwait(true);
+        Func<VideoFrameSnapshot> create = hdr && rendered.NativeRgbaF32 is { } light
+            ? () => VideoFrameSnapshots.FromLinear(rendered.Width, rendered.Height, light,
+                rendered.LinearNitsPerUnit > 0 ? rendered.LinearNitsPerUnit : ScRgbNitsPerUnit, timestamp, cancellationToken)
+            : () => VideoFrameSnapshots.FromSrgb(rendered.Width, rendered.Height, rendered.Pixels, rendered.RowBytes, timestamp);
+        return OperatingSystem.IsBrowser() ? create() : await Task.Run(create, cancellationToken).ConfigureAwait(true);
+    }
+
     private DispatcherTimer CreateCaptureRedrawTimer()
     {
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
@@ -502,8 +632,8 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
 
         drawn.Pulse();
 
-        bool hasHdrContent = EnableHdrPassthrough && frame is { Width: > 0, Height: > 0 } &&
-            bounds.Width > 0 && bounds.Height > 0 && HdrContentHint.IsHdr(frame);
+        IsHdrContent = frame is { Width: > 0, Height: > 0 } && HdrContentHint.IsHdr(frame);
+        bool hasHdrContent = EnableHdrPassthrough && IsHdrContent && bounds.Width > 0 && bounds.Height > 0;
         hdrContentHint.Update(hasHdrContent, hasHdrContent ? HdrContentHint.Describe(frame!) : null);
 
         // Without a picture the subtitles still have to land somewhere, so they use the whole control.
@@ -556,7 +686,9 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
                     outputChanged: ReportOutput,
                     deinterlaceHistory: history,
                     frameSequence: sequence,
-                    compositor: ElementComposition.GetElementVisual(this)?.Compositor));
+                    compositor: ElementComposition.GetElementVisual(this)?.Compositor,
+                    toneMapping: ToneMapping,
+                    toneMappingOutputChanged: IsHdrContent ? ReportAutomaticToneMapping : null));
             }
             else
             {
@@ -580,7 +712,7 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
             subtitleRenderer ??= new AssSubtitleRenderer();
             context.Custom(new SubtitleDrawOperation(
                 subtitleRenderer,
-                subtitles,
+                StyleSubtitles(subtitles),
                 time,
                 bounds,
                 destination,
@@ -601,6 +733,48 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
                 SubtitleBrightnessMode,
                 outputLuminance));
             }
+    }
+
+    // The restyled copy is kept across frames because the renderer drops its layouts whenever the document changes.
+    private AssDocument StyleSubtitles(AssDocument document)
+    {
+        double fontSize = PlainTextSubtitleFontSize;
+        string? fontFamily = PlainTextSubtitleFontFamily;
+        if (!ReferenceEquals(document, styledSubtitlesSource) || fontSize != styledSubtitlesFontSize ||
+            !string.Equals(fontFamily, styledSubtitlesFontFamily, StringComparison.Ordinal) || styledSubtitles is null)
+        {
+            styledSubtitlesSource = document;
+            styledSubtitlesFontSize = fontSize;
+            styledSubtitlesFontFamily = fontFamily;
+            styledSubtitles = document.WithPlainTextStyle(fontFamily, fontSize);
+        }
+
+        return styledSubtitles;
+    }
+
+    private void ReportAutomaticToneMapping(VideoHdrOutputMapping output, VideoDisplayToneTarget display)
+    {
+        lock (toneMappingOutputSync)
+        {
+            if (reportedToneMappingOutput == (output, display))
+                return;
+            reportedToneMappingOutput = (output, display);
+        }
+
+        bool sdr = output.ToneMapPeakNits <= output.LinearNitsPerUnit;
+        var options = VideoSdrToneMappingOptions.Default with
+        {
+            Algorithm = !output.AdaptsToDisplay ? VideoSdrToneMappingAlgorithm.Auto : sdr
+                ? VideoSdrToneMappingAlgorithm.Spline : VideoSdrToneMappingAlgorithm.Bt2390,
+            TargetHeadroom = output.ToneMapPeakNits / output.LinearNitsPerUnit,
+            ReferenceWhiteNits = output.LinearNitsPerUnit,
+            Bt2390KneeOffset = 0.5f,
+        };
+        Dispatcher.UIThread.Post(() =>
+        {
+            DisplayToneTarget = display;
+            AutomaticToneMapping = options;
+        });
     }
 
     private void ReportOutput(bool extended, double peakScale)
@@ -699,7 +873,7 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
     internal static bool CanConvertOnDevice(VideoFrame frame, VideoOutputStatus output)
     {
         return frame.Layout.BitDepth <= 8 &&
-               !VideoFramePipeline.NeedsColorProcessing(frame) &&
+               !VideoFramePipeline.NeedsColorProcessing(frame, output.Target) &&
                output.SurfaceObserved &&
                !output.Target.IsExtendedRange();
     }

@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <meta name="referrer" content="no-referrer">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
-  <title>Light Player | Diagnostics</title>
+  <title>Light Media Center | Diagnostics</title>
   <style>
     :root {
       font-family: system-ui, sans-serif;
@@ -123,7 +123,7 @@
       <div class="heading">
         <div class="brand">
           <img src="icons/icon-192.png" alt="" width="40" height="40">
-          <div><h1>Light Player</h1><div class="subtitle" data-text="title">Diagnostics</div></div>
+          <div><h1>Light Media Center</h1><div class="subtitle" data-text="title">Diagnostics</div></div>
         </div>
         <select id="language" aria-label="Language"></select>
       </div>
@@ -139,10 +139,10 @@
     </div>
   </header>
   <main>
-    <nav id="sections" aria-label="Diagnostics"><a href="#feature-summary" data-text="featureSummary">Light Player readiness</a></nav>
+    <nav id="sections" aria-label="Diagnostics"><a href="#feature-summary" data-text="featureSummary">Light Media Center readiness</a></nav>
     <div id="results">
       <section id="feature-summary" aria-labelledby="feature-summary-title">
-        <h2 id="feature-summary-title" data-text="featureSummary">Light Player readiness</h2>
+        <h2 id="feature-summary-title" data-text="featureSummary">Light Media Center readiness</h2>
         <p class="note" data-text="summaryNote"></p>
         <div id="feature-assessments"></div>
       </section>
@@ -166,7 +166,7 @@
     translations["en-GB"] = translations["en-US"];
     const summaryTranslations = {
       "en-US": {
-        featureSummary: "Light Player readiness", likely: "Likely to work", limited: "Limited / fallback", blocked: "Unavailable", unknown: "Not established",
+        featureSummary: "Light Media Center readiness", likely: "Likely to work", limited: "Limited / fallback", blocked: "Unavailable", unknown: "Not established",
         summaryNote: "Estimates from this browser's probes, not a player startup or playback test. All player features depend on successful startup.",
         summaryPending: "Capability checks are still running.", startup: "App startup",
         mediaServices: "Media services",
@@ -179,7 +179,7 @@
         startupProtocol: "The player requires an HTTP(S) host. Opening this diagnostic as a local file does not start the web app."
       },
       "de-DE": {
-        featureSummary: "Light Player: Funktionsbereitschaft", likely: "Voraussichtlich verfügbar", limited: "Eingeschränkt / Ersatzlösung", blocked: "Nicht verfügbar", unknown: "Nicht bestätigt",
+        featureSummary: "Light Media Center: Funktionsbereitschaft", likely: "Voraussichtlich verfügbar", limited: "Eingeschränkt / Ersatzlösung", blocked: "Nicht verfügbar", unknown: "Nicht bestätigt",
         summaryNote: "Einschätzungen anhand der Browserprüfungen, kein Start- oder Wiedergabetest. Alle Playerfunktionen setzen einen erfolgreichen Start voraus.",
         summaryPending: "Die Funktionsprüfungen laufen noch.", startup: "App-Start",
         mediaServices: "Mediendienste",
@@ -192,7 +192,7 @@
         startupProtocol: "Der Player benötigt einen HTTP(S)-Host. Das Öffnen dieser Diagnose als lokale Datei startet die Web-App nicht."
       },
       "es-ES": {
-        featureSummary: "Disponibilidad de Light Player", likely: "Probablemente disponible", limited: "Limitado / alternativa", blocked: "No disponible", unknown: "Sin confirmar",
+        featureSummary: "Disponibilidad de Light Media Center", likely: "Probablemente disponible", limited: "Limitado / alternativa", blocked: "No disponible", unknown: "Sin confirmar",
         summaryNote: "Estimaciones basadas en las comprobaciones del navegador, no en una prueba de inicio o reproducción. Todas las funciones requieren que el reproductor se inicie.",
         summaryPending: "Las comprobaciones siguen en curso.", startup: "Inicio de la aplicación",
         mediaServices: "Servicios multimedia",
@@ -205,7 +205,7 @@
         startupProtocol: "El reproductor requiere un servidor HTTP(S). Abrir este diagnóstico como archivo local no inicia la aplicación web."
       },
       "fr-FR": {
-        featureSummary: "Disponibilité de Light Player", likely: "Probablement disponible", limited: "Limité / solution de repli", blocked: "Indisponible", unknown: "Non confirmé",
+        featureSummary: "Disponibilité de Light Media Center", likely: "Probablement disponible", limited: "Limité / solution de repli", blocked: "Indisponible", unknown: "Non confirmé",
         summaryNote: "Estimations issues des vérifications du navigateur, sans test de démarrage ni de lecture. Toutes les fonctions nécessitent le démarrage du lecteur.",
         summaryPending: "Les vérifications sont en cours.", startup: "Démarrage de l'application",
         mediaServices: "Services multimédias",
@@ -218,7 +218,7 @@
         startupProtocol: "Le lecteur nécessite un hébergement HTTP(S). Ouvrir ce diagnostic comme fichier local ne démarre pas l'application web."
       },
       "ja-JP": {
-        featureSummary: "Light Player の利用見込み", likely: "利用できる見込み", limited: "制限あり / 代替手段", blocked: "利用不可", unknown: "未確認",
+        featureSummary: "Light Media Center の利用見込み", likely: "利用できる見込み", limited: "制限あり / 代替手段", blocked: "利用不可", unknown: "未確認",
         summaryNote: "ブラウザーの確認結果に基づく推定です。起動や再生のテストではありません。すべての機能はプレーヤーが正常に起動することが前提です。",
         summaryPending: "機能の確認を実行中です。", startup: "アプリの起動",
         mediaServices: "メディアサービス",
@@ -231,7 +231,7 @@
         startupProtocol: "プレーヤーには HTTP(S) ホストが必要です。この診断をローカルファイルとして開いても Web アプリは起動しません。"
       },
       "zh-CN": {
-        featureSummary: "Light Player 功能可用性", likely: "预计可用", limited: "受限 / 回退方案", blocked: "不可用", unknown: "尚未确认",
+        featureSummary: "Light Media Center 功能可用性", likely: "预计可用", limited: "受限 / 回退方案", blocked: "不可用", unknown: "尚未确认",
         summaryNote: "根据浏览器检查结果估计，并非实际启动或播放测试。所有功能均以播放器成功启动为前提。",
         summaryPending: "正在检查浏览器能力。", startup: "应用启动",
         mediaServices: "媒体服务",
@@ -244,7 +244,7 @@
         startupProtocol: "播放器需要 HTTP(S) 主机。以本地文件方式打开此诊断页面不会启动 Web 应用。"
       },
       "zh-TW": {
-        featureSummary: "Light Player 功能可用性", likely: "預計可用", limited: "受限 / 備用方案", blocked: "無法使用", unknown: "尚未確認",
+        featureSummary: "Light Media Center 功能可用性", likely: "預計可用", limited: "受限 / 備用方案", blocked: "無法使用", unknown: "尚未確認",
         summaryNote: "根據瀏覽器檢查結果推估，並非實際啟動或播放測試。所有功能均以播放器成功啟動為前提。",
         summaryPending: "正在檢查瀏覽器能力。", startup: "應用程式啟動",
         mediaServices: "媒體服務",
@@ -840,7 +840,7 @@
         [videoDecoder, workerEnvironment, ...(acceptedHardware.length ? acceptedHardware : hardwareQueries).slice(0, 2).map(record => evidence(record.section, record.key))],
         { count: acceptedHardware.length, total: hardwareQueries.length });
 
-      const hdrSurface = evidence("webgl", "webgl2 / Light Player HDR surface");
+      const hdrSurface = evidence("webgl", "webgl2 / Light Media Center HDR surface");
       const displayQueries = evidence("display", "CSS media queries");
       const hdrSurfacePassed = passed(hdrSurface);
       const hdrDisplay = property(displayQueries, "(dynamic-range: high)", true);
@@ -1241,7 +1241,7 @@
 
     function localize() {
       document.documentElement.lang = locale;
-      document.title = `Light Player | ${text("title")}`;
+      document.title = `Light Media Center | ${text("title")}`;
       language.value = locale;
       language.setAttribute("aria-label", text("language"));
       document.getElementById("sections").setAttribute("aria-label", text("title"));
@@ -1336,7 +1336,7 @@
     async function wasmProbes() {
       await probe("wasm", "WebAssembly", () => supported(typeof WebAssembly === "object"));
       if (typeof WebAssembly !== "object") return;
-      await probe("wasm", "Light Player / configured execution owners", () => ({
+      await probe("wasm", "Light Media Center / configured execution owners", () => ({
         managed: { threads: 1, sharedMemory: false, context: "window" },
         sqlite: { owner: "worker", threads: 1, sharedMemory: false },
         media: { owner: "worker", nativeThreads: true, sharedMemory: true, requiresCrossOriginIsolation: true },
@@ -1662,7 +1662,7 @@
                 return supported(context.drawingBufferColorSpace === colorSpace, { requested: colorSpace, actual: context.drawingBufferColorSpace });
               }, ["TypeError", "NotSupportedError"]);
             }
-            await probe("webgl", `${version} / Light Player HDR surface`, () => {
+            await probe("webgl", `${version} / Light Media Center HDR surface`, () => {
               const APIs = { drawingBufferStorage: typeof context.drawingBufferStorage, drawingBufferToneMapping: typeof context.drawingBufferToneMapping, configureHighDynamicRange: typeof canvas.configureHighDynamicRange, EXT_color_buffer_float: Boolean(floatColor) };
               if (version !== "webgl2" || !floatColor || typeof context.drawingBufferStorage !== "function" || (typeof context.drawingBufferToneMapping !== "function" && typeof canvas.configureHighDynamicRange !== "function")) return supported(false, APIs);
               context.drawingBufferColorSpace = "srgb-linear";
@@ -2018,7 +2018,7 @@
       if (running || audioRunning) return;
       running = true;
       hdrSample.stop();
-      report = { schemaVersion: 1, application: "Light Player", page: "diag.html", collectedAt: new Date().toISOString() };
+      report = { schemaVersion: 1, application: "Light Media Center", page: "diag.html", collectedAt: new Date().toISOString() };
       records.clear();
       for (const element of sections.values()) element.querySelectorAll(".result").forEach(row => row.remove());
       document.getElementById("action-status").textContent = "";

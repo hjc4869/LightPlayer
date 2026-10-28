@@ -71,6 +71,12 @@ public interface IThemeService
     bool IsAppleChromeEnabled { get; set; }
 
     /// <summary>
+    /// How frosted liquid glass appears, from 0 for clear to 1 for frosted. Setting it applies at once
+    /// and persists the preference.
+    /// </summary>
+    double LiquidGlassFrost { get; set; }
+
+    /// <summary>
     /// Raised after <see cref="BackdropStyle"/> or <see cref="IsAppleChromeEnabled"/> changes and the
     /// resources are applied.
     /// </summary>

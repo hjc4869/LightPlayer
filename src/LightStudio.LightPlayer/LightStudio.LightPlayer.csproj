@@ -18,13 +18,15 @@
     <Nullable>enable</Nullable>
     <RootNamespace>LightStudio.LightPlayer</RootNamespace>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <IsStoreRelease Condition="'$(IsStoreRelease)' == ''">false</IsStoreRelease>
+    <DefineConstants Condition="'$(IsStoreRelease)' == 'true'">$(DefineConstants);STORE_RELEASE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="lmp" />
-    <InternalsVisibleTo Include="lmpdroid" />
-    <InternalsVisibleTo Include="lmpios" />
-    <InternalsVisibleTo Include="lmpweb" />
+    <InternalsVisibleTo Include="lmc" />
+    <InternalsVisibleTo Include="lmcdroid" />
+    <InternalsVisibleTo Include="lmcios" />
+    <InternalsVisibleTo Include="lmcweb" />
     <InternalsVisibleTo Include="LightStudio.LocalServices" />
   </ItemGroup>
 

@@ -1,10 +1,12 @@
 using System.Runtime.Versioning;
+using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Avalonia;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.Engine;
 using LightStudio.FfmpegShim.Media;
 using LightStudio.FfmpegShim.Subtitles;
+using LightStudio.LightPlayer.Services.PhotoExport;
 using LightStudio.Logging;
 
 namespace LightStudio.LightPlayer.Web;
@@ -18,6 +20,8 @@ internal static class BrowserMediaOperations
 {
     /// <summary>Largest picture decoded when the caller does not bound it.</summary>
     internal const int FullSizeDimension = 8192;
+
+    private static int nextExport;
 
     internal static async Task<WireMediaTags> ReadTagsAsync(MediaInput input, CancellationToken cancellationToken) =>
         (await RunAsync(input, "readTags", source => source, EngineWireContext.Default.WireSource,
@@ -89,6 +93,36 @@ internal static class BrowserMediaOperations
 
     internal static Task<string> ReadLicenseNoticeAsync() =>
         BackgroundMediaJobs.RunAsync(worker => worker.CallRawAsync("licenseNotice", string.Empty), CancellationToken.None);
+
+    /// <summary>The still-image encoders of the worker's FFmpeg.</summary>
+    internal static async Task<IReadOnlyList<WireStillImageEncoder>> ListStillImageEncodersAsync() =>
+        JsonSerializer.Deserialize(
+            await BackgroundMediaJobs.RunAsync(worker => worker.CallRawAsync("stillImageEncoders", string.Empty), CancellationToken.None),
+            EngineWireContext.Default.IReadOnlyListWireStillImageEncoder) ?? [];
+
+    /// <summary>
+    /// Decodes a photo again at full resolution and encodes it as <paramref name="options"/> ask, both in the worker.
+    /// The file comes back in native memory that belongs to the caller.
+    /// </summary>
+    internal static async Task<NativePayload> ExportPhotoAsync(MediaInput input, bool? renderRaw, PhotoExportOptions options,
+        CancellationToken cancellationToken)
+    {
+        int operation = nextExport = nextExport == int.MaxValue ? 1 : nextExport + 1;
+        var (failure, encoded) = await RunAsync(input, "photoExport",
+            source => new WirePhotoExport(source, renderRaw, options.Encoder?.Name, options) { Operation = operation },
+            PhotoExportWireContext.Default.WirePhotoExport, EngineWireContext.Default.String,
+            async (worker, method, arguments, argumentType, resultType) =>
+            {
+                var pending = worker.CallWithNativePayloadAsync(method, arguments, argumentType, resultType);
+                using (cancellationToken.Register(() => worker.CancelPhotoExport(operation)))
+                    return await pending;
+            },
+            static result => result.Payload?.Dispose(), cancellationToken);
+        if (failure is null)
+            return encoded ?? throw new InvalidDataException("The media worker returned no saved photo.");
+        encoded?.Dispose();
+        throw new PhotoExportException(Enum.Parse<PhotoExportFailure>(failure));
+    }
 
     /// <summary>
     /// Reads a text subtitle stream out as one ASS script. Reading one walks the whole container, so it runs

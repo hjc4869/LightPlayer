@@ -170,6 +170,18 @@ public static class PlatformServices
     public static bool SupportsPhotoDecodePreference { get; set; }
 
     /// <summary>
+    /// Saves the photo viewer's picture in another format or size. Installed heads encode in process; the
+    /// browser head registers its media worker, which keeps the work off the page's only thread.
+    /// </summary>
+    public static IPhotoExportService PhotoExport { get; set; } = new InProcessPhotoExportService();
+
+    /// <summary>
+    /// Encodes video screenshots on this process's thread pool. Null where encoding would have to run on
+    /// the page's only thread, which hides the feature.
+    /// </summary>
+    public static IVideoScreenshotEncoder? VideoScreenshotEncoder { get; set; } = new InProcessVideoScreenshotEncoder();
+
+    /// <summary>
     /// Host-owned navigation history the shell mirrors its navigation into, so the host's back,
     /// forward and reload drive the app. Registered by the browser head (URL hash fragment) only;
     /// left null on heads that own their own back stack and startup page.
@@ -338,7 +350,11 @@ public static class PlatformServices
     /// Name of the GitHub release asset this build installs (the platform's Flatpak bundle, MSIX
     /// sideload archive, or signed APK). A head sets this only when the running platform and
     /// architecture have a published package; left null, the update check is unsupported and hidden
-    /// from the UI.
+    /// from the UI. Store releases always return null.
     /// </summary>
+#if STORE_RELEASE
+    public static string? UpdateAssetName { get => null; set { } }
+#else
     public static string? UpdateAssetName { get; set; }
+#endif
 }

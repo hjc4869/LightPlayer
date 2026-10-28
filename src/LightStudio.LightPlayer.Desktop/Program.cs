@@ -69,7 +69,7 @@ sealed class Program
 
         SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
 #elif MACOS
-        SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_e_sqlite3());
+        SQLitePCL.raw.SetProvider(new SQLitePCL.SQLite3Provider_sqlite3());
 #else
         throw new NotSupportedException();
 #endif
@@ -182,8 +182,8 @@ sealed class Program
         var suffix = !string.IsNullOrEmpty(flatpakId)
             ? flatpakId
             : $"LightStudioLightPlayer.instance{Environment.ProcessId}";
-        SystemMediaControlsFactory.Register(() => new MprisSystemMediaControls("LightPlayer", suffix));
-        var screenSaver = new ScreenSaverInhibitor("LightPlayer", "Playing video");
+        SystemMediaControlsFactory.Register(() => new MprisSystemMediaControls("Light Media Center", suffix));
+        var screenSaver = new ScreenSaverInhibitor("Light Media Center", "Playing video");
         PlatformServices.KeepScreenOnRequested = screenSaver.SetKeepScreenOn;
 #elif MACOS
         SystemMediaControlsFactory.Register(() => new AppleSystemMediaControls());

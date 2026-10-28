@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -573,9 +572,9 @@ public sealed partial class MediaPageViewModel
 
         tile.PreviewLoader = async (model, token) =>
         {
-            if (await PhotoThumbnailAsync(photo.Source, photo.Path, token).ConfigureAwait(false) is { } bitmap)
+            if (await PhotoThumbnailAsync(photo.Source, photo.Path, token).ConfigureAwait(false) is { } image)
             {
-                AlbumArtService.ApplyOnUiThread(bitmap, loaded => model.Preview = loaded, token);
+                AlbumArtService.ApplyOnUiThread(image, loaded => model.Preview = loaded, token);
             }
         };
         return tile;
@@ -593,7 +592,7 @@ public sealed partial class MediaPageViewModel
     /// server otherwise, since pulling a whole remote photo library over just to shrink it would
     /// cost far more than the tiles are worth.
     /// </summary>
-    private Task<Bitmap?> PhotoThumbnailAsync(
+    private Task<IImage?> PhotoThumbnailAsync(
         LibrarySourceId source,
         string path,
         CancellationToken cancellationToken) =>
@@ -676,7 +675,7 @@ public sealed partial class MediaPageViewModel
     private async Task LoadRecentCollageAsync(VideoTileModel tile, CancellationToken cancellationToken)
     {
         var images = new List<IImage>(MaxCollageImages);
-        var pending = new List<Task<Bitmap?>>(MaxCollageImages);
+        var pending = new List<Task<IImage?>>(MaxCollageImages);
         foreach (var entry in history?.GetEntries() ?? [])
         {
             if (entry.Path is not { Length: > 0 } path)
@@ -684,7 +683,7 @@ public sealed partial class MediaPageViewModel
                 continue;
             }
 
-            Task<Bitmap?>? load = entry.Kind switch
+            Task<IImage?>? load = entry.Kind switch
             {
                 VideoHistoryEntryKind.Video => previews.GetPreviewAsync(
                     new MediaReference(entry.Source, path),
@@ -832,7 +831,7 @@ public sealed partial class MediaPageViewModel
         }
 
         var images = new List<IImage>(MaxCollageImages);
-        var pending = new List<Task<Bitmap?>>(MaxCollageImages);
+        var pending = new List<Task<IImage?>>(MaxCollageImages);
         var candidates = 0;
         var first = true;
 
@@ -841,7 +840,7 @@ public sealed partial class MediaPageViewModel
             await FlushCollageLoadsAsync(images, pending).ConfigureAwait(false);
         }
 
-        async Task<bool> AddCandidateAsync(Task<Bitmap?> load)
+        async Task<bool> AddCandidateAsync(Task<IImage?> load)
         {
             pending.Add(load);
             candidates++;
@@ -911,9 +910,9 @@ public sealed partial class MediaPageViewModel
                 foreach (var pendingLoad in pending)
                 {
                     if (pendingLoad.IsCompletedSuccessfully &&
-                        await pendingLoad.ConfigureAwait(false) is { } bitmap)
+                        await pendingLoad.ConfigureAwait(false) is IDisposable image)
                     {
-                        bitmap.Dispose();
+                        image.Dispose();
                     }
                 }
             }
@@ -935,7 +934,7 @@ public sealed partial class MediaPageViewModel
 
     private static async Task FlushCollageLoadsAsync(
         List<IImage> images,
-        List<Task<Bitmap?>> pending)
+        List<Task<IImage?>> pending)
     {
         var loaded = await Task.WhenAll(pending).ConfigureAwait(false);
         pending.Clear();

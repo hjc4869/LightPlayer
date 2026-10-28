@@ -93,7 +93,7 @@ function forwardFiles(channel, files) {
 
     return new Promise((resolve, reject) => {
         const message = { type: 'files', id: crypto.randomUUID(), files };
-        const timeout = setTimeout(() => finish(new Error('The open Light Player instance did not acknowledge the files.')), 10000);
+        const timeout = setTimeout(() => finish(new Error('The open Light Media Center instance did not acknowledge the files.')), 10000);
         const retry = setInterval(send, 500);
 
         function finish(error) {

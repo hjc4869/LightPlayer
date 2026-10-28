@@ -21,6 +21,7 @@ namespace LightStudio.LightPlayer.Services;
 public sealed class AvaloniaThemeService : IThemeService
 {
     private readonly IAppSettingsStore settings;
+    private readonly DispatcherTimer frostSaveTimer = new() { Interval = TimeSpan.FromMilliseconds(400) };
     private ResourceDictionary? installedOverride;
 
     // The pair derived from the OS accent, rebuilt whenever the platform reports a new one. Left
@@ -35,6 +36,8 @@ public sealed class AvaloniaThemeService : IThemeService
     public AvaloniaThemeService(IAppSettingsStore settings)
     {
         this.settings = settings;
+        LiquidGlassAppearance.Instance.Frost = NormalizeFrost(settings.LiquidGlassFrost);
+        frostSaveTimer.Tick += OnFrostSaveTimerTick;
 
         RefreshSystemAccentThemes();
         if (PlatformServices.SupportsSystemAccentTheme && Application.Current?.PlatformSettings is { } platform)
@@ -101,6 +104,30 @@ public sealed class AvaloniaThemeService : IThemeService
 
     public event Action? BackdropStyleChanged;
 
+    public double LiquidGlassFrost
+    {
+        get => LiquidGlassAppearance.Instance.Frost;
+        set
+        {
+            double frost = NormalizeFrost(value);
+            if (LiquidGlassAppearance.Instance.Frost == frost)
+                return;
+
+            LiquidGlassAppearance.Instance.Frost = frost;
+            // Saved once the value settles, so dragging the slider does not write settings on every step.
+            frostSaveTimer.Stop();
+            frostSaveTimer.Start();
+        }
+    }
+
+    private static double NormalizeFrost(double frost) => double.IsFinite(frost) ? Math.Clamp(frost, 0, 1) : 0;
+
+    private void OnFrostSaveTimerTick(object? sender, EventArgs args)
+    {
+        frostSaveTimer.Stop();
+        settings.LiquidGlassFrost = LiquidGlassAppearance.Instance.Frost;
+    }
+
     private void ApplyBackdropChange()
     {
         if (installedOverride is not null)
@@ -120,6 +147,7 @@ public sealed class AvaloniaThemeService : IThemeService
         resources["AppIsLiquidGlass"] = style == BackdropStyle.LiquidGlass;
         resources["AppIsContentLiquidGlass"] = style is BackdropStyle.LiquidGlassContentOnly or BackdropStyle.LiquidGlass;
         resources["AppIsAppleChrome"] = IsAppleChromeEnabled;
+        resources["AppIsAppleCsd"] = PlatformServices.SupportsClientSideWindowControls && IsAppleChromeEnabled;
     }
 
     public void ReportMicaApplied(bool applied)

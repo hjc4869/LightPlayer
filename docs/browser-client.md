@@ -1,6 +1,6 @@
 # Self-hosting the browser client
 
-Light Player can serve a media library and its browser player from one container. This guide
+Light Media Center can serve a media library and its browser player from one container. This guide
 uses Docker Compose for the server and Caddy on the host for HTTPS. The browser player can also
 be hosted separately as static files.
 
@@ -104,8 +104,8 @@ player.example.com {
 ```
 
 Reload the host's Caddy service after saving the configuration. With DNS and ports 80/443
-configured, Caddy obtains a certificate and proxies HTTP and WebSocket traffic to Light Player.
-The Light Player server supplies the required browser isolation and service-worker headers;
+configured, Caddy obtains a certificate and proxies HTTP and WebSocket traffic to Light Media Center.
+The Light Media Center server supplies the required browser isolation and service-worker headers;
 the proxy must preserve them.
 
 Open `https://player.example.com`, connect to the library at that same URL, and sign in with
@@ -175,7 +175,7 @@ Common settings are:
 | `LIGHTPLAYER_SCAN_ON_STARTUP` | Scan when the server starts; default `true`. |
 | `LIGHTPLAYER_ALLOWED_ORIGINS` | Websites allowed to call the API; comma-separated, default empty. |
 | `LIGHTPLAYER_STATIC_PATH` | Published browser-client folder; default `/app/wwwroot` in the image. An empty value serves only the API. |
-| `LIGHTPLAYER_PROXY_ONLY` | Relay to another Light Player server instead of hosting a library; default `false`. |
+| `LIGHTPLAYER_PROXY_ONLY` | Relay to another Light Media Center server instead of hosting a library; default `false`. |
 
 ### Transcoding
 
@@ -238,12 +238,12 @@ permissions. Use an HTTPS API relay when direct browser access is unavailable.
 ### Proxy-only relay
 
 `LIGHTPLAYER_PROXY_ONLY=true` serves the bundled player and relays API requests to another
-Light Player server. Build with `INCLUDE_WEB=true` to include the player. Local library paths and
+Light Media Center server. Build with `INCLUDE_WEB=true` to include the player. Local library paths and
 local credentials are not used; the selected upstream server authenticates users.
 
 Forwarding destinations are client-controlled. Restrict access to the relay with a VPN or
 reverse-proxy access controls, and restrict network egress to trusted destinations. Upstream
-sign-in is not access control for the relay itself. The relay supports the Light Player API,
+sign-in is not access control for the relay itself. The relay supports the Light Media Center API,
 not WebDAV.
 
 ## Static hosting

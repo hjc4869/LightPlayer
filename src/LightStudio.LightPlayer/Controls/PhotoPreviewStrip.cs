@@ -201,7 +201,7 @@ public sealed class PhotoPreviewStrip : Canvas
 
     private Thumbnail CreateThumbnail(int target)
     {
-        var image = new Image { Stretch = Stretch.UniformToFill };
+        var image = new FastImage();
         var placeholder = new Path
         {
             Width = 20,
@@ -387,7 +387,7 @@ public sealed class PhotoPreviewStrip : Canvas
         thumbnails.Clear();
     }
 
-    private sealed class Thumbnail(Button button, Image image, Path placeholder) : IDisposable
+    private sealed class Thumbnail(Button button, FastImage image, Path placeholder) : IDisposable
     {
         public Button Button { get; } = button;
         public CancellationTokenSource Load { get; } = new();

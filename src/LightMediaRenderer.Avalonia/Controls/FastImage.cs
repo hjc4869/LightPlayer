@@ -8,6 +8,7 @@ using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using Avalonia.Threading;
 using LightMediaRenderer.Avalonia.Controls;
+using LightMediaRenderer.Contracts;
 using SkiaSharp;
 
 namespace LightMediaRenderer.Avalonia.Controls;
@@ -15,18 +16,39 @@ namespace LightMediaRenderer.Avalonia.Controls;
 /// <summary>
 /// Draws an image uniformly filling its bounds, cropped around the center. The parent supplies the
 /// size: the control has no desired size of its own and a new source only invalidates rendering.
-/// <see cref="FastImageSource"/> artwork is drawn directly through Skia; other images use the
-/// standard image drawing path.
+/// <see cref="FastImageSource"/> artwork is drawn directly through Skia, and <see cref="PhotoFrameImage"/> through
+/// the photo renderer with its color, HDR transfer and gain map, within SDR white unless <see cref="UseHdrHeadroom"/>
+/// is set; other images use the standard image drawing path.
 /// </summary>
 public sealed class FastImage : Control
 {
+    // A null reference white follows the display's reported SDR white.
+    private static readonly VideoSdrToneMappingOptions SdrWhiteToneMapping =
+        VideoSdrToneMappingOptions.Default with { ReferenceWhiteNits = null };
+
     private FastImageContent? reportedLostContent;
+    private HdrContentHint? hdrContentHint;
 
     public static readonly StyledProperty<IImage?> SourceProperty =
         AvaloniaProperty.Register<FastImage, IImage?>(nameof(Source));
 
     public static readonly AttachedProperty<FastImageCache?> CachePoolProperty =
         AvaloniaProperty.RegisterAttached<FastImage, Control, FastImageCache?>(nameof(CachePool), inherits: true);
+
+    /// <summary>
+    /// Whether HDR <see cref="PhotoFrameImage"/> content may use display headroom, and asks for it while visible,
+    /// rather than being mapped into SDR.
+    /// </summary>
+    public static readonly AttachedProperty<bool> EnableHdrPassthroughProperty =
+        AvaloniaProperty.RegisterAttached<FastImage, Control, bool>(nameof(EnableHdrPassthrough), true, inherits: true);
+
+    /// <summary>
+    /// Whether HDR <see cref="PhotoFrameImage"/> content brightens into the display's headroom where
+    /// <see cref="EnableHdrPassthrough"/> allows it. Otherwise it is tone mapped to SDR white at the display's
+    /// reported reference white, with its gamut kept.
+    /// </summary>
+    public static readonly AttachedProperty<bool> UseHdrHeadroomProperty =
+        AvaloniaProperty.RegisterAttached<FastImage, Control, bool>(nameof(UseHdrHeadroom), inherits: true);
 
     /// <summary>
     /// Raised when the current <see cref="FastImageSource"/> can no longer be drawn because its
@@ -37,7 +59,7 @@ public sealed class FastImage : Control
 
     static FastImage()
     {
-        AffectsRender<FastImage>(SourceProperty);
+        AffectsRender<FastImage>(SourceProperty, EnableHdrPassthroughProperty, UseHdrHeadroomProperty);
     }
 
     public IImage? Source
@@ -52,9 +74,29 @@ public sealed class FastImage : Control
         set => SetValue(CachePoolProperty, value);
     }
 
+    public bool EnableHdrPassthrough
+    {
+        get => GetValue(EnableHdrPassthroughProperty);
+        set => SetValue(EnableHdrPassthroughProperty, value);
+    }
+
+    public bool UseHdrHeadroom
+    {
+        get => GetValue(UseHdrHeadroomProperty);
+        set => SetValue(UseHdrHeadroomProperty, value);
+    }
+
     public static FastImageCache? GetCachePool(Control control) => control.GetValue(CachePoolProperty);
 
     public static void SetCachePool(Control control, FastImageCache? value) => control.SetValue(CachePoolProperty, value);
+
+    public static bool GetEnableHdrPassthrough(Control control) => control.GetValue(EnableHdrPassthroughProperty);
+
+    public static void SetEnableHdrPassthrough(Control control, bool value) => control.SetValue(EnableHdrPassthroughProperty, value);
+
+    public static bool GetUseHdrHeadroom(Control control) => control.GetValue(UseHdrHeadroomProperty);
+
+    public static void SetUseHdrHeadroom(Control control, bool value) => control.SetValue(UseHdrHeadroomProperty, value);
 
     public event EventHandler<RoutedEventArgs>? SourceLost
     {
@@ -90,6 +132,7 @@ public sealed class FastImage : Control
         if (Source is not { } source || source.Size is not { Width: > 0, Height: > 0 } size ||
             Bounds.Width <= 0 || Bounds.Height <= 0)
         {
+            hdrContentHint?.Update(false);
             return;
         }
 
@@ -99,6 +142,21 @@ public sealed class FastImage : Control
         var sourceRect = new Rect(
             new Point((size.Width - visible.Width) / 2, (size.Height - visible.Height) / 2), visible);
 
+        if (source is PhotoFrameImage photo)
+        {
+            bool hdr = HdrContentHint.IsHdr(photo.Frame);
+            bool headroom = UseHdrHeadroom && EnableHdrPassthrough;
+            photo.Draw(context, sourceRect, destination, headroom,
+                !headroom && hdr && photo.Frame.GainMap is null ? SdrWhiteToneMapping : null,
+                ElementComposition.GetElementVisual(this)?.Compositor);
+            if (headroom && hdr)
+                (hdrContentHint ??= new HdrContentHint(this)).Update(true, HdrContentHint.Describe(photo.Frame));
+            else
+                hdrContentHint?.Update(false);
+            return;
+        }
+
+        hdrContentHint?.Update(false);
         if (source is FastImageSource { Content: { } content } && content.TryAddRef() is { } reference)
             context.Custom(new FastImageDrawOperation(reference, sourceRect, destination, new WeakReference<FastImage>(this)));
         else

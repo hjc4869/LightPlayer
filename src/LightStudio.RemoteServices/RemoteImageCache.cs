@@ -29,7 +29,7 @@ public sealed class RemoteImageCache : IStorageCache, IStorageCacheLimit
     private const long BytesPerMebibyte = 1024 * 1024;
 
     /// <summary>Bump when preview bytes change so native and browser clients do not reuse stale images.</summary>
-    public const string VideoPreviewRepresentationVersion = "4";
+    public const string VideoPreviewRepresentationVersion = "5";
 
     /// <summary>Kept from when this cache held album art alone, so existing budgets carry over.</summary>
     private const string MaxBytesSettingKey = "settings.albumArtCacheMaxMib";

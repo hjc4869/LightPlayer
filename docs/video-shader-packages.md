@@ -1,6 +1,6 @@
 # Video shader packages
 
-Light Player video shader packages are ordinary folders. They are not archives and do not contain executable managed or native code. One package describes one file-loaded SkSL pre-scale stage.
+Light Media Center video shader packages are ordinary folders. They are not archives and do not contain executable managed or native code. One package describes one file-loaded SkSL pre-scale stage.
 
 ## Folder layout
 

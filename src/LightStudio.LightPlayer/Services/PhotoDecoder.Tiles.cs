@@ -11,12 +11,13 @@ namespace LightStudio.LightPlayer.Services;
 
 internal static partial class PhotoDecoder
 {
+    /// <param name="retainSamples">Whether the decoded samples may be kept for zooming in the viewer.</param>
     private static VideoFrame? CreateJpegTiles(SKCodec codec, SKData data, PhotoColorProfile profile, bool hasGainMap,
-        CancellationToken cancellationToken)
+        bool retainSamples, CancellationToken cancellationToken)
     {
         if (codec.EncodedFormat != SKEncodedImageFormat.Jpeg)
             return null;
-        if (!ReferenceEquals(profile, GainSampleProfile) && codec.Info.Width <= 16384 && codec.Info.Height <= 16384 &&
+        if (retainSamples && !ReferenceEquals(profile, GainSampleProfile) && codec.Info.Width <= 16384 && codec.Info.Height <= 16384 &&
             PhotoDecodeResources.TryReserve((long)codec.Info.Width * codec.Info.Height * 4, out IDisposable reservation))
         {
             try
@@ -195,6 +196,7 @@ internal static partial class PhotoDecoder
         public int Count => source.Count;
         public long EncodedBytes => source.EncodedBytes;
         public bool HasScaledOverview => source.HasScaledOverview;
+        public bool AlwaysPreferMemory => source.AlwaysPreferMemory;
         public int PreferredBatchSize => source.PreferredBatchSize;
         public PhotoTileBounds GetBounds(int index) => source.GetBounds(index);
 

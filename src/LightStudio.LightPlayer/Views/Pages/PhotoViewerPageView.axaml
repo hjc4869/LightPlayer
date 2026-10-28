@@ -14,7 +14,9 @@
              d:DesignHeight="620"
              Focusable="True"
              x:Class="LightStudio.LightPlayer.Views.Pages.PhotoViewerPageView"
-             x:DataType="vm:PhotoViewerPageViewModel">
+             x:DataType="vm:PhotoViewerPageViewModel"
+             lmr:FastImage.EnableHdrPassthrough="{Binding EnableHdrPassthrough}"
+             lmr:FastImage.UseHdrHeadroom="True">
     <UserControl.Styles>
         <Style Selector="lmr|BackdropBorder">
             <Setter Property="IsForegroundBoostEnabled" Value="True" />
@@ -265,6 +267,26 @@
         <Style Selector="StackPanel.photoShortcutColumn">
             <Setter Property="Spacing" Value="8" />
         </Style>
+        <Style Selector="Border#SaveAsPanel.liquidGlass">
+            <Setter Property="Margin" Value="12" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Style Selector="^ lmr|BackdropBorder#SaveAsBackdrop">
+                <Setter Property="Padding" Value="6" />
+            </Style>
+        </Style>
+        <Style Selector="Border#SaveAsPanel TextBlock">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground}" />
+        </Style>
+        <Style Selector="Border#SaveAsPanel TextBlock.settingDescription">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground Color=#C8FFFFFF}" />
+        </Style>
+        <Style Selector="Border#SaveAsPanel TextBox:not(:disabled)">
+            <Setter Property="Foreground" Value="{lmr:BackdropForeground}" />
+        </Style>
+        <!-- Fields share the selectors' translucent fill; the opaque field well would read as a hole in the glass. -->
+        <Style Selector=":is(TopLevel).appleControls Border#SaveAsPanel TextBox">
+            <Setter Property="Background" Value="{DynamicResource MacControlFill}" />
+        </Style>
     </UserControl.Styles>
 
     <!--
@@ -302,7 +324,17 @@
                           Command="{Binding CopyImageCommand}" />
                 <MenuItem Header="{Binding Photo_CopyPath, Source={x:Static strings:LocalizedStrings.Instance}}"
                           Command="{Binding CopyPathCommand}" />
-                <Separator />
+                <MenuItem Header="{Binding Photo_SaveAs, Source={x:Static strings:LocalizedStrings.Instance}}"
+                          Command="{Binding SaveAsCommand}" />
+                <Separator>
+                    <Separator.IsVisible>
+                        <MultiBinding Converter="{x:Static converters:BoolConverters.Or}">
+                            <Binding Path="CanRevealInFileManager" />
+                            <Binding Path="CanOpenWith" />
+                            <Binding Path="CanShare" />
+                        </MultiBinding>
+                    </Separator.IsVisible>
+                </Separator>
                 <MenuItem Header="{Binding Common_OpenContainingFolder, Source={x:Static strings:LocalizedStrings.Instance}}"
                           Command="{Binding OpenContainingFolderCommand}"
                           IsVisible="{Binding CanRevealInFileManager}" />
@@ -329,8 +361,8 @@
                          NextNaturalSize="{Binding NextNaturalSize}"
                          Rotation="{Binding Rotation}"
                          EnableHdrPassthrough="{Binding EnableHdrPassthrough}"
-                         EnableGainMap="{Binding EnableGainMap}"
-                         ToneMapping="{Binding ToneMapping}"
+                         EnableGainMap="{Binding DisplayedGainMap}"
+                         ToneMapping="{Binding DisplayedToneMapping}"
                          DisplayPanelBitDepth="{Binding DisplayPanelBitDepth}" />
 
         <ProgressBar IsIndeterminate="{Binding IsLoading}"
@@ -547,28 +579,52 @@
                         <Button.Flyout>
                             <Flyout Placement="Top" Opening="OnHdrFlyoutOpening">
                                 <ScrollViewer x:Name="ToneMappingScroll" HorizontalScrollBarVisibility="Disabled">
-                                    <StackPanel x:Name="ToneMappingContent" Width="340" Spacing="12" Margin="4">
-                                        <StackPanel Spacing="10">
-                                            <TextBlock FontWeight="SemiBold" TextWrapping="Wrap"
-                                                       Text="{Binding Photo_ToneMapping, Source={x:Static strings:LocalizedStrings.Instance}}" />
-                                            <TextBlock Text="{Binding Photo_ToneCurve, Source={x:Static strings:LocalizedStrings.Instance}}" />
-                                            <ComboBox x:Name="ToneCurveBox" HorizontalAlignment="Stretch" SelectionChanged="OnToneCurveChanged"
-                                                      AutomationProperties.Name="{Binding Photo_ToneCurve, Source={x:Static strings:LocalizedStrings.Instance}}">
-                                                <ComboBoxItem Content="{Binding Photo_ToneAutomatic, Source={x:Static strings:LocalizedStrings.Instance}}" />
-                                                <ComboBoxItem Content="{Binding Photo_ToneSpline, Source={x:Static strings:LocalizedStrings.Instance}}" />
-                                                <ComboBoxItem Content="BT.2390" />
-                                                <ComboBoxItem Content="BT.2446A" />
+                                    <StackPanel x:Name="ToneMappingContent" Width="340" Spacing="10" Margin="4">
+                                        <TextBlock FontWeight="SemiBold" TextWrapping="Wrap"
+                                                   Text="{Binding Photo_ToneMapping, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <TextBlock VerticalAlignment="Center"
+                                                       TextWrapping="Wrap"
+                                                       Text="{Binding ToneMapping_Profile, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                            <ComboBox Grid.Column="1"
+                                                      Width="150"
+                                                      ItemsSource="{Binding ToneProfiles.ProfileChoices}"
+                                                      SelectedItem="{Binding ToneProfiles.SelectedProfile, Mode=TwoWay}"
+                                                      AutomationProperties.Name="{Binding ToneMapping_Profile, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:VideoSettingsOption">
+                                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
                                             </ComboBox>
-                                            <StackPanel x:Name="ToneParameterRows" Spacing="8" />
-                                            <Button x:Name="ToneResetButton" Click="OnToneResetClicked" HorizontalAlignment="Stretch">
-                                                <TextBlock Text="{Binding Photo_ToneReset, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
-                                            </Button>
-                                            <Button x:Name="ToneSaveButton" Click="OnToneSaveClicked" HorizontalAlignment="Stretch">
-                                                <TextBlock Text="{Binding Photo_ToneSave, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
-                                            </Button>
-                                            <Button x:Name="ToneClearButton" Click="OnToneClearClicked" HorizontalAlignment="Stretch">
-                                                <TextBlock Text="{Binding Photo_ToneClear, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
-                                            </Button>
+                                        </Grid>
+                                        <controls:ToneMappingEditor DataContext="{Binding ToneProfiles.Editor}" />
+                                        <Button Command="{Binding ToneProfiles.RevertCommand}" HorizontalAlignment="Stretch">
+                                            <TextBlock Text="{Binding ToneMapping_Revert, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                        </Button>
+                                        <Button Command="{Binding ToneProfiles.SaveCommand}" HorizontalAlignment="Stretch">
+                                            <TextBlock Text="{Binding ToneMapping_Save, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                        </Button>
+                                        <Button Command="{Binding ToneProfiles.BeginSaveAsCommand}" HorizontalAlignment="Stretch"
+                                                IsVisible="{Binding !ToneProfiles.IsNaming}">
+                                            <TextBlock Text="{Binding ToneMapping_SaveAs, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                        </Button>
+                                        <StackPanel Spacing="6" IsVisible="{Binding ToneProfiles.IsNaming}">
+                                            <TextBox Text="{Binding ToneProfiles.NewProfileName, Mode=TwoWay}"
+                                                     PlaceholderText="{Binding ToneMapping_Name, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                     AutomationProperties.Name="{Binding ToneMapping_Name, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                            <TextBlock Text="{Binding ToneProfiles.NameError}"
+                                                       IsVisible="{Binding ToneProfiles.HasNameError}"
+                                                       FontSize="12"
+                                                       TextWrapping="Wrap" />
+                                            <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+                                                <Button Command="{Binding ToneProfiles.ConfirmSaveAsCommand}" HorizontalAlignment="Stretch">
+                                                    <TextBlock Text="{Binding Common_Save, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                                </Button>
+                                                <Button Grid.Column="1" Command="{Binding ToneProfiles.CancelSaveAsCommand}" HorizontalAlignment="Stretch">
+                                                    <TextBlock Text="{Binding Common_Cancel, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                                </Button>
+                                            </Grid>
                                         </StackPanel>
                                     </StackPanel>
                                 </ScrollViewer>
@@ -646,6 +702,444 @@
             </lmr:BackdropBorder>
         </Border>
 
+        <!-- Floats over the right edge like the video player's list; code-behind shows it and slides it
+             in and out. The controls use the dark theme to match the glass behind them. -->
+        <Border x:Name="SaveAsPanel"
+                Classes.liquidGlass="{DynamicResource AppIsContentLiquidGlass}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Stretch"
+                Width="380"
+                IsVisible="False"
+                Background="Transparent">
+            <lmr:BackdropBorder x:Name="SaveAsBackdrop"
+                                CornerRadius="{Binding #SaveAsPanel.CornerRadius}"
+                                BackdropStyle="{DynamicResource AppContentBackdropStyle}"
+                                FallbackColor="#E0000000"
+                                TintColor="#B0000000">
+                <ThemeVariantScope RequestedThemeVariant="Dark" DataContext="{Binding SaveAs}">
+                    <Grid RowDefinitions="Auto,*,Auto" x:DataType="vm:PhotoSaveAsViewModel">
+                        <Grid ColumnDefinitions="*,Auto" Margin="20,12,12,4">
+                            <TextBlock VerticalAlignment="Center"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"
+                                       Text="{Binding Photo_SaveAs, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            <Button Grid.Column="1"
+                                    Classes="icon"
+                                    Command="{Binding CloseCommand}"
+                                    AutomationProperties.Name="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                    ToolTip.Tip="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16">
+                                    <Path Data="{StaticResource IconClose}" Fill="{lmr:BackdropForeground}" />
+                                </Viewbox>
+                            </Button>
+                        </Grid>
+
+                        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Spacing="12" Margin="20,8,20,12" IsEnabled="{Binding !IsSaving}">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                               Text="{Binding Photo_SaveFormat, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <ComboBox Grid.Column="1"
+                                              Width="200"
+                                              ItemsSource="{Binding FormatChoices}"
+                                              SelectedItem="{Binding SelectedFormat, Mode=TwoWay}"
+                                              AutomationProperties.Name="{Binding Photo_SaveFormat, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:PhotoSaveChoice">
+                                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsVisible="{Binding ShowEncoder}">
+                                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                               Text="{Binding Photo_SaveEncoder, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <ComboBox Grid.Column="1"
+                                              Width="200"
+                                              ItemsSource="{Binding EncoderChoices}"
+                                              SelectedItem="{Binding SelectedEncoder, Mode=TwoWay}"
+                                              AutomationProperties.Name="{Binding Photo_SaveEncoder, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:PhotoSaveChoice">
+                                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsVisible="{Binding ShowPixelFormat}">
+                                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                               Text="{Binding Photo_SavePixelFormat, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <ComboBox Grid.Column="1"
+                                              Width="200"
+                                              ItemsSource="{Binding PixelFormatChoices}"
+                                              SelectedItem="{Binding SelectedPixelFormat, Mode=TwoWay}"
+                                              AutomationProperties.Name="{Binding Photo_SavePixelFormat, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:PhotoSaveChoice">
+                                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12"
+                                      IsVisible="{Binding ShowQuality}">
+                                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                               Text="{Binding Photo_SaveQuality, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <controls:NumberEntry Grid.Column="1"
+                                                          Width="200"
+                                                          Minimum="1"
+                                                          Maximum="100"
+                                                          Increment="1"
+                                                          FormatString="0"
+                                                          Number="{Binding Quality, Mode=TwoWay}"
+                                                          AutomationProperties.Name="{Binding Photo_SaveQuality, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <Slider Grid.Row="1"
+                                            Grid.ColumnSpan="2"
+                                            Minimum="1"
+                                            Maximum="100"
+                                            SmallChange="1"
+                                            LargeChange="5"
+                                            TickFrequency="1"
+                                            IsSnapToTickEnabled="True"
+                                            Value="{Binding QualitySlider, Mode=TwoWay}"
+                                            AutomationProperties.Name="{Binding Photo_SaveQuality, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsVisible="{Binding ShowSpeed}">
+                                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                               Text="{Binding Photo_SaveSpeed, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <ComboBox Grid.Column="1"
+                                              Width="200"
+                                              ItemsSource="{Binding SpeedChoices}"
+                                              SelectedItem="{Binding SelectedSpeed, Mode=TwoWay}"
+                                              AutomationProperties.Name="{Binding Photo_SaveSpeed, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:PhotoSaveChoice">
+                                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+                                <CheckBox IsVisible="{Binding ShowTiles}"
+                                          IsChecked="{Binding SaveTiled, Mode=TwoWay}">
+                                    <TextBlock TextWrapping="Wrap"
+                                               Text="{Binding Photo_SaveTiles, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                </CheckBox>
+                                <!-- Lines up with the size fields below; the middle column matches their lock button. -->
+                                <Grid ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="4" RowSpacing="4"
+                                      IsVisible="{Binding ShowTileSize}">
+                                    <TextBlock Classes="settingDescription"
+                                               FontSize="12"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding Photo_SaveTileWidth, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <TextBlock Grid.Column="2"
+                                               Classes="settingDescription"
+                                               FontSize="12"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding Photo_SaveTileHeight, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <controls:NumberEntry x:Name="TileWidthEntry"
+                                                          Grid.Row="1"
+                                                          HorizontalAlignment="Stretch"
+                                                          Minimum="{Binding MinimumTileWidth}"
+                                                          Maximum="{Binding MaximumTileSize}"
+                                                          Increment="64"
+                                                          FormatString="0"
+                                                          Number="{Binding TileWidth, Mode=TwoWay}"
+                                                          AutomationProperties.Name="{Binding Photo_SaveTileWidth, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <Border Grid.Row="1" Grid.Column="1" Width="28" />
+                                    <controls:NumberEntry x:Name="TileHeightEntry"
+                                                          Grid.Row="1"
+                                                          Grid.Column="2"
+                                                          HorizontalAlignment="Stretch"
+                                                          Minimum="{Binding MinimumTileHeight}"
+                                                          Maximum="{Binding MaximumTileSize}"
+                                                          Increment="64"
+                                                          FormatString="0"
+                                                          Number="{Binding TileHeight, Mode=TwoWay}"
+                                                          AutomationProperties.Name="{Binding Photo_SaveTileHeight, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                </Grid>
+                                <StackPanel Spacing="4">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                        <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                                   Text="{Binding Photo_SaveMetadata, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        <ComboBox Grid.Column="1"
+                                                  Width="200"
+                                                  ItemsSource="{Binding MetadataChoices}"
+                                                  SelectedItem="{Binding SelectedMetadata, Mode=TwoWay}"
+                                                  AutomationProperties.Name="{Binding Photo_SaveMetadata, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:PhotoSaveChoice">
+                                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <TextBlock Classes="settingDescription"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding MetadataDescription}" />
+                                </StackPanel>
+
+                                <Separator />
+                                <TextBlock FontWeight="SemiBold"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding Photo_SaveSize, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                <Grid ColumnDefinitions="*,Auto,*" RowDefinitions="Auto,Auto" ColumnSpacing="4" RowSpacing="4">
+                                    <TextBlock Classes="settingDescription"
+                                               FontSize="12"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding Photo_SaveWidth, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <TextBlock Grid.Column="2"
+                                               Classes="settingDescription"
+                                               FontSize="12"
+                                               TextTrimming="CharacterEllipsis"
+                                               Text="{Binding Photo_SaveHeight, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <controls:NumberEntry Grid.Row="1"
+                                                          HorizontalAlignment="Stretch"
+                                                          Minimum="1"
+                                                          Maximum="{Binding MaximumDimension}"
+                                                          Increment="1"
+                                                          FormatString="0"
+                                                          Number="{Binding Width, Mode=TwoWay}"
+                                                          AutomationProperties.Name="{Binding Photo_SaveWidth, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <Button Grid.Row="1"
+                                            Grid.Column="1"
+                                            Classes="miniIcon"
+                                            Padding="6"
+                                            Command="{Binding ToggleAspectLockCommand}"
+                                            ToolTip.Tip="{Binding AspectLockToolTip}"
+                                            AutomationProperties.Name="{Binding AspectLockToolTip}">
+                                        <Panel Width="16" Height="16">
+                                            <Viewbox IsVisible="{Binding IsAspectLocked}">
+                                                <Path Data="{StaticResource IconLock}"
+                                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                            </Viewbox>
+                                            <Viewbox IsVisible="{Binding !IsAspectLocked}">
+                                                <Path Data="{StaticResource IconLockOpen}"
+                                                      Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                            </Viewbox>
+                                        </Panel>
+                                    </Button>
+                                    <controls:NumberEntry Grid.Row="1"
+                                                          Grid.Column="2"
+                                                          HorizontalAlignment="Stretch"
+                                                          Minimum="1"
+                                                          Maximum="{Binding MaximumDimension}"
+                                                          Increment="1"
+                                                          FormatString="0"
+                                                          Number="{Binding Height, Mode=TwoWay}"
+                                                          AutomationProperties.Name="{Binding Photo_SaveHeight, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                               Text="{Binding Photo_SaveScale, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <controls:NumberEntry Grid.Column="1"
+                                                          Width="200"
+                                                          Minimum="0.01"
+                                                          Maximum="{Binding MaximumScale}"
+                                                          Increment="0.1"
+                                                          FormatString="0.00"
+                                                          IsEnabled="{Binding IsAspectLocked}"
+                                                          Number="{Binding Scale, Mode=TwoWay}"
+                                                          AutomationProperties.Name="{Binding Photo_SaveScale, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsVisible="{Binding ShowResize}">
+                                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                               Text="{Binding Photo_SaveResize, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <ComboBox Grid.Column="1"
+                                              Width="200"
+                                              ItemsSource="{Binding ResizeChoices}"
+                                              SelectedItem="{Binding SelectedResize, Mode=TwoWay}"
+                                              AutomationProperties.Name="{Binding Photo_SaveResize, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:PhotoSaveChoice">
+                                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </Grid>
+                                <CheckBox IsVisible="{Binding ShowTransparent}"
+                                          IsChecked="{Binding TransparentBackground, Mode=TwoWay}">
+                                    <TextBlock TextWrapping="Wrap"
+                                               Text="{Binding Photo_SaveTransparent, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                </CheckBox>
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" IsVisible="{Binding ShowBackgroundColor}">
+                                    <TextBlock VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,0,4,0"
+                                               Text="{Binding Photo_SaveBackground, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <Border Grid.Column="1"
+                                            Width="24"
+                                            Height="24"
+                                            CornerRadius="4"
+                                            BorderThickness="1"
+                                            BorderBrush="{DynamicResource AppDividerBrush}"
+                                            Background="{Binding BackgroundBrush}" />
+                                    <TextBox Grid.Column="2"
+                                             Width="168"
+                                             Text="{Binding BackgroundText, Mode=TwoWay}"
+                                             AutomationProperties.Name="{Binding Photo_SaveBackground, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                </Grid>
+
+                                <StackPanel Spacing="12" IsVisible="{Binding ShowColor}">
+                                    <Separator />
+                                    <TextBlock FontWeight="SemiBold"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding Photo_SaveColor, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsVisible="{Binding ShowColorSpace}">
+                                        <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                                   Text="{Binding Photo_SaveColorSpace, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        <ComboBox Grid.Column="1"
+                                                  Width="200"
+                                                  ItemsSource="{Binding ColorSpaceChoices}"
+                                                  SelectedItem="{Binding SelectedColorSpace, Mode=TwoWay}"
+                                                  AutomationProperties.Name="{Binding Photo_SaveColorSpace, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:PhotoSaveChoice">
+                                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                        <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                                   Text="{Binding Photo_SaveGamutMapping, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        <ComboBox Grid.Column="1"
+                                                  Width="200"
+                                                  ItemsSource="{Binding GamutMappingChoices}"
+                                                  SelectedItem="{Binding SelectedGamutMapping, Mode=TwoWay}"
+                                                  AutomationProperties.Name="{Binding Photo_SaveGamutMapping, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:PhotoSaveChoice">
+                                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding HasGamutWarning}">
+                                        <Viewbox Width="16" Height="16" VerticalAlignment="Top" Margin="0,1,0,0">
+                                            <Path Data="{StaticResource IconWarning}" Fill="{DynamicResource AppFavoriteBrush}" />
+                                        </Viewbox>
+                                        <TextBlock Grid.Column="1"
+                                                   Classes="settingDescription"
+                                                   FontSize="12"
+                                                   TextWrapping="Wrap"
+                                                   Text="{Binding Photo_SaveWarnGamut, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    </Grid>
+                                </StackPanel>
+
+                                <StackPanel Spacing="12" IsVisible="{Binding ShowHdr}">
+                                    <Separator />
+                                    <TextBlock FontWeight="SemiBold"
+                                               TextWrapping="Wrap"
+                                               Text="{Binding Photo_SaveHdr, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    <CheckBox IsVisible="{Binding ShowKeepHdr}"
+                                              IsChecked="{Binding KeepHdr, Mode=TwoWay}">
+                                        <TextBlock TextWrapping="Wrap" Text="{Binding KeepHdrLabel}" />
+                                    </CheckBox>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsVisible="{Binding ShowHdrEncoding}">
+                                        <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                                   Text="{Binding Photo_SaveHdrFormat, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        <ComboBox Grid.Column="1"
+                                                  Width="200"
+                                                  ItemsSource="{Binding HdrEncodingChoices}"
+                                                  SelectedItem="{Binding SelectedHdrEncoding, Mode=TwoWay}"
+                                                  AutomationProperties.Name="{Binding Photo_SaveHdrFormat, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate x:DataType="vm:PhotoSaveChoice">
+                                                    <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                        </ComboBox>
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsVisible="{Binding ShowSdrWhite}">
+                                        <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                                   Text="{Binding Photo_SaveSdrWhite, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        <controls:NumberEntry Grid.Column="1"
+                                                              Width="200"
+                                                              Minimum="80"
+                                                              Maximum="1000"
+                                                              Increment="10"
+                                                              FormatString="0"
+                                                              Number="{Binding SdrWhiteNits, Mode=TwoWay}"
+                                                              AutomationProperties.Name="{Binding Photo_SaveSdrWhite, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    </Grid>
+                                    <CheckBox IsVisible="{Binding ShowApplyToneMapping}"
+                                              IsChecked="{Binding ApplyToneMapping, Mode=TwoWay}">
+                                        <TextBlock TextWrapping="Wrap"
+                                                   Text="{Binding Photo_SaveApplyToneMapping, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    </CheckBox>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" IsVisible="{Binding ShowTargetPeak}">
+                                        <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"
+                                                   Text="{Binding Photo_SaveTargetPeak, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        <controls:NumberEntry Grid.Column="1"
+                                                              Width="200"
+                                                              Minimum="100"
+                                                              Maximum="10000"
+                                                              Increment="100"
+                                                              FormatString="0"
+                                                              Number="{Binding TargetPeakNits, Mode=TwoWay}"
+                                                              AutomationProperties.Name="{Binding Photo_SaveTargetPeak, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" IsVisible="{Binding HasWarning}">
+                                        <Viewbox Width="16" Height="16" VerticalAlignment="Top" Margin="0,1,0,0">
+                                            <Path Data="{StaticResource IconWarning}" Fill="{DynamicResource AppFavoriteBrush}" />
+                                        </Viewbox>
+                                        <TextBlock Grid.Column="1"
+                                                   Classes="settingDescription"
+                                                   FontSize="12"
+                                                   TextWrapping="Wrap"
+                                                   Text="{Binding Warning}" />
+                                    </Grid>
+                                    <StackPanel Spacing="10" IsVisible="{Binding ShowToneMapping}">
+                                        <TextBlock FontWeight="SemiBold" TextWrapping="Wrap"
+                                                   Text="{Binding Photo_ToneMapping, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <TextBlock VerticalAlignment="Center"
+                                                       TextWrapping="Wrap"
+                                                       Text="{Binding ToneMapping_Profile, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                            <ComboBox Grid.Column="1"
+                                                      Width="200"
+                                                      ItemsSource="{Binding ProfileChoices}"
+                                                      SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
+                                                      AutomationProperties.Name="{Binding ToneMapping_Profile, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="vm:VideoSettingsOption">
+                                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                        </Grid>
+                                        <controls:ToneMappingEditor DataContext="{Binding Editor}" SelectorWidth="200" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <StackPanel Grid.Row="2" Spacing="8" Margin="20,8,20,16">
+                            <ProgressBar IsIndeterminate="{Binding ShowsProgress}" IsVisible="{Binding ShowsProgress}" />
+                            <StackPanel Spacing="2" IsVisible="{Binding HasError}">
+                                <TextBlock FontWeight="SemiBold"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding Photo_SaveFailed, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                <TextBlock Classes="settingDescription"
+                                           FontSize="12"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding ErrorMessage}" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                <Button Command="{Binding CancelCommand}"
+                                        Content="{Binding Common_Cancel, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                <Button x:Name="SaveAsConfirmButton"
+                                        Classes="accent compact"
+                                        IsEnabled="{Binding CanSave}"
+                                        Click="OnSaveAsConfirmClick"
+                                        Content="{Binding Common_Save, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </ThemeVariantScope>
+            </lmr:BackdropBorder>
+        </Border>
+
         <Border x:Name="PhotoShortcutsPanel"
                 IsVisible="False"
                 Background="#B0000000"
@@ -690,6 +1184,10 @@
                             <DockPanel>
                                 <TextBlock Classes="photoShortcutKey" Text="Ctrl + -" />
                                 <TextBlock Classes="photoShortcutAction" Text="{Binding Photo_ZoomOut, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            </DockPanel>
+                            <DockPanel>
+                                <TextBlock Classes="photoShortcutKey" Text="Ctrl + S" />
+                                <TextBlock Classes="photoShortcutAction" Text="{Binding Photo_SaveAs, Source={x:Static strings:LocalizedStrings.Instance}}" />
                             </DockPanel>
                             <DockPanel>
                                 <TextBlock Classes="photoShortcutKey" Text="←  ↑  →  ↓" />

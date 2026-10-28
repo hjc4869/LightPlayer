@@ -23,7 +23,10 @@ public static class VideoFramePipeline
     private const int PhotoTileSize = 2048;
     private const long MaximumPhotoScenePixels = 16 * 1024 * 1024;
 
-    public static bool NeedsColorProcessing(VideoFrame frame) => VideoColorPlan.NeedsColorProcessing(frame);
+    public static bool NeedsColorProcessing(VideoFrame frame) => NeedsColorProcessing(frame, VideoOutputColorSpace.Srgb);
+
+    public static bool NeedsColorProcessing(VideoFrame frame, VideoOutputColorSpace target) =>
+        VideoColorPlan.NeedsColorProcessing(frame, target);
 
     public static bool NeedsDeinterlacing(VideoFrame frame) => VideoColorPlan.NeedsDeinterlacing(frame);
 
@@ -35,6 +38,16 @@ public static class VideoFramePipeline
         VideoOutputColorSpace target, bool hdrPassthrough, VideoOutputColorVolume? colorVolume,
         VideoSdrToneMappingOptions? sdrToneMapping) =>
         VideoColorPlan.ResolveOutput(frame, target, hdrPassthrough, colorVolume, sdrToneMapping);
+
+    /// <summary>
+    /// Maps neutral static-metadata PQ luminance, in nits, to the output the renderer writes, relative
+    /// to SDR white and before the surface's white scale.
+    /// </summary>
+    public static VideoHdrOutputMapping EvaluateToneCurve(VideoOutputColorSpace target, bool hdrPassthrough,
+        VideoOutputColorVolume? colorVolume, VideoSdrToneMappingOptions? sdrToneMapping, float sourcePeak,
+        ReadOnlySpan<float> sourceNits, Span<float> output) =>
+        VideoColorPlan.EvaluateToneCurve(target, hdrPassthrough, colorVolume, sdrToneMapping, sourcePeak,
+            sourceNits, output);
 
     public static float GainMapWeight(PhotoGainMap? gainMap, VideoOutputColorSpace target,
         bool hdrPassthrough, VideoOutputColorVolume? colorVolume) =>

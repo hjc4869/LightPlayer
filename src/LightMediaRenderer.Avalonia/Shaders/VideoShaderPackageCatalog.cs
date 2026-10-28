@@ -354,7 +354,7 @@ public sealed class VideoShaderPackageCatalog : IDisposable
         if (!Directory.Exists(source))
             throw new DirectoryNotFoundException($"Shader package folder does not exist: {source}");
         if (ContainsPath(source, rootDirectory))
-            throw new InvalidDataException("The selected folder contains Light Player's shader package storage.");
+            throw new InvalidDataException("The selected folder contains Light Media Center's shader package storage.");
 
         string staging = Path.Combine(rootDirectory, $".import-{Guid.NewGuid():N}");
         try

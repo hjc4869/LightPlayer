@@ -97,6 +97,11 @@ export function cancelPhotoTiles(id, session, gain, operation) {
     if (state && !state.failure) state.worker.postMessage({ type: "cancel-photo-tiles", session, gain, operation });
 }
 
+export function cancelPhotoExport(id, operation) {
+    const state = workers.get(id);
+    if (state && !state.failure) state.worker.postMessage({ type: "cancel-photo-export", operation });
+}
+
 /** Hands a batch of packets the page read to a relayed demuxer; the view is only valid during this call. */
 export function postRelay(id, demuxer, generation, batch) {
     const state = workers.get(id);

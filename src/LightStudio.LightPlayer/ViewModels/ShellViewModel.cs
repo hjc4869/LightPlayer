@@ -12,7 +12,7 @@ using Avalonia;
 using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Media.Imaging;
+using Avalonia.Media;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -243,7 +243,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     /// <summary>
     /// True while the active navigation is a back navigation, so the page transition plays in
-    /// reverse. Bound to <c>TransitioningContentControl.IsTransitionReversed</c>.
+    /// reverse. Bound to <c>PageTransitionHost.IsTransitionReversed</c>.
     /// </summary>
     [ObservableProperty]
     private bool isBackNavigation;
@@ -251,10 +251,17 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     /// <summary>
     /// Transition the content host plays for the active navigation. Hierarchical (drill) navigations
     /// use the scale + fade; root-to-root navigations use the lighter entrance slide-up + fade.
-    /// Bound to <c>TransitioningContentControl.PageTransition</c>.
+    /// Bound to <c>PageTransitionHost.PageTransition</c>.
     /// </summary>
     [ObservableProperty]
     private IPageTransition currentPageTransition = null!;
+
+    /// <summary>
+    /// Library grid the current page was opened from, whose view the content host keeps so going
+    /// back to it reuses the realized tiles. Bound to <c>PageTransitionHost.RetainedContent</c>.
+    /// </summary>
+    [ObservableProperty]
+    private PageViewModelBase? retainedPage;
 
     internal Func<PageViewModelBase?, PageViewModelBase, IPageTransition, IPageTransition>? PreparePageTransition { get; set; }
 
@@ -1321,6 +1328,12 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
             LibraryPager.Adopt(routeId, page);
         }
 
+        // Set ahead of CurrentPage: the content host decides whether to keep the outgoing view as
+        // the page changes.
+        RetainedPage = !isBack && previous is GridItemsPageViewModelBase &&
+            backStack.TryPeek(out var returnEntry) && ReferenceEquals(returnEntry.Page, previous)
+            ? previous
+            : null;
         CurrentPage = page;
         // Sync the new page to the shell's current layout so it renders with the correct (wide vs.
         // narrow) content insets and chrome from its first frame; later resizes flow through
@@ -1492,7 +1505,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
             {
                 LoadPreview = (media, token) => media.SourceId.IsLocal
                     ? photoFolderService.GetThumbnailAsync(media.Path, token)
-                    : videoPreviewService?.GetPreviewAsync(media, token) ?? Task.FromResult<Bitmap?>(null),
+                    : videoPreviewService?.GetPreviewAsync(media, token) ?? Task.FromResult<IImage?>(null),
                 Close = NavigateBack,
                 SetFullScreen = SetHostFullScreen,
                 TryOpenInNewWindow = PlatformServices.TryOpenInNewWindow,

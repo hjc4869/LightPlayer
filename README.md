@@ -1,7 +1,7 @@
-# Light Player
+# Light Media Center
 
-Light Player is a cross-platform media player built with [Avalonia](https://avaloniaui.net/) and
-.NET 10. It combines this device's indexed folders with zero or more Light Player servers in one
+Light Media Center is a cross-platform media player built with [Avalonia](https://avaloniaui.net/) and
+.NET 10. It combines this device's indexed folders with zero or more Light Media Center servers in one
 browsable music/video library, with support for playlists, queues, history, artwork, subtitles,
 and lyrics.
 
@@ -28,7 +28,7 @@ and lyrics.
 | --- | --- |
 | **KDE Wayland / macOS / Windows** | The primary, fully supported targets. |
 | **Other Linux (e.g. X11, GNOME)** | Technically usable but unsupported and not validated. Expect less UI integration and incomplete features. |
-| **Android / iOS** | Usable with demo-level UX and quality. Known issues exist in .NET, Avalonia UI, and Light Player itself. |
+| **Android / iOS** | Usable with demo-level UX and quality. Known issues exist in .NET, Avalonia UI, and Light Media Center itself. |
 | **Browser / WebAssembly** | Basic playback works on the latest Chromium, Firefox, and Safari. Only Chromium-based browsers are considered supported and validated. |
 
 The browser client is available as a [public preview](https://lmp.hjc.im), with a separate

@@ -53,7 +53,7 @@ public sealed partial class RemoteLibrariesSettingsSectionViewModel : ViewModelB
     {
         get
         {
-            var description = Localized("RemoteLibraries_Description", "Add and combine independent Light Player libraries.");
+            var description = Localized("RemoteLibraries_Description", "Add and combine independent Light Media Center libraries.");
             return PlatformServices.CanManageLibraryFolders
                 ? description
                 : $"{description} {Localized("RemoteLibraries_RemoteOnlyDescription", "Local library folders are unavailable here, so only remote libraries can be used.")}";
@@ -534,7 +534,7 @@ public sealed partial class RemoteLibraryEditorViewModel : ViewModelBase
 
     public IReadOnlyList<string> ProviderOptions =>
     [
-        Localized("RemoteLibraries_ProviderLightPlayer", "Light Player"),
+        Localized("RemoteLibraries_ProviderLightPlayer", "Light Media Center"),
         Localized("RemoteLibraries_ProviderNextcloudMusic", "Nextcloud Music"),
         Localized("RemoteLibraries_ProviderWebDav", "WebDAV"),
     ];

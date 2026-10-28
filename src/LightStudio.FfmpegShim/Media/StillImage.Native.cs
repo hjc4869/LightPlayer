@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.Decoding;
 using LightStudio.FfmpegShim.Interop;
@@ -144,18 +145,54 @@ public static unsafe partial class StillImage
             deep ? VideoPixelFormat.Rgba64 : VideoPixelFormat.Bgra32);
         AVPixFmtDescriptor* descriptor = av_pix_fmt_desc_get((AVPixelFormat)decoded->format);
         frame.HasAlpha = descriptor != null && (descriptor->flags & AV_PIX_FMT_FLAG_ALPHA) != 0;
-        SwsContext* scaler = sws_getContext(decoded->width, decoded->height, (AVPixelFormat)decoded->format,
-            decoded->width, decoded->height, deep ? AVPixelFormat.AV_PIX_FMT_RGBA64LE : AVPixelFormat.AV_PIX_FMT_BGRA,
-            SwsBilinear, null, null, null);
-        if (scaler == null)
+        if (!Repack(decoded, frame, deep ? AVPixelFormat.AV_PIX_FMT_RGBA64LE : AVPixelFormat.AV_PIX_FMT_BGRA))
             return Fail(frame);
+        if (frame.HasAlpha && IsAlphaPremultiplied(decoded, associatedAlpha))
+            UnpremultiplyPhoto(frame);
+        return frame;
+    }
+
+    /// <summary>
+    /// Converts without resizing in parallel row bands, which stay independent when chroma is not
+    /// subsampled vertically and no plane is a palette.
+    /// </summary>
+    private static bool Repack(AVFrame* input, VideoFrame target, AVPixelFormat output)
+    {
+        AVPixFmtDescriptor* descriptor = av_pix_fmt_desc_get((AVPixelFormat)input->format);
+        int bands = OperatingSystem.IsBrowser() || descriptor == null || descriptor->log2_chroma_h != 0 ||
+            (descriptor->flags & AV_PIX_FMT_FLAG_PAL) != 0 ? 1
+            : Math.Clamp(input->height / 256, 1, Math.Min(Environment.ProcessorCount, 16));
+        if (bands == 1)
+            return RepackRows(input, target, output, 0, input->height);
+        int failures = 0;
+        Parallel.For(0, bands, band =>
+        {
+            int first = (int)((long)input->height * band / bands);
+            int last = (int)((long)input->height * (band + 1) / bands);
+            if (!RepackRows(input, target, output, first, last - first))
+                Interlocked.Increment(ref failures);
+        });
+        return failures == 0;
+    }
+
+    private static bool RepackRows(AVFrame* input, VideoFrame target, AVPixelFormat output, int firstRow, int rows)
+    {
+        SwsContext* scaler = sws_getContext(input->width, rows, (AVPixelFormat)input->format,
+            input->width, rows, output, SwsBilinear, null, null, null);
+        if (scaler == null)
+            return false;
         try
         {
-            if (!Scale(scaler, decoded, frame, decoded->height))
-                return Fail(frame);
-            if (frame.HasAlpha && IsAlphaPremultiplied(decoded, associatedAlpha))
-                UnpremultiplyPhoto(frame);
-            return frame;
+            byte** source = stackalloc byte*[4];
+            int* sourceStride = stackalloc int[4];
+            for (uint plane = 0; plane < 4; plane++)
+            {
+                sourceStride[plane] = input->linesize[plane];
+                source[plane] = input->data[plane] == null ? null : input->data[plane] + (long)firstRow * input->linesize[plane];
+            }
+            byte** destination = stackalloc byte*[4] { (byte*)target.Data + (long)firstRow * target.Stride, null, null, null };
+            int* destinationStride = stackalloc int[4] { target.Stride, 0, 0, 0 };
+            return sws_scale(scaler, source, sourceStride, 0, rows, destination, destinationStride) == rows;
         }
         finally { sws_freeContext(scaler); }
     }

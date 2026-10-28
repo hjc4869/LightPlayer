@@ -24,6 +24,11 @@
 
   <ItemGroup>
     <PackageReference Include="LightStudio.Photos" />
+    <PackageReference Condition="'$(UseWindowsInference)' == 'true'" Include="Microsoft.Windows.AI.MachineLearning" />
+    <PackageReference Condition="'$(UseWindowsInference)' != 'true'" Include="LightStudio.Onnx" />
+    <PackageReference Condition="('$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.StartsWith('linux'))) or ('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')))" Include="LightStudio.WebGPU" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" />
+    <PackageReference Include="MathNet.Numerics" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />
@@ -32,10 +37,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\LightStudio.LightPlayer.Desktop\Inference\Onnx\**\*.cs" Link="Inference\Onnx\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(UseWindowsInference)' == 'true'">
+    <Compile Remove="..\LightStudio.LightPlayer.Desktop\Inference\Onnx\OnnxInferenceProvider.cs" />
+    <Compile Include="..\LightStudio.LightPlayer.Desktop\Inference\WindowsML\**\*.cs" Link="Inference\WindowsML\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\LightStudio.Logging\LightStudio.Logging.csproj" />
     <ProjectReference Include="..\LightStudio.LocalServices\LightStudio.LocalServices.csproj" />
-    <ProjectReference Condition="'$(UseWindowsInference)' == 'true'" Include="..\LightStudio.Inference.WindowsML\LightStudio.Inference.WindowsML.csproj" />
-    <ProjectReference Condition="'$(UseWindowsInference)' != 'true'" Include="..\LightStudio.Inference.Onnx\LightStudio.Inference.Onnx.csproj" />
     <ProjectReference Include="..\LightStudio.Lyrics.Jint\LightStudio.Lyrics.Jint.csproj" />
     <ProjectReference Include="..\LightStudio.LightPlayer\LightStudio.LightPlayer.csproj" />
     <ProjectReference Include="..\LightStudio.RemoteApi\LightStudio.RemoteApi.csproj" />

@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using Avalonia;
 using Avalonia.Media;
+using Avalonia.Rendering.Composition;
 using LightMediaRenderer.Avalonia.Shaders;
 using LightMediaRenderer.Contracts;
 using LightMediaRenderer.Shaders;
@@ -23,7 +24,12 @@ public sealed class PhotoFrameImage : IImage, IDisposable
     public VideoFrame Frame => Cache.Frame;
     public Size Size { get; }
 
-    public void Draw(DrawingContext context, Rect sourceRect, Rect destRect)
+    public void Draw(DrawingContext context, Rect sourceRect, Rect destRect) =>
+        Draw(context, sourceRect, destRect, hdrPassthrough: false, toneMapping: null, compositor: null);
+
+    /// <param name="compositor">The compositor that releases the cached textures with their graphics context current.</param>
+    internal void Draw(DrawingContext context, Rect sourceRect, Rect destRect, bool hdrPassthrough,
+        VideoSdrToneMappingOptions? toneMapping, Compositor? compositor)
     {
         ObjectDisposedException.ThrowIf(disposed != 0, this);
         if (sourceRect.Width <= 0 || sourceRect.Height <= 0 || destRect.Width <= 0 || destRect.Height <= 0)
@@ -32,10 +38,12 @@ public sealed class PhotoFrameImage : IImage, IDisposable
         double scaleY = destRect.Height / sourceRect.Height;
         var destination = new Rect(destRect.X - sourceRect.X * scaleX, destRect.Y - sourceRect.Y * scaleY,
             Size.Width * scaleX, Size.Height * scaleY);
+        Cache.SetDisposalCompositor(compositor);
         using var clip = context.PushClip(destRect);
         context.Custom(new VideoDrawOperation(Frame.AddRef(), destRect, destination,
             VideoDebandingQuality.Off, VideoScalingQuality.Bilinear, VideoScalingQuality.Bilinear,
-            VideoScalingQuality.Bilinear, VideoShaderPackageCatalog.DisabledOverride, false, imageCache: Cache.AddRef()));
+            VideoScalingQuality.Bilinear, VideoShaderPackageCatalog.DisabledOverride, hdrPassthrough,
+            imageCache: Cache.AddRef(), compositor: compositor, toneMapping: toneMapping));
     }
 
     public void Dispose()

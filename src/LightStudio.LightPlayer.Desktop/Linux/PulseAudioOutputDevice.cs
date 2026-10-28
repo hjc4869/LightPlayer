@@ -650,7 +650,7 @@ internal sealed class PulseAudioOutputDevice : IAudioOutputDevice
         PulseNative.pa_threaded_mainloop_lock(mainloop);
         try
         {
-            context = PulseNative.pa_context_new(api, "LightPlayer");
+            context = PulseNative.pa_context_new(api, "Light Media Center");
             if (context == IntPtr.Zero)
             {
                 throw new InvalidOperationException("PulseAudio could not create a client context.");

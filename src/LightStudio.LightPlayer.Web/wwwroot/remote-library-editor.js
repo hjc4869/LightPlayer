@@ -270,7 +270,7 @@ function apply(state) {
     parts.password.value = state.password ?? '';
     parts.apiKey.value = state.apiKey ?? '';
     parts.provider.replaceChildren(
-        new Option(state.lightPlayerLabel ?? 'Light Player', '0'),
+        new Option(state.lightPlayerLabel ?? 'Light Media Center', '0'),
         new Option(state.nextcloudMusicLabel ?? 'Nextcloud Music', '1'),
         new Option(state.webDavLabel ?? 'WebDAV', '2'));
     parts.provider.value = String(state.selectedProviderIndex ?? 0);

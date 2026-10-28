@@ -1014,7 +1014,7 @@ public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
     /// server otherwise, since pulling a whole remote picture over just to shrink it would cost far
     /// more than the tile is worth.
     /// </summary>
-    private Task<Bitmap?> PhotoThumbnailAsync(
+    private Task<IImage?> PhotoThumbnailAsync(
         LibrarySourceId sourceId,
         string path,
         CancellationToken cancellationToken) =>
@@ -1198,7 +1198,7 @@ public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
         RefreshContent();
     }
 
-    private async Task<(Bitmap? Cover, Bitmap? Backdrop)> LoadAlbumSpotlightImagesAsync(
+    private async Task<(IImage? Cover, IImage? Backdrop)> LoadAlbumSpotlightImagesAsync(
         MediaReference art,
         CancellationToken cancellationToken)
     {
@@ -1436,7 +1436,7 @@ public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
     private sealed record SpotlightItem(
         string Title,
         string Subtitle,
-        Func<CancellationToken, Task<(Bitmap? Cover, Bitmap? Backdrop)>> LoadImages,
+        Func<CancellationToken, Task<(IImage? Cover, IImage? Backdrop)>> LoadImages,
         IRelayCommand Open,
         object ContextItem,
         bool HasCover = false);

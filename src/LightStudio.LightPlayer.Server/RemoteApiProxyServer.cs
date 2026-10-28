@@ -490,7 +490,7 @@ internal sealed class RemoteApiProxyServer : IDisposable
             throw new ProxyRequestException(
                 HttpStatusCode.GatewayTimeout,
                 "forward_target_probe_timeout",
-                "The forward target did not answer its Light Player server probe in time.");
+                "The forward target did not answer its Light Media Center server probe in time.");
         }
     }
 
@@ -541,7 +541,7 @@ internal sealed class RemoteApiProxyServer : IDisposable
     private static ProxyRequestException InvalidForwardTarget() => new(
         HttpStatusCode.BadGateway,
         "invalid_forward_target",
-        "The forward target did not return a valid Light Player API v1 server response.");
+        "The forward target did not return a valid Light Media Center API v1 server response.");
 
     private static Uri ParseTargetOrigin(string? value)
     {

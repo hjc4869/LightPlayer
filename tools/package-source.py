@@ -22,15 +22,16 @@ MARKDOWN_TARGETS = re.compile(
 
 
 def collect_files(repository):
-    tracked = {
+    available = {
         PurePosixPath(os.fsdecode(name))
         for name in subprocess.check_output(
-            ["git", "-C", str(repository), "ls-files", "-z"],
+            ["git", "-C", str(repository), "ls-files", "--cached", "--others",
+             "--exclude-standard", "-z"],
         ).split(b"\0") if name
     }
-    tracked = {path for path in tracked if path.name not in EXCLUDED_DOCUMENTS}
+    available = {path for path in available if path.name not in EXCLUDED_DOCUMENTS}
     included = {
-        path for path in tracked
+        path for path in available
         if (path.parts[0] in SOURCE_DIRECTORIES and path.suffix.lower() != ".md")
         or str(path) in SOURCE_FILES
         or (len(path.parts) == 1 and path.suffix in {".props", ".targets", ".slnx"})
@@ -53,9 +54,9 @@ def collect_files(repository):
             path = PurePosixPath(posixpath.normpath(posixpath.join(
                 str(document.parent), unquote(url.path),
             )))
-            if path not in tracked:
+            if path not in available:
                 path /= "README.md"
-            if path not in tracked or (
+            if path not in available or (
                 path not in included and path.parts[0] not in SOURCE_DIRECTORIES | {"docs"}
             ):
                 continue

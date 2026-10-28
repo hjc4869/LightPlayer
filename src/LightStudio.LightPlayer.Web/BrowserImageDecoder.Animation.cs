@@ -94,7 +94,7 @@ internal sealed class BrowserPhotoAnimation(BrowserPhotoLifetime owner, PhotoCol
             frame = BrowserMediaFrames.CreateVideo(decoded[0]);
             imported = true;
             if (profile is not null)
-                BrowserImageDecoder.ApplyProfile(frame, profile, linear: false);
+                WirePhotoFrames.ApplyProfile(frame, profile, linear: false);
             cancellation.Token.ThrowIfCancellationRequested();
             VideoFrame resultFrame = frame;
             frame = null;

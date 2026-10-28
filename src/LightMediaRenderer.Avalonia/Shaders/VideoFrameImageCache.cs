@@ -609,17 +609,17 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
         VideoSurfaceTransfer? Bt709Transfer,
         bool HdrPassthrough,
         VideoOutputColorVolume? ColorVolume,
-        VideoSdrToneMappingOptions SdrToneMapping,
+        VideoSdrToneMappingOptions? SdrToneMapping,
         int PanelBitDepth,
         VideoDebandingQuality Debanding)
     {
         public static SceneKey For(in VideoRenderRequest request) => new(
             request.Target,
-            VideoSurfaceTransfers.For(request.ColorVolume),
+            VideoSurfaceTransfers.For(request.Target, request.ColorVolume),
             VideoSurfaceTransfers.ForBt709(),
             request.HdrPassthrough,
             request.ColorVolume,
-            request.SdrToneMapping ?? VideoSdrToneMappingOptions.Default,
+            request.SdrToneMapping,
             request.PanelBitDepth,
             request.Debanding);
     }

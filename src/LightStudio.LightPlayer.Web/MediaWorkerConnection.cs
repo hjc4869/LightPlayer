@@ -222,6 +222,11 @@ internal sealed partial class MediaWorkerConnection
         if (Failure is null) CancelPhotoTiles(Id, session, gain, operation);
     }
 
+    internal void CancelPhotoExport(int operation)
+    {
+        if (Failure is null) CancelPhotoExport(Id, operation);
+    }
+
     private void ScheduleUpdates()
     {
         if (updatesScheduled)
@@ -341,6 +346,9 @@ internal sealed partial class MediaWorkerConnection
 
     [JSImport("cancelPhotoTiles", ModuleName)]
     private static partial void CancelPhotoTiles(int worker, int session, bool gain, int operation);
+
+    [JSImport("cancelPhotoExport", ModuleName)]
+    private static partial void CancelPhotoExport(int worker, int operation);
 
     [JSImport("callWithPayload", ModuleName)]
     private static partial Task<string> CallWithPayload(int worker, int token, string method, string arguments);

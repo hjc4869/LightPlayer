@@ -11,8 +11,8 @@ namespace LightMediaRenderer.Subtitles;
 /// </summary>
 /// <remarks>
 /// Everything is laid out once, in the script's own <c>PlayRes</c> coordinate system, and the canvas
-/// carries the transform to the video rectangle. That keeps the cached layout valid no matter how the
-/// window is resized, and lets Skia rasterize glyphs at the true device size instead of scaling a
+/// carries the transform to the video rectangle. Plain text uses an aspect-aware layout width to
+/// preserve font proportions. Skia rasterizes glyphs at the true device size instead of scaling a
 /// pre-rendered bitmap.
 ///
 /// Instances are not thread safe on their own but guard themselves with a lock, because a render
@@ -43,7 +43,13 @@ public sealed class AssSubtitleRenderer : IDisposable
     private readonly SKPaint paint = new() { IsAntialias = true, StrokeJoin = SKStrokeJoin.Round };
 
     private AssDocument? cachedDocument;
+    private AssScriptInfo cachedScriptInfo = new();
     private bool drawTextAsPath;
+    private float strokeStep;
+    private bool eventPerspective;
+    private bool snapShadows;
+    private SKMatrix eventMatrix;
+    private SKMatrix eventInverse;
     private bool disposed;
 
     /// <summary>
@@ -91,19 +97,28 @@ public sealed class AssSubtitleRenderer : IDisposable
 
             this.drawTextAsPath = drawTextAsPath;
 
-            if (!ReferenceEquals(document, cachedDocument))
+            int playResX = document.IsPlainText
+                ? Math.Max(1, (int)Math.Round(target.Width / target.Height * document.ScriptInfo.PlayResY))
+                : document.ScriptInfo.PlayResX;
+            if (!ReferenceEquals(document, cachedDocument) || cachedScriptInfo.PlayResX != playResX)
             {
                 DropLayouts();
                 cachedDocument = document;
+                cachedScriptInfo = document.ScriptInfo;
+                if (document.IsPlainText)
+                {
+                    cachedScriptInfo = cachedScriptInfo.Clone();
+                    cachedScriptInfo.PlayResX = playResX;
+                }
             }
 
             document.CollectActive(time, active);
             if (active.Count == 0)
                 return;
 
-            AssScriptInfo info = document.ScriptInfo;
-            float scaleX = target.Width / info.PlayResX;
+            AssScriptInfo info = cachedScriptInfo;
             float scaleY = target.Height / info.PlayResY;
+            float scaleX = document.IsPlainText ? scaleY : target.Width / info.PlayResX;
 
             // With ScaledBorderAndShadow off, borders keep their size in screen pixels, so they have
             // to be shrunk by whatever the canvas transform is about to multiply them by.
@@ -120,7 +135,7 @@ public sealed class AssSubtitleRenderer : IDisposable
             foreach (AssDialogue dialogue in active)
             {
                 double elapsed = (time - dialogue.Start).TotalSeconds;
-                EventLayout layout = GetLayout(document, dialogue, elapsed);
+                EventLayout layout = GetLayout(document, info, dialogue, elapsed);
                 if (layout.Lines.Count == 0)
                     continue;
 
@@ -133,12 +148,34 @@ public sealed class AssSubtitleRenderer : IDisposable
                 int eventRestore = canvas.Save();
                 ApplyClip(canvas, layout);
                 ApplyTransform(canvas, layout, anchorX, anchorY, blockX, blockY, layoutScale);
+                PrepareEvent(canvas.TotalMatrix, layout.IsAnimated, scaleY);
                 DrawEvent(canvas, layout, blockX, blockY, borderScale, layoutScale, opacity * fade, colorScale, elapsed);
                 canvas.RestoreToCount(eventRestore);
             }
 
             canvas.RestoreToCount(restore);
             TrimCache();
+        }
+    }
+
+    /// <summary>
+    /// Sorted font families text subtitles can be drawn in: the platform's own and any registered
+    /// with <see cref="SubtitleFontFallbacks"/>. Enumerating them can be slow, so call this off the UI thread.
+    /// </summary>
+    public static IReadOnlyList<string> GetAvailableFontFamilies()
+    {
+        var families = new SortedSet<string>(StringComparer.CurrentCultureIgnoreCase);
+        foreach (string family in SKFontManager.Default.FontFamilies)
+            Add(family);
+        foreach (string family in SubtitleFontFallbacks.FamilyNames())
+            Add(family);
+        return [.. families];
+
+        // A leading @ asks GDI for the vertical variant, which would turn every glyph on its side.
+        void Add(string? family)
+        {
+            if (!string.IsNullOrWhiteSpace(family) && !family.StartsWith('@'))
+                families.Add(family.Trim());
         }
     }
 
@@ -397,6 +434,39 @@ public sealed class AssSubtitleRenderer : IDisposable
         => rect.Left < other.Right && other.Left < rect.Right &&
            rect.Top + shift < other.Bottom && other.Top < rect.Bottom + shift;
 
+    /// <summary>
+    /// Decides how far an event's outlines, blur and shadow may be nudged so that consecutive
+    /// frames, and the shadow and outline passes, can share glyph images.
+    /// </summary>
+    /// <remarks>
+    /// Skia rasterizes a glyph anew for every outline width, blur radius and subpixel position. A
+    /// static event pays that once, so only animated ones are nudged: outline width and blur radius
+    /// move in steps of at least an eighth of a device pixel, and the shadow moves by whole device
+    /// pixels so its glyphs land on the same subpixel phase as the outline's.
+    /// </remarks>
+    private void PrepareEvent(SKMatrix matrix, bool animated, float scaleY)
+    {
+        eventMatrix = matrix;
+        eventPerspective = matrix.Persp0 != 0 || matrix.Persp1 != 0;
+        strokeStep = animated ? 1f / (8 * scaleY) : 0;
+        snapShadows = animated && !eventPerspective && matrix.TryInvert(out eventInverse);
+    }
+
+    private void SnapToPixels(ref float x, ref float y)
+    {
+        SKPoint device = eventMatrix.MapVector(x, y);
+        float snappedX = MathF.Round(device.X, MidpointRounding.AwayFromZero);
+        float snappedY = MathF.Round(device.Y, MidpointRounding.AwayFromZero);
+
+        // A shadow shorter than half a pixel would vanish behind the outline, so it stays exact.
+        if (snappedX == 0 && snappedY == 0)
+            return;
+
+        SKPoint snapped = eventInverse.MapVector(snappedX, snappedY);
+        x = snapped.X;
+        y = snapped.Y;
+    }
+
     /// <summary>Shadow, then outline, then fill -- the order ASS renderers agree on.</summary>
     private void DrawEvent(SKCanvas canvas, EventLayout layout, float blockX, float blockY, float borderScale, float layoutScale, float opacity, float colorScale, double elapsed)
     {
@@ -462,8 +532,12 @@ public sealed class AssSubtitleRenderer : IDisposable
             SpanStyle style = run.Style;
             float x = blockX + line.OffsetX + run.OffsetX;
             float border = (float)((style.BorderX + style.BorderY) / 2) * borderScale;
+            if (strokeStep > 0 && border > 0)
+                border = MathF.Max(strokeStep, MathF.Round(border / strokeStep) * strokeStep);
             float shadowX = (float)style.ShadowX * borderScale;
             float shadowY = (float)style.ShadowY * borderScale;
+            if (snapShadows)
+                SnapToPixels(ref shadowX, ref shadowY);
             bool box = style.BorderStyle == 3;
             SKMaskFilter? blur = GetBlur(style, layoutScale);
 
@@ -493,7 +567,12 @@ public sealed class AssSubtitleRenderer : IDisposable
                     if (!box && border > 0 && TryPrepare(style.OutlineColour, opacity, colorScale, blur))
                     {
                         // Skia centers the stroke on the contour, so half of it is hidden by the fill.
-                        paint.Style = SKPaintStyle.Stroke;
+                        // Under an opaque fill the glyph's inside never shows, so the outline can be
+                        // the same filled-and-stroked shape as the shadow and share its glyph images;
+                        // perspective keeps the plain stroke, which Skia can still draw from distance fields.
+                        paint.Style = !eventPerspective && HasOpaqueFill(style, opacity)
+                            ? SKPaintStyle.StrokeAndFill
+                            : SKPaintStyle.Stroke;
                         paint.StrokeWidth = border * 2;
                         DrawRun(canvas, run, x, baseline);
                         DrawDecorations(canvas, run, x, baseline, border);
@@ -568,7 +647,7 @@ public sealed class AssSubtitleRenderer : IDisposable
             canvas.DrawPath(path, paint);
             canvas.RestoreToCount(restore);
         }
-        else if (run.Blob is { } blob)
+        else if (run.GetBlob() is { } blob)
         {
             canvas.DrawText(blob, x, baseline, paint);
         }
@@ -609,6 +688,11 @@ public sealed class AssSubtitleRenderer : IDisposable
         rect.Inflate(inflate, inflate);
         return rect;
     }
+
+    /// <summary>Whether the fill pass hides the glyph's inside completely, in any karaoke state.</summary>
+    private static bool HasOpaqueFill(SpanStyle style, float opacity)
+        => opacity >= 1f && style.PrimaryColour.Alpha == 255 &&
+           (style.Karaoke == KaraokeMode.None || style.SecondaryColour.Alpha == 255);
 
     private bool TryPrepare(AssColor color, float opacity, float colorScale, SKMaskFilter? blur)
     {
@@ -662,6 +746,14 @@ public sealed class AssSubtitleRenderer : IDisposable
         if (sigma < 0.05)
             return null;
 
+        if (strokeStep > 0)
+        {
+            // The step grows with the radius, the same form libass uses: 3% of sigma plus the pixel fraction.
+            const double Relative = 0.03;
+            double index = Math.Round(Math.Log(1 + (sigma * Relative / strokeStep)) / Relative);
+            sigma = Math.Max(0.05, (Math.Exp(Relative * index) - 1) * strokeStep / Relative);
+        }
+
         int key = (int)Math.Round(sigma * 16);
         if (blurs.TryGetValue(key, out SKMaskFilter? cached))
             return cached;
@@ -676,24 +768,38 @@ public sealed class AssSubtitleRenderer : IDisposable
     /// </summary>
     /// <remarks>
     /// Only events carrying a <c>\t</c> are time dependent, and they are re-segmented in steps rather
-    /// than every frame: <c>\t</c> can animate the font size, so there is no way to keep the layout
-    /// and repaint alone, and stepping bounds the cost of a script that animates everything at once.
+    /// than every frame, and only while a transition is in progress: <c>\t</c> can animate the font
+    /// size, so there is no way to keep the layout and repaint alone, and stepping bounds the cost of
+    /// a script that animates everything at once.
     /// </remarks>
-    private EventLayout GetLayout(AssDocument document, AssDialogue dialogue, double elapsed)
+    private EventLayout GetLayout(AssDocument document, AssScriptInfo info, AssDialogue dialogue, double elapsed)
     {
-        int slot = (int)Math.Floor(elapsed * AnimationStepsPerSecond);
         if (layouts.TryGetValue(dialogue, out EventLayout? cached))
         {
-            if (!cached.IsAnimated || cached.AnimationSlot == slot)
+            if (!cached.IsAnimated || cached.AnimationSlot == AnimationSlot(cached, elapsed))
                 return cached;
+        }
 
+        EventLayout layout = engine.Layout(segmenter.Segment(document, dialogue, elapsed), info);
+        layout.AnimationSlot = AnimationSlot(layout, elapsed);
+        if (cached is not null)
+        {
+            layout.AdoptResources(cached);
             cached.Dispose();
         }
 
-        EventLayout layout = engine.Layout(segmenter.Segment(document, dialogue, elapsed), document.ScriptInfo);
-        layout.AnimationSlot = slot;
         layouts[dialogue] = layout;
         return layout;
+    }
+
+    /// <summary>Before the first transition starts and after the last one ends, nothing moves.</summary>
+    private static int AnimationSlot(EventLayout layout, double elapsed)
+    {
+        if (elapsed < layout.AnimationStart)
+            return int.MinValue;
+        if (elapsed >= layout.AnimationEnd)
+            return int.MaxValue;
+        return (int)Math.Floor(elapsed * AnimationStepsPerSecond);
     }
 
     private void TrimCache()

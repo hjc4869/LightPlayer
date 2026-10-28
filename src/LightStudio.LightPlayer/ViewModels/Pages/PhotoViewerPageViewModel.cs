@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using LightMediaRenderer.Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -12,6 +13,7 @@ using LightStudio.FfmpegShim.Core;
 using LightStudio.FfmpegShim.Media;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Services;
+using LightStudio.LightPlayer.Services.PhotoExport;
 using LightMediaRenderer.Avalonia.Shaders;
 using LightStudio.Logging;
 using LightStudio.MediaLibraryCore.IO;
@@ -41,10 +43,10 @@ public enum PhotoViewerAction
 /// Previews and full-resolution frames load asynchronously. Oriented source dimensions let the
 /// control preserve the picture's geometry as a preview gives way to the decoded frame.
 /// </remarks>
-public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavigationParameterSource, IDisposable, IAsyncDisposable
+public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavigationParameterSource, IInPageBackHandler,
+    IDisposable, IAsyncDisposable
 {
     private readonly IClientMediaResolver mediaResolver;
-    private readonly IAppSettingsStore settingsStore;
     private readonly PhotoViewerCallbacks callbacks;
     private readonly IReadOnlyList<MediaReference> photos;
     private readonly CancellationTokenSource cancellation = new();
@@ -114,19 +116,8 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
     private bool enableHdrPassthrough;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayedGainMap))]
     private bool enableGainMap = true;
-
-    [ObservableProperty]
-    private VideoSdrToneMappingOptions? toneMapping;
-
-    [ObservableProperty]
-    private bool hasPreferredToneMapping;
-
-    public async Task SaveToneMappingPreferenceAsync(bool clear)
-    {
-        await settingsStore.SetPreferredPhotoToneMappingAsync(clear ? null : ToneMapping);
-        HasPreferredToneMapping = settingsStore.PreferredPhotoToneMapping is not null;
-    }
 
     [ObservableProperty]
     private int displayPanelBitDepth;
@@ -162,9 +153,24 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         PhotoViewerCallbacks callbacks)
     {
         this.mediaResolver = mediaResolver;
-        this.settingsStore = settingsStore;
-        toneMapping = settingsStore.PreferredPhotoToneMapping;
-        hasPreferredToneMapping = toneMapping is not null;
+        ToneProfiles = new PhotoToneMappingViewModel(settingsStore);
+        SaveAs = new PhotoSaveAsViewModel(mediaResolver, settingsStore, cancellation.Token);
+        ToneProfiles.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is null or "" or nameof(PhotoToneMappingViewModel.Options))
+                OnPropertyChanged(nameof(DisplayedToneMapping));
+        };
+        SaveAs.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is null or "" or nameof(PhotoSaveAsViewModel.IsOpen))
+                OnPropertyChanged(nameof(CanHandleBack));
+            if (args.PropertyName is null or "" or nameof(PhotoSaveAsViewModel.OverridesToneMapping) or
+                nameof(PhotoSaveAsViewModel.PreviewToneMapping) or nameof(PhotoSaveAsViewModel.HidesGainMap))
+            {
+                OnPropertyChanged(nameof(DisplayedToneMapping));
+                OnPropertyChanged(nameof(DisplayedGainMap));
+            }
+        };
         this.callbacks = callbacks;
         photos = request.Photos.Count > 0 ? request.Photos : [MediaReference.Local(string.Empty)];
         index = Math.Clamp(request.Index, 0, photos.Count - 1);
@@ -184,6 +190,7 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         ZoomToFitCommand = new RelayCommand(() => Request(PhotoViewerAction.ZoomToFit));
         CopyImageCommand = new RelayCommand(() => Request(PhotoViewerAction.CopyImage), () => HasImage);
         CopyPathCommand = new RelayCommand(() => Request(PhotoViewerAction.CopyPath));
+        SaveAsCommand = new RelayCommand(ToggleSaveAs, () => Image is { PhotoAnimation: null });
         RotateCommand = new RelayCommand<string>(Rotate);
         OpenContainingFolderCommand = new RelayCommand(OpenContainingFolder, () => CanRevealInFileManager);
         OpenInNewWindowCommand = new RelayCommand(OpenInNewWindow, () => CanOpenInNewWindow);
@@ -238,6 +245,9 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
 
     public IRelayCommand CopyPathCommand { get; }
 
+    /// <summary>Opens the panel that saves the picture in another format or size, or closes it.</summary>
+    public IRelayCommand SaveAsCommand { get; }
+
     public IRelayCommand<string> RotateCommand { get; }
 
     public IRelayCommand OpenContainingFolderCommand { get; }
@@ -254,15 +264,37 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
 
     public IRelayCommand ToggleRawRenderingCommand { get; }
 
+    /// <summary>Tone mapping for pictures with absolute luminance.</summary>
+    public PhotoToneMappingViewModel ToneProfiles { get; }
+
+    public PhotoSaveAsViewModel SaveAs { get; }
+
+    /// <summary>The tone mapping the picture is drawn with, previewing the saved file while the save panel asks to.</summary>
+    public VideoSdrToneMappingOptions? DisplayedToneMapping =>
+        SaveAs.OverridesToneMapping ? SaveAs.PreviewToneMapping : ToneProfiles.Options;
+
+    public bool DisplayedGainMap => EnableGainMap && !SaveAs.HidesGainMap;
+
+    /// <summary>A back gesture closes the save panel before it leaves the page.</summary>
+    public bool CanHandleBack => SaveAs.IsOpen;
+
+    public bool TryHandleBack()
+    {
+        if (!SaveAs.IsOpen)
+            return false;
+        SaveAs.Close();
+        return true;
+    }
+
     partial void OnIsFullScreenChanged(bool value) => callbacks.SetFullScreen?.Invoke(value);
 
     public bool HasImage => Image is not null;
 
     public bool HasGainMap => Image?.GainMap is not null ||
-        Image is null && Preview?.Image is PhotoFrameImage { Frame.GainMap: not null };
+        Image is null && Preview is { IsViewportPreview: true, Image: PhotoFrameImage { Frame.GainMap: not null } };
 
-    public bool HasAbsoluteLuminance => (Image ?? (Preview?.Image as PhotoFrameImage)?.Frame) is
-        { GainMap: null, ColorTransfer: VideoColorTransfer.Pq };
+    public bool HasAbsoluteLuminance => (Image ?? (Preview is { IsViewportPreview: true, Image: PhotoFrameImage photo }
+        ? photo.Frame : null)) is { GainMap: null, ColorTransfer: VideoColorTransfer.Pq };
 
     public bool HasFailed => Failure is not null;
 
@@ -386,7 +418,7 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
     internal void SupplyPreview(PhotoPreview value)
     {
         if (!cancellation.IsCancellationRequested && (Preview is null ||
-            value.Image is PhotoFrameImage && Preview.Image is not PhotoFrameImage))
+            value.IsViewportPreview && !Preview.IsViewportPreview))
             Preview = value;
         else
             value.Release();
@@ -482,11 +514,11 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         PhotoPreview? incomingPreview = selectedPreview?.AddRef() ?? (adjacent
             ? (offset > 0 ? NextPreview : PreviousPreview)?.AddRef() : null);
         Size outgoingSize = adjacent ? NaturalSize : default;
-        Size incomingSize = adjacent ? (offset > 0 ? NextNaturalSize : PreviousNaturalSize) : default;
+        Size incomingSize = adjacent ? (offset > 0 ? NextNaturalSize : PreviousNaturalSize)
+            : incomingPreview?.NaturalSize ?? default;
 
         index = target;
-        ToneMapping = settingsStore.PreferredPhotoToneMapping;
-        HasPreferredToneMapping = ToneMapping is not null;
+        ToneProfiles.Revert();
         Rotation = 0;
         CanSwitchRawRendering = false;
         IsRawRendering = false;
@@ -527,6 +559,33 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         {
             Rotation = (Rotation + turn) % 360;
         }
+    }
+
+    partial void OnRotationChanged(int value) => SaveAs.Rotate(value);
+
+    private void ToggleSaveAs()
+    {
+        if (SaveAs.IsOpen)
+        {
+            SaveAs.Close();
+            return;
+        }
+
+        if (Image is not { PhotoAnimation: null } frame)
+            return;
+        Size size = DisplaySize(frame);
+        SaveAs.Open(new PhotoSaveSource(
+            Current,
+            FileName,
+            CanSwitchRawRendering ? IsRawRendering : null,
+            PhotoExportSource.Classify(frame),
+            frame.HasAlpha,
+            size.Width,
+            size.Height,
+            Rotation,
+            ToneMappingProfileChoices.ProfileName(ToneProfiles.SelectedProfile),
+            ToneProfiles.Options,
+            PhotoExportColor.SourceGamuts(frame)));
     }
 
     private void OpenContainingFolder() => callbacks.RevealInFileManager?.Invoke(Current.Path);
@@ -672,8 +731,12 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
     {
         try
         {
-            if (existing?.Image is PhotoFrameImage)
+            if (existing?.IsViewportPreview == true)
+            {
+                if (existing.NaturalSize is { Width: > 0, Height: > 0 } size)
+                    setSize(size);
                 return;
+            }
             await viewportReady.Task.WaitAsync(token).ConfigureAwait(true);
             try
             {
@@ -685,11 +748,15 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
                     ExistingMaxDimension = callbacks.LoadPreview is null ? 0 : callbacks.PreviewMaxDimension,
                 };
                 IMultiMediaPlatformIO platform = await mediaResolver.ResolvePlatformAsync(media, token).ConfigureAwait(true);
+                Size naturalSize = default;
                 VideoFrame? frame = await ImageDecoding.DecodePhotoAsync(
                     new PhotoDecodeRequest(platform, media.Path) { Preview = previewRequest }, new Progress<Size>(size =>
                     {
                         if (!token.IsCancellationRequested)
+                        {
+                            naturalSize = size;
                             setSize(size);
+                        }
                     }), token).ConfigureAwait(true);
                 if (frame is not null)
                 {
@@ -700,7 +767,7 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
                         image = new PhotoFrameImage(frame);
                     }
                     finally { frame.Release(); }
-                    fill(new PhotoPreview(image, image.Dispose));
+                    fill(new PhotoPreview(image, image.Dispose, isViewportPreview: true, naturalSize: naturalSize));
                     return;
                 }
             }
@@ -727,13 +794,13 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
             return;
         try
         {
-            Bitmap? bitmap = await loader(media, token).ConfigureAwait(true);
-            if (bitmap is null)
+            IImage? thumbnail = await loader(media, token).ConfigureAwait(true);
+            if (thumbnail is null)
                 return;
             if (token.IsCancellationRequested)
-                bitmap.Dispose();
+                (thumbnail as IDisposable)?.Dispose();
             else
-                fill(new PhotoPreview(bitmap, bitmap.Dispose));
+                fill(new PhotoPreview(thumbnail, () => (thumbnail as IDisposable)?.Dispose()));
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -807,6 +874,8 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         if (oldValue?.PhotoSurface is { } surface)
             imageReleased = surface.WhenReleased;
         oldValue?.Release();
+        SaveAs.Close();
+        SaveAsCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnPreviewChanged(PhotoPreview? oldValue, PhotoPreview? newValue) => oldValue?.Release();
@@ -834,6 +903,7 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         originPreviews.Clear();
 
         IsFullScreen = false;
+        SaveAs.Close();
         cancellation.Cancel();
         load.Dispose();
         readAhead.Dispose();

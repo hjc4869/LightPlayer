@@ -372,6 +372,10 @@ internal sealed class EventSegmenter
                 break;
         }
 
+        SegmentedEvent result = context.Result;
+        result.AnimationStart = Math.Min(result.AnimationStart, Math.Min(start, end));
+        result.AnimationEnd = Math.Max(result.AnimationEnd, Math.Max(start, end));
+
         double factor = end <= start
             ? (context.Elapsed >= end ? 1 : 0)
             : Math.Clamp((context.Elapsed - start) / (end - start), 0, 1);

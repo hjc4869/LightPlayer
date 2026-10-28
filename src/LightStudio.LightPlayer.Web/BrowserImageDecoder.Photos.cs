@@ -1,11 +1,8 @@
 using System.Runtime.Versioning;
-using Vector3 = System.Numerics.Vector3;
 using Avalonia;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.Engine;
 using LightStudio.FfmpegShim.Media;
-using LightStudio.LightPlayer.Services;
-using SkiaSharp;
 using LightStudio.Logging;
 
 namespace LightStudio.LightPlayer.Web;
@@ -29,29 +26,17 @@ internal sealed partial class BrowserImageDecoder
             if (preview is null)
                 displaySize?.Report(image.Rotation % 180 == 0 ? new Size(image.Width * image.PixelAspect, image.Height) :
                     new Size(image.Height, image.Width * image.PixelAspect));
-            var gain = photo.Gain is null ? null : photo.GainMap;
-            var profile = image.Color?.ToProfile() ?? ImageDecoding.CreateColorProfile(photo.BaseProfile ?? image.IccProfile, image.Primaries,
-                image.Transfer is 0 or 2 ? 13 : image.Transfer);
-            if (gain is not null && profile is not null)
-                profile = RelativeProfile(profile);
-            frame = CreatePicture(owner, image, profile, gain is not null, false);
+            var gain = WirePhotoFrames.HasGainMap(photo);
+            var profile = WirePhotoFrames.BaseProfile(photo);
+            frame = CreatePicture(owner, image, profile, gain, false);
             if (photo.AnimationBytes > 0)
                 frame.PhotoAnimation = new BrowserPhotoAnimationSource(owner, profile);
             frame.IsEmbeddedRawPreview = photo.IsEmbeddedRawPreview;
             frame.PhotoPeakLuminance = photo.PeakLuminance;
-            if (gain is not null)
+            if (gain)
             {
-                VideoFrame samples = CreatePicture(owner, photo.Gain!, GainSampleProfile, true, true);
-                try
-                {
-                    var math = gain.UseBaseColorSpace ? profile : ImageDecoding.CreateColorProfile(photo.MathProfile ?? [],
-                        photo.MathPrimaries == 0 ? 1 : photo.MathPrimaries, 8);
-                    if (math is null) throw new NotSupportedException("The gain-map calculation color space is not supported.");
-                    var matrix = new SKColorSpaceXyz(math.ToBt2020.ToArray());
-                    frame.GainMap = new PhotoGainMap(samples, Vector(gain.Minimum), Vector(gain.Maximum), Vector(gain.Gamma),
-                        Vector(gain.OffsetSdr), Vector(gain.OffsetHdr), gain.CapacityMin, gain.CapacityMax,
-                        matrix.Invert().Values, matrix.Values) { BaseIsHdr = gain.BaseIsHdr, IsApple = gain.IsApple };
-                }
+                VideoFrame samples = CreatePicture(owner, photo.Gain!, WirePhotoFrames.GainSampleProfile, true, true);
+                try { frame.GainMap = WirePhotoFrames.CreateGainMap(photo, profile, samples); }
                 finally { samples.Release(); }
             }
             cancellationToken.ThrowIfCancellationRequested();
@@ -60,25 +45,6 @@ internal sealed partial class BrowserImageDecoder
             return result;
         }
         finally { frame?.Release(); await owner.DisposeAsync(); }
-    }
-
-    internal static readonly PhotoColorProfile GainSampleProfile = new([1, 1, 0, 1, 0, 0, 0], [1, 0, 0, 0, 1, 0, 0, 0, 1]);
-
-    private static Vector3 Vector(float[] values) => values.Length == 3 ? new Vector3(values[0], values[1], values[2]) :
-        throw new InvalidDataException("Invalid gain-map vector.");
-
-    private static PhotoColorProfile RelativeProfile(PhotoColorProfile profile) => new(profile.Transfer.ToArray(), profile.ToBt2020.ToArray(),
-        profile.TransferCode, profile.TransferCode is 16 or 18 ? 1f / 203 : profile.LinearScale, profile.HasAlpha);
-
-    internal static void ApplyProfile(VideoFrame frame, PhotoColorProfile profile, bool linear)
-    {
-        frame.PhotoColor = profile;
-        frame.ColorPrimaries = VideoColorPrimaries.Bt2020;
-        frame.ColorTransfer = linear ? VideoColorTransfer.Linear : profile.TransferCode switch
-        {
-            16 => VideoColorTransfer.Pq, 18 => VideoColorTransfer.Hlg, _ => VideoColorTransfer.Linear,
-        };
-        frame.FieldOrder = VideoFieldOrder.Progressive;
     }
 
     // A picture the worker decoded while opening the photo, or one it keeps as tiles decoded on request.
@@ -98,7 +64,7 @@ internal sealed partial class BrowserImageDecoder
         else
             frame = BrowserMediaFrames.CreateVideo(owner.Photo.TakeFrame(image.Frame));
         frame.HasAlpha = image.HasAlpha;
-        if (profile is not null) ApplyProfile(frame, profile, linear);
+        if (profile is not null) WirePhotoFrames.ApplyProfile(frame, profile, linear);
         return frame;
     }
 }
@@ -211,7 +177,7 @@ internal sealed class BrowserPhotoTileSource(BrowserPhotoLifetime owner, WirePho
             for (; imported < frames.Length; imported++)
             {
                 frames[imported] = BrowserMediaFrames.CreateVideo(decoded[imported]);
-                if (profile is not null) BrowserImageDecoder.ApplyProfile(frames[imported], profile, linear);
+                if (profile is not null) WirePhotoFrames.ApplyProfile(frames[imported], profile, linear);
             }
             cancellation.Token.ThrowIfCancellationRequested();
             return frames;

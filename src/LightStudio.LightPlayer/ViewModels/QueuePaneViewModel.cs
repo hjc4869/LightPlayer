@@ -20,6 +20,7 @@ public partial class QueuePaneViewModel : ObservableObject
 {
     private readonly PlaybackController controller;
     private bool selectAllPending;
+    private bool isFloating;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PaneWidth))]
@@ -149,6 +150,22 @@ public partial class QueuePaneViewModel : ObservableObject
     public bool IsPinned => IsOpen && !IsOverlayMode;
 
     public bool IsTemporarilyOpen => (IsDragHintOpen && !IsPinned) || (IsOpen && IsOverlayMode);
+
+    public bool IsFloating => isFloating;
+
+    partial void OnIsOpenChanged(bool value) => UpdatePresentation();
+
+    partial void OnIsDragHintOpenChanged(bool value) => UpdatePresentation();
+
+    partial void OnIsOverlayModeChanged(bool value) => UpdatePresentation();
+
+    private void UpdatePresentation()
+    {
+        if (IsPinned || IsTemporarilyOpen)
+        {
+            SetProperty(ref isFloating, IsTemporarilyOpen, nameof(IsFloating));
+        }
+    }
 
     public const double DefaultWidth = 360d;
 

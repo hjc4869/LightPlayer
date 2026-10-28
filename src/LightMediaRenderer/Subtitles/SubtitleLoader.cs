@@ -64,6 +64,17 @@ public static class SubtitleLoader
             : AssParser.Parse(new StringReader(text));
     }
 
+    /// <summary>
+    /// Parses a script libavcodec converted from a plain text stream such as SubRip or WebVTT, whose
+    /// style is generated rather than authored.
+    /// </summary>
+    public static AssDocument ParsePlainText(string script)
+    {
+        AssDocument document = Parse(script);
+        document.IsPlainText = true;
+        return document;
+    }
+
     private static SubtitleFormat Detect(string text, string? path = null)
     {
         ArgumentNullException.ThrowIfNull(text);

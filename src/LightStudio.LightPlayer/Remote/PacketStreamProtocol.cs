@@ -351,7 +351,7 @@ public sealed class HttpPacketStreamReader : IDisposable
         ushort version = BinaryPrimitives.ReadUInt16LittleEndian(preamble.AsSpan(4));
         if (magic != HttpPacketStreamProtocol.Magic)
         {
-            throw new InvalidDataException("The response is not a Light Player packet stream.");
+            throw new InvalidDataException("The response is not a Light Media Center packet stream.");
         }
 
         if (version != HttpPacketStreamProtocol.Version)

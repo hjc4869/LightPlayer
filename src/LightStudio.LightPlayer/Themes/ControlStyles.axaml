@@ -1,7 +1,14 @@
 <Styles xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls"
+        xmlns:services="using:LightStudio.LightPlayer.Services">
     <Style Selector="ComboBox /template/ Popup#PART_Popup">
         <Setter Property="Placement" Value="BottomEdgeAlignedLeft" />
+    </Style>
+
+    <!-- Every liquid glass material follows the frosting preference. -->
+    <Style Selector="lmr|BackdropBorder">
+        <Setter Property="GlassFrost" Value="{Binding Frost, Source={x:Static services:LiquidGlassAppearance.Instance}}" />
     </Style>
 
     <!--

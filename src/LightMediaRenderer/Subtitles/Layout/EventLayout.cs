@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using LightMediaRenderer.Contracts;
 using SkiaSharp;
 
@@ -8,13 +9,12 @@ namespace LightMediaRenderer.Subtitles.Layout;
 /// <summary>A shaped, positioned piece of text sharing one style, or one vector drawing.</summary>
 internal sealed class LayoutRun : IDisposable
 {
+    private SKTextBlob? blob;
+    private bool blobCreated;
     private SKPath? textPath;
     private bool textPathCreated;
 
     public required SpanStyle Style { get; init; }
-
-    /// <summary>Glyphs positioned relative to the run's origin, with the baseline at y = 0.</summary>
-    public SKTextBlob? Blob { get; init; }
 
     /// <summary>A <c>\p</c> shape, already scaled and shifted onto the baseline.</summary>
     public SKPath? Path { get; init; }
@@ -23,6 +23,7 @@ internal sealed class LayoutRun : IDisposable
 
     public ushort[]? GlyphIndices { get; init; }
 
+    /// <summary>Glyph origins relative to the run's origin, with the baseline at y = 0.</summary>
     public SKPoint[]? GlyphPositions { get; init; }
 
     /// <summary>Offset from the start of the line.</summary>
@@ -35,6 +36,23 @@ internal sealed class LayoutRun : IDisposable
 
     /// <summary>Width of the whole syllable this run belongs to.</summary>
     public float KaraokeWidth { get; set; }
+
+    public SKTextBlob? GetBlob()
+    {
+        if (blobCreated)
+            return blob;
+
+        blobCreated = true;
+        if (Font is null || GlyphIndices is null || GlyphPositions is null)
+            return null;
+
+        blob = SKTextBlob.CreatePositioned(
+            MemoryMarshal.AsBytes(GlyphIndices.AsSpan()),
+            SKTextEncoding.GlyphId,
+            Font,
+            GlyphPositions);
+        return blob;
+    }
 
     public SKPath? GetTextPath()
     {
@@ -62,9 +80,26 @@ internal sealed class LayoutRun : IDisposable
         return textPath;
     }
 
+    /// <summary>
+    /// Takes over the blob and text path of an identical run from an earlier animation step, so the
+    /// GPU caches keyed on those objects keep hitting while only colors or placement change.
+    /// </summary>
+    public void AdoptFrom(LayoutRun previous)
+    {
+        if (blobCreated || textPathCreated || Font is null || !ReferenceEquals(Font, previous.Font) ||
+            GlyphIndices is null || previous.GlyphIndices is null ||
+            GlyphPositions is null || previous.GlyphPositions is null ||
+            !GlyphIndices.AsSpan().SequenceEqual(previous.GlyphIndices) ||
+            !MemoryMarshal.AsBytes(GlyphPositions.AsSpan()).SequenceEqual(MemoryMarshal.AsBytes(previous.GlyphPositions.AsSpan())))
+            return;
+
+        (blob, blobCreated, textPath, textPathCreated) = (previous.blob, previous.blobCreated, previous.textPath, previous.textPathCreated);
+        (previous.blob, previous.blobCreated, previous.textPath, previous.textPathCreated) = (null, false, null, false);
+    }
+
     public void Dispose()
     {
-        Blob?.Dispose();
+        blob?.Dispose();
         Path?.Dispose();
         textPath?.Dispose();
     }
@@ -152,6 +187,11 @@ internal sealed class EventLayout : IDisposable
     /// <summary>Set when the event holds a <c>\t</c>, which makes this layout time dependent.</summary>
     public bool IsAnimated { get; set; }
 
+    /// <summary>Seconds from the start of the event during which some <c>\t</c> is in progress.</summary>
+    public double AnimationStart { get; set; }
+
+    public double AnimationEnd { get; set; }
+
     /// <summary>Which animation step this layout was built for; see the renderer's cache.</summary>
     public int AnimationSlot { get; set; } = -1;
 
@@ -166,6 +206,20 @@ internal sealed class EventLayout : IDisposable
 
     /// <summary>0 = bottom, 1 = middle, 2 = top.</summary>
     public int VerticalAlignment => (Alignment - 1) / 3;
+
+    /// <summary>Lets every run reuse what it can from the same run of the previous layout.</summary>
+    public void AdoptResources(EventLayout previous)
+    {
+        int lines = Math.Min(Lines.Count, previous.Lines.Count);
+        for (int i = 0; i < lines; i++)
+        {
+            List<LayoutRun> runs = Lines[i].Runs;
+            List<LayoutRun> earlier = previous.Lines[i].Runs;
+            int count = Math.Min(runs.Count, earlier.Count);
+            for (int j = 0; j < count; j++)
+                runs[j].AdoptFrom(earlier[j]);
+        }
+    }
 
     public void Dispose()
     {

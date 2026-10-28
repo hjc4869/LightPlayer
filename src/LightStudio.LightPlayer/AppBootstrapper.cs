@@ -161,10 +161,14 @@ public sealed class AppBootstrapper
     }
 
     /// <summary>Builds the first-run setup window; the host opens the main window on completion.</summary>
-    public InitialSetupWindow CreateSetupWindow() => new()
+    public InitialSetupWindow CreateSetupWindow()
     {
-        DataContext = new InitialSetupViewModel(settingsStore, themeService, lyricSourceService),
-    };
+        var window = new InitialSetupWindow();
+        PlatformServices.ConfigureWindowChrome?.Invoke(window);
+        themeService.ApplyFromSettings();
+        window.DataContext = new InitialSetupViewModel(settingsStore, themeService, lyricSourceService);
+        return window;
+    }
 
     /// <summary>
     /// Builds the first-run setup control for single-view platforms (Android/mobile), which host

@@ -56,6 +56,13 @@ public sealed class VideoProbeResult
     [System.Text.Json.Serialization.JsonIgnore]
     public byte[] PreviewBgra { get; init; }
 
+    /// <summary>
+    /// The preview of an HDR or wide-gamut source, tagged with its turn and pixel aspect ratio, when the probe was asked
+    /// to retain it instead of filling <see cref="PreviewBgra"/>. The receiver owns the reference.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public VideoFrame PreviewFrame { get; init; }
+
     public int PreviewWidth { get; init; }
 
     public int PreviewHeight { get; init; }
@@ -138,7 +145,8 @@ public static unsafe partial class VideoProbe
     public static VideoProbeResult Probe(
         FfmpegDemuxer demuxer,
         bool withPreview = true,
-        int maxPreviewDimension = 640)
+        int maxPreviewDimension = 640,
+        bool retainPreviewFrame = false)
     {
         ArgumentNullException.ThrowIfNull(demuxer);
 
@@ -150,7 +158,8 @@ public static unsafe partial class VideoProbe
                 maxPreviewDimension,
                 hasExif: false,
                 exifRotation: 0,
-                exifMirror: false);
+                exifMirror: false,
+                retainPreviewFrame);
         }
         catch (FfmpegException)
         {
@@ -165,11 +174,16 @@ public static unsafe partial class VideoProbe
     /// undecodable content: the preview is simply left null so callers can fall back to a placeholder.
     /// </summary>
     /// <param name="maxPreviewDimension">Longest edge of the preview, in pixels.</param>
+    /// <param name="retainPreviewFrame">
+    /// Whether a preview with HDR or primaries other than BT.709 is returned as <see cref="VideoProbeResult.PreviewFrame"/>
+    /// rather than mapped into sRGB.
+    /// </param>
     public static VideoProbeResult Probe(
         Stream stream,
         bool withPreview = true,
         int maxPreviewDimension = 640,
-        bool leaveOpen = true)
+        bool leaveOpen = true,
+        bool retainPreviewFrame = false)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
@@ -208,7 +222,8 @@ public static unsafe partial class VideoProbe
                 maxPreviewDimension,
                 hasExif,
                 exifRotation,
-                exifMirror);
+                exifMirror,
+                retainPreviewFrame);
         }
         catch (FfmpegException)
         {
@@ -230,7 +245,8 @@ public static unsafe partial class VideoProbe
         int maxPreviewDimension,
         bool hasExif,
         int exifRotation,
-        bool exifMirror)
+        bool exifMirror,
+        bool retainPreviewFrame)
     {
         int videoIndex = av_find_best_stream(format, AVMediaType.AVMEDIA_TYPE_VIDEO, -1, -1, null, 0);
         if (videoIndex < 0)
@@ -279,7 +295,7 @@ public static unsafe partial class VideoProbe
         if (!withPreview)
             return result;
 
-        return DecodePreview(format, video, videoIndex, result, previewPosition, maxPreviewDimension) ?? result;
+        return DecodePreview(format, video, videoIndex, result, previewPosition, maxPreviewDimension, retainPreviewFrame) ?? result;
     }
 
     private static VideoProbeResult DecodePreview(
@@ -288,7 +304,8 @@ public static unsafe partial class VideoProbe
         int videoIndex,
         VideoProbeResult probe,
         TimeSpan position,
-        int maxPreviewDimension)
+        int maxPreviewDimension,
+        bool retainPreviewFrame)
     {
         AVCodec* codec = avcodec_find_decoder(video->codecpar->codec_id);
         if (codec == null)
@@ -356,7 +373,8 @@ public static unsafe partial class VideoProbe
                 out int targetWidth,
                 out int targetHeight);
 
-            byte[] pixels;
+            byte[] pixels = null;
+            VideoFrame previewFrame = null;
             if (StillImage.NeedsSoftwareColor(frame, video->codecpar))
             {
                 VideoFrame retained = StillImage.RetainSoftwareFrame(frame, video->codecpar);
@@ -367,8 +385,19 @@ public static unsafe partial class VideoProbe
                         retained.AttachEnhancementLayer(layer);
                     else
                         layer?.Release();
-                    using var mapped = StillImage.RenderSoftwarePixels(retained, targetWidth, targetHeight);
-                    pixels = mapped.GetSpan().ToArray();
+                    if (retainPreviewFrame)
+                    {
+                        AVRational aspect = video->codecpar->sample_aspect_ratio;
+                        retained.PixelAspectRatio = aspect.num > 0 && aspect.den > 0 ? Utils.RationalToDouble(aspect) : 1;
+                        retained.Rotation = probe.Rotation;
+                        retained.MirrorHorizontally = probe.MirrorHorizontally;
+                        previewFrame = retained.AddRef();
+                    }
+                    else
+                    {
+                        using var mapped = StillImage.RenderSoftwarePixels(retained, targetWidth, targetHeight);
+                        pixels = mapped.GetSpan().ToArray();
+                    }
                 }
                 finally { retained.Release(); }
             }
@@ -401,6 +430,9 @@ public static unsafe partial class VideoProbe
                 }
             }
 
+            if (previewFrame is not null && probe.Rotation is 90 or 270)
+                (targetWidth, targetHeight) = (targetHeight, targetWidth);
+
             return new VideoProbeResult
             {
                 Duration = probe.Duration,
@@ -414,7 +446,9 @@ public static unsafe partial class VideoProbe
                 IsStillImage = probe.IsStillImage,
                 Title = probe.Title,
                 AudioStreams = probe.AudioStreams,
-                PreviewBgra = Orient(pixels, ref targetWidth, ref targetHeight, probe.Rotation, probe.MirrorHorizontally),
+                PreviewBgra = pixels is null ? null
+                    : Orient(pixels, ref targetWidth, ref targetHeight, probe.Rotation, probe.MirrorHorizontally),
+                PreviewFrame = previewFrame,
                 PreviewWidth = targetWidth,
                 PreviewHeight = targetHeight,
                 PreviewPosition = position,

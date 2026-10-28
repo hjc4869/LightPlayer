@@ -72,7 +72,7 @@
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="BorderThickness" Value="0" />
         </Style>
-        <Style Selector="Border#PaneBorder.floating">
+        <Style Selector="Border#PaneBorder.floating:not(.fullPage)">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
         </Style>
@@ -82,7 +82,7 @@
             <Setter Property="FallbackColor" Value="{DynamicResource AppQueueBackdropColor}" />
             <Setter Property="TintColor" Value="{DynamicResource AppQueueBackdropTintColor}" />
         </Style>
-        <Style Selector="Border#PaneBorder.floating lmr|BackdropBorder#QueueBackdrop">
+        <Style Selector="Border#PaneBorder.floating:not(.fullPage) lmr|BackdropBorder#QueueBackdrop">
             <Setter Property="IsVisible" Value="True" />
         </Style>
         <!-- Apple layout: docked, the queue sits on the sidebar's material, taking up the colors of
@@ -111,7 +111,7 @@
                 <Setter Property="TintColor" Value="{DynamicResource AppQueueBackdropTintColor}" />
             </Style>
         </Style>
-        <Style Selector="Border#PaneBorder.floating.backdrop, Border#PaneBorder.apple.backdrop:not(.fullPage)">
+        <Style Selector="Border#PaneBorder.floating.backdrop:not(.fullPage), Border#PaneBorder.apple.backdrop:not(.fullPage)">
             <Style Selector="^ ListBox.queueList ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
                 <Setter Property="Background" Value="{DynamicResource AppBackdropHoverBrush}" />
             </Style>
@@ -200,7 +200,7 @@
     </UserControl.Styles>
 
     <Border x:Name="PaneBorder"
-            Classes.floating="{Binding IsTemporarilyOpen}"
+            Classes.floating="{Binding IsFloating}"
             Classes.backdrop="{DynamicResource AppHasBackdropEffects}"
             Classes.apple="{DynamicResource AppIsAppleChrome}"
             Classes.fullPage="{Binding IsFullPage, RelativeSource={RelativeSource AncestorType=controls:QueuePane}}">

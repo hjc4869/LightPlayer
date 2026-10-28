@@ -56,7 +56,7 @@ internal static partial class Program
             using var proxy = new RemoteApiProxyServer(ListenerPrefix(config), staticFilesPath);
             proxy.Start();
 
-            Console.WriteLine($"Light Player proxy listening on http://{config.Host}:{config.Port}/");
+            Console.WriteLine($"Light Media Center proxy listening on http://{config.Host}:{config.Port}/");
             Console.WriteLine(staticFilesPath is null
                 ? "Serving the API relay only."
                 : $"Serving the browser client from {staticFilesPath}.");
@@ -102,7 +102,7 @@ internal static partial class Program
         });
         server.Start();
 
-        Console.WriteLine($"Light Player server listening on http://{config.Host}:{config.Port}/");
+        Console.WriteLine($"Light Media Center server listening on http://{config.Host}:{config.Port}/");
         Console.WriteLine(staticFilesPath is null
             ? "Serving the REST API only."
             : $"Serving the browser client from {staticFilesPath}.");

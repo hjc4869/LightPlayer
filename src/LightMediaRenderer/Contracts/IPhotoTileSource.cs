@@ -15,6 +15,9 @@ public interface IPhotoTileSource : IDisposable
     long EncodedBytes { get; }
     bool HasScaledOverview { get; }
 
+    /// <summary>Container-tiled formats such as HEIF and AVIF ignore the throughput decode preference.</summary>
+    bool AlwaysPreferMemory => false;
+
     /// <summary>Tiles worth decoding in one batch when more than the platform default; 0 keeps the default.</summary>
     int PreferredBatchSize => 0;
 

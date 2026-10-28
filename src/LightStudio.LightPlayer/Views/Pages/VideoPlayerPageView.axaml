@@ -65,12 +65,18 @@
         <Style Selector="lmr|BackdropBorder#VideoTitleBackdrop">
             <Setter Property="Margin" Value="6,0,8,0" />
         </Style>
+        <Style Selector="lmr|BackdropBorder#UpNextBackdrop">
+            <Setter Property="Margin" Value="0,0,6,0" />
+        </Style>
         <Style Selector=":is(UserControl).liquidGlass Border#TitleBar">
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector=":is(UserControl).liquidGlass lmr|BackdropBorder.videoHeaderGlass">
             <Setter Property="BackdropStyle" Value="{DynamicResource AppContentBackdropStyle}" />
             <Setter Property="FallbackColor" Value="#B0000000" />
+        </Style>
+        <Style Selector=":is(UserControl).liquidGlass DockPanel#TitleGroup">
+            <Setter Property="HorizontalAlignment" Value="Left" />
         </Style>
         <Style Selector=":is(UserControl).liquidGlass lmr|BackdropBorder#VideoTitleBackdrop">
             <Setter Property="HorizontalAlignment" Value="Left" />
@@ -273,7 +279,10 @@
                                  ShaderPackageOverride="{Binding ShaderPackageOverride}"
                                  EnableHdrPassthrough="{Binding EnableHdrPassthrough}"
                                  DisplayPanelBitDepth="{Binding DisplayPanelBitDepth}"
+                                 ToneMapping="{Binding ToneMapping}"
                                  SubtitleBrightnessMode="{Binding SubtitleBrightnessMode}"
+                                 PlainTextSubtitleFontSize="{Binding PlainTextSubtitleFontSize}"
+                                 PlainTextSubtitleFontFamily="{Binding PlainTextSubtitleFontFamily}"
                                  IsExtendedRangeOutput="{Binding IsExtendedRangeOutput, Mode=OneWayToSource}"
                                  Background="Black" />
 
@@ -372,16 +381,26 @@
                             <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconChevronDown}" /></Viewbox>
                         </Button>
                         </lmr:BackdropBorder>
-                        <lmr:BackdropBorder Grid.Column="2" x:Name="VideoTitleBackdrop" Classes="videoHeaderGlass">
-                        <TextBlock
-                                   VerticalAlignment="Center"
-                                   Text="{Binding MediaTitle}"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   MaxLines="1"
-                                   TextTrimming="CharacterEllipsis"
-                                Foreground="{lmr:BackdropForeground}" />
+                        <DockPanel Grid.Column="2" x:Name="TitleGroup">
+                            <lmr:BackdropBorder DockPanel.Dock="Right" x:Name="UpNextBackdrop" Classes="videoHeaderGlass"
+                                                IsVisible="{Binding IsPlaylistAvailable}">
+                                <Button x:Name="PlaylistButton"
+                                        Classes="transport"
+                                        Command="{Binding TogglePlaylistCommand}">
+                                    <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconQueue}" /></Viewbox>
+                                </Button>
                             </lmr:BackdropBorder>
+                            <lmr:BackdropBorder x:Name="VideoTitleBackdrop" Classes="videoHeaderGlass">
+                                <TextBlock
+                                           VerticalAlignment="Center"
+                                           Text="{Binding MediaTitle}"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           MaxLines="1"
+                                           TextTrimming="CharacterEllipsis"
+                                        Foreground="{lmr:BackdropForeground}" />
+                            </lmr:BackdropBorder>
+                        </DockPanel>
                             <lmr:BackdropBorder x:Name="CloseBackdrop" Classes="videoHeaderGlass">
                             <Button x:Name="CloseButton"
                                 Classes="transport"
@@ -512,10 +531,11 @@
                                         </Button.Flyout>
                                     </Button>
 
-                                        <Button x:Name="PlaylistButton" Classes="transport"
-                                            Command="{Binding TogglePlaylistCommand}"
-                                            IsVisible="{Binding IsPlaylistAvailable}">
-                                        <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconQueue}" /></Viewbox>
+                                        <Button x:Name="ScreenshotButton" Classes="transport"
+                                            Click="OnScreenshotClick"
+                                            IsVisible="{Binding CanSaveScreenshot}"
+                                            AutomationProperties.Name="{Binding VideoPlayer_Screenshot, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                        <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconCamera}" /></Viewbox>
                                     </Button>
 
                                 <!-- Always on the deck, even for a video that carries no subtitles:
@@ -539,6 +559,42 @@
                                                         </DataTemplate>
                                                     </ComboBox.ItemTemplate>
                                                 </ComboBox>
+
+                                                <Grid ColumnDefinitions="Auto,*"
+                                                      RowDefinitions="Auto,Auto"
+                                                      ColumnSpacing="12"
+                                                      RowSpacing="8"
+                                                      IsVisible="{Binding CanSetSubtitleFont}">
+                                                    <TextBlock Grid.Row="0"
+                                                               Grid.Column="0"
+                                                               VerticalAlignment="Center"
+                                                               Text="{Binding VideoPlayer_SubtitleFont, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                    <ComboBox Grid.Row="0"
+                                                              Grid.Column="1"
+                                                              HorizontalAlignment="Stretch"
+                                                              ItemsSource="{Binding SubtitleFontOptions}"
+                                                              SelectedItem="{Binding SelectedSubtitleFontOption, Mode=TwoWay}"
+                                                              AutomationProperties.Name="{Binding VideoPlayer_SubtitleFont, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate x:DataType="vm:SubtitleFontOption">
+                                                                <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                    <TextBlock Grid.Row="1"
+                                                               Grid.Column="0"
+                                                               VerticalAlignment="Center"
+                                                               Text="{Binding VideoPlayer_SubtitleFontSize, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                    <controls:NumberEntry Grid.Row="1"
+                                                                          Grid.Column="1"
+                                                                          HorizontalAlignment="Stretch"
+                                                                          Minimum="8"
+                                                                          Maximum="48"
+                                                                          Increment="1"
+                                                                          FormatString="0"
+                                                                          Number="{Binding SubtitleFontSize, Mode=TwoWay}"
+                                                                          AutomationProperties.Name="{Binding VideoPlayer_SubtitleFontSize, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                </Grid>
 
                                                 <Separator IsVisible="{Binding HasSubtitles}" />
 
@@ -591,9 +647,9 @@
                                         x:Name="SettingsMenuButton">
                                     <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconSettings}" /></Viewbox>
                                     <Button.Flyout>
-                                        <Flyout Placement="Top">
-                                            <ScrollViewer MaxHeight="460" HorizontalScrollBarVisibility="Disabled">
-                                                <StackPanel Classes="menuSection">
+                                        <Flyout Placement="Top" Opening="OnSettingsFlyoutOpening">
+                                            <ScrollViewer x:Name="SettingsScroll" MaxHeight="460" HorizontalScrollBarVisibility="Disabled">
+                                                <StackPanel x:Name="SettingsContent" Classes="menuSection" Margin="0,0,12,0">
                                                     <StackPanel Spacing="8" IsVisible="{Binding HasChapters}">
                                                         <TextBlock Text="{Binding VideoPlayer_Chapters, Source={x:Static strings:LocalizedStrings.Instance}}"
                                                                    FontWeight="SemiBold" />
@@ -651,12 +707,13 @@
                                                         </ComboBox>
                                                     </StackPanel>
 
-                                                    <Grid ColumnDefinitions="*,Auto">
+                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                                                         <TextBlock Grid.Column="0"
                                                                    VerticalAlignment="Center"
+                                                                   TextWrapping="Wrap"
                                                                    Text="{Binding VideoPlayer_Speed, Source={x:Static strings:LocalizedStrings.Instance}}" />
                                                         <ComboBox Grid.Column="1"
-                                                                  MinWidth="96"
+                                                                  Width="150"
                                                                   ItemsSource="{Binding SpeedOptions}"
                                                                   SelectedItem="{Binding SelectedSpeedOption, Mode=TwoWay}">
                                                             <ComboBox.ItemTemplate>
@@ -675,22 +732,75 @@
                                                     <StackPanel Spacing="8"
                                                                 IsVisible="{Binding HasShaderPackageChoices}">
                                                         <Separator />
-                                                        <TextBlock Text="{Binding ShaderPackageHeader}"
-                                                                   FontWeight="SemiBold" />
-                                                        <ComboBox HorizontalAlignment="Stretch"
-                                                                  ItemsSource="{Binding ShaderPackageOptions}"
-                                                                  SelectedItem="{Binding SelectedShaderPackage, Mode=TwoWay}">
-                                                            <ComboBox.ItemTemplate>
-                                                                <DataTemplate x:DataType="vm:VideoShaderPackageOption">
-                                                                    <TextBlock Text="{Binding Title}"
-                                                                               TextWrapping="Wrap" />
-                                                                </DataTemplate>
-                                                            </ComboBox.ItemTemplate>
-                                                        </ComboBox>
+                                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                                            <TextBlock VerticalAlignment="Center"
+                                                                       TextWrapping="Wrap"
+                                                                       Text="{Binding ShaderPackageHeader}" />
+                                                            <ComboBox Grid.Column="1"
+                                                                      Width="150"
+                                                                      ItemsSource="{Binding ShaderPackageOptions}"
+                                                                      SelectedItem="{Binding SelectedShaderPackage, Mode=TwoWay}"
+                                                                      AutomationProperties.Name="{Binding ShaderPackageHeader}">
+                                                                <ComboBox.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:VideoShaderPackageOption">
+                                                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                                    </DataTemplate>
+                                                                </ComboBox.ItemTemplate>
+                                                            </ComboBox>
+                                                        </Grid>
+                                                    </StackPanel>
+
+                                                    <StackPanel Spacing="10" IsVisible="{Binding #Video.IsHdrContent}">
+                                                        <Separator />
+                                                        <TextBlock FontWeight="SemiBold" TextWrapping="Wrap"
+                                                                   Text="{Binding Photo_ToneMapping, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                                            <TextBlock VerticalAlignment="Center"
+                                                                       TextWrapping="Wrap"
+                                                                       Text="{Binding ToneMapping_Profile, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                            <ComboBox Grid.Column="1"
+                                                                      Width="150"
+                                                                      ItemsSource="{Binding ToneProfiles.ProfileChoices}"
+                                                                      SelectedItem="{Binding ToneProfiles.SelectedProfile, Mode=TwoWay}"
+                                                                      AutomationProperties.Name="{Binding ToneMapping_Profile, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                                <ComboBox.ItemTemplate>
+                                                                    <DataTemplate x:DataType="vm:VideoSettingsOption">
+                                                                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                                    </DataTemplate>
+                                                                </ComboBox.ItemTemplate>
+                                                            </ComboBox>
+                                                        </Grid>
+                                                        <controls:ToneMappingEditor DataContext="{Binding ToneProfiles.Editor}" />
+                                                        <Button Command="{Binding ToneProfiles.RevertCommand}" HorizontalAlignment="Stretch">
+                                                            <TextBlock Text="{Binding ToneMapping_Revert, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                                        </Button>
+                                                        <Button Command="{Binding ToneProfiles.SaveCommand}" HorizontalAlignment="Stretch">
+                                                            <TextBlock Text="{Binding ToneMapping_Save, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                                        </Button>
+                                                        <Button Command="{Binding ToneProfiles.BeginSaveAsCommand}" HorizontalAlignment="Stretch"
+                                                                IsVisible="{Binding !ToneProfiles.IsNaming}">
+                                                            <TextBlock Text="{Binding ToneMapping_SaveAs, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                                        </Button>
+                                                        <StackPanel Spacing="6" IsVisible="{Binding ToneProfiles.IsNaming}">
+                                                            <TextBox Text="{Binding ToneProfiles.NewProfileName, Mode=TwoWay}"
+                                                                     PlaceholderText="{Binding ToneMapping_Name, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                                                     AutomationProperties.Name="{Binding ToneMapping_Name, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                            <TextBlock Text="{Binding ToneProfiles.NameError}"
+                                                                       IsVisible="{Binding ToneProfiles.HasNameError}"
+                                                                       FontSize="12"
+                                                                       TextWrapping="Wrap" />
+                                                            <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+                                                                <Button Command="{Binding ToneProfiles.ConfirmSaveAsCommand}" HorizontalAlignment="Stretch">
+                                                                    <TextBlock Text="{Binding Common_Save, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                                                </Button>
+                                                                <Button Grid.Column="1" Command="{Binding ToneProfiles.CancelSaveAsCommand}" HorizontalAlignment="Stretch">
+                                                                    <TextBlock Text="{Binding Common_Cancel, Source={x:Static strings:LocalizedStrings.Instance}}" TextWrapping="Wrap" />
+                                                                </Button>
+                                                            </Grid>
+                                                        </StackPanel>
                                                     </StackPanel>
 
                                                     <Button HorizontalAlignment="Stretch"
-                                                            HorizontalContentAlignment="Left"
                                                             Click="OnShortcutsClick"
                                                             Command="{Binding ToggleShortcutsCommand}"
                                                             Content="{Binding VideoPlayer_Shortcuts, Source={x:Static strings:LocalizedStrings.Instance}}" />
@@ -1064,6 +1174,10 @@
                                         <DockPanel>
                                             <TextBlock Classes="shortcutKey" Text="&lt;  &gt;" />
                                             <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutSpeed, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel IsVisible="{Binding CanSaveScreenshot}">
+                                            <TextBlock Classes="shortcutKey" Text="{Binding ScreenshotShortcutText}" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_Screenshot, Source={x:Static strings:LocalizedStrings.Instance}}" />
                                         </DockPanel>
                                     </StackPanel>
 

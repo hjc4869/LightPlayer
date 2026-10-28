@@ -243,7 +243,8 @@ public sealed class RemoteVideoLibraryQueryService(RemoteApiClient client, Remot
         CancellationToken cancellationToken = default)
     {
         var requestPath =
-            $"video/preview?v={RemoteImageCache.VideoPreviewRepresentationVersion}&path={Encode(path)}";
+            $"video/preview?v={RemoteImageCache.VideoPreviewRepresentationVersion}&path={Encode(path)}" +
+            (ImageDecoding.CanDecodeJpegXl ? "&jxl=1" : string.Empty);
         var bytes = imageCache is null
             ? await client.GetBytesAsync(requestPath, cancellationToken).ConfigureAwait(false)
             : await imageCache

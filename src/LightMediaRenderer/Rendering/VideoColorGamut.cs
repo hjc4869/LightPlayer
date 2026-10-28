@@ -34,16 +34,16 @@ internal static class VideoColorGamut
         double WhiteX,
         double WhiteY);
 
-    /// <summary>Everything a draw has to know about one source gamut, worked out once.</summary>
-    /// <param name="Matrix">Linear source RGB to linear BT.709 RGB, row major.</param>
+    /// <summary>Everything a draw has to know about a source and target gamut, worked out once.</summary>
+    /// <param name="Matrix">Linear source RGB to linear target RGB, row major.</param>
     /// <param name="Luma">Weights giving luminance from linear RGB still in the source's primaries.</param>
-    /// <param name="MaximumComponentGain">The most a single component can grow crossing to BT.709.</param>
+    /// <param name="MaximumComponentGain">The most a single component can grow crossing to the target.</param>
     public sealed record GamutConversion(
         double[] Matrix,
         (double Red, double Green, double Blue) Luma,
         double MaximumComponentGain);
 
-    private static readonly ConcurrentDictionary<VideoColorPrimaries, GamutConversion> Conversions = new();
+    private static readonly ConcurrentDictionary<(VideoColorPrimaries Source, VideoColorPrimaries Target), GamutConversion> Conversions = new();
     private static readonly ConcurrentDictionary<VideoColorPrimaries, (float[] Matrix, float[] Luma)> SingleConversions = new();
 
     private const double D65X = 0.3127;
@@ -85,14 +85,14 @@ internal static class VideoColorGamut
     };
 
     /// <summary>
-    /// What it takes to show these primaries on a BT.709 display. Derived on first use and kept,
-    /// because a draw asks for it every frame and the answer only depends on the enumeration value.
+    /// What it takes to show these primaries on the target. Derived on first use and kept,
+    /// because a draw asks for it every frame and the answer only depends on the two gamuts.
     /// </summary>
-    public static GamutConversion ToBt709(VideoColorPrimaries primaries) =>
-        Conversions.GetOrAdd(primaries, static value =>
+    public static GamutConversion ToTarget(VideoColorPrimaries source, VideoColorPrimaries target = VideoColorPrimaries.Bt709) =>
+        Conversions.GetOrAdd((source, target), static value =>
         {
-            double[] matrix = Matrix(value, VideoColorPrimaries.Bt709);
-            double[] toXyz = RgbToXyz<double>(For(value));
+            double[] matrix = Matrix(value.Source, value.Target);
+            double[] toXyz = RgbToXyz<double>(For(value.Source));
             double gain = 0;
             for (int row = 0; row < 3; row++)
             {
@@ -118,7 +118,7 @@ internal static class VideoColorGamut
     /// has been moved to the display's primaries, such as the HLG OOTF and the tone curve.
     /// </summary>
     public static (double Red, double Green, double Blue) LumaCoefficients(VideoColorPrimaries primaries) =>
-        ToBt709(primaries).Luma;
+        ToTarget(primaries).Luma;
 
     /// <summary>
     /// The 3x3 matrix taking linear light in <paramref name="source"/> to linear light in
@@ -142,19 +142,18 @@ internal static class VideoColorGamut
     }
 
     /// <summary>
-    /// Whether a frame in these primaries has to be converted at all before it can be shown on a
-    /// BT.709 display.
+    /// Whether a frame's primaries differ from the output primaries.
     /// </summary>
-    public static bool NeedsConversion(VideoColorPrimaries primaries) =>
-        primaries != VideoColorPrimaries.Bt709;
+    public static bool NeedsConversion(VideoColorPrimaries primaries, VideoColorPrimaries target = VideoColorPrimaries.Bt709) =>
+        primaries != target;
 
     /// <summary>
     /// The largest a single component can grow crossing from <paramref name="source"/> into
-    /// BT.709, which is the row of the matrix with the largest positive sum. A display's headroom
+    /// <paramref name="target"/>, which is the row of the matrix with the largest positive sum. A display's headroom
     /// has to cover that, not just the source's own peak, or a saturated highlight clips.
     /// </summary>
-    public static double MaximumComponentGain(VideoColorPrimaries source) =>
-        ToBt709(source).MaximumComponentGain;
+    public static double MaximumComponentGain(VideoColorPrimaries source, VideoColorPrimaries target = VideoColorPrimaries.Bt709) =>
+        ToTarget(source, target).MaximumComponentGain;
 
     /// <summary>
     /// The matrix taking linear RGB in these primaries to CIE XYZ. Each primary contributes its own

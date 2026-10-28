@@ -38,7 +38,7 @@ internal static class NextcloudMusicLoginFlow
         var credentials = await PollAsync(client, flow, cancellationToken).ConfigureAwait(false);
 
         MusicKey? musicKey = null;
-        var musicKeyDescription = $"Light Player {Guid.NewGuid():N}";
+        var musicKeyDescription = $"Light Media Center {Guid.NewGuid():N}";
         try
         {
             var requestToken = await EstablishNextcloudSessionAsync(

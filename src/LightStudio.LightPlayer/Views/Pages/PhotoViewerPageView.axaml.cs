@@ -81,7 +81,6 @@ public partial class PhotoViewerPageView : UserControl
     public PhotoViewerPageView()
     {
         InitializeComponent();
-        Strings.LocalizedStrings.Register(this);
         LayoutUpdated += (_, _) =>
         {
             if (HdrFlyout.IsOpen)
@@ -125,10 +124,16 @@ public partial class PhotoViewerPageView : UserControl
             if (args.Property == IsVisibleProperty)
                 UpdateToolbarLayout();
         };
+        SaveAsPanel.RenderTransform = saveAsOffset;
+        saveAsGlide = new Glide(this, ApplySaveAsOffset);
+        FollowSnappedTile(TileWidthEntry, saveAs => saveAs.TileWidth);
+        FollowSnappedTile(TileHeightEntry, saveAs => saveAs.TileHeight);
+        // The panel's own controls keep their menus; elsewhere on it the picture's menu has no place.
+        SaveAsPanel.AddHandler(ContextRequestedEvent, (_, args) => args.Handled = true);
             Photo.PropertyChanged += (_, args) =>
             {
                 if (args.Property == PhotoView.SupportsHdrOutputProperty || args.Property == PhotoView.IsExtendedRangeOutputProperty ||
-                    args.Property == PhotoView.AutomaticToneMappingProperty)
+                    args.Property == PhotoView.AutomaticToneMappingProperty || args.Property == PhotoView.DisplayToneTargetProperty)
                 UpdateHdrControls();
             };
         Photo.ImageFailed += exception =>
@@ -221,6 +226,7 @@ public partial class PhotoViewerPageView : UserControl
             dragPointerId = null;
             dragKind = DragKind.None;
             ViewModel?.EndSwipe();
+            SetSaveAsOpen(ViewModel?.SaveAs.IsOpen == true, animate: false);
         };
 
         // A drag holds the pointer on the stage, so the loss of that hold is reported there rather
@@ -298,6 +304,20 @@ public partial class PhotoViewerPageView : UserControl
             return;
         }
 
+        if (model.SaveAs.IsOpen)
+        {
+            if (e.Key == Key.Escape)
+            {
+                model.SaveAs.CloseCommand.Execute(null);
+                e.Handled = true;
+                return;
+            }
+
+            // Typing into the panel's fields is not a viewer shortcut.
+            if (SaveAsPanel.IsKeyboardFocusWithin)
+                return;
+        }
+
         if (e.Key == Key.Escape)
         {
             if (PhotoShortcutsPanel.IsVisible)
@@ -328,6 +348,8 @@ public partial class PhotoViewerPageView : UserControl
                 model.ZoomInCommand.Execute(null);
             else if (e.Key == Key.OemMinus || e.KeySymbol == "-")
                 model.ZoomOutCommand.Execute(null);
+            else if (e.Key == Key.S && !model.SaveAs.IsOpen)
+                model.SaveAsCommand.Execute(null);
             else
                 return;
 
@@ -379,6 +401,7 @@ public partial class PhotoViewerPageView : UserControl
     {
         base.OnSizeChanged(e);
         UpdatePreviewViewport();
+        UpdateSaveAsWidth();
         UpdateToolbarLayout();
         UpdateToneMappingPopupSize();
     }
@@ -848,6 +871,7 @@ public partial class PhotoViewerPageView : UserControl
             if (ReferenceEquals(current, TitleBar) ||
                 ReferenceEquals(current, Toolbar) ||
                 ReferenceEquals(current, PreviewStrip) ||
+                ReferenceEquals(current, SaveAsPanel) ||
                 ReferenceEquals(current, PreviousButton) ||
                 ReferenceEquals(current, NextButton))
             {
@@ -871,6 +895,7 @@ public partial class PhotoViewerPageView : UserControl
         {
             subscribed.ActionRequested -= OnActionRequested;
             subscribed.PropertyChanged -= OnPhotoModelPropertyChanged;
+            subscribed.SaveAs.PropertyChanged -= OnSaveAsPropertyChanged;
         }
 
         subscribed = ViewModel;
@@ -880,7 +905,9 @@ public partial class PhotoViewerPageView : UserControl
         {
             subscribed.ActionRequested += OnActionRequested;
             subscribed.PropertyChanged += OnPhotoModelPropertyChanged;
+            subscribed.SaveAs.PropertyChanged += OnSaveAsPropertyChanged;
         }
+        SetSaveAsOpen(subscribed?.SaveAs.IsOpen == true, animate: false);
         HdrFlyout.Hide();
         UpdateHdrControls();
     }

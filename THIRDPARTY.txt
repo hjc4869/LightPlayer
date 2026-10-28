@@ -1,7 +1,7 @@
-Light Player — Third-Party Notices
-==================================
+Light Media Center — Third-Party Notices
+========================================
 
-Light Player is built on the following third-party components. Each remains the
+Light Media Center is built on the following third-party components. Each remains the
 property of its respective authors and is used under the terms of the license
 noted below. The complete license text for every component is available at the
 referenced URL.
@@ -132,11 +132,6 @@ ONNX Runtime and Dawn
   Licenses: MIT (ONNX Runtime), BSD 3-Clause (Dawn), and included dependency notices
   https://github.com/microsoft/onnxruntime/blob/main/LICENSE
   https://dawn.googlesource.com/dawn/+/refs/heads/main/LICENSE
-
-LiteRT and .NET for Android bindings (Android photo inference)
-  Licenses: Apache License 2.0 (LiteRT), MIT (bindings), and included dependency notices
-  https://github.com/google-ai-edge/LiteRT/blob/main/LICENSE
-  https://www.nuget.org/packages/Xamarin.Google.AI.Edge.LiteRT/2.1.5/License
 
 Microsoft.ML.Tokenizers
   License: MIT

@@ -29,6 +29,7 @@
                         <TextBlock Text="{Binding InitialSetup_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
                                    FontSize="26"
                                    FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
                                    Foreground="{DynamicResource AppPrimaryTextBrush}" />
                         <TextBlock Text="{Binding InitialSetup_Intro, Source={x:Static strings:LocalizedStrings.Instance}}"
                                    FontSize="14"

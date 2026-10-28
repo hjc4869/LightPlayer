@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using LightStudio.FfmpegShim.Demuxing;
 using LightStudio.FfmpegShim.Media;
 using LightStudio.Logging;
@@ -11,15 +13,15 @@ using SkiaSharp;
 namespace LightStudio.LightPlayer.Services;
 
 /// <summary>
-/// Software probe used by the video indexer: reads a container's geometry and turns the decoded
-/// preview frame into a compact JPEG. Shared by every platform that has no better native path.
+/// Software probe used by the video indexer: reads a container's geometry and encodes the decoded preview
+/// frame. Shared by every platform that has no better native path.
 /// </summary>
 public static class VideoPreviewFactory
 {
     /// <summary>Longest edge of the stored preview, chosen to cover a video tile at 2x scaling.</summary>
     public const int PreviewMaxDimension = 720;
 
-    private const int PreviewJpegQuality = 82;
+    internal const int PreviewJpegQuality = 82;
 
     /// <summary>
     /// Probes <paramref name="stream"/>, returning null when it carries no video stream. Preview
@@ -31,7 +33,7 @@ public static class VideoPreviewFactory
         VideoProbeResult? probe;
         try
         {
-            probe = VideoProbe.Probe(stream, withPreview, PreviewMaxDimension, leaveOpen);
+            probe = VideoProbe.Probe(stream, withPreview, PreviewMaxDimension, leaveOpen, retainPreviewFrame: true);
         }
         catch (Exception)
         {
@@ -52,13 +54,13 @@ public static class VideoPreviewFactory
     /// </summary>
     public static VideoProbeInfo? Probe(FfmpegDemuxer demuxer, bool withPreview)
     {
-        VideoProbeResult? probe = VideoProbe.Probe(demuxer, withPreview, PreviewMaxDimension);
+        VideoProbeResult? probe = VideoProbe.Probe(demuxer, withPreview, PreviewMaxDimension, retainPreviewFrame: true);
         return probe is null ? null : CreateProbeInfo(probe);
     }
 
     private static VideoProbeInfo CreateProbeInfo(VideoProbeResult probe) => CreateProbeInfo(probe, Encode(probe));
 
-    /// <summary>Describes <paramref name="probe"/> with a preview that was already encoded as JPEG elsewhere.</summary>
+    /// <summary>Describes <paramref name="probe"/> with a preview that was already encoded elsewhere.</summary>
     public static VideoProbeInfo CreateProbeInfo(VideoProbeResult probe, byte[]? preview)
     {
         return new VideoProbeInfo
@@ -79,34 +81,32 @@ public static class VideoPreviewFactory
         };
     }
 
-    /// <summary>Decodes a photo through the same path used by local tiles and encodes it for transport.</summary>
-    public static byte[]? CreatePhotoPreview(Stream stream, bool leaveOpen = false)
+    /// <summary>Encodes a photo's preview for transport through the same path as local tiles.</summary>
+    public static async Task<byte[]?> CreatePhotoPreviewAsync(Stream stream, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
         try
         {
-            StillImageThumbnail? thumbnail = PhotoBitmap.DecodeThumbnail(
-                stream,
-                PreviewMaxDimension,
-                leaveOpen: true);
-            return thumbnail is null
-                ? null
-                : EncodeJpeg(thumbnail.Pixels, thumbnail.Width, thumbnail.Height);
+            return await PhotoThumbnailEncoder.EncodePhotoAsync(stream, PreviewMaxDimension, null, cancellationToken)
+                .ConfigureAwait(false);
         }
-        catch (Exception exception)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
             AppLog.Warning("Photo", "Could not decode photo preview.", exception);
             return null;
         }
-        finally
-        {
-            if (!leaveOpen)
-            {
-                stream.Dispose();
-            }
-        }
     }
+
+    /// <summary>Whether an encoded preview is JPEG XL, which stores HDR previews of absolute luminance.</summary>
+    public static bool IsJpegXl(byte[] preview) => PhotoDecoder.IsJpegXl(preview);
+
+    /// <summary>
+    /// Re-encodes a JPEG XL preview as JPEG, keeping HDR as a gain map, for viewers that cannot decode JPEG XL.
+    /// Returns null when the preview cannot be decoded.
+    /// </summary>
+    public static Task<byte[]?> ConvertToJpegAsync(byte[] preview, CancellationToken cancellationToken) =>
+        PhotoThumbnailEncoder.TranscodeToJpegAsync(preview, PreviewMaxDimension, cancellationToken);
 
     /// <summary>Reads scan-time stream facts without requiring a video stream or decoding a frame.</summary>
     public static IReadOnlyList<AudioStreamProbeInfo> ProbeAudioStreams(Stream stream, bool leaveOpen = false)
@@ -164,7 +164,32 @@ public static class VideoPreviewFactory
     }
 
     private static byte[]? Encode(VideoProbeResult probe)
-        => probe.PreviewBgra is null
-            ? null
-            : EncodeJpeg(probe.PreviewBgra, probe.PreviewWidth, probe.PreviewHeight);
+    {
+        if (probe.PreviewFrame is not { } frame)
+            return probe.PreviewBgra is null ? null : EncodeJpeg(probe.PreviewBgra, probe.PreviewWidth, probe.PreviewHeight);
+
+        try
+        {
+            try
+            {
+                return PhotoThumbnailEncoder.Encode(frame.AddRef(), PreviewMaxDimension, CancellationToken.None);
+            }
+            catch (Exception exception)
+            {
+                AppLog.Warning("Preview", "Could not encode a color-managed video preview; encoding it in sRGB.", exception);
+            }
+
+            using NativeImageThumbnail thumbnail = StillImage.RenderThumbnail(frame, PreviewMaxDimension);
+            return EncodeJpeg(thumbnail.Pixels.GetSpan().ToArray(), thumbnail.Width, thumbnail.Height);
+        }
+        catch (Exception exception)
+        {
+            AppLog.Warning("Preview", "Could not render the video preview.", exception);
+            return null;
+        }
+        finally
+        {
+            frame.Release();
+        }
+    }
 }

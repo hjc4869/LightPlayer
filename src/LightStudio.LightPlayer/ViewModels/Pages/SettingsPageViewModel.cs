@@ -109,12 +109,13 @@ public partial class SettingsPageViewModel : PageViewModelBase, IInPageBackHandl
 
         var playbackPages = new System.Collections.Generic.List<SettingsNavigationItemViewModel>
         {
+            Embedded(nameof(Strings.Resources.SettingsPage_Display), new DisplaySettingsViewModel(Playback.Video), "IconDisplay"),
             Embedded(nameof(Strings.Resources.SettingsPage_VideoPlayback), Playback.Video, "IconVideo"),
             Embedded(nameof(Strings.Resources.SettingsPage_CustomFilters), new CustomFiltersSettingsViewModel(Playback.Video), "IconSettings"),
         };
         if (!OperatingSystem.IsBrowser())
         {
-            playbackPages.Insert(0, new(nameof(Strings.Resources.SettingsPage_AudioPlayback), Playback, "IconVolumeHigh"));
+            playbackPages.Insert(1, new(nameof(Strings.Resources.SettingsPage_AudioPlayback), Playback, "IconVolumeHigh"));
         }
         if (Playback.RemoteTranscode is not null)
         {

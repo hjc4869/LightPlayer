@@ -15,6 +15,7 @@ using LightStudio.LightPlayer.Remote;
 using LightStudio.LightPlayer.Services;
 using LightStudio.LightPlayer.Services.Playback;
 using LightMediaRenderer.Avalonia.Shaders;
+using LightStudio.Logging;
 using LightStudio.MediaLibraryCore.Database;
 
 namespace LightStudio.RemoteServices;
@@ -72,6 +73,12 @@ public sealed class KeyValueAppSettingsStore(IKeyValueStore store) : IAppSetting
     {
         get => store.GetBoolean("settings.enableAppleChrome", defaultValue: true);
         set => store.SetBoolean("settings.enableAppleChrome", value);
+    }
+
+    public double LiquidGlassFrost
+    {
+        get => store.GetDouble("settings.liquidGlassFrost");
+        set => store.SetDouble("settings.liquidGlassFrost", value);
     }
 
     public IReadOnlyList<CustomColorThemeRecord> CustomColorThemes => LoadCustomThemes();
@@ -214,6 +221,19 @@ public sealed class KeyValueAppSettingsStore(IKeyValueStore store) : IAppSetting
         set => store.SetBoolean("settings.video.autoPlayNext", value);
     }
 
+    public int SubtitleFontSize
+    {
+        get => SubtitleFontSizeSettings.Normalize(
+            store.GetInt32("settings.video.subtitleFontSize", SubtitleFontSizeSettings.Default));
+        set => store.SetInt32("settings.video.subtitleFontSize", SubtitleFontSizeSettings.Normalize(value));
+    }
+
+    public string SubtitleFontFamily
+    {
+        get => store.Get("settings.video.subtitleFontFamily") ?? string.Empty;
+        set => store.Set("settings.video.subtitleFontFamily", value?.Trim() ?? string.Empty);
+    }
+
     public bool EnableHardwareDecoding
     {
         get => store.GetBoolean("settings.video.enableHardwareDecoding", defaultValue: true);
@@ -232,25 +252,36 @@ public sealed class KeyValueAppSettingsStore(IKeyValueStore store) : IAppSetting
         set => store.SetBoolean("settings.photo.preferDecodePerformance", value);
     }
 
-    public VideoSdrToneMappingOptions? PreferredPhotoToneMapping
+    public ToneMappingSettings ToneMapping
     {
         get
         {
-            string? json = store.Get("settings.photo.toneMapping");
-            var options = string.IsNullOrEmpty(json) ? null :
-                JsonSerializer.Deserialize(json, RemoteStateJsonContext.Default.VideoSdrToneMappingOptions);
-            options?.Validate();
-            return options;
+            try
+            {
+                string? json = store.Get("settings.toneMapping");
+                ToneMappingSettings settings = string.IsNullOrEmpty(json)
+                    ? ToneMappingSettings.Default
+                    : JsonSerializer.Deserialize(json, RemoteStateJsonContext.Default.ToneMappingSettings) ??
+                        ToneMappingSettings.Default;
+                settings.Validate();
+                return settings;
+            }
+            catch (Exception exception) when (exception is JsonException or ArgumentException)
+            {
+                AppLog.Warning("Settings", "Invalid tone mapping settings; using defaults.", exception);
+                return ToneMappingSettings.Default;
+            }
         }
     }
 
-    public Task SetPreferredPhotoToneMappingAsync(VideoSdrToneMappingOptions? options)
+    public Task SetToneMappingAsync(ToneMappingSettings settings)
     {
-        options?.Validate();
-        string json = JsonSerializer.Serialize(options, RemoteStateJsonContext.Default.VideoSdrToneMappingOptions);
+        ArgumentNullException.ThrowIfNull(settings);
+        settings.Validate();
+        string json = JsonSerializer.Serialize(settings, RemoteStateJsonContext.Default.ToneMappingSettings);
         if (store is IAsyncKeyValueStore asyncStore)
-            return asyncStore.SetAsync("settings.photo.toneMapping", json);
-        store.Set("settings.photo.toneMapping", json);
+            return asyncStore.SetAsync("settings.toneMapping", json);
+        store.Set("settings.toneMapping", json);
         return Task.CompletedTask;
     }
 
@@ -593,6 +624,12 @@ public sealed class RemoteAppSettingsStore(
         set => inner.EnableAppleChrome = value;
     }
 
+    public double LiquidGlassFrost
+    {
+        get => inner.LiquidGlassFrost;
+        set => inner.LiquidGlassFrost = value;
+    }
+
     public IReadOnlyList<CustomColorThemeRecord> CustomColorThemes => inner.CustomColorThemes;
 
     public void SaveCustomColorTheme(CustomColorThemeRecord record) => inner.SaveCustomColorTheme(record);
@@ -683,6 +720,18 @@ public sealed class RemoteAppSettingsStore(
         set => inner.AutoPlayNextVideo = value;
     }
 
+    public int SubtitleFontSize
+    {
+        get => inner.SubtitleFontSize;
+        set => inner.SubtitleFontSize = value;
+    }
+
+    public string SubtitleFontFamily
+    {
+        get => inner.SubtitleFontFamily;
+        set => inner.SubtitleFontFamily = value;
+    }
+
     public bool EnableHardwareDecoding
     {
         get => inner.EnableHardwareDecoding;
@@ -704,10 +753,9 @@ public sealed class RemoteAppSettingsStore(
     public IReadOnlyDictionary<string, HardwareDecoderConfiguration> HardwareDecoderConfigurations =>
         inner.HardwareDecoderConfigurations;
 
-    public VideoSdrToneMappingOptions? PreferredPhotoToneMapping => inner.PreferredPhotoToneMapping;
+    public ToneMappingSettings ToneMapping => inner.ToneMapping;
 
-    public Task SetPreferredPhotoToneMappingAsync(VideoSdrToneMappingOptions? options) =>
-        inner.SetPreferredPhotoToneMappingAsync(options);
+    public Task SetToneMappingAsync(ToneMappingSettings settings) => inner.SetToneMappingAsync(settings);
 
     public void SetHardwareDecoderConfiguration(string deviceType, HardwareDecoderConfiguration configuration) =>
         inner.SetHardwareDecoderConfiguration(deviceType, configuration);
@@ -911,7 +959,7 @@ public sealed class KeyValueShellStateStore(IKeyValueStore store) : IShellStateS
 [JsonSerializable(typeof(LegacyRemoteLibraryDefinition[]))]
 [JsonSerializable(typeof(LibraryVisibilitySettings))]
 [JsonSerializable(typeof(NativeLibrarySettings))]
-[JsonSerializable(typeof(VideoSdrToneMappingOptions))]
+[JsonSerializable(typeof(ToneMappingSettings))]
 [JsonSerializable(typeof(LegacyBrowserServerEntry[]))]
 public sealed partial class RemoteStateJsonContext : JsonSerializerContext;
 

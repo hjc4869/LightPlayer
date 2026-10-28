@@ -1,0 +1,139 @@
+<Project>
+  <PropertyGroup>
+    <GitHubNuGetRoot>$(MSBuildThisFileDirectory)../artifacts/github-nuget</GitHubNuGetRoot>
+    <GitHubNuGetFeed>$([System.IO.Path]::GetFullPath('$(GitHubNuGetRoot)/packages'))</GitHubNuGetFeed>
+    <RestoreAdditionalProjectSources>$(RestoreAdditionalProjectSources);$(GitHubNuGetFeed)</RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <UsingTask TaskName="PrepareGitHubNuGetFeed" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Asset ParameterType="System.String" Required="true" />
+      <Url ParameterType="System.String" Required="true" />
+      <Sha256 ParameterType="System.String" Required="true" />
+      <Feed ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.IO.Compression" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Net.Http" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        try
+        {
+            Directory.CreateDirectory(Feed);
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            FileStream gate;
+            while (true)
+            {
+                try
+                {
+                    gate = new FileStream(Feed + ".lock", FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                    break;
+                }
+                catch (IOException exception) when (((exception.HResult & 0xffff) == 11 || (exception.HResult & 0xffff) == 32 || (exception.HResult & 0xffff) == 33 || (exception.HResult & 0xffff) == 35) && timer.Elapsed < TimeSpan.FromMinutes(5))
+                {
+                    System.Threading.Thread.Sleep(100);
+                }
+            }
+
+            using (gate)
+            {
+                var marker = Path.Combine(Feed, Path.GetFileName(Asset) + "." + Sha256 + ".complete");
+                if (File.Exists(marker))
+                {
+                    var names = File.ReadAllLines(marker);
+                    if (names.Length > 0 && names.All(name => File.Exists(Path.Combine(Feed, name))))
+                        return true;
+                }
+
+                var extension = Path.GetExtension(Asset);
+                if (!string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(extension, ".nupkg", StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("Unsupported GitHub NuGet asset: " + Asset);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(Asset));
+                if (!File.Exists(Asset))
+                {
+                    Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, "Downloading NuGet release asset from {0}", Url);
+                    var download = Asset + ".download";
+                    try
+                    {
+                        using (var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) })
+                        using (var input = client.GetStreamAsync(Url).GetAwaiter().GetResult())
+                        using (var output = File.Create(download))
+                            input.CopyTo(output);
+                        File.Move(download, Asset);
+                    }
+                    finally
+                    {
+                        if (File.Exists(download))
+                            File.Delete(download);
+                    }
+                }
+
+                string actualHash;
+                using (var algorithm = SHA256.Create())
+                using (var input = File.OpenRead(Asset))
+                    actualHash = BitConverter.ToString(algorithm.ComputeHash(input)).Replace("-", "").ToLowerInvariant();
+                if (!string.Equals(actualHash, Sha256, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("GitHub NuGet asset SHA256 mismatch for " + Asset + ": expected " + Sha256 + ", got " + actualHash);
+
+                if (string.Equals(extension, ".nupkg", StringComparison.OrdinalIgnoreCase))
+                {
+                    var name = Path.GetFileName(Asset);
+                    File.Copy(Asset, Path.Combine(Feed, name), true);
+                    File.WriteAllLines(marker, new[] { name });
+                    Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, "Prepared NuGet package {0} in {1}", name, Feed);
+                    return true;
+                }
+
+                using (var input = File.OpenRead(Asset))
+                using (var zip = new ZipArchive(input, ZipArchiveMode.Read))
+                {
+                    var packages = zip.Entries.Where(entry => entry.Name.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase)).ToArray();
+                    if (packages.Length == 0)
+                        throw new InvalidDataException("GitHub NuGet archive contains no NuGet packages: " + Asset);
+                    foreach (var package in packages)
+                    {
+                        var destination = Path.Combine(Feed, package.Name);
+                        var temporary = destination + ".extract";
+                        try
+                        {
+                            using (var source = package.Open())
+                            using (var output = File.Create(temporary))
+                                source.CopyTo(output);
+                            if (File.Exists(destination))
+                                File.Delete(destination);
+                            File.Move(temporary, destination);
+                        }
+                        finally
+                        {
+                            if (File.Exists(temporary))
+                                File.Delete(temporary);
+                        }
+                    }
+                    File.WriteAllLines(marker, packages.Select(package => package.Name));
+                    Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, "Prepared {0} NuGet packages in {1}", packages.Length, Feed);
+                }
+            }
+        }
+        catch (Exception exception)
+        {
+            Log.LogErrorFromException(exception, true);
+            return false;
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="PrepareGitHubNuGet" BeforeTargets="_GetRestoreSettings;CollectPackageReferences">
+    <MakeDir Directories="$(GitHubNuGetFeed)" />
+    <PrepareGitHubNuGetFeed Condition="'@(GitHubNuGetAsset)' != ''"
+                           Asset="$(GitHubNuGetRoot)/downloads/%(GitHubNuGetAsset.Identity)"
+                           Url="%(GitHubNuGetAsset.Url)" Sha256="%(GitHubNuGetAsset.Sha256)"
+                           Feed="$(GitHubNuGetFeed)" />
+  </Target>
+</Project>

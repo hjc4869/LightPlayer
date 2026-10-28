@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Avalonia.Media.Imaging;
+using Avalonia.Media;
 using LightStudio.LightPlayer.Models;
 using LightStudio.Logging;
 using LightStudio.MediaLibraryCore.Database;
@@ -29,12 +29,12 @@ public sealed class VideoPreviewService(IUnifiedVideoLibraryQueryService videoLi
     /// Returns the decoded preview for a video, or null when none could be produced (the tile then
     /// keeps its placeholder).
     /// </summary>
-    public async Task<Bitmap?> GetPreviewAsync(string? path, CancellationToken cancellationToken = default)
+    public async Task<IImage?> GetPreviewAsync(string? path, CancellationToken cancellationToken = default)
         => string.IsNullOrEmpty(path)
             ? null
             : await GetPreviewAsync(MediaReference.Local(path), cancellationToken).ConfigureAwait(false);
 
-    public async Task<Bitmap?> GetPreviewAsync(
+    public async Task<IImage?> GetPreviewAsync(
         MediaReference media,
         CancellationToken cancellationToken = default)
     {
@@ -60,8 +60,7 @@ public sealed class VideoPreviewService(IUnifiedVideoLibraryQueryService videoLi
                 return null;
             }
 
-            return await ImageDecoding.DecodeBitmapAsync(content, DecodeWidth, cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
+            return await ImageDecoding.DecodeThumbnailAsync(content, DecodeWidth, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

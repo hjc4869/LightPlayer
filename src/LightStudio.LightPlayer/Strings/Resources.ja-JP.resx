@@ -122,7 +122,7 @@
     <value>インデックスデータベースをリセット</value>
   </data>
   <data name="About_ResetIndexDatabaseConfirm" xml:space="preserve">
-    <value>Light プレイヤーを終了します。次回のアプリ起動時に、ライブラリとセマンティック検索のインデックスがリセットされます。設定、プレイリスト、メディアファイルは保持されます。</value>
+    <value>Light Media Center を終了します。次回のアプリ起動時に、ライブラリとセマンティック検索のインデックスがリセットされます。設定、プレイリスト、メディアファイルは保持されます。</value>
   </data>
   <data name="About_ResetIndexDatabaseManualScan" xml:space="preserve">
     <value>次回起動後に、ライブラリを手動でスキャンする必要があります。</value>
@@ -137,7 +137,7 @@
     <value>リセットして再読み込み</value>
   </data>
   <data name="About_ProductName" xml:space="preserve">
-    <value>Light プレイヤー</value>
+    <value>Light Media Center</value>
   </data>
   <data name="About_Tagline" xml:space="preserve">
     <value>Avalonia で構築されたクロスプラットフォームメディアプレイヤー。</value>
@@ -164,7 +164,7 @@
     <value>アーティストを読み込み中...</value>
   </data>
   <data name="Common_About" xml:space="preserve">
-    <value>Light について</value>
+    <value>Light Media Center について</value>
   </data>
   <data name="Common_Add" xml:space="preserve">
     <value>追加</value>
@@ -416,7 +416,7 @@
     <value>サードパーティサービスの利用規約が適用される場合があります。</value>
   </data>
   <data name="InitialSetup_Title" xml:space="preserve">
-    <value>Light へようこそ</value>
+    <value>Light Media Center へようこそ</value>
   </data>
   <data name="LanguageSettings_InterfaceLanguageHeader" xml:space="preserve">
     <value>インターフェース言語</value>
@@ -519,7 +519,7 @@
     <value>ライブラリをスキャン</value>
   </data>
   <data name="LibrarySettings_Subtitle" xml:space="preserve">
-    <value>Light が音楽と動画をスキャンする場所を選択します。</value>
+    <value>Light Media Center が音楽と動画をスキャンする場所を選択します。</value>
   </data>
   <data name="LibrarySettings_Title" xml:space="preserve">
     <value>ライブラリフォルダ</value>
@@ -929,13 +929,11 @@
   </data>
   <data name="AudioSettings_DefaultDevice" xml:space="preserve"><value>システムの既定デバイス</value></data>
   <data name="AudioSettings_DeviceHeader" xml:space="preserve"><value>出力デバイス</value></data>
-  <data name="AudioSettings_ExclusiveDescription" xml:space="preserve"><value>選択したデバイスを Light Player が排他的に使用します。他のアプリで音声を再生できない場合があります。</value></data>
+  <data name="AudioSettings_ExclusiveDescription" xml:space="preserve"><value>選択したデバイスを Light Media Center が排他的に使用します。他のアプリで音声を再生できない場合があります。</value></data>
   <data name="AudioSettings_ExclusiveHeader" xml:space="preserve"><value>排他モード</value></data>
   <data name="AudioSettings_Subtitle" xml:space="preserve"><value>オーディオ出力デバイスと再生モードを選択します。</value></data>
   <data name="AudioSettings_Title" xml:space="preserve"><value>オーディオ出力</value></data>
   <data name="AudioSettings_UnavailableDevice" xml:space="preserve"><value>選択したデバイス（利用不可）</value></data>
-  <data name="VideoSettings_Title" xml:space="preserve"><value>ビデオ</value></data>
-  <data name="VideoSettings_Subtitle" xml:space="preserve"><value>映像の変換、スケーリング、デコードの設定を選択します。</value></data>
   <data name="VideoSettings_BufferHeader" xml:space="preserve"><value>映像バッファー</value></data>
   <data name="VideoSettings_DebandingHeader" xml:space="preserve"><value>バンディング除去</value></data>
   <data name="VideoSettings_DebandingOff" xml:space="preserve"><value>オフ</value></data>
@@ -946,7 +944,7 @@
   <data name="VideoSettings_DownscalingHeader" xml:space="preserve"><value>ダウンスケーリング</value></data>
   <data name="VideoSettings_PreferHardwareProcessingHeader" xml:space="preserve"><value>映像のハードウェア処理を優先</value></data>
   <data name="VideoSettings_HdrPassthroughHeader" xml:space="preserve"><value>高度なカラー出力（WCG / HDR）</value></data>
-  <data name="VideoSettings_HdrPassthroughDescription" xml:space="preserve"><value>適用するには Light を再起動してください。</value></data>
+  <data name="VideoSettings_HdrPassthroughDescription" xml:space="preserve"><value>適用するには Light Media Center を再起動してください。</value></data>
   <data name="VideoSettings_Bt709InterpretationHeader" xml:space="preserve"><value>BT.709 の解釈</value></data>
   <data name="VideoSettings_Bt709InterpretationDescription" xml:space="preserve"><value>BT.709 動画の伝達関数を選択します。</value></data>
   <data name="VideoSettings_Bt709PlatformPreferred" xml:space="preserve"><value>プラットフォーム推奨</value></data>
@@ -1000,7 +998,7 @@
     <value>ライブラリ</value>
   </data>
   <data name="SettingsSection_PlaybackTitle" xml:space="preserve">
-    <value>再生</value>
+    <value>再生と表示</value>
   </data>
   <data name="SettingsSection_SampleRateListTitle" xml:space="preserve">
     <value>サンプルレート</value>
@@ -1444,7 +1442,7 @@
     <value>QRコードを表示</value>
   </data>
   <data name="RemoteApiSettings_PairingQrInstruction" xml:space="preserve">
-    <value>Android に Light Player をインストールしてから、端末標準のカメラアプリでこの QR コードをスキャンしてください。このコードは 5 分後に期限切れになります。</value>
+    <value>Android に Light Media Center をインストールしてから、端末標準のカメラアプリでこの QR コードをスキャンしてください。このコードは 5 分後に期限切れになります。</value>
   </data>
   <data name="RemoteApiSettings_PairingCopied" xml:space="preserve">
     <value>コピーしました</value>
@@ -1556,6 +1554,15 @@
   </data>
   <data name="VideoPlayer_SubtitleTrack" xml:space="preserve">
     <value>字幕トラック</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFontSize" xml:space="preserve">
+    <value>フォントサイズ</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFont" xml:space="preserve">
+    <value>フォント</value>
+  </data>
+  <data name="VideoPlayer_SubtitleFontDefault" xml:space="preserve">
+    <value>既定</value>
   </data>
   <data name="VideoPlayer_SubtitleBrightness" xml:space="preserve">
     <value>字幕の明るさ</value>
@@ -1698,6 +1705,15 @@
   <data name="VideoPlayer_ShortcutHelp" xml:space="preserve">
     <value>この一覧を表示</value>
   </data>
+  <data name="VideoPlayer_Screenshot" xml:space="preserve">
+    <value>スクリーンショットを保存</value>
+  </data>
+  <data name="VideoPlayer_ScreenshotSaved" xml:space="preserve">
+    <value>スクリーンショットを保存しました</value>
+  </data>
+  <data name="VideoPlayer_ScreenshotFailed" xml:space="preserve">
+    <value>スクリーンショットを保存できませんでした。</value>
+  </data>
   <data name="VideoPlayer_Muted" xml:space="preserve">
     <value>ミュート中</value>
   </data>
@@ -1781,7 +1797,7 @@
   <data name="VideoPlayer_TranscodeApply" xml:space="preserve"><value>適用</value></data>
   <data name="LibrarySource_ThisDevice" xml:space="preserve"><value>このデバイス</value></data>
   <data name="RemoteLibraries_Title" xml:space="preserve"><value>リモートライブラリ</value></data>
-  <data name="RemoteLibraries_Description" xml:space="preserve"><value>独立した Light Player のライブラリを追加してまとめます。</value></data>
+  <data name="RemoteLibraries_Description" xml:space="preserve"><value>独立した Light Media Center のライブラリを追加してまとめます。</value></data>
   <data name="RemoteLibraries_RemoteOnlyDescription" xml:space="preserve"><value>ここではローカルライブラリフォルダーを利用できないため、リモートライブラリのみ使用できます。</value></data>
   <data name="RemoteLibraries_PreferDuplicates" xml:space="preserve"><value>優先度の高い重複を優先する</value></data>
   <data name="RemoteLibraries_PreferDuplicatesDescription" xml:space="preserve"><value>一致するアルバムや曲のうち、優先度の低いコピーを非表示にします。</value></data>
@@ -1809,10 +1825,10 @@
   <data name="RemoteLibraries_EditHeader" xml:space="preserve"><value>リモートライブラリを編集</value></data>
   <data name="RemoteLibraries_Advanced" xml:space="preserve"><value>詳細な接続設定</value></data>
   <data name="RemoteLibraries_Provider" xml:space="preserve"><value>サービス</value></data>
-  <data name="RemoteLibraries_ProviderLightPlayer" xml:space="preserve"><value>Light Player</value></data>
+  <data name="RemoteLibraries_ProviderLightPlayer" xml:space="preserve"><value>Light Media Center</value></data>
   <data name="RemoteLibraries_ProviderNextcloudMusic" xml:space="preserve"><value>Nextcloud Music</value></data>
   <data name="RemoteLibraries_ProviderWebDav" xml:space="preserve"><value>WebDAV</value></data>
-  <data name="RemoteLibraries_WebDavRangeRequired" xml:space="preserve"><value>この WebDAV サーバーは、Light Player がリモートメディアに必要とする HTTP バイト範囲要求をサポートしていません。</value></data>
+  <data name="RemoteLibraries_WebDavRangeRequired" xml:space="preserve"><value>この WebDAV サーバーは、Light Media Center がリモートメディアに必要とする HTTP バイト範囲要求をサポートしていません。</value></data>
   <data name="RemoteLibraries_ConnectedAsFormat" xml:space="preserve"><value>{0} として接続済み</value></data>
   <data name="RemoteLibraries_ApiKey" xml:space="preserve"><value>Music API キー</value></data>
   <data name="RemoteLibraries_ApiKeyHint" xml:space="preserve"><value>ブラウザーで接続するか、Nextcloud Music の設定で生成した API キーを貼り付けます。</value></data>
@@ -1994,6 +2010,9 @@
   <data name="ThemeColor_BackdropOff" xml:space="preserve">
     <value>オフ</value>
   </data>
+  <data name="ThemeColor_GlassFrostHeader" xml:space="preserve">
+    <value>リキッドグラスのすりガラス効果</value>
+  </data>
   <data name="Common_OpenInNewWindow" xml:space="preserve">
     <value>新しいウィンドウで開く</value>
   </data>
@@ -2085,8 +2104,9 @@
   <data name="SettingsPage_LocalLibrary" xml:space="preserve"><value>ローカルライブラリ</value></data>
   <data name="SettingsPage_RemoteLibrary" xml:space="preserve"><value>リモートライブラリ</value></data>
   <data name="SettingsPage_PhotoIndex" xml:space="preserve"><value>写真のインデックス作成</value></data>
+  <data name="SettingsPage_Display" xml:space="preserve"><value>ディスプレイ</value></data>
   <data name="SettingsPage_AudioPlayback" xml:space="preserve"><value>音声再生</value></data>
-  <data name="SettingsPage_VideoPlayback" xml:space="preserve"><value>動画再生</value></data>
+  <data name="SettingsPage_VideoPlayback" xml:space="preserve"><value>動画と写真</value></data>
   <data name="SettingsPage_CustomFilters" xml:space="preserve"><value>カスタムフィルター</value></data>
   <data name="SettingsPage_ServerStreaming" xml:space="preserve"><value>サーバーストリーミング</value></data>
   <data name="LibrarySettings_MusicLibraryHeader" xml:space="preserve"><value>音楽ライブラリ</value></data>
@@ -2122,7 +2142,107 @@
   <data name="Photo_ToneSlopeTuning" xml:space="preserve"><value>傾きの調整</value></data>
   <data name="Photo_ToneSlopeOffset" xml:space="preserve"><value>傾きのオフセット</value></data>
   <data name="Photo_ToneContrast" xml:space="preserve"><value>コントラスト</value></data>
-  <data name="Photo_ToneReset" xml:space="preserve"><value>自動に戻す</value></data>
-  <data name="Photo_ToneSave" xml:space="preserve"><value>優先トーンカーブとして保存</value></data>
-  <data name="Photo_ToneClear" xml:space="preserve"><value>保存した設定をクリア</value></data>
+  <data name="Photo_ToneClip" xml:space="preserve"><value>クリップ</value></data>
+  <data name="Photo_ToneMobius" xml:space="preserve"><value>メビウス</value></data>
+  <data name="Photo_ToneHable" xml:space="preserve"><value>フィルミック (Hable)</value></data>
+  <data name="Photo_ToneGamma" xml:space="preserve"><value>ガンマ</value></data>
+  <data name="Photo_ToneLinear" xml:space="preserve"><value>リニア</value></data>
+  <data name="Photo_ToneKneePoint" xml:space="preserve"><value>ニーポイント</value></data>
+  <data name="Photo_ToneExposure" xml:space="preserve"><value>露出</value></data>
+  <data name="Photo_ToneAutomaticDescription" xml:space="preserve"><value>動画にHDR10+カーブがあればそれに従い、なければPQスプラインを使用します。</value></data>
+  <data name="Photo_ToneSplineDescription" xml:space="preserve"><value>中間調のコントラストとハイライトのディテールのバランスを取り、動画がシーンの明るさを示す場合はそれに合わせます。</value></data>
+  <data name="Photo_ToneBt2390Description" xml:space="preserve"><value>放送規格のカーブです。シャドウと中間調はそのままに、ハイライトをなめらかに圧縮します。</value></data>
+  <data name="Photo_ToneBt2446ADescription" xml:space="preserve"><value>適切にマスタリングされたコンテンツ向けの放送規格の変換で、目標のピーク輝度に合わせます。</value></data>
+  <data name="Photo_ToneClipDescription" xml:space="preserve"><value>ディスプレイの範囲内は正確に表示し、それより明るいハイライトはカットします。ハイライトのディテールより正確さを重視する場合に適しています。</value></data>
+  <data name="Photo_ToneMobiusDescription" xml:space="preserve"><value>ニーポイントより下の明るさと色を正確に保ち、それより上のハイライトをなだらかに抑えます。ハイライトのディテールより正確さを優先します。</value></data>
+  <data name="Photo_ToneReinhardDescription" xml:space="preserve"><value>範囲全体をなめらかに圧縮します。全体の明るさは保たれますが、細かなディテールとコントラストは平坦になります。</value></data>
+  <data name="Photo_ToneHableDescription" xml:space="preserve"><value>フィルムのようなカーブで、シャドウとハイライトの両方のディテールを保ちますが、画面はやや暗く柔らかくなります。</value></data>
+  <data name="Photo_ToneGammaDescription" xml:space="preserve"><value>ニーポイントより下の明るさを正確に保ち、それより上は明るさの各段階を均等に圧縮して、明るい部分の質感を保ちます。</value></data>
+  <data name="Photo_ToneLinearDescription" xml:space="preserve"><value>すべての明るさを均等に圧縮し、全体の明るさと引き換えにすべてのハイライトを保ちます。露出を上げると画面が明るくなり、収まらなくなったハイライトはカットされます。</value></data>
+  <data name="ToneMapping_Description" xml:space="preserve"><value>HDR画像やHDR動画の明るさをディスプレイに合わせる方法を選択します。</value></data>
+  <data name="ToneMapping_ImageDefaultHeader" xml:space="preserve"><value>絶対輝度の画像</value></data>
+  <data name="ToneMapping_ImageDefaultDescription" xml:space="preserve"><value>PQやJPEG XRの写真など、絶対的な明るさを記録したHDR画像。</value></data>
+  <data name="ToneMapping_VideoDefaultHeader" xml:space="preserve"><value>HDR動画</value></data>
+  <data name="ToneMapping_VideoDefaultDescription" xml:space="preserve"><value>HDR10、HLG、HDR10+、Dolby Visionの動画。</value></data>
+  <data name="ToneMapping_BuiltIn" xml:space="preserve"><value>組み込み</value></data>
+  <data name="ToneMapping_Profile" xml:space="preserve"><value>プロファイル</value></data>
+  <data name="ToneMapping_ProfilesHeader" xml:space="preserve"><value>プロファイル</value></data>
+  <data name="ToneMapping_ProfilesDescription" xml:space="preserve"><value>名前付きのトーンカーブを作成し、グラフで確認します。</value></data>
+  <data name="ToneMapping_AddProfile" xml:space="preserve"><value>プロファイルを追加</value></data>
+  <data name="ToneMapping_DeleteProfile" xml:space="preserve"><value>プロファイルを削除</value></data>
+  <data name="ToneMapping_DeleteTitle" xml:space="preserve"><value>トーンマッピングプロファイルを削除</value></data>
+  <data name="ToneMapping_DeleteMessageFormat" xml:space="preserve"><value>「{0}」を削除しますか？使用しているメディアは組み込みのトーンマッピングに戻ります。</value></data>
+  <data name="ToneMapping_Name" xml:space="preserve"><value>プロファイル名</value></data>
+  <data name="ToneMapping_NewProfileFormat" xml:space="preserve"><value>プロファイル {0}</value></data>
+  <data name="ToneMapping_NameRequired" xml:space="preserve"><value>プロファイル名を入力してください。</value></data>
+  <data name="ToneMapping_NameExists" xml:space="preserve"><value>この名前のプロファイルは既に存在します。</value></data>
+  <data name="ToneMapping_Locked" xml:space="preserve"><value>ディスプレイに従います。選択すると独自の値を設定できます。</value></data>
+  <data name="ToneMapping_Unlocked" xml:space="preserve"><value>選択するとディスプレイに従います。</value></data>
+  <data name="ToneMapping_InputAxis" xml:space="preserve"><value>入力輝度（nit）</value></data>
+  <data name="ToneMapping_OutputAxis" xml:space="preserve"><value>出力（SDR白 = 1）</value></data>
+  <data name="ToneMapping_CurrentHeadroomFormat" xml:space="preserve"><value>現在のヘッドルーム {0}</value></data>
+  <data name="ToneMapping_PotentialHeadroomFormat" xml:space="preserve"><value>潜在ヘッドルーム {0}</value></data>
+  <data name="ToneMapping_HdrHint" xml:space="preserve"><value>このプレビューでHDRを要求</value></data>
+  <data name="ToneMapping_HdrHintHeadroom" xml:space="preserve"><value>要求するHDRヘッドルーム</value></data>
+  <data name="ToneMapping_Revert" xml:space="preserve"><value>変更を元に戻す</value></data>
+  <data name="ToneMapping_Save" xml:space="preserve"><value>プロファイルを保存</value></data>
+  <data name="ToneMapping_SaveAs" xml:space="preserve"><value>新しいプロファイルとして保存</value></data>
+  <data name="Photo_SaveAs" xml:space="preserve"><value>名前を付けて保存</value></data>
+  <data name="Photo_SaveFormat" xml:space="preserve"><value>形式</value></data>
+  <data name="Photo_SaveEncoder" xml:space="preserve"><value>エンコーダー</value></data>
+  <data name="Photo_SavePixelFormat" xml:space="preserve"><value>ピクセル形式</value></data>
+  <data name="Photo_SaveQuality" xml:space="preserve"><value>品質</value></data>
+  <data name="Photo_SaveSpeed" xml:space="preserve"><value>エンコード速度</value></data>
+  <data name="Photo_SaveSpeedSlower" xml:space="preserve"><value>低速 (ファイル小)</value></data>
+  <data name="Photo_SaveSpeedBalanced" xml:space="preserve"><value>バランス</value></data>
+  <data name="Photo_SaveSpeedFaster" xml:space="preserve"><value>高速 (ファイル大)</value></data>
+  <data name="Photo_SaveSize" xml:space="preserve"><value>サイズ</value></data>
+  <data name="Photo_SaveWidth" xml:space="preserve"><value>幅</value></data>
+  <data name="Photo_SaveHeight" xml:space="preserve"><value>高さ</value></data>
+  <data name="Photo_SaveScale" xml:space="preserve"><value>倍率</value></data>
+  <data name="Photo_SaveKeepAspect" xml:space="preserve"><value>縦横比を維持</value></data>
+  <data name="Photo_SaveResize" xml:space="preserve"><value>サイズ調整</value></data>
+  <data name="Photo_SaveResizeStretch" xml:space="preserve"><value>引き伸ばす</value></data>
+  <data name="Photo_SaveResizeFit" xml:space="preserve"><value>余白を追加して収める</value></data>
+  <data name="Photo_SaveResizeFill" xml:space="preserve"><value>端を切り抜いて埋める</value></data>
+  <data name="Photo_SaveTransparent" xml:space="preserve"><value>透明な背景</value></data>
+  <data name="Photo_SaveBackground" xml:space="preserve"><value>背景色</value></data>
+  <data name="Photo_SaveHdr" xml:space="preserve"><value>HDR</value></data>
+  <data name="Photo_SaveKeepHdr" xml:space="preserve"><value>HDR を維持</value></data>
+  <data name="Photo_SaveKeepGainMap" xml:space="preserve"><value>HDR ゲインマップを維持</value></data>
+  <data name="Photo_SaveCreateGainMap" xml:space="preserve"><value>HDR ゲインマップを作成</value></data>
+  <data name="Photo_SaveHdrFormat" xml:space="preserve"><value>HDR 形式</value></data>
+  <data name="Photo_SaveHdrGainMap" xml:space="preserve"><value>ゲインマップ</value></data>
+  <data name="Photo_SaveHdrPq" xml:space="preserve"><value>PQ</value></data>
+  <data name="Photo_SaveApplyToneMapping" xml:space="preserve"><value>トーンマッピングを適用</value></data>
+  <data name="Photo_SaveTargetPeak" xml:space="preserve"><value>ピーク輝度 (nit)</value></data>
+  <data name="Photo_SaveSdrWhite" xml:space="preserve"><value>SDR 白の輝度 (nit)</value></data>
+  <data name="Photo_SaveWarnNoHdr" xml:space="preserve"><value>この形式は HDR を保存できないため、画像は SDR で保存されます。</value></data>
+  <data name="Photo_SaveWarnHdrLost" xml:space="preserve"><value>画像は HDR のハイライトなしで SDR として保存されます。</value></data>
+  <data name="Photo_SaveWarnSdrLost" xml:space="preserve"><value>写真に含まれる SDR 版は保持されません。HDR 非対応のディスプレイでは、表示側でトーンマッピングされます。</value></data>
+  <data name="Photo_SaveWarnLuminanceLost" xml:space="preserve"><value>明るさは SDR の白を基準に保存されるため、元の絶対輝度は保持されません。</value></data>
+  <data name="Photo_SaveFailed" xml:space="preserve"><value>画像を保存できませんでした。</value></data>
+  <data name="Photo_SaveTooLarge" xml:space="preserve"><value>このサイズでは画像が大きすぎて保存できません。</value></data>
+  <data name="Photo_SavePixelYuv" xml:space="preserve"><value>YUV {0}、{1} ビット</value></data>
+  <data name="Photo_SavePixelRgb" xml:space="preserve"><value>RGB、{0} ビット</value></data>
+  <data name="Photo_SavePixelRgba" xml:space="preserve"><value>RGB + アルファ、{0} ビット</value></data>
+  <data name="Photo_SavePixelGray" xml:space="preserve"><value>グレースケール、{0} ビット</value></data>
+  <data name="Photo_SavePixelLossless" xml:space="preserve"><value>{0}、ロスレス</value></data>
+  <data name="Photo_SaveHardwareEncoder" xml:space="preserve"><value>{0} (ハードウェア)</value></data>
+  <data name="Photo_SaveTiles" xml:space="preserve"><value>タイルに分割して保存</value></data>
+  <data name="Photo_SaveTileWidth" xml:space="preserve"><value>タイルの幅</value></data>
+  <data name="Photo_SaveTileHeight" xml:space="preserve"><value>タイルの高さ</value></data>
+  <data name="Photo_SaveMetadata" xml:space="preserve"><value>メタデータ</value></data>
+  <data name="Photo_SaveMetadataAll" xml:space="preserve"><value>すべて</value></data>
+  <data name="Photo_SaveMetadataRendering" xml:space="preserve"><value>表示情報のみ</value></data>
+  <data name="Photo_SaveMetadataAllDescription" xml:space="preserve"><value>写真のカメラ情報、日時、位置情報、説明を保持します。</value></data>
+  <data name="Photo_SaveMetadataRenderingDescription" xml:space="preserve"><value>カメラ情報、日時、位置情報、説明を削除し、写真の表示に影響する情報のみを保持します。</value></data>
+  <data name="Photo_SaveColor" xml:space="preserve"><value>色</value></data>
+  <data name="Photo_SaveColorSpace" xml:space="preserve"><value>色空間</value></data>
+  <data name="Photo_SaveColorSpaceAutomatic" xml:space="preserve"><value>自動</value></data>
+  <data name="Photo_SaveGamutMapping" xml:space="preserve"><value>色域外の色</value></data>
+  <data name="Photo_SaveGamutCompress" xml:space="preserve"><value>滑らかに圧縮</value></data>
+  <data name="Photo_SaveGamutPreserveHue" xml:space="preserve"><value>色相を保持</value></data>
+  <data name="Photo_SaveGamutClip" xml:space="preserve"><value>クリップ</value></data>
+  <data name="Photo_SaveWarnGamut" xml:space="preserve"><value>この写真には選択した色空間の外側の色が含まれている可能性があり、それらは正確に保存できません。</value></data>
 </root>

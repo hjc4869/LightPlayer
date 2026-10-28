@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.Core;
 using LightStudio.FfmpegShim.Demuxing;
+using LightStudio.FfmpegShim.Engine;
 using LightStudio.FfmpegShim.Interop;
 using LightStudio.FfmpegShim.Media;
 using LightStudio.NativeBindings.Types;
@@ -1796,6 +1798,7 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
             ReleaseSharedSurface();
             poolReferences.Release();
         };
+        target.DownloadSamples = () => DownloadSharedSurface(reference, target);
 
         return target;
     }
@@ -1873,6 +1876,75 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
     {
         AVFrame* held = (AVFrame*)reference;
         av_frame_free(&held);
+    }
+
+    /// <summary>
+    /// Reads a shared surface back into memory for a holder of <paramref name="source"/>, leaving the
+    /// surface in place. A frame of its own receives the samples, so the decoder's staging frame is
+    /// never touched from another thread.
+    /// </summary>
+    private static VideoFrame DownloadSharedSurface(IntPtr reference, VideoFrame source)
+    {
+        AVFrame* held = (AVFrame*)reference;
+        AVFrame* downloaded = av_frame_alloc();
+        if (downloaded == null)
+            throw new OutOfMemoryException();
+        try
+        {
+            if (held->hw_frames_ctx != null)
+                downloaded->format = (int)((AVHWFramesContext*)held->hw_frames_ctx->data)->sw_format;
+            FfmpegError.ThrowIfError(D3D11HardwareContext.TransferFrame(downloaded, held), "av_hwframe_transfer_data");
+            VideoPixelFormat format = VideoFrameMetadata.MapLayout((AVPixelFormat)downloaded->format) ??
+                throw new NotSupportedException($"Surfaces downloaded as {(AVPixelFormat)downloaded->format} cannot be read.");
+            var address = (IntPtr)downloaded;
+            VideoFrame frame = VideoFrame.CreateBorrowed(downloaded->width, downloaded->height, format,
+                [(IntPtr)downloaded->data[0], (IntPtr)downloaded->data[1], (IntPtr)downloaded->data[2]],
+                [downloaded->linesize[0], downloaded->linesize[1], downloaded->linesize[2]],
+                _ => ReleaseSharedFrame(address));
+            downloaded = null;
+            try
+            {
+                CopyDescription(source, frame);
+                return frame;
+            }
+            catch
+            {
+                frame.Release();
+                throw;
+            }
+        }
+        finally
+        {
+            if (downloaded != null)
+                av_frame_free(&downloaded);
+        }
+    }
+
+    private static void CopyDescription(VideoFrame source, VideoFrame target)
+    {
+        target.ColorSpace = source.ColorSpace;
+        target.ColorPrimaries = source.ColorPrimaries;
+        target.ColorTransfer = source.ColorTransfer;
+        target.ColorRange = source.ColorRange;
+        target.ChromaLocation = source.ChromaLocation;
+        target.FieldOrder = source.FieldOrder;
+        target.HdrPeakLuminance = source.HdrPeakLuminance;
+        target.HdrMasteringLuminance = source.HdrMasteringLuminance;
+        target.Pts = source.Pts;
+        target.Duration = source.Duration;
+        target.PixelAspectRatio = source.PixelAspectRatio;
+        target.Rotation = source.Rotation;
+        target.MirrorHorizontally = source.MirrorHorizontally;
+        target.SourceWidth = source.SourceWidth;
+        target.SourceHeight = source.SourceHeight;
+        if (source.DolbyVision.IsPresent &&
+            !VideoFrameMetadataCodec.TryRead(VideoFrameMetadataCodec.Write(source.DolbyVision), target.DolbyVision))
+            throw new InvalidDataException("The frame's Dolby Vision metadata could not be copied.");
+        if (source.Hdr10Plus.IsPresent &&
+            !VideoFrameMetadataCodec.TryRead(VideoFrameMetadataCodec.Write(source.Hdr10Plus), target.Hdr10Plus))
+            throw new InvalidDataException("The frame's HDR10+ metadata could not be copied.");
+        if (source.EnhancementLayer is { } enhancement)
+            target.AttachEnhancementLayer(enhancement.AddRef());
     }
 
     /// <summary>Retains decoder planes on browsers, or copies them into a pooled buffer.</summary>

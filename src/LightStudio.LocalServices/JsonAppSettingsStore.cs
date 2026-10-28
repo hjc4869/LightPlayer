@@ -15,6 +15,7 @@ using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Services;
 using LightStudio.LightPlayer.Services.Playback;
 using LightMediaRenderer.Avalonia.Shaders;
+using LightStudio.Logging;
 using LightStudio.MediaLibraryCore.Database;
 
 namespace LightStudio.LocalServices;
@@ -160,6 +161,19 @@ public sealed class JsonAppSettingsStore : IAppSettingsStore
             }
 
             settings.EnableAppleChrome = value;
+            Save();
+        }
+    }
+
+    public double LiquidGlassFrost
+    {
+        get => settings.LiquidGlassFrost;
+        set
+        {
+            if (settings.LiquidGlassFrost == value)
+                return;
+
+            settings.LiquidGlassFrost = value;
             Save();
         }
     }
@@ -420,6 +434,34 @@ public sealed class JsonAppSettingsStore : IAppSettingsStore
         }
     }
 
+    public int SubtitleFontSize
+    {
+        get => SubtitleFontSizeSettings.Normalize(settings.SubtitleFontSize);
+        set
+        {
+            int size = SubtitleFontSizeSettings.Normalize(value);
+            if (settings.SubtitleFontSize == size)
+                return;
+
+            settings.SubtitleFontSize = size;
+            Save();
+        }
+    }
+
+    public string SubtitleFontFamily
+    {
+        get => settings.SubtitleFontFamily ?? string.Empty;
+        set
+        {
+            string family = value?.Trim() ?? string.Empty;
+            if (string.Equals(settings.SubtitleFontFamily, family, StringComparison.Ordinal))
+                return;
+
+            settings.SubtitleFontFamily = family;
+            Save();
+        }
+    }
+
     public bool EnableHardwareDecoding
     {
         get => settings.EnableHardwareDecoding;
@@ -463,18 +505,19 @@ public sealed class JsonAppSettingsStore : IAppSettingsStore
     public IReadOnlyDictionary<string, HardwareDecoderConfiguration> HardwareDecoderConfigurations =>
         settings.HardwareDecoderConfigurations;
 
-    public VideoSdrToneMappingOptions? PreferredPhotoToneMapping => settings.PreferredPhotoToneMapping;
+    public ToneMappingSettings ToneMapping => settings.ToneMapping;
 
-    public async Task SetPreferredPhotoToneMappingAsync(VideoSdrToneMappingOptions? options)
+    public async Task SetToneMappingAsync(ToneMappingSettings value)
     {
-        options?.Validate();
+        ArgumentNullException.ThrowIfNull(value);
+        value.Validate();
+        settings.ToneMapping = value;
         await Task.Run(() =>
         {
             var writable = new JsonAppSettingsStore(filePath);
-            writable.settings.PreferredPhotoToneMapping = options;
+            writable.settings.ToneMapping = value;
             writable.Save();
         }).ConfigureAwait(false);
-        settings.PreferredPhotoToneMapping = options;
     }
 
     public void SetHardwareDecoderConfiguration(string deviceType, HardwareDecoderConfiguration configuration)
@@ -932,20 +975,36 @@ public sealed class JsonAppSettingsStore : IAppSettingsStore
 
     private static PersistedAppSettings Load(string path)
     {
-        if (File.Exists(path))
+        try
         {
-            var json = File.ReadAllText(path);
-            var loaded = JsonSerializer.Deserialize(json, AppSettingsJsonContext.Default.PersistedAppSettings);
-            if (loaded is not null)
+            if (File.Exists(path))
             {
-                loaded.LibraryFolderPaths ??= [];
-                loaded.VideoFolderPaths ??= [];
-                loaded.AudioOutputOptions ??= new Dictionary<string, string>(StringComparer.Ordinal);
-                loaded.CustomColorThemes ??= [];
-                loaded.PreferredPhotoToneMapping?.Validate();
-                loaded.HardwareDecoderConfigurations ??= new Dictionary<string, HardwareDecoderConfiguration>(StringComparer.OrdinalIgnoreCase);
-                return loaded;
+                var json = File.ReadAllText(path);
+                var loaded = JsonSerializer.Deserialize(json, AppSettingsJsonContext.Default.PersistedAppSettings);
+                if (loaded is not null)
+                {
+                    loaded.LibraryFolderPaths ??= [];
+                    loaded.VideoFolderPaths ??= [];
+                    loaded.AudioOutputOptions ??= new Dictionary<string, string>(StringComparer.Ordinal);
+                    loaded.CustomColorThemes ??= [];
+                    loaded.ToneMapping ??= ToneMappingSettings.Default;
+                    try
+                    {
+                        loaded.ToneMapping.Validate();
+                    }
+                    catch (ArgumentException exception)
+                    {
+                        AppLog.Warning("Settings", $"Invalid tone mapping settings at {path}; using defaults.", exception);
+                        loaded.ToneMapping = ToneMappingSettings.Default;
+                    }
+                    loaded.HardwareDecoderConfigurations ??= new Dictionary<string, HardwareDecoderConfiguration>(StringComparer.OrdinalIgnoreCase);
+                    return loaded;
+                }
             }
+        }
+        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
+        {
+            AppLog.Warning("Settings", $"Could not load settings at {path}; using defaults.", exception);
         }
 
         return new PersistedAppSettings();
@@ -997,6 +1056,8 @@ public sealed class PersistedAppSettings
 
     public bool EnableAppleChrome { get; set; } = true;
 
+    public double LiquidGlassFrost { get; set; }
+
     public List<CustomColorThemeRecord> CustomColorThemes { get; set; } = [];
 
     public string DefaultRouteId { get; set; } = nameof(AppRouteId.Home);
@@ -1027,13 +1088,18 @@ public sealed class PersistedAppSettings
 
     public bool AutoPlayNextVideo { get; set; } = true;
 
+    public int SubtitleFontSize { get; set; } = SubtitleFontSizeSettings.Default;
+
+    public string SubtitleFontFamily { get; set; } = string.Empty;
+
     public bool EnableHardwareDecoding { get; set; } = DefaultEnableHardwareDecoding;
 
     public string PreferredHardwareDecoder { get; set; } = string.Empty;
 
-    public bool PreferPhotoDecodePerformance { get; set; }
+    public bool PreferPhotoDecodePerformance { get; set; } =
+        OperatingSystem.IsWindows() || OperatingSystem.IsLinux() || OperatingSystem.IsMacOS();
 
-    public VideoSdrToneMappingOptions? PreferredPhotoToneMapping { get; set; }
+    public ToneMappingSettings ToneMapping { get; set; } = ToneMappingSettings.Default;
 
     public Dictionary<string, HardwareDecoderConfiguration> HardwareDecoderConfigurations { get; set; } =
         new(StringComparer.OrdinalIgnoreCase);

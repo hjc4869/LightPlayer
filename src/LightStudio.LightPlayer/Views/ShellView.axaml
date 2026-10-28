@@ -1063,6 +1063,7 @@
                                                                  ZIndex="1"
                                                                  Classes.narrow="{Binding IsNarrow}"
                                                                  Content="{Binding RoutedPage}"
+                                                                 RetainedContent="{Binding RetainedPage}"
                                                                  PageTransition="{Binding CurrentPageTransition}"
                                                                  IsTransitionReversed="{Binding IsBackNavigation}" />
 
@@ -1218,7 +1219,7 @@
                   sits flush over the reserved spacer above. -->
             <Border Grid.Column="0" Grid.ColumnSpan="2"
                     x:Name="QueuePaneHost"
-                    Classes.floating="{Binding Queue.IsTemporarilyOpen}"
+                    Classes.floating="{Binding Queue.IsFloating}"
                     Classes.apple="{Binding IsAppleLayout}"
                     HorizontalAlignment="Right"
                     IsVisible="{Binding IsChromeVisible}"

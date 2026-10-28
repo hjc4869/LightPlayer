@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <AssemblyName>lmpdroid</AssemblyName>
+    <AssemblyName>lmcdroid</AssemblyName>
     <TargetFramework>$(TargetFramework)-$(AndroidTargetVersion)</TargetFramework>
+    <Nullable>annotations</Nullable>
     <RuntimeIdentifiers Condition="'$(RuntimeIdentifier)' == ''">android-x64;android-arm64</RuntimeIdentifiers>
     <RuntimeIdentifiers Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</RuntimeIdentifiers>
     <SupportedOSPlatformVersion>35</SupportedOSPlatformVersion>
@@ -33,9 +34,17 @@
     <PackageReference Include="Avalonia.Android" />
     <PackageReference Include="LightStudio.AvaloniaStatic" />
     <PackageReference Include="LightStudio.Ffmpeg" />
+    <PackageReference Include="LightStudio.Onnx" />
     <PackageReference Include="LightStudio.Photos" />
+    <PackageReference Include="LightStudio.WebGPU" />
+    <PackageReference Include="MathNet.Numerics" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" />
     <PackageReference Include="Xamarin.AndroidX.Core.SplashScreen" />
     <PackageReference Include="SQLitePCLRaw.bundle_sqlite3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\LightStudio.LightPlayer.Desktop\Inference\Onnx\**\*.cs" Link="Inference\Onnx\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(PublishAot)' == 'true'">
@@ -52,7 +61,6 @@
   <ItemGroup>
     <ProjectReference Include="..\LightStudio.Logging\LightStudio.Logging.csproj" />
     <ProjectReference Include="..\LightStudio.LocalServices\LightStudio.LocalServices.csproj" />
-    <ProjectReference Include="..\LightStudio.Inference.LiteRT\LightStudio.Inference.LiteRT.csproj" />
     <ProjectReference Include="..\LightStudio.Lyrics.Jint\LightStudio.Lyrics.Jint.csproj" />
     <ProjectReference Include="..\LightStudio.RemoteServices\LightStudio.RemoteServices.csproj" />
     <ProjectReference Include="..\LightStudio.LightPlayer\LightStudio.LightPlayer.csproj" />

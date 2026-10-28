@@ -10,15 +10,11 @@
     mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="720"
         x:Class="LightStudio.LightPlayer.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-    Title="{Binding Shell.WindowPageTitle, StringFormat='{}{0} — Light'}"
+    Title="{Binding Shell.WindowPageTitle, StringFormat='{}{0} — Light Media Center'}"
     Width="1200"
     Height="720"
     MinWidth="360"
     MinHeight="600">
-
-    <Window.Styles>
-        <StyleInclude Source="/Themes/ClientWindowChrome.axaml" />
-    </Window.Styles>
 
     <!-- Native menu bar. Exported to the platform menu (macOS menu bar, and the global menu on Linux
          desktops that provide one); ignored on platforms without a native menu, where the in-shell

@@ -32,6 +32,8 @@ internal sealed class HdrContentHint
         control.AttachedToVisualTree += OnAttached;
         control.DetachedFromVisualTree += OnDetached;
         control.EffectiveViewportChanged += OnViewportChanged;
+        if (control.IsAttachedToVisualTree())
+            Attach();
     }
 
     public static bool IsHdr(VideoFrame frame) =>
@@ -101,7 +103,9 @@ internal sealed class HdrContentHint
         Refresh();
     }
 
-    private void OnAttached(object? sender, VisualTreeAttachmentEventArgs args)
+    private void OnAttached(object? sender, VisualTreeAttachmentEventArgs args) => Attach();
+
+    private void Attach()
     {
         inViewport = true;
         for (Visual? visual = control; visual is not null; visual = visual.GetVisualParent())

@@ -80,6 +80,7 @@ public partial class SettingsWindow : Window
         if (PlatformServices.SupportsClientSideWindowControls)
         {
             WindowDecorations = UseCustomWindowControls ? WindowDecorations.BorderOnly : WindowDecorations.Full;
+            ExtendClientAreaToDecorationsHint = UseCustomWindowControls;
         }
 
         UpdateWindowControls();

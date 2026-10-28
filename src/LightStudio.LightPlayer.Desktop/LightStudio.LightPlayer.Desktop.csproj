@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <AssemblyName>lmp</AssemblyName>
+    <AssemblyName>lmc</AssemblyName>
     <Nullable>enable</Nullable>
     <RootNamespace>LightStudio.LightPlayer.Desktop</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -91,18 +91,22 @@
     <PackageReference Condition="'$(IsLinuxTarget)' == 'true'" Include="Avalonia.Wayland" />
     <PackageReference Condition="'$(IsMacOSTarget)' == 'true'" Include="Avalonia.Native" />
     <PackageReference Condition="'$(IsLinuxTarget)' == 'true'" Include="Tmds.DBus.Protocol" />
-    <PackageReference Condition="'$(IsLinuxTarget)' == 'true'" Include="SQLitePCLRaw.bundle_sqlite3" />
-    <PackageReference Condition="'$(IsMacOSTarget)' == 'true'" Include="SQLitePCLRaw.bundle_e_sqlite3" />
+    <PackageReference Condition="'$(IsLinuxTarget)' == 'true' OR '$(IsMacOSTarget)' == 'true'" Include="SQLitePCLRaw.bundle_sqlite3" />
     <PackageReference Condition="'$(IsWindowsTarget)' == 'true'" Include="NAudio.Wasapi" />
     <PackageReference Condition="'$(IsWindowsTarget)' == 'true'" Include="SQLitePCLRaw.provider.winsqlite3" />
     <PackageReference Condition="'$(IsLinuxTarget)' != 'true'" Include="LightStudio.Ffmpeg" />
     <PackageReference Include="LightStudio.Photos" />
+    <PackageReference Condition="'$(IsWindowsTarget)' == 'true'" Include="Microsoft.Windows.AI.MachineLearning" />
+    <PackageReference Condition="'$(IsWindowsTarget)' != 'true'" Include="LightStudio.Onnx" />
+    <PackageReference Condition="'$(IsLinuxTarget)' == 'true'" Include="LightStudio.WebGPU" />
+    <PackageReference Include="Microsoft.ML.Tokenizers" />
+    <PackageReference Include="MathNet.Numerics" />
     <PackageReference Include="LightStudio.AvaloniaStatic" />
-    <PackageReference Condition="'$(IsMacOSTarget)' == 'true'" Include="LightStudio.AvaloniaStatic.Native" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(PublishAot)' == 'true'">
     <DirectPInvoke Include="__Internal;vec0" />
+    <DirectPInvoke Condition="'$(IsMacOSTarget)' == 'true'" Include="sqlite3" />
     <DirectPInvoke Include="liblcms2" />
     <DirectPInvoke Include="libraw" />
     <DirectPInvoke Include="libjpegxr" />
@@ -115,6 +119,11 @@
 
   <ItemGroup Condition="'$(IsWindowsTarget)' != 'true'">
     <Compile Remove="Windows\**\*.cs" />
+    <Compile Remove="Inference\WindowsML\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(IsWindowsTarget)' == 'true'">
+    <Compile Remove="Inference\Onnx\OnnxInferenceProvider.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(IsMacOSTarget)' != 'true'">
@@ -132,8 +141,6 @@
   <ItemGroup>
     <ProjectReference Include="..\LightStudio.Logging\LightStudio.Logging.csproj" />
     <ProjectReference Include="..\LightStudio.LocalServices\LightStudio.LocalServices.csproj" />
-    <ProjectReference Condition="'$(IsWindowsTarget)' == 'true'" Include="..\LightStudio.Inference.WindowsML\LightStudio.Inference.WindowsML.csproj" />
-    <ProjectReference Condition="'$(IsWindowsTarget)' != 'true'" Include="..\LightStudio.Inference.Onnx\LightStudio.Inference.Onnx.csproj" />
     <ProjectReference Include="..\LightStudio.Lyrics.Jint\LightStudio.Lyrics.Jint.csproj" />
     <ProjectReference Include="..\LightStudio.LightPlayer\LightStudio.LightPlayer.csproj" />
     <ProjectReference Include="..\LightStudio.RemoteApi\LightStudio.RemoteApi.csproj" />

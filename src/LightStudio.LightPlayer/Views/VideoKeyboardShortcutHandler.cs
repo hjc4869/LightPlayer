@@ -210,6 +210,18 @@ internal sealed class VideoKeyboardShortcutHandler : IDisposable
         var shift = keyModifiers.HasFlag(KeyModifiers.Shift);
         var control = keyModifiers.HasFlag(KeyModifiers.Control);
 
+        if (key == Key.S && keyModifiers == CommandModifiers())
+        {
+            if (!model.CanSaveScreenshot || playerView is null)
+            {
+                return false;
+            }
+
+            playerView.SaveScreenshot();
+            ShowVideoControls(model, playerView);
+            return true;
+        }
+
         if (keySymbol == "?")
         {
             model.ToggleShortcutsCommand.Execute(null);
@@ -320,6 +332,10 @@ internal sealed class VideoKeyboardShortcutHandler : IDisposable
 
     private VideoPlayerPageView? ActivePlayerView() =>
         ActiveModel is { } model ? FindActiveVideoPlayerView(model) : null;
+
+    /// <summary>The platform's command key: Command on Apple systems, Control elsewhere.</summary>
+    private KeyModifiers CommandModifiers() =>
+        host.GetPlatformSettings()?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control;
 
     private VideoPlayerPageView? FindActiveVideoPlayerView(VideoPlayerPageViewModel model)
     {

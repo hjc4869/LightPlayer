@@ -94,7 +94,7 @@ public static class ExifMetadata
             if (tiff.Length < 8)
                 return (new(), new(), new());
             bool littleEndian = tiff[0] == 0x49;
-            if (ReadUInt16(tiff.AsSpan(2), littleEndian) != 42)
+            if (ReadUInt16(tiff.AsSpan(2), littleEndian) is not (42 or 0x01BC))
                 return (new(), new(), new());
             var ranges = new AsyncFields(tiff, standalone ? stream : null, littleEndian, cancellationToken);
             Fields camera = await ranges.ReadDirectoryAsync(ReadUInt32(tiff.AsSpan(4), littleEndian)).ConfigureAwait(false);
@@ -118,7 +118,7 @@ public static class ExifMetadata
             return new();
 
         bool littleEndian = tiff[0] == 0x49;
-        if (ReadUInt16(tiff[2..], littleEndian) != 42)
+        if (ReadUInt16(tiff[2..], littleEndian) is not (42 or 0x01BC))
             return new();
 
         Fields camera = ReadDirectory(tiff, ReadUInt32(tiff[4..], littleEndian), littleEndian, tiffStream);
@@ -179,7 +179,7 @@ public static class ExifMetadata
             return [];
 
         bool littleEndian = tiff[0] == 0x49;
-        if (ReadUInt16(tiff[2..], littleEndian) != 42)
+        if (ReadUInt16(tiff[2..], littleEndian) is not (42 or 0x01BC))
             return [];
 
         // Only IFD0 is walked: IFD1 is the embedded thumbnail, which describes itself rather than

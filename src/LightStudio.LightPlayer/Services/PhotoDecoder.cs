@@ -57,8 +57,12 @@ internal static unsafe partial class PhotoDecoder
         }
     }
 
+    /// <param name="useTiles">
+    /// Whether the picture is decoded for display: container tile grids stay compressed as tile sources rather than
+    /// being assembled, and JPEG samples can be retained for zooming.
+    /// </param>
     public static VideoFrame? Decode(Stream stream, CancellationToken cancellationToken = default, bool? renderRaw = null,
-        string? fileName = null)
+        string? fileName = null, bool useTiles = true)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!stream.CanSeek)
@@ -66,7 +70,7 @@ internal static unsafe partial class PhotoDecoder
             using var buffered = new MemoryStream();
             stream.CopyTo(buffered);
             buffered.Position = 0;
-            return Decode(buffered, cancellationToken, renderRaw, fileName);
+            return Decode(buffered, cancellationToken, renderRaw, fileName, useTiles);
         }
 
         if (DecodeAnimation(stream, cancellationToken) is { } animated)
@@ -81,7 +85,8 @@ internal static unsafe partial class PhotoDecoder
         long origin = stream.Position;
         try
         {
-            if (PhotoDecodeAcceleration.Decoder?.TryDecode(stream, DecodeSoftware, cancellationToken) is { } accelerated)
+            if (PhotoDecodeAcceleration.Decoder?.TryDecode(stream,
+                    (source, token) => DecodeSoftware(source, token, useTiles), cancellationToken) is { } accelerated)
                 return accelerated;
         }
         finally
@@ -89,7 +94,7 @@ internal static unsafe partial class PhotoDecoder
             stream.Position = origin;
         }
 
-        return DecodeSoftware(stream, cancellationToken);
+        return DecodeSoftware(stream, cancellationToken, useTiles);
     }
 
     public static VideoFrame? DecodePreview(Stream stream, PhotoPreviewRequest request, CancellationToken cancellationToken)
@@ -128,14 +133,14 @@ internal static unsafe partial class PhotoDecoder
         return null;
     }
 
-    private static VideoFrame? DecodeSoftware(Stream stream, CancellationToken cancellationToken)
+    private static VideoFrame? DecodeSoftware(Stream stream, CancellationToken cancellationToken, bool useTiles = true)
     {
         long origin = stream.Position;
         VideoFrame? decoded = null;
         try
         {
             decoded = DecodeJxr(stream, cancellationToken) ??
-                DecodeDngPreview(stream, cancellationToken) ?? DecodeGainMap(stream, cancellationToken);
+                DecodeDngPreview(stream, cancellationToken) ?? DecodeGainMap(stream, cancellationToken, useTiles);
         }
         catch (EndOfStreamException)
         {
@@ -145,16 +150,17 @@ internal static unsafe partial class PhotoDecoder
             stream.Position = origin;
         }
 
-        return decoded ?? DecodeGpu(stream, cancellationToken) ?? StillImage.Decode(stream, leaveOpen: true, cancellationToken);
+        return decoded ?? DecodeGpu(stream, cancellationToken, useTiles: useTiles) ??
+            StillImage.Decode(stream, leaveOpen: true, cancellationToken);
     }
 
-    private static VideoFrame? DecodeGainMap(Stream stream, CancellationToken cancellationToken)
+    private static VideoFrame? DecodeGainMap(Stream stream, CancellationToken cancellationToken, bool useTiles)
     {
         long origin = stream.Position;
         GainMapSource? source = ReadContainer(stream, cancellationToken);
         stream.Position = origin;
         if (source is not null)
-            return DecodeContainerGainMap(stream, source, cancellationToken);
+            return DecodeContainerGainMap(stream, source, cancellationToken, useTiles);
 
         if (!TryFindJpegGainMap(stream, out ImageRange primaryImage, out ImageRange gainImage, out GainMap gainMap))
             return null;
@@ -166,7 +172,7 @@ internal static unsafe partial class PhotoDecoder
         if (primary is null || gain is null)
             return null;
 
-        return Reconstruct(primary, gain, gainMap, cancellationToken, primaryData, gainData);
+        return Reconstruct(primary, gain, gainMap, cancellationToken, primaryData, gainData, useTiles);
     }
 
     private static SKData ReadData(Stream stream, ImageRange image)
@@ -187,7 +193,7 @@ internal static unsafe partial class PhotoDecoder
     }
 
     private static VideoFrame? Reconstruct(SKCodec primary, SKCodec gain, GainMap metadata,
-        CancellationToken cancellationToken, SKData? primaryData = null, SKData? gainData = null)
+        CancellationToken cancellationToken, SKData? primaryData = null, SKData? gainData = null, bool useTiles = true)
     {
         cancellationToken.ThrowIfCancellationRequested();
         using SKColorSpace sourceColorSpace = primary.Info.ColorSpace ?? SKColorSpace.CreateSrgb();
@@ -197,7 +203,8 @@ internal static unsafe partial class PhotoDecoder
         if (!mathColorSpace.ToColorSpaceXyz(out SKColorSpaceXyz sourceXyz))
             return null;
 
-        if (ReconstructGpu(primary, gain, metadata, sourceColorSpace, sourceXyz, cancellationToken, primaryData, gainData) is { } direct)
+        if (ReconstructGpu(primary, gain, metadata, sourceColorSpace, sourceXyz, cancellationToken, primaryData, gainData,
+                useTiles) is { } direct)
             return direct;
 
         using var basePixels = new SKBitmap(new SKImageInfo(

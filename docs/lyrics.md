@@ -1,6 +1,6 @@
 # Lyrics source extensions
 
-Light Player loads lyrics sources from JavaScript files in its application-data
+Light Media Center loads lyrics sources from JavaScript files in its application-data
 `Scripts` directory. Desktop, Android, server, and `lrctest` run scripts with
 [Jint](https://github.com/sebastienros/jint); the web client uses the browser's
 JavaScript engine. A script must define the two async functions below. It may also define `getSourceInfo`
@@ -49,7 +49,7 @@ return an array of JSON-serializable objects with this shape:
 }
 ```
 
-Missing properties receive their .NET defaults. Light Player adds the source
+Missing properties receive their .NET defaults. Light Media Center adds the source
 name itself. Use `opaque` to carry IDs, URLs, or already-fetched lyrics into
 `downloadLrcAsync`; its value is serialized to JSON between calls.
 

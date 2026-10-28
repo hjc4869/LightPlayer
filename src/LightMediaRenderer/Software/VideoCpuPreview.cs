@@ -126,7 +126,7 @@ internal static unsafe class VideoCpuPreview
             Sample(frame, x, row, out r[x], out g[x], out b[x], out alpha[x]);
     }
 
-    private static void Sample(VideoFrame frame, float x, float y, out float r, out float g, out float b, out float alpha)
+    internal static void Sample(VideoFrame frame, float x, float y, out float r, out float g, out float b, out float alpha)
     {
         VideoPlanarLayout layout = frame.Layout;
         if (!VideoPlanarLayout.IsPlanar(frame.Format))
@@ -160,14 +160,7 @@ internal static unsafe class VideoCpuPreview
         }
         r = Plane(0, x, y, false, 0);
         float shiftX = 1 << layout.ChromaShiftX, shiftY = 1 << layout.ChromaShiftY;
-        float sitingX = frame.ChromaLocation is VideoChromaLocation.Left or VideoChromaLocation.TopLeft or VideoChromaLocation.BottomLeft
-            ? (shiftX - 1) / (2 * shiftX) : 0;
-        float sitingY = frame.ChromaLocation switch
-        {
-            VideoChromaLocation.TopLeft or VideoChromaLocation.Top => (shiftY - 1) / (2 * shiftY),
-            VideoChromaLocation.BottomLeft or VideoChromaLocation.Bottom => -(shiftY - 1) / (2 * shiftY),
-            _ => 0,
-        };
+        (float sitingX, float sitingY) = ChromaSiting(frame.ChromaLocation, shiftX, shiftY);
         float cx = (x + 0.5f) / shiftX + sitingX - 0.5f;
         float cy = (y + 0.5f) / shiftY + sitingY - 0.5f;
         g = Plane(1, cx, cy, true, layout.SwappedChroma ? 1 : 0);
@@ -197,5 +190,69 @@ internal static unsafe class VideoCpuPreview
                 return value / (float)((1 << layout.BitDepth) - 1);
             }
         }
+    }
+
+    /// <summary>Samples whole pixels along a row from <paramref name="left"/>, as <see cref="Sample"/> does for each.</summary>
+    internal static void SampleRow(VideoFrame frame, int left, int row, Span<float> r, Span<float> g, Span<float> b,
+        Span<float> alpha)
+    {
+        if (!VideoPlanarLayout.IsPlanar(frame.Format))
+        {
+            for (int x = 0; x < r.Length; x++)
+                Sample(frame, left + x, row, out r[x], out g[x], out b[x], out alpha[x]);
+            return;
+        }
+
+        VideoPlanarLayout layout = frame.Layout;
+        int bytes = layout.BytesPerSample, shift = layout.MsbAligned ? 16 - layout.BitDepth : 0;
+        float maximum = (1 << layout.BitDepth) - 1;
+        float shiftX = 1 << layout.ChromaShiftX, shiftY = 1 << layout.ChromaShiftY;
+        (float sitingX, float sitingY) = ChromaSiting(frame.ChromaLocation, shiftX, shiftY);
+        int chromaWidth = layout.ChromaWidth(frame.Width), chromaHeight = layout.ChromaHeight(frame.Height);
+        float cy = Math.Clamp((row + 0.5f) / shiftY + sitingY - 0.5f, 0, chromaHeight - 1);
+        int top = (int)cy, bottom = Math.Min(top + 1, chromaHeight - 1);
+        float fy = cy - top;
+        int step = layout.InterleavedChroma ? 2 : 1;
+        int blueOffset = layout.InterleavedChroma && layout.SwappedChroma ? 1 : 0;
+        int redOffset = layout.InterleavedChroma && !layout.SwappedChroma ? 1 : 0;
+        int redPlane = layout.InterleavedChroma ? 1 : 2;
+        byte* luma = (byte*)frame.GetPlane(0) + (long)Math.Clamp(row, 0, frame.Height - 1) * frame.GetStride(0);
+        byte* blueTop = (byte*)frame.GetPlane(1) + (long)top * frame.GetStride(1);
+        byte* blueBottom = (byte*)frame.GetPlane(1) + (long)bottom * frame.GetStride(1);
+        byte* redTop = (byte*)frame.GetPlane(redPlane) + (long)top * frame.GetStride(redPlane);
+        byte* redBottom = (byte*)frame.GetPlane(redPlane) + (long)bottom * frame.GetStride(redPlane);
+        for (int x = 0; x < r.Length; x++)
+        {
+            r[x] = Read(luma, Math.Clamp(left + x, 0, frame.Width - 1));
+            float cx = Math.Clamp((left + x + 0.5f) / shiftX + sitingX - 0.5f, 0, chromaWidth - 1);
+            int first = (int)cx, second = Math.Min(first + 1, chromaWidth - 1);
+            float fx = cx - first;
+            g[x] = Bilinear(blueTop, blueBottom, first * step + blueOffset, second * step + blueOffset, fx);
+            b[x] = Bilinear(redTop, redBottom, first * step + redOffset, second * step + redOffset, fx);
+            alpha[x] = 1;
+        }
+
+        float Bilinear(byte* upper, byte* lower, int leftIndex, int rightIndex, float fx)
+        {
+            float a = Read(upper, leftIndex), b = Read(upper, rightIndex), c = Read(lower, leftIndex), d = Read(lower, rightIndex);
+            float near = a + (b - a) * fx, far = c + (d - c) * fx;
+            return near + (far - near) * fy;
+        }
+
+        float Read(byte* address, int index) =>
+            bytes == 1 ? address[index] / 255f : (((ushort*)address)[index] >> shift) / maximum;
+    }
+
+    private static (float X, float Y) ChromaSiting(VideoChromaLocation location, float shiftX, float shiftY)
+    {
+        float x = location is VideoChromaLocation.Left or VideoChromaLocation.TopLeft or VideoChromaLocation.BottomLeft
+            ? (shiftX - 1) / (2 * shiftX) : 0;
+        float y = location switch
+        {
+            VideoChromaLocation.TopLeft or VideoChromaLocation.Top => (shiftY - 1) / (2 * shiftY),
+            VideoChromaLocation.BottomLeft or VideoChromaLocation.Bottom => -(shiftY - 1) / (2 * shiftY),
+            _ => 0,
+        };
+        return (x, y);
     }
 }

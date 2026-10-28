@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://lightplayer.example/schemas/video-scale-stage-v1.schema.json",
-  "title": "Light Player video scale stage",
+  "title": "Light Media Center video scale stage",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "name", "inputDomain", "output", "passes"],

@@ -85,7 +85,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
     private readonly string? shaderPackageOverride;
     private readonly Action<bool, double>? outputChanged;
     private readonly Action<bool>? hdrOutputChanged;
-    private readonly Action<VideoHdrOutputMapping>? toneMappingOutputChanged;
+    private readonly Action<VideoHdrOutputMapping, VideoDisplayToneTarget>? toneMappingOutputChanged;
     private readonly CompositionCustomVisual? fencePollTarget;
 
     /// <summary>
@@ -100,6 +100,8 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
     private SKColorSpace? targetColorSpace;
     private VideoOutputColorVolume? preferredColorVolume;
     private SKRect deviceViewport;
+    private double linearNitsPerUnit;
+    private readonly IVideoRenderDiagnostics? diagnostics;
 
     /// <summary>Takes ownership of one reference on <paramref name="frame"/>.</summary>
     public VideoDrawOperation(
@@ -122,7 +124,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
         Action<bool>? hdrOutputChanged = null,
         Compositor? compositor = null,
         VideoSdrToneMappingOptions? toneMapping = null,
-        Action<VideoHdrOutputMapping>? toneMappingOutputChanged = null)
+        Action<VideoHdrOutputMapping, VideoDisplayToneTarget>? toneMappingOutputChanged = null)
     {
         this.frame = frame;
         fencePollTarget = frame.HasSurface ? VideoSurfaceReadFence.GetPollTarget(compositor) : null;
@@ -136,6 +138,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
         this.panelBitDepth = panelBitDepth;
         this.captureRequest = captureRequest;
         this.imageCache = imageCache;
+        diagnostics = imageCache is null ? VideoOutputDiagnostics.Renderer : null;
         imageVersion = imageCache?.Version ?? 0;
         this.deinterlaceHistory = deinterlaceHistory;
         this.frameSequence = frameSequence;
@@ -237,18 +240,25 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
             hdrPassthrough,
             preferredColorVolume,
             toneMapping);
-        toneMappingOutputChanged?.Invoke(hdrOutput);
+        linearNitsPerUnit = hdrOutput.LinearNitsPerUnit;
+        // The automatic mapping is reported whatever options are applied, so a host can show it.
+        toneMappingOutputChanged?.Invoke(
+            toneMapping is null
+                ? hdrOutput
+                : VideoFramePipeline.ResolveOutput(frame, target, hdrPassthrough, preferredColorVolume),
+            target.ResolveDisplayToneTarget(hdrPassthrough, preferredColorVolume));
         outputChanged?.Invoke(target.IsExtendedRange(), hdr
             ? hdrOutput.ToneMapPeakNits / hdrOutput.LinearNitsPerUnit
             : 1);
-        VideoOutputDiagnostics.RecordSurface(
-            lease,
-            target,
-            frame.ColorTransfer,
-            hdrOutput,
-            quality,
-            hdrPassthrough,
-            lease.GetOutputColorVolume());
+        if (diagnostics is not null)
+            VideoOutputDiagnostics.RecordSurface(
+                lease,
+                target,
+                frame.ColorTransfer,
+                hdrOutput,
+                quality,
+                hdrPassthrough,
+                lease.GetOutputColorVolume());
 
         // Decoders cannot ask the graphics backend anything from where they run, so the answer to
         // whether it takes their surfaces is established here, where the context is in hand.
@@ -279,7 +289,8 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
         if (savedCanvas != 0)
             canvas.RestoreToCount(savedCanvas);
 
-        VideoOutputDiagnostics.RecordRenderCpuTime(MediaTime.Now - renderStarted);
+        if (diagnostics is not null)
+            VideoOutputDiagnostics.RecordRenderCpuTime(MediaTime.Now - renderStarted);
 
         if (captureRequest is { IsCompleted: false } capture)
             Capture(canvas, capture);
@@ -335,7 +346,10 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
                 }
             }
 
-            request.TrySetResult(new VideoRenderCapture(width, height, rowBytes, pixels, target, nativePixels));
+            request.TrySetResult(new VideoRenderCapture(width, height, rowBytes, pixels, target, nativePixels)
+            {
+                LinearNitsPerUnit = linearNitsPerUnit,
+            });
             AppLog.Debug(
                 "Video.Capture",
                 $"Captured {width}x{height} rendered pixels; nativeFloat={nativePixels is not null}; target={target}.");
@@ -448,7 +462,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
             frame.Height,
             SKColorType.Rgba8888,
             SKAlphaType.Opaque,
-            SourceColorSpace(VideoSurfaceTransfers.For(preferredColorVolume)));
+            SourceColorSpace(VideoSurfaceTransfers.For(target, preferredColorVolume)));
 
         using SKImage? image = planes.CreatePlane(0, info);
         if (image is null)
@@ -514,7 +528,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
             GRSurfaceOrigin.TopLeft,
             colorType,
             SKAlphaType.Opaque,
-            SourceColorSpace(VideoSurfaceTransfers.For(preferredColorVolume)),
+            SourceColorSpace(VideoSurfaceTransfers.For(target, preferredColorVolume)),
             ReleaseFrame,
             frame);
 
@@ -553,7 +567,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
                 VideoPixelFormat.RgbaF16 => SKColorType.RgbaF16,
                 _ => SKColorType.Bgra8888,
             }, frame.HasAlpha ? SKAlphaType.Unpremul : SKAlphaType.Opaque,
-            SourceColorSpace(VideoSurfaceTransfers.For(preferredColorVolume)));
+            SourceColorSpace(VideoSurfaceTransfers.For(target, preferredColorVolume)));
 
         if (frame.PlaneSource is { } source)
         {
@@ -592,7 +606,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
         // transfer decoded by the pipeline. A filter carrying its own kernel likewise exists only
         // there, and Skia does not know that alternate rows were sampled at different instants.
         if ((rawYuv ||
-             VideoFramePipeline.NeedsColorProcessing(frame) ||
+             VideoFramePipeline.NeedsColorProcessing(frame, target) ||
                          target.IsExtendedRange() ||
                          VideoFramePipeline.NeedsDeinterlacing(frame) ||
                          scaler.RequiresSceneBuffer ||
@@ -621,13 +635,13 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
 
         // Sampling only matters when the control is not at native resolution.
         canvas.DrawImage(image, DestinationRect, directScaler.Sampling, paint);
-        VideoOutputDiagnostics.RecordPreScale(active: null);
-        VideoOutputDiagnostics.RecordDynamicHdr(dolbyVisionApplied: false, hdr10Plus: null);
-        VideoOutputDiagnostics.RecordColorProgram(drawnWithoutShader: true);
+        diagnostics?.RecordPreScale(active: null);
+        diagnostics?.RecordDynamicHdr(dolbyVisionApplied: false, hdr10Plus: null);
+        diagnostics?.RecordColorProgram(drawnWithoutShader: true);
 
         // Skia's own conversion has no dither stage to put anything in.
-        VideoOutputDiagnostics.RecordDither(outputBitDepth: 0, dithered: false, panelBitDepth > 0);
-        VideoOutputDiagnostics.RecordScaling(
+        diagnostics?.RecordDither(outputBitDepth: 0, dithered: false, panelBitDepth > 0);
+        diagnostics?.RecordScaling(
             directScaler.Quality,
             ReferenceEquals(directScaler, scaler)
                 ? string.Empty
@@ -675,7 +689,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
             panelBitDepth,
             debanding)
         {
-            Diagnostics = VideoOutputDiagnostics.Renderer,
+            Diagnostics = diagnostics,
             DeinterlaceHistory = deinterlaceHistory,
             FrameSequence = frameSequence,
             ImageCache = imageCache,
@@ -765,7 +779,11 @@ public sealed record VideoRenderCapture(
     int RowBytes,
     byte[] Pixels,
     VideoOutputColorSpace NativeColorSpace,
-    float[]? NativeRgbaF32);
+    float[]? NativeRgbaF32)
+{
+    /// <summary>Luminance in nits that a value of 1 in <see cref="NativeRgbaF32"/> stands for.</summary>
+    public double LinearNitsPerUnit { get; init; }
+}
 
 internal sealed class VideoRenderCaptureRequest
 {

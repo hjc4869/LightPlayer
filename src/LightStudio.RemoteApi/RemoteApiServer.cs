@@ -1367,6 +1367,12 @@ public sealed class RemoteApiServer : IDisposable
             : await services.VideoLibraryQuery
                 .GetVideoPreviewAsync(source.Path, cancellationToken)
                 .ConfigureAwait(false);
+        if (bytes is { Length: > 0 } && VideoPreviewFactory.IsJpegXl(bytes) &&
+            !string.Equals(context.Request.QueryString["jxl"], "1", StringComparison.Ordinal))
+        {
+            bytes = await ConvertPreviewToJpegAsync(bytes, source.Path, cancellationToken).ConfigureAwait(false);
+        }
+
         if (bytes is null || bytes.Length == 0)
         {
             // Nothing could be made of it, which the client draws its placeholder for; not an error
@@ -1410,10 +1416,10 @@ public sealed class RemoteApiServer : IDisposable
         try
         {
             preview = await Task.Run(
-                () =>
+                async () =>
                 {
-                    using var stream = File.OpenRead(path);
-                    return VideoPreviewFactory.CreatePhotoPreview(stream, leaveOpen: true);
+                    await using var stream = File.OpenRead(path);
+                    return await VideoPreviewFactory.CreatePhotoPreviewAsync(stream, cancellationToken).ConfigureAwait(false);
                 },
                 cancellationToken).ConfigureAwait(false);
         }
@@ -1427,6 +1433,24 @@ public sealed class RemoteApiServer : IDisposable
         await thumbnails.SetAsync(ThumbnailCacheKind.Photo, path, preview, cancellationToken)
             .ConfigureAwait(false);
         return preview;
+    }
+
+    /// <summary>
+    /// A JPEG XL preview as JPEG with its HDR kept as a gain map, for clients that did not ask for JPEG XL, or null
+    /// when it cannot be converted.
+    /// </summary>
+    private static async Task<byte[]?> ConvertPreviewToJpegAsync(byte[] preview, string path, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await Task.Run(() => VideoPreviewFactory.ConvertToJpegAsync(preview, cancellationToken), cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            AppLog.Warning("Preview", $"Could not convert the preview of {path} to JPEG.", exception);
+            return null;
+        }
     }
 
     /// <summary>
@@ -2267,6 +2291,11 @@ public sealed class RemoteApiServer : IDisposable
             bytes[8] == (byte)'W' && bytes[9] == (byte)'E' && bytes[10] == (byte)'B' && bytes[11] == (byte)'P')
         {
             return "image/webp";
+        }
+
+        if (VideoPreviewFactory.IsJpegXl(bytes))
+        {
+            return "image/jxl";
         }
 
         return "image/jpeg";

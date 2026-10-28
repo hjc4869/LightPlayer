@@ -618,6 +618,78 @@ internal static class VideoColorStages
         }
         """;
 
+    // The curves below are shader-only; toneParams.w holds the target peak in nits.
+
+    public const string ToneClip = """
+        float3 toneMap(float3 nits) {
+            float luminance = max(dot(sourceLuma.xyz, nits), 0.0);
+            float mapped = min(luminance, toneParams.w);
+            return nits * (luminance > 1e-6 ? mapped / luminance : 0.0);
+        }
+        """;
+
+    /// <summary>Unchanged up to the knee in .x, then m * e / (m + e) over the excess e, with m in .y.</summary>
+    public const string ToneMobius = """
+        float3 toneMap(float3 nits) {
+            float luminance = max(dot(sourceLuma.xyz, nits), 0.0);
+            float excess = max(luminance - toneParams.x, 0.0);
+            float mapped = min(luminance, toneParams.x) + toneParams.y * excess / (toneParams.y + excess);
+            mapped = min(mapped, toneParams.w);
+            return nits * (luminance > 1e-6 ? mapped / luminance : 0.0);
+        }
+        """;
+
+    /// <summary>L / (a * L + b), with a and b in .xy.</summary>
+    public const string ToneReinhard = """
+        float3 toneMap(float3 nits) {
+            float luminance = max(dot(sourceLuma.xyz, nits), 0.0);
+            float mapped = min(luminance / (toneParams.x * luminance + toneParams.y), toneParams.w);
+            return nits * (luminance > 1e-6 ? mapped / luminance : 0.0);
+        }
+        """;
+
+    /// <summary>Input relative to the target peak, scaled by .x, with the source peak at .y.</summary>
+    public const string ToneHable = """
+        float hableFilmic(float x) {
+            // Shoulder strength, linear strength, linear angle, toe strength, toe numerator and denominator.
+            const float a = 0.15;
+            const float b = 0.50;
+            const float c = 0.10;
+            const float d = 0.20;
+            const float e = 0.02;
+            const float f = 0.30;
+            return (x * (a * x + c * b) + d * e) / (x * (a * x + b) + d * f) - e / f;
+        }
+
+        float3 toneMap(float3 nits) {
+            float luminance = max(dot(sourceLuma.xyz, nits), 0.0);
+            float mapped = hableFilmic(luminance * toneParams.x) / hableFilmic(toneParams.y) * toneParams.w;
+            mapped = min(mapped, toneParams.w);
+            return nits * (luminance > 1e-6 ? mapped / luminance : 0.0);
+        }
+        """;
+
+    /// <summary>Unchanged up to the knee in .x, then a power law with the exponent in .y.</summary>
+    public const string ToneGamma = """
+        float3 toneMap(float3 nits) {
+            float luminance = max(dot(sourceLuma.xyz, nits), 0.0);
+            float mapped = luminance > toneParams.x
+                ? toneParams.x * pow(luminance / toneParams.x, toneParams.y)
+                : luminance;
+            mapped = min(mapped, toneParams.w);
+            return nits * (luminance > 1e-6 ? mapped / luminance : 0.0);
+        }
+        """;
+
+    /// <summary>PQ signal scaled by .x and limited to the target's PQ signal in .y.</summary>
+    public const string ToneLinear = """
+        float3 toneMap(float3 nits) {
+            float luminance = max(dot(sourceLuma.xyz, nits), 0.0);
+            float mapped = pqToNits(min(nitsToPq(luminance) * toneParams.x, toneParams.y));
+            return nits * (luminance > 1e-6 ? mapped / luminance : 0.0);
+        }
+        """;
+
     public static readonly string ToneHdr10Plus = CreateHdr10PlusToneMap();
 
     public const string ToneSceneAdaptive = """

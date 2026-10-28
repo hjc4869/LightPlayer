@@ -113,6 +113,23 @@ public static class SubtitleFontFallbacks
         }
     }
 
+    /// <summary>Family names of every registered face. Opens the registered files.</summary>
+    internal static List<string> FamilyNames()
+    {
+        var names = new List<string>();
+        if (!any)
+            return names;
+
+        lock (sync)
+        {
+            Open();
+            foreach (SKTypeface typeface in typefaces)
+                names.Add(typeface.FamilyName);
+        }
+
+        return names;
+    }
+
     private static void Open()
     {
         for (; opened < sources.Count; opened++)

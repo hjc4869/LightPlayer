@@ -208,8 +208,10 @@ public static unsafe partial class StillImage
             if (format == null)
                 return default;
             format->pb = io.Context;
-            if (avformat_open_input(&format, string.Empty, null, null) < 0 ||
-                avformat_find_stream_info(format, null) < 0)
+            if (avformat_open_input(&format, string.Empty, null, null) < 0)
+                return default;
+            bool analyze = !IsJpegXl(format);
+            if (analyze && avformat_find_stream_info(format, null) < 0)
                 return default;
 
             uint? itemId = FindPrimaryItem(format, properties);
@@ -226,6 +228,12 @@ public static unsafe partial class StillImage
             AVCodecParameters* parameters = format->streams[index]->codecpar;
             double width = mosaic == null ? parameters->width : mosaic->@params.tile_grid->width;
             double height = mosaic == null ? parameters->height : mosaic->@params.tile_grid->height;
+            if (!analyze)
+            {
+                stream.Position = origin;
+                if (TryReadHeaderPixelSize(stream, out int headerWidth, out int headerHeight))
+                    (width, height) = (headerWidth, headerHeight);
+            }
             if (width <= 0 || height <= 0)
                 return default;
             if (mosaic == null && TryReadCrop(parameters, parameters->width, parameters->height, out var crop))
@@ -533,7 +541,7 @@ public static unsafe partial class StillImage
                 return null;
             }
 
-            if (avformat_find_stream_info(format, null) < 0)
+            if (!IsJpegXl(format) && avformat_find_stream_info(format, null) < 0)
                 return null;
 
             itemId ??= FindPrimaryItem(format, properties);
@@ -569,7 +577,9 @@ public static unsafe partial class StillImage
                     double longestEdge = Math.Max(video->codecpar->width * aspect, video->codecpar->height);
                     reduction = 1 << Math.Clamp((int)Math.Floor(Math.Log2(Math.Max(1, longestEdge / maxDecodeDimension))), 0, 3);
                 }
-                context = OpenDecoder(video, decoderThreadCount, hardware, reduction: reduction);
+                // libjxl threads within one picture and has no reduced decode, so thumbnails also use every core.
+                int threads = video->codecpar->codec_id == AVCodecID.AV_CODEC_ID_JPEGXL ? 0 : decoderThreadCount;
+                context = OpenDecoder(video, threads, hardware, reduction: reduction);
                 if (context == null)
                     return null;
 
@@ -646,6 +656,13 @@ public static unsafe partial class StillImage
             io.Dispose();
         }
     }
+
+    /// <summary>
+    /// Stream analysis learns a JPEG XL still's pixel format by decoding the whole picture on one thread,
+    /// while its decoder reads everything it needs from the codestream.
+    /// </summary>
+    private static bool IsJpegXl(AVFormatContext* format) =>
+        format->nb_streams == 1 && format->streams[0]->codecpar->codec_id == AVCodecID.AV_CODEC_ID_JPEGXL;
 
     private static AVCodecContext* OpenDecoder(AVStream* stream, int threadCount, StillImageHardwareDecoder hardware,
         int retainedSurfaces = 0, int reduction = 1)

@@ -69,13 +69,48 @@ make CONFIGURATION=Debug
 make RID=linux-arm64
 ```
 
-## Local Avalonia Packages
+### Store releases
 
-The Avalonia fork version is pinned in `Directory.Packages.props`. Its packages are restored from
-the workspace-local feed at `artifacts/local-nuget`, as mapped in `nuget.config`. Populate that
-directory with the matching merged packages from the Avalonia fork before restoring this checkout.
-Local versions use the `-local` prerelease suffix independently of published fork versions.
-Unmodified desktop, theme, and font meta-packages continue to use the public feed.
+Pass `-p:IsStoreRelease=true` when building or publishing a desktop or mobile head for an app store.
+The property defaults to `false`. For example:
+
+```sh
+dotnet publish src/LightStudio.LightPlayer.Desktop/LightStudio.LightPlayer.Desktop.csproj -c Release -p:Platform=x64 -p:IsStoreRelease=true
+```
+
+The MSIX packaging project passes `IsStoreRelease=true` to the desktop head automatically whenever it
+produces a `.msixupload` store package, such as with `UapAppxPackageBuildMode=StoreOnly` in Release.
+Sideload-only bundles keep the default.
+
+The shared application project defines `STORE_RELEASE` for these builds and makes
+`PlatformServices.UpdateAssetName` return `null` regardless of the asset assigned by a platform
+head. The local update service consequently reports no support, makes no release-check requests,
+and keeps the in-app update check and download UI hidden across desktop and mobile heads.
+
+## GitHub Release Packages
+
+`dotnet restore`, `dotnet build`, and `dotnet publish` automatically download the pinned GitHub
+release assets, verify their SHA256 checksums, and prepare a local NuGet feed before package
+resolution. `build/GitHubNuGet.targets` accepts ZIP archives containing NuGet packages and individual
+`.nupkg` assets through `GitHubNuGetAsset` items in `Directory.Packages.props`. Each item names the
+downloaded file and supplies `Url` and `Sha256` metadata. Keep the asset pins and central package
+versions in sync when selecting releases.
+
+The Avalonia platform fork comes from [its GitHub releases](https://github.com/hjc4869/Avalonia/releases).
+AvaloniaStatic, FFmpeg, Fonts, GeoNames, ONNX, Photos, WebGPU, and sqlite-vec come from
+[LightPlayer-Packages releases](https://github.com/hjc4869/LightPlayer-Packages/releases).
+`nuget.config` maps all `LightStudio.*` packages to this local feed.
+Jint uses the MyGet feed; other public dependencies use NuGet.org.
+
+The initial restore needs network access. Subsequent restores reuse verified assets under
+`artifacts/github-nuget/downloads` and packages under `artifacts/github-nuget/packages`. The target
+serializes feed initialization across parallel restores and exposes the feed through
+`RestoreAdditionalProjectSources`, including when a command supplies `--source`. The Flatpak source
+generator evaluates the same asset items and supplies the pinned downloads for offline restoration.
+
+Set `AvaloniaForkVersion` and `AvaloniaForkSha256` together to select the Avalonia fork release.
+Set `-p:UseAvaloniaFork=false` to use the public Avalonia versions. Desktop, theme, and font
+meta-packages use the public feed.
 
 ## Windows
 
@@ -95,7 +130,7 @@ Use a Visual Studio 2026 Developer PowerShell; the .NET SDK's `dotnet build` can
 ### Visual Studio
 
 Install Visual Studio support for .NET desktop development and Windows Application Packaging
-Projects (MSIX), then open `LightStudio.LightPlayer.slnx`. Native toolchain discovery is described
+Projects (MSIX), then open `LightPlayer-Windows.slnx`. Native toolchain discovery is described
 in the [native binding build prerequisites](../tools/NativeBindings/README.md#build-prerequisites).
 
 - **Debugging:** select
@@ -193,7 +228,12 @@ The `.app` is ad-hoc signed and not notarized. The ZIP archive preserves the app
 
 The app is built and published **self-contained inside the Flatpak sandbox** using the `dotnet10` SDK extension for Freedesktop 26.08. NuGet source discovery uses the same extension, so the host's installed `dotnet` is not used.
 
-NuGet restore during the publish runs offline from a pinned source list (`nuget-sources.json`) that `make flatpak` regenerates whenever a `src/**/*.csproj`, `Directory.Build.props`, `Directory.Packages.props` or `nuget.config` changes. Each package is pinned to the feed it was restored from, so packages coming from the private `lightstudio-lightplayer` feed (the patched Avalonia build) are fetched from there rather than from nuget.org.
+NuGet restore during the publish runs offline from a pinned source list (`nuget-sources.json`)
+that `make flatpak` regenerates when its project, build-target, package-version, or feed inputs
+change. `packaging/flatpak/nuget-sources.py` includes the Avalonia fork release ZIP with the version
+and SHA256 from `Directory.Packages.props`. Flatpak fetches it into the MSBuild archive cache;
+the restore target verifies and extracts it inside the offline build sandbox. Other packages
+remain pinned individually to the public or private feed recorded by their restore metadata.
 
 ### Flatpak prerequisites
 
@@ -215,6 +255,12 @@ for the build sandbox.
 ```sh
 make flatpak
 ```
+
+The target runs `make src` to generate `artifacts/LightPlayer.tar.gz` from tracked
+and non-ignored untracked sources. Flatpak extracts this complete source archive,
+including desktop integration files under `packaging/flatpak`. The Flatpak-specific `nuget.config` replaces the
+archive's feed configuration and clears package source mappings for the offline
+`nuget-sources` feed. The Avalonia fork target adds its local feed during restore.
 
 This produces a single-file bundle at:
 
@@ -262,7 +308,7 @@ With that SDK selected, select Xcode and install the matching workload:
 export DEVELOPER_DIR=/Applications/Xcode_26.0.1.app/Contents/Developer
 dotnet workload install ios --version 10.0.100
 dotnet build src/LightStudio.LightPlayer.iOS/LightStudio.LightPlayer.iOS.csproj -c Debug -r iossimulator-arm64
-xcrun simctl install booted artifacts/bin/LightStudio.LightPlayer.iOS/debug_iossimulator-arm64_static/lmpios.app
+xcrun simctl install booted artifacts/bin/LightStudio.LightPlayer.iOS/debug_iossimulator-arm64_static/lmcios.app
 xcrun simctl launch booted im.hjc.LightPlayer
 ```
 
@@ -284,7 +330,7 @@ The downloadable `LightPlayer-ios-arm64.ipa` is unsigned and must be re-signed w
 signing identity and provisioning profile before installation on a device.
 
 The Make helpers honor `CONFIGURATION` (default: `Release`) and write bundles under
-`artifacts/ios/<configuration>/<runtime-identifier>/lmpios.app`:
+`artifacts/ios/<configuration>/<runtime-identifier>/lmcios.app`:
 
 ```sh
 make iosapp

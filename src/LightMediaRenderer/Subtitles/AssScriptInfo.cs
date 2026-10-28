@@ -29,4 +29,6 @@ internal sealed class AssScriptInfo
 
     /// <summary>When set, border and shadow widths follow the script-to-screen scale.</summary>
     public bool ScaledBorderAndShadow { get; set; } = true;
+
+    public AssScriptInfo Clone() => (AssScriptInfo)MemberwiseClone();
 }

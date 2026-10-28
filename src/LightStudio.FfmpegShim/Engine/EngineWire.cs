@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.Decoding;
 using LightStudio.FfmpegShim.Demuxing;
+using LightStudio.FfmpegShim.ImageEncoding;
 using LightStudio.FfmpegShim.Media;
 
 namespace LightStudio.FfmpegShim.Engine;
@@ -202,6 +203,17 @@ public sealed record WirePhotoPackets(IReadOnlyList<WirePhotoPacket> Packets);
 public sealed record WirePhotoAnimation(int Session, int Playback);
 public sealed record WirePhotoAnimationResult(WirePhotoImage? Image);
 
+/// <summary>
+/// A still-image encoder of the worker's FFmpeg, with its <c>AVPixelFormat</c> values; <paramref name="Hardware"/> names its
+/// encoder interface.
+/// </summary>
+public sealed record WireStillImageEncoder(
+    string Name,
+    StillImageCodec Codec,
+    string DisplayName,
+    IReadOnlyList<int> PixelFormats,
+    string? Hardware);
+
 /// <summary>Everything the page told the worker since the last pump.</summary>
 public sealed record WirePumpUpdates
 {
@@ -280,6 +292,7 @@ public sealed record WireFault(
 [JsonSerializable(typeof(WirePhotoPackets))]
 [JsonSerializable(typeof(WirePhotoAnimation))]
 [JsonSerializable(typeof(WirePhotoAnimationResult))]
+[JsonSerializable(typeof(IReadOnlyList<WireStillImageEncoder>))]
 [JsonSerializable(typeof(VideoProbeResult))]
 [JsonSerializable(typeof(IReadOnlyList<VideoProbeAudioStreamInfo>))]
 [JsonSerializable(typeof(MediaInspection))]

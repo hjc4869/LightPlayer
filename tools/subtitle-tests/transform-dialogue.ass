@@ -1,0 +1,86 @@
+[Script Info]
+Title: Animated transforms - dense bilingual dialogue
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Latin,Arial,30,&H00FFFFFF,&H000000FF,&H00202020,&H80000000,0,0,0,0,100,100,0,0,1,2,1,5,20,20,20,1
+Style: Chinese,Noto Sans CJK SC,30,&H00FFFFFF,&H000000FF,&H00202020,&H80000000,0,0,0,0,100,100,0,0,1,2,1,5,20,20,20,1
+Style: Small,Arial,22,&H00C0C0C0,&H000000FF,&H00000000,&H80000000,0,0,0,0,100,100,0,0,1,1.5,0,5,20,20,20,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+; Four six-second pages of the same bilingual dialogue: fourteen events stay on screen together.
+; Compare the static first page with the animated ones; the third page only animates for 300 ms.
+
+; --- page 1: static baseline
+Dialogue: 0,0:00:00.00,0:00:06.00,Small,,0,0,0,,{\pos(640,24)}1/4 static baseline - the same fourteen lines with nothing animated
+Dialogue: 0,0:00:00.00,0:00:06.00,Chinese,,0,0,0,,{\pos(640,70)}今晚的月色真美，我们沿着河边慢慢走回家吧。
+Dialogue: 0,0:00:00.00,0:00:06.00,Latin,,0,0,0,,{\pos(640,116)}The moon looks lovely tonight, let us walk home by the river.
+Dialogue: 0,0:00:00.00,0:00:06.00,Chinese,,0,0,0,,{\pos(640,162)}这条字幕用来测试动画标签对每一帧的影响。
+Dialogue: 0,0:00:00.00,0:00:06.00,Latin,,0,0,0,,{\pos(640,208)}This line checks how animation tags affect every frame.
+Dialogue: 0,0:00:00.00,0:00:06.00,Chinese,,0,0,0,,{\pos(640,254)}颜色渐变不会改变文字的宽度和换行位置。
+Dialogue: 0,0:00:00.00,0:00:06.00,Latin,,0,0,0,,{\pos(640,300)}A color fade never changes the width or the line breaks.
+Dialogue: 0,0:00:00.00,0:00:06.00,Chinese,,0,0,0,,{\pos(640,346)}双语字幕在动画作品中非常常见，也很密集。
+Dialogue: 0,0:00:00.00,0:00:06.00,Latin,,0,0,0,,{\pos(640,392)}Bilingual subtitles are common in anime, and often dense.
+Dialogue: 0,0:00:00.00,0:00:06.00,Chinese,,0,0,0,,{\pos(640,438)}请留意画面是否流畅，以及是否出现卡顿。
+Dialogue: 0,0:00:00.00,0:00:06.00,Latin,,0,0,0,,{\pos(640,484)}Watch whether playback stays smooth or starts to stutter.
+Dialogue: 0,0:00:00.00,0:00:06.00,Chinese,,0,0,0,,{\pos(640,530)}每一行都同时动画化，就像繁忙的对话场景。
+Dialogue: 0,0:00:00.00,0:00:06.00,Latin,,0,0,0,,{\pos(640,576)}Every line animates at once, like a busy dialogue scene.
+Dialogue: 0,0:00:00.00,0:00:06.00,Chinese,,0,0,0,,{\pos(640,622)}最后一行稍微长一点，用来覆盖更多的字形和笔画。
+Dialogue: 0,0:00:00.00,0:00:06.00,Latin,,0,0,0,,{\pos(640,668)}The last line is a little longer to cover more glyphs and strokes.
+
+; --- page 2: paint only
+Dialogue: 0,0:00:06.00,0:00:12.00,Small,,0,0,0,,{\pos(640,24)}2/4 paint only - t animates colors and alpha, so line widths never change
+Dialogue: 0,0:00:06.00,0:00:12.00,Chinese,,0,0,0,,{\pos(640,70)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}今晚的月色真美，我们沿着河边慢慢走回家吧。
+Dialogue: 0,0:00:06.00,0:00:12.00,Latin,,0,0,0,,{\pos(640,116)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}The moon looks lovely tonight, let us walk home by the river.
+Dialogue: 0,0:00:06.00,0:00:12.00,Chinese,,0,0,0,,{\pos(640,162)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}这条字幕用来测试动画标签对每一帧的影响。
+Dialogue: 0,0:00:06.00,0:00:12.00,Latin,,0,0,0,,{\pos(640,208)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}This line checks how animation tags affect every frame.
+Dialogue: 0,0:00:06.00,0:00:12.00,Chinese,,0,0,0,,{\pos(640,254)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}颜色渐变不会改变文字的宽度和换行位置。
+Dialogue: 0,0:00:06.00,0:00:12.00,Latin,,0,0,0,,{\pos(640,300)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}A color fade never changes the width or the line breaks.
+Dialogue: 0,0:00:06.00,0:00:12.00,Chinese,,0,0,0,,{\pos(640,346)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}双语字幕在动画作品中非常常见，也很密集。
+Dialogue: 0,0:00:06.00,0:00:12.00,Latin,,0,0,0,,{\pos(640,392)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}Bilingual subtitles are common in anime, and often dense.
+Dialogue: 0,0:00:06.00,0:00:12.00,Chinese,,0,0,0,,{\pos(640,438)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}请留意画面是否流畅，以及是否出现卡顿。
+Dialogue: 0,0:00:06.00,0:00:12.00,Latin,,0,0,0,,{\pos(640,484)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}Watch whether playback stays smooth or starts to stutter.
+Dialogue: 0,0:00:06.00,0:00:12.00,Chinese,,0,0,0,,{\pos(640,530)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}每一行都同时动画化，就像繁忙的对话场景。
+Dialogue: 0,0:00:06.00,0:00:12.00,Latin,,0,0,0,,{\pos(640,576)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}Every line animates at once, like a busy dialogue scene.
+Dialogue: 0,0:00:06.00,0:00:12.00,Chinese,,0,0,0,,{\pos(640,622)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}最后一行稍微长一点，用来覆盖更多的字形和笔画。
+Dialogue: 0,0:00:06.00,0:00:12.00,Latin,,0,0,0,,{\pos(640,668)\t(0,2000,\1c&H00E0FF&\3c&H602000&\1a&H30&)\t(2000,4000,\1c&HFFC040&\3c&H002060&\1a&H00&)\t(4000,6000,\1c&HFFFFFF&\3c&H202020&)}The last line is a little longer to cover more glyphs and strokes.
+
+; --- page 3: finished
+Dialogue: 0,0:00:12.00,0:00:18.00,Small,,0,0,0,,{\pos(640,24)}3/4 finished - every t ends after 300 ms, then the page is static
+Dialogue: 0,0:00:12.00,0:00:18.00,Chinese,,0,0,0,,{\pos(640,70)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}今晚的月色真美，我们沿着河边慢慢走回家吧。
+Dialogue: 0,0:00:12.00,0:00:18.00,Latin,,0,0,0,,{\pos(640,116)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}The moon looks lovely tonight, let us walk home by the river.
+Dialogue: 0,0:00:12.00,0:00:18.00,Chinese,,0,0,0,,{\pos(640,162)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}这条字幕用来测试动画标签对每一帧的影响。
+Dialogue: 0,0:00:12.00,0:00:18.00,Latin,,0,0,0,,{\pos(640,208)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}This line checks how animation tags affect every frame.
+Dialogue: 0,0:00:12.00,0:00:18.00,Chinese,,0,0,0,,{\pos(640,254)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}颜色渐变不会改变文字的宽度和换行位置。
+Dialogue: 0,0:00:12.00,0:00:18.00,Latin,,0,0,0,,{\pos(640,300)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}A color fade never changes the width or the line breaks.
+Dialogue: 0,0:00:12.00,0:00:18.00,Chinese,,0,0,0,,{\pos(640,346)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}双语字幕在动画作品中非常常见，也很密集。
+Dialogue: 0,0:00:12.00,0:00:18.00,Latin,,0,0,0,,{\pos(640,392)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}Bilingual subtitles are common in anime, and often dense.
+Dialogue: 0,0:00:12.00,0:00:18.00,Chinese,,0,0,0,,{\pos(640,438)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}请留意画面是否流畅，以及是否出现卡顿。
+Dialogue: 0,0:00:12.00,0:00:18.00,Latin,,0,0,0,,{\pos(640,484)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}Watch whether playback stays smooth or starts to stutter.
+Dialogue: 0,0:00:12.00,0:00:18.00,Chinese,,0,0,0,,{\pos(640,530)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}每一行都同时动画化，就像繁忙的对话场景。
+Dialogue: 0,0:00:12.00,0:00:18.00,Latin,,0,0,0,,{\pos(640,576)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}Every line animates at once, like a busy dialogue scene.
+Dialogue: 0,0:00:12.00,0:00:18.00,Chinese,,0,0,0,,{\pos(640,622)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}最后一行稍微长一点，用来覆盖更多的字形和笔画。
+Dialogue: 0,0:00:12.00,0:00:18.00,Latin,,0,0,0,,{\pos(640,668)\1c&H00E0FF&\t(0,300,\1c&HFFFFFF&)}The last line is a little longer to cover more glyphs and strokes.
+
+; --- page 4: layout
+Dialogue: 0,0:00:18.00,0:00:24.00,Small,,0,0,0,,{\pos(640,24)}4/4 layout - t animates spacing and width, which moves every glyph
+Dialogue: 0,0:00:18.00,0:00:24.00,Chinese,,0,0,0,,{\pos(640,70)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}今晚的月色真美，我们沿着河边慢慢走回家吧。
+Dialogue: 0,0:00:18.00,0:00:24.00,Latin,,0,0,0,,{\pos(640,116)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}The moon looks lovely tonight, let us walk home by the river.
+Dialogue: 0,0:00:18.00,0:00:24.00,Chinese,,0,0,0,,{\pos(640,162)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}这条字幕用来测试动画标签对每一帧的影响。
+Dialogue: 0,0:00:18.00,0:00:24.00,Latin,,0,0,0,,{\pos(640,208)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}This line checks how animation tags affect every frame.
+Dialogue: 0,0:00:18.00,0:00:24.00,Chinese,,0,0,0,,{\pos(640,254)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}颜色渐变不会改变文字的宽度和换行位置。
+Dialogue: 0,0:00:18.00,0:00:24.00,Latin,,0,0,0,,{\pos(640,300)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}A color fade never changes the width or the line breaks.
+Dialogue: 0,0:00:18.00,0:00:24.00,Chinese,,0,0,0,,{\pos(640,346)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}双语字幕在动画作品中非常常见，也很密集。
+Dialogue: 0,0:00:18.00,0:00:24.00,Latin,,0,0,0,,{\pos(640,392)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}Bilingual subtitles are common in anime, and often dense.
+Dialogue: 0,0:00:18.00,0:00:24.00,Chinese,,0,0,0,,{\pos(640,438)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}请留意画面是否流畅，以及是否出现卡顿。
+Dialogue: 0,0:00:18.00,0:00:24.00,Latin,,0,0,0,,{\pos(640,484)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}Watch whether playback stays smooth or starts to stutter.
+Dialogue: 0,0:00:18.00,0:00:24.00,Chinese,,0,0,0,,{\pos(640,530)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}每一行都同时动画化，就像繁忙的对话场景。
+Dialogue: 0,0:00:18.00,0:00:24.00,Latin,,0,0,0,,{\pos(640,576)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}Every line animates at once, like a busy dialogue scene.
+Dialogue: 0,0:00:18.00,0:00:24.00,Chinese,,0,0,0,,{\pos(640,622)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}最后一行稍微长一点，用来覆盖更多的字形和笔画。
+Dialogue: 0,0:00:18.00,0:00:24.00,Latin,,0,0,0,,{\pos(640,668)\t(0,3000,\fsp2\fscx110)\t(3000,6000,\fsp0\fscx100)}The last line is a little longer to cover more glyphs and strokes.

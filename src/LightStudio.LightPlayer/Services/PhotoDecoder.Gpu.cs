@@ -51,7 +51,7 @@ internal static unsafe partial class PhotoDecoder
                     ?? CreateGpuProfile(color, relativeHdr: false, hasAlpha);
                 if (codec is not null && codecProfile is not null)
                 {
-                    VideoFrame frame = CreateJpegTiles(codec, data, codecProfile, hasGainMap: false, cancellationToken)
+                    VideoFrame frame = CreateJpegTiles(codec, data, codecProfile, hasGainMap: false, useTiles, cancellationToken)
                         ?? CreateCodecTiles(codec, data, codecProfile, hasGainMap: false);
                     if (peakLuminance > 0)
                         frame.HdrPeakLuminance = peakLuminance;
@@ -135,17 +135,18 @@ internal static unsafe partial class PhotoDecoder
     }
 
     private static VideoFrame? ReconstructGpu(SKCodec primary, SKCodec gain, GainMap metadata,
-        SKColorSpace baseSpace, SKColorSpaceXyz mathGamut, CancellationToken cancellationToken, SKData? primaryData, SKData? gainData)
+        SKColorSpace baseSpace, SKColorSpaceXyz mathGamut, CancellationToken cancellationToken, SKData? primaryData, SKData? gainData,
+        bool useTiles)
     {
         if (CreateGpuProfile(baseSpace, relativeHdr: true, hasAlpha: primary.Info.AlphaType != SKAlphaType.Opaque) is not { } profile || primaryData is null)
             return null;
-        VideoFrame frame = CreateJpegTiles(primary, primaryData, profile, hasGainMap: true, cancellationToken)
+        VideoFrame frame = CreateJpegTiles(primary, primaryData, profile, hasGainMap: true, useTiles, cancellationToken)
             ?? CreateCodecTiles(primary, primaryData, profile, hasGainMap: true);
         try
         {
             if (gainData is not null)
             {
-                VideoFrame samples = CreateJpegTiles(gain, gainData, GainSampleProfile, hasGainMap: false, cancellationToken)
+                VideoFrame samples = CreateJpegTiles(gain, gainData, GainSampleProfile, hasGainMap: false, useTiles, cancellationToken)
                     ?? CreateCodecTiles(gain, gainData, GainSampleProfile, hasGainMap: false);
                 try { frame.GainMap = CreateGainMap(samples, mathGamut, metadata); }
                 finally { samples.Release(); }

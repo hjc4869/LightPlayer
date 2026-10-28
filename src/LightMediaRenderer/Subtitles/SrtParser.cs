@@ -43,7 +43,7 @@ internal static class SrtParser
     {
         ArgumentNullException.ThrowIfNull(reader);
 
-        var document = new AssDocument();
+        var document = new AssDocument { IsPlainText = true };
         document.AddStyle(CreateDefaultStyle());
 
         var body = new List<string>();

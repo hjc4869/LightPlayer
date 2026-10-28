@@ -90,6 +90,10 @@ public sealed class BackdropBorder : Decorator
         AvaloniaProperty.Register<BackdropBorder, double>(nameof(GlassTintStrength),
             coerce: static (_, value) => double.IsFinite(value) ? Math.Clamp(value, 0, 1) : 0);
 
+    public static readonly StyledProperty<double> GlassFrostProperty =
+        AvaloniaProperty.Register<BackdropBorder, double>(nameof(GlassFrost),
+            coerce: static (_, value) => double.IsFinite(value) ? Math.Clamp(value, 0, 1) : 0);
+
     public static readonly StyledProperty<Thickness> LightSpillProperty =
         AvaloniaProperty.Register<BackdropBorder, Thickness>(nameof(LightSpill),
             coerce: static (_, value) => new Thickness(
@@ -99,7 +103,7 @@ public sealed class BackdropBorder : Decorator
     {
         AffectsRender<BackdropBorder>(CornerRadiusProperty, BorderBrushProperty, BoxShadowProperty, BackdropStyleProperty,
             IsForegroundBoostEnabledProperty, FallbackColorProperty, TintColorProperty, GlassTintStrengthProperty,
-            LightSpillProperty);
+            GlassFrostProperty, LightSpillProperty);
     }
 
     private static double CoerceSpill(double value) => double.IsFinite(value) ? Math.Clamp(value, 0, 256) : 0;
@@ -159,6 +163,16 @@ public sealed class BackdropBorder : Decorator
     {
         get => GetValue(GlassTintStrengthProperty);
         set => SetValue(GlassTintStrengthProperty, value);
+    }
+
+    /// <summary>
+    /// How frosted <see cref="BackdropStyle.LiquidGlass"/> appears, from 0 for clear glass to 1 for a
+    /// heavily diffused, milky material.
+    /// </summary>
+    public double GlassFrost
+    {
+        get => GetValue(GlassFrostProperty);
+        set => SetValue(GlassFrostProperty, value);
     }
 
     /// <summary>
@@ -323,13 +337,21 @@ public sealed class BackdropBorder : Decorator
             TopLevel? root = TopLevel.GetTopLevel(this);
             var shape = new RoundedRect(new Rect(Bounds.Size), CornerRadius);
             BoxShadows shadows = BoxShadow;
+            RoundedClip[] roundedClips = root is null ? [] : GetRoundedClips(root.RenderScaling);
             context.Custom(new BackdropDrawOperation(new Rect(Bounds.Size), CornerRadius,
-                BackdropStyle, IsForegroundBoostEnabled, FallbackColor, TintColor, GlassTintStrength, LightSpill,
+                BackdropStyle, IsForegroundBoostEnabled, FallbackColor, TintColor, GlassTintStrength, GlassFrost, LightSpill,
                 shadows.Count == 0, foregroundState, root is null ? default : root.ClientSize * root.RenderScaling,
+                roundedClips,
                 root is null ? null : () =>
                 {
                     if (IsEffectivelyVisible)
                         InvalidateBackdrops(root);
+                },
+                root is null ? null : () =>
+                {
+                    if (IsEffectivelyVisible && TopLevel.GetTopLevel(this) == root &&
+                        !GetRoundedClips(root.RenderScaling).AsSpan().SequenceEqual(roundedClips))
+                        InvalidateVisual();
                 }));
             // Drawn after the material so the backdrop it samples excludes its own shadow.
             if (shadows.Count > 0)
@@ -344,12 +366,46 @@ public sealed class BackdropBorder : Decorator
         base.Render(context);
     }
 
+    // Ancestor borders that clip to rounded corners, in device pixels of the visual root.
+    private RoundedClip[] GetRoundedClips(double scaling)
+    {
+        Visual root = this;
+        while (root.GetVisualParent() is { } parent)
+            root = parent;
+
+        List<RoundedClip>? clips = null;
+        for (Visual? ancestor = this.GetVisualParent(); ancestor is not null; ancestor = ancestor.GetVisualParent())
+        {
+            if (ancestor is not Border { ClipToBounds: true } border || border.CornerRadius == default ||
+                border.TransformToVisual(root) is not { } transform || transform.ContainsPerspective() ||
+                transform.M12 != 0 || transform.M21 != 0 || transform.M11 <= 0 || transform.M22 <= 0)
+                continue;
+
+            Rect outline = new Rect(border.Bounds.Size).TransformToAABB(transform * Matrix.CreateScale(scaling, scaling));
+            CornerRadius radius = border.CornerRadius;
+            float scaleX = (float)(transform.M11 * scaling);
+            float scaleY = (float)(transform.M22 * scaling);
+            (clips ??= []).Add(new RoundedClip(
+                new SKRect((float)outline.Left, (float)outline.Top, (float)outline.Right, (float)outline.Bottom),
+                new SKPoint((float)radius.TopLeft * scaleX, (float)radius.TopLeft * scaleY),
+                new SKPoint((float)radius.TopRight * scaleX, (float)radius.TopRight * scaleY),
+                new SKPoint((float)radius.BottomRight * scaleX, (float)radius.BottomRight * scaleY),
+                new SKPoint((float)radius.BottomLeft * scaleX, (float)radius.BottomLeft * scaleY)));
+        }
+
+        return clips?.ToArray() ?? [];
+    }
+
+    private readonly record struct RoundedClip(SKRect Outline, SKPoint TopLeft, SKPoint TopRight,
+        SKPoint BottomRight, SKPoint BottomLeft);
+
     private sealed class ForegroundState
     {
         public BackdropDrawOperation? Backdrop;
         public volatile bool Enabled;
         public SKRect ReachableBounds;
         public SKRectI ReachableSurface;
+        public SKRectI? ReachableInterior;
         public SKRectI ReachableClip;
     }
 
@@ -432,11 +488,14 @@ public sealed class BackdropBorder : Decorator
         Color fallbackColor,
         Color tintColor,
         double glassTintStrength,
+        double glassFrost,
         Thickness lightSpill,
         bool hasGlassShadow,
         ForegroundState foregroundState,
         Size surfacePixelSize,
-        Action? requestFullRepaint) : ICustomDrawOperation
+        RoundedClip[] roundedClips,
+        Action? requestFullRepaint,
+        Action? requestClipRefresh) : ICustomDrawOperation
     {
         private const int SamplePadding = 64;
         private static readonly Lazy<SKRuntimeEffect?> GlassEffect = new(CreateGlassEffect);
@@ -551,7 +610,8 @@ public sealed class BackdropBorder : Decorator
             if (capture.Width <= 0 || capture.Height <= 0)
                 return false;
 
-            bool hasRectangularClip = TryGetRectangularClip(canvas, deviceBounds, padding, spill, out SKRectI clip);
+            SKRectI? interior = GetRoundedClipInterior(capture, deviceBounds);
+            bool hasRectangularClip = TryGetRectangularClip(canvas, deviceBounds, padding, spill, interior, out SKRectI clip);
             SKRectI surfaceBounds = surfacePixelSize.Width > 0 && surfacePixelSize.Height > 0
                 ? new SKRectI(0, 0, (int)Math.Ceiling(surfacePixelSize.Width), (int)Math.Ceiling(surfacePixelSize.Height))
                 : SKRectI.Ceiling(SKRect.Union(deviceBounds, capture));
@@ -563,16 +623,23 @@ public sealed class BackdropBorder : Decorator
 
             if (hasRectangularClip)
             {
-                // Ancestor clips persist across partial redraws; retries cannot provide pixels outside them.
-                foregroundState.ReachableClip = foregroundState.ReachableBounds == deviceBounds &&
-                                                foregroundState.ReachableSurface == surfaceBounds
+                // A new operation is first drawn in a frame that repaints all of it, so its first clip is everything
+                // ancestor clips allow. Partial redraws of the same operation cannot provide pixels outside the union.
+                foregroundState.ReachableClip = cleanBackdrop is not null &&
+                                                foregroundState.ReachableBounds == deviceBounds &&
+                                                foregroundState.ReachableSurface == surfaceBounds &&
+                                                foregroundState.ReachableInterior == interior
                     ? SKRectI.Union(foregroundState.ReachableClip, clip)
                     : clip;
                 foregroundState.ReachableBounds = deviceBounds;
                 foregroundState.ReachableSurface = surfaceBounds;
+                foregroundState.ReachableInterior = interior;
             }
             SKRectI reachableCapture = SKRectI.Intersect(visibleCapture, foregroundState.ReachableClip);
             SKRect reachableBounds = SKRect.Intersect(visibleBounds, foregroundState.ReachableClip);
+            // Material outside every clip it has been drawn with stays hidden; repainting cannot reveal it.
+            if (hasRectangularClip && (reachableBounds.Width <= 0 || reachableBounds.Height <= 0))
+                return false;
             bool coversBackdrop = clip.Left <= reachableBounds.Left && clip.Top <= reachableBounds.Top &&
                                   clip.Right >= reachableBounds.Right && clip.Bottom >= reachableBounds.Bottom;
             bool hasBackdrop = cleanBackdrop is not null && cleanBounds == deviceBounds;
@@ -627,13 +694,15 @@ public sealed class BackdropBorder : Decorator
                             cleanCapture.Right >= reachableCapture.Right && cleanCapture.Bottom >= reachableCapture.Bottom;
             if (complete)
                 repaintQueued = false;
-            else if (!repaintQueued && requestFullRepaint is not null)
+            else if (!repaintQueued && (hasRectangularClip ? requestFullRepaint : requestClipRefresh) is { } request)
             {
+                // A full repaint supplies clean pixels outside a partial clip. Repainting cannot make a
+                // non-rectangular clip rectangular, so that case only refreshes stale rounded clip geometry.
                 repaintQueued = true;
                 Dispatcher.UIThread.Post(() =>
                 {
                     if (!disposed)
-                        requestFullRepaint();
+                        request();
                 }, DispatcherPriority.Render);
             }
 
@@ -712,7 +781,12 @@ public sealed class BackdropBorder : Decorator
                     return true;
 
                 canvas.SetMatrix(SKMatrix.Identity);
-                canvas.DrawImage(blurred, capture.Left, capture.Top, SKSamplingOptions.Default, paint);
+                // Clamped so the material also covers edges that the capture leaves out.
+                using SKShader materialShader = blurred.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
+                    SKSamplingOptions.Default, SKMatrix.CreateTranslation(capture.Left, capture.Top));
+                paint.Shader = materialShader;
+                canvas.DrawRect(SKRectI.Ceiling(SKRect.Union(deviceBounds, capture), true), paint);
+                paint.Shader = null;
                 return true;
             }
             finally
@@ -723,11 +797,16 @@ public sealed class BackdropBorder : Decorator
         }
 
         private static bool TryGetRectangularClip(SKCanvas canvas, SKRect deviceBounds, float padding, SKRect spill,
-            out SKRectI clip)
+            SKRectI? interior, out SKRectI clip)
         {
             clip = canvas.DeviceClipBounds;
             if (canvas.IsClipRect)
-                return true;
+            {
+                // Limited on every frame so partial and full redraws agree on what is reachable.
+                if (interior is { } limit)
+                    clip = SKRectI.Intersect(clip, limit);
+                return clip.Width > 0 && clip.Height > 0;
+            }
 
             int saved = canvas.Save();
             try
@@ -742,11 +821,15 @@ public sealed class BackdropBorder : Decorator
                         deviceBounds.Top - (padding + spill.Top) * extent,
                         deviceBounds.Right + (padding + spill.Right) * extent,
                         deviceBounds.Bottom + (padding + spill.Bottom) * extent);
+                    if (interior is { } limit)
+                        sampleBounds = extent == 1 ? limit : SKRect.Intersect(sampleBounds, limit);
+                    if (sampleBounds.Width <= 0 || sampleBounds.Height <= 0)
+                        return false;
                     canvas.ClipRect(sampleBounds, SKClipOperation.Intersect, false);
                     if (canvas.IsClipRect)
                     {
                         clip = canvas.DeviceClipBounds;
-                        return true;
+                        return clip.Width > 0 && clip.Height > 0;
                     }
 
                     if (extent == 0)
@@ -758,6 +841,59 @@ public sealed class BackdropBorder : Decorator
             {
                 canvas.RestoreToCount(saved);
             }
+        }
+
+        // The part of the capture that rounded ancestor clips cover fully, leaving out their antialiased
+        // outlines and corners. Clipping to it keeps the effective clip rectangular.
+        private SKRectI? GetRoundedClipInterior(SKRectI capture, SKRect deviceBounds)
+        {
+            if (roundedClips.Length == 0)
+                return null;
+
+            SKRectI interior = capture;
+            foreach (RoundedClip rounded in roundedClips)
+            {
+                SKRect outline = rounded.Outline;
+                interior = SKRectI.Intersect(interior, new SKRectI(
+                    (int)MathF.Ceiling(outline.Left + 0.5f), (int)MathF.Ceiling(outline.Top + 0.5f),
+                    (int)MathF.Floor(outline.Right - 0.5f), (int)MathF.Floor(outline.Bottom - 0.5f)));
+                interior = ExcludeCorner(interior, deviceBounds, outline, rounded.TopLeft, left: true, top: true);
+                interior = ExcludeCorner(interior, deviceBounds, outline, rounded.TopRight, left: false, top: true);
+                interior = ExcludeCorner(interior, deviceBounds, outline, rounded.BottomRight, left: false, top: false);
+                interior = ExcludeCorner(interior, deviceBounds, outline, rounded.BottomLeft, left: true, top: false);
+            }
+
+            return interior;
+        }
+
+        // Drops the corner's columns or rows, whichever keeps more of the material.
+        private static SKRectI ExcludeCorner(SKRectI interior, SKRect deviceBounds, SKRect outline, SKPoint radius,
+            bool left, bool top)
+        {
+            if (radius.X <= 0 || radius.Y <= 0 || interior.Width <= 0 || interior.Height <= 0)
+                return interior;
+
+            int cornerX = left
+                ? (int)MathF.Ceiling(outline.Left + radius.X + 0.5f)
+                : (int)MathF.Floor(outline.Right - radius.X - 0.5f);
+            int cornerY = top
+                ? (int)MathF.Ceiling(outline.Top + radius.Y + 0.5f)
+                : (int)MathF.Floor(outline.Bottom - radius.Y - 0.5f);
+            if ((left ? interior.Left >= cornerX : interior.Right <= cornerX) ||
+                (top ? interior.Top >= cornerY : interior.Bottom <= cornerY))
+                return interior;
+
+            SKRectI byColumns = left ? interior with { Left = cornerX } : interior with { Right = cornerX };
+            SKRectI byRows = top ? interior with { Top = cornerY } : interior with { Bottom = cornerY };
+            return Coverage(byRows, deviceBounds).CompareTo(Coverage(byColumns, deviceBounds)) > 0 ? byRows : byColumns;
+        }
+
+        private static (float Material, float Total) Coverage(SKRectI rectangle, SKRect deviceBounds)
+        {
+            if (rectangle.Width <= 0 || rectangle.Height <= 0)
+                return (-1, -1);
+            SKRect material = SKRect.Intersect(rectangle, deviceBounds);
+            return (material.Width * material.Height, (float)rectangle.Width * rectangle.Height);
         }
 
         private bool DrawSpill(ISkiaSharpApiLease lease, SKImage backdrop, SKImage material, SKRectI capture,
@@ -854,6 +990,13 @@ public sealed class BackdropBorder : Decorator
             if (foregroundPeak > 1)
                 foregroundBackdrop = blurred.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
                     new SKSamplingOptions(SKFilterMode.Linear));
+            bool lightAppearance = fallbackColor.R * 0.2126f + fallbackColor.G * 0.7152f + fallbackColor.B * 0.0722f > 127.5f;
+            float frost = (float)glassFrost;
+            // Follows the macOS fill: white reaching half opacity, or dark gray from the midpoint on.
+            float frostFill = lightAppearance
+                ? frost <= 0.5f ? frost * 0.4f : 0.2f + (frost - 0.5f) * 0.6f
+                : Math.Max(frost - 0.5f, 0);
+            float frostLevel = lightAppearance ? 1 : 0.125f;
             var uniforms = new SKRuntimeEffectUniforms(effect)
             {
                 ["size"] = new[] { rectangle.Width, rectangle.Height },
@@ -866,8 +1009,11 @@ public sealed class BackdropBorder : Decorator
                 ["transformY"] = new[] { transform.SkewY, transform.ScaleY, transform.TransY - capture.Top },
                 ["tint"] = new[] { tintColor.R / 255f, tintColor.G / 255f, tintColor.B / 255f, tintColor.A / 255f },
                 ["tintStrength"] = (float)glassTintStrength,
-                ["lightAppearance"] = fallbackColor.R * 0.2126f + fallbackColor.G * 0.7152f + fallbackColor.B * 0.0722f > 127.5f ? 1f : 0f,
+                ["lightAppearance"] = lightAppearance ? 1f : 0f,
                 ["bodySoftness"] = Math.Clamp((Math.Min(rectangle.Width, rectangle.Height) - 80) / 120, 0, 1),
+                ["frostBlur"] = frost * (2 - frost),
+                ["frostFill"] = new[] { frostLevel, frostLevel, frostLevel, frostFill },
+                ["linearWorkingSpace"] = backdrop.ColorSpace is { GammaIsLinear: true } ? 1f : 0f,
             };
             var children = new SKRuntimeEffectChildren(effect)
             {
@@ -1038,14 +1184,34 @@ public sealed class BackdropBorder : Decorator
                 uniform float tintStrength;
                 uniform float lightAppearance;
                 uniform float bodySoftness;
+                uniform float frostBlur;
+                uniform float4 frostFill;
+                uniform float linearWorkingSpace;
 
                 half4 sampleBackground(float2 position, float softness) {
                     float3 local = float3(position, 1.0);
                     float2 samplePosition = float2(dot(transformX, local), dot(transformY, local));
+                    // Frosting raises the blur level from the material's own toward the reflection blur.
+                    float level = mix(max(softness, bodySoftness), 2.0, frostBlur);
                     half4 color = mix(backdrop.eval(samplePosition), softBackdrop.eval(samplePosition),
-                        max(softness, bodySoftness));
+                        min(level, 1.0));
+                    if (level > 1.0) {
+                        color = mix(color, reflectionBackdrop.eval(samplePosition), level - 1.0);
+                    }
                     color.rgb = toLinearSrgb(color.rgb / max(color.a, 0.0001)) * color.a;
                     return color;
+                }
+
+                float3 encodeSrgb(float3 linear) {
+                    float3 magnitude = abs(linear);
+                    return sign(linear) * mix(magnitude * 12.92, 1.055 * pow(magnitude, float3(1.0 / 2.4)) - 0.055,
+                        step(0.0031308, magnitude));
+                }
+
+                float3 decodeSrgb(float3 encoded) {
+                    float3 magnitude = abs(encoded);
+                    return sign(encoded) * mix(magnitude / 12.92, pow((magnitude + 0.055) / 1.055, float3(2.4)),
+                        step(0.04045, magnitude));
                 }
 
                 float wavelengthIor(float wavelength) {
@@ -1118,6 +1284,16 @@ public sealed class BackdropBorder : Decorator
                     float tintAmount = tint.a * tintStrength * bodyAmount;
                     color.rgb = color.rgb * (1.0 - tintAmount) + tint.rgb * tintAmount;
                     color.a = color.a * (1.0 - tintAmount) + tintAmount;
+                    // Covers the face to its edge, blending gamma-encoded values as the system material does.
+                    float fillAmount = frostFill.a;
+                    if (fillAmount > 0.0) {
+                        float3 encoded = color.rgb / max(color.a, 0.0001);
+                        encoded = linearWorkingSpace > 0.5 ? encodeSrgb(encoded) : encoded;
+                        float filledAlpha = color.a * (1.0 - fillAmount) + fillAmount;
+                        encoded = (encoded * color.a * (1.0 - fillAmount) + frostFill.rgb * fillAmount) / filledAlpha;
+                        color.rgb = half3(linearWorkingSpace > 0.5 ? decodeSrgb(encoded) : encoded) * filledAlpha;
+                        color.a = filledAlpha;
+                    }
                     float lightFacing = dot(outward, normalize(float2(-0.2, -1.0)));
                     float rim = exp(-depth * depth / 0.65);
                     float rimLight = 0.008 + 0.16 * pow(abs(lightFacing), 4.0);

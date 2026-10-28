@@ -4,7 +4,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using LightStudio.LightPlayer.Services;
 
 namespace LightStudio.LightPlayer.Models;
@@ -28,13 +27,20 @@ public sealed class PhotoPreview
     private readonly Action release;
     private int references = 1;
 
-    internal PhotoPreview(IImage image, Action release)
+    internal PhotoPreview(IImage image, Action release, bool isViewportPreview = false, Size naturalSize = default)
     {
         Image = image;
         this.release = release;
+        IsViewportPreview = isViewportPreview;
+        NaturalSize = naturalSize;
     }
 
     public IImage Image { get; }
+
+    internal Size NaturalSize { get; }
+
+    /// <summary>Whether the preview was decoded for the viewer's viewport rather than being a library thumbnail.</summary>
+    internal bool IsViewportPreview { get; }
 
     internal PhotoPreview AddRef()
     {
@@ -78,7 +84,7 @@ public sealed class PhotoPreview
 /// </summary>
 public sealed record PhotoViewerCallbacks
 {
-    public Func<MediaReference, CancellationToken, Task<Bitmap?>>? LoadPreview { get; init; }
+    public Func<MediaReference, CancellationToken, Task<IImage?>>? LoadPreview { get; init; }
     public int PreviewMaxDimension { get; init; } = VideoPreviewFactory.PreviewMaxDimension;
 
     /// <summary>Leaves the page, which is how the shell takes it off the navigation stack.</summary>

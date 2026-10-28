@@ -116,8 +116,8 @@ foreach ($currentArchitecture in $Architecture) {
         "-p:Version=$installerVersion"
     )
 
-    if (-not (Test-Path -LiteralPath (Join-Path $publishDirectory 'lmp.exe'))) {
-        throw "The $currentArchitecture publish did not produce lmp.exe."
+    if (-not (Test-Path -LiteralPath (Join-Path $publishDirectory 'lmc.exe'))) {
+        throw "The $currentArchitecture publish did not produce lmc.exe."
     }
 
     Invoke-DotNet -Arguments @(

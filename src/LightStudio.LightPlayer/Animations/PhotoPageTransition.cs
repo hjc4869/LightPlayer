@@ -62,6 +62,7 @@ internal sealed class PhotoPageTransition : ConnectedPageTransition
         image.PreviewSource = preview?.Image;
         image.EnableHdrPassthrough = photo.EnableHdrPassthrough;
         image.EnableGainMap = photo.EnableGainMap;
+        image.ToneMapping = photo.ToneProfiles.Options;
         image.DisplayPanelBitDepth = photo.DisplayPanelBitDepth;
         image.Clip = viewportClip;
         if (sourceImage is PhotoView sourcePhoto)

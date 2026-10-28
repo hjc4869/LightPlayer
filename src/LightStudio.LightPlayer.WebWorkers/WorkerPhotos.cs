@@ -24,7 +24,7 @@ namespace LightStudio.LightPlayer.WebWorkers;
 /// stay as encoded tiles that the page asks for as it draws them.
 /// </summary>
 [SupportedOSPlatform("browser")]
-internal static class WorkerPhotos
+internal static partial class WorkerPhotos
 {
     private const int WindowBytes = 1024 * 1024;
     private const int Windows = 6;
@@ -81,16 +81,8 @@ internal static class WorkerPhotos
                         return WritePhotoResult(null);
                     }
                 }
-                else if (string.Equals(Path.GetExtension(request.Source.Name), ".tga", StringComparison.OrdinalIgnoreCase))
-                {
-                    using StillImageNative native = StillImage.DecodeNative(stream, null, default,
-                        LightStudio.NativeBindings.Types.AVCodecID.AV_CODEC_ID_TARGA)
-                        ?? throw new InvalidDataException("The photo could not be decoded.");
-                    photo = new WirePhoto(0, AddNativeFrame(native, frames), null, null, null, null, 0);
-                }
                 else
-                    photo = (request.RenderRaw == true ? null : OpenPreview(stream, frames, session, request.RenderRaw == false))
-                        ?? OpenPhoto(stream, frames, session);
+                    photo = OpenPicture(stream, request.Source.Name, request.RenderRaw, frames, session, useTiles: true);
                 if (photo.GainMap is null && session.Animation is null)
                     photo = photo with { PeakLuminance = MeasurePeak(photo, frames, session) };
             }
@@ -291,6 +283,22 @@ internal static class WorkerPhotos
                 decoder.Dispose();
     }
 
+    /// <summary>A photo file's picture: a DNG's embedded rendition unless RAW is asked for, or the photo itself.</summary>
+    private static WirePhoto OpenPicture(Stream stream, string name, bool? renderRaw, List<VideoFrame> frames, Session session,
+        bool useTiles)
+    {
+        if (string.Equals(Path.GetExtension(name), ".tga", StringComparison.OrdinalIgnoreCase))
+        {
+            using StillImageNative native = StillImage.DecodeNative(stream, null, default,
+                LightStudio.NativeBindings.Types.AVCodecID.AV_CODEC_ID_TARGA)
+                ?? throw new InvalidDataException("The photo could not be decoded.");
+            return new WirePhoto(0, AddNativeFrame(native, frames), null, null, null, null, 0);
+        }
+
+        return (renderRaw == true ? null : OpenPreview(stream, frames, session, renderRaw == false, useTiles))
+            ?? OpenPhoto(stream, frames, session, useTiles: useTiles);
+    }
+
     private static WirePhoto OpenPhoto(Stream stream, List<VideoFrame> frames, Session session, uint? item = null,
         bool useTiles = true)
     {
@@ -302,13 +310,17 @@ internal static class WorkerPhotos
                     { AnimationBytes = animation.EncodedBytes };
         }
         PhotoGainMapLocation? gain = PhotoDecoder.FindGainMap(stream, default, item);
+        long origin = stream.Position;
         WirePhotoImage image = OpenImage(stream, gain?.BaseItem ?? item, gain?.BaseRange, frames, out session.Base, useTiles);
+        // Whole-picture decoders leave the stream where they stopped, and a gain item is read from the same start.
+        stream.Position = origin;
         WirePhotoImage? gainImage = gain is null ? null : OpenGain(stream, gain, frames, out session.Gain, useTiles);
         return new WirePhoto(0, image, gainImage, gainImage is null ? null : gain!.Parameters,
             gain?.BaseProfile, gain?.MathProfile, gain?.MathPrimaries ?? 0);
     }
 
-    private static WirePhoto? OpenPreview(Stream stream, List<VideoFrame> frames, Session session, bool includeReduced)
+    private static WirePhoto? OpenPreview(Stream stream, List<VideoFrame> frames, Session session, bool includeReduced,
+        bool useTiles)
     {
         long origin = stream.Position;
         foreach (DngPreview preview in PhotoDecoder.FindDngPreviews(stream, default, includeReduced))
@@ -316,7 +328,8 @@ internal static class WorkerPhotos
             int count = frames.Count;
             try
             {
-                WirePhoto photo = OpenPhoto(new SubStream(stream, preview.Offset, preview.Length), frames, session);
+                WirePhoto photo = OpenPhoto(new SubStream(stream, preview.Offset, preview.Length), frames, session,
+                    useTiles: useTiles);
                 if (photo.Base.Width != preview.Width || photo.Base.Height != preview.Height)
                     throw new InvalidDataException("The embedded DNG preview is not the size its directory gives.");
                 return photo with { Base = Orient(photo.Base, preview.Orientation, frames), IsEmbeddedRawPreview = true };

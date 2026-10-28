@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using System.Text.Json;
@@ -9,7 +12,9 @@ using LightStudio.FfmpegShim;
 using LightStudio.FfmpegShim.Core;
 using LightStudio.FfmpegShim.Demuxing;
 using LightStudio.FfmpegShim.Engine;
+using LightStudio.FfmpegShim.ImageEncoding;
 using LightStudio.FfmpegShim.Subtitles;
+using LightStudio.LightPlayer.Services.PhotoExport;
 using LightStudio.Logging;
 using LightStudio.NativeBindings;
 using LightStudio.NativeBindings.Types;
@@ -27,6 +32,7 @@ internal static partial class MediaWorker
 {
     private static readonly int backgroundConcurrency = Math.Clamp(Environment.ProcessorCount - 1, 1, 2);
     private static readonly SemaphoreSlim background = new(backgroundConcurrency, backgroundConcurrency);
+    private static readonly ConcurrentDictionary<int, CancellationTokenSource> exports = [];
     internal static int ActiveBackgroundJobs => backgroundConcurrency - background.CurrentCount;
 
     [JSExport]
@@ -50,23 +56,66 @@ internal static partial class MediaWorker
         "subtitleScript" or "bitmapSubtitles" or "readTags" or "probeVideo" or "probeAudioStreams" or
         "probeImage" or "inspect" or "albumCover" or "image" or "photoOpen" or "photoTiles" or "photoPackets" or "photoClose" or
         "photoAnimationOpen" or "photoAnimationRead" or "photoAnimationClose" =>
-            RunBackgroundAsync(method, arguments),
+            RunBackgroundAsync(method, () => Task.FromResult(Execute(method, arguments))),
+        "stillImageEncoders" => RunBackgroundAsync(method, async () => Serialize<IReadOnlyList<WireStillImageEncoder>>(
+            (await StillImageEncoders.ProbeAsync()).Select(encoder => encoder.ToWire()).ToArray(),
+            EngineWireContext.Default.IReadOnlyListWireStillImageEncoder)),
+        "photoExport" => ExportPhotoAsync(arguments),
         _ => Complete(() => Execute(method, arguments)),
     };
 
-    private static Task<string> RunBackgroundAsync(string method, string arguments)
+    /// <summary>Cancels a photo save, whether it is still waiting for a background slot or running.</summary>
+    [JSExport]
+    internal static Task CancelPhotoExport(int operation) => Complete(() =>
+    {
+        if (exports.TryGetValue(operation, out CancellationTokenSource? cancellation))
+            cancellation.Cancel();
+        return true;
+    });
+
+    // Registered before it waits for a slot, so a cancellation that arrives meanwhile still reaches it.
+    private static Task<string> ExportPhotoAsync(string arguments)
+    {
+        WirePhotoExport request;
+        var cancellation = new CancellationTokenSource();
+        try
+        {
+            request = Read(arguments, PhotoExportWireContext.Default.WirePhotoExport);
+            if (!exports.TryAdd(request.Operation, cancellation))
+                throw new InvalidOperationException($"Photo save {request.Operation} is already running.");
+        }
+        catch (Exception exception)
+        {
+            AppLog.Warning("Worker.Media", "A photo save could not start.", exception);
+            return Task.FromException<string>(exception);
+        }
+
+        return RunBackgroundAsync("photoExport", async () =>
+        {
+            try
+            {
+                return await WorkerPhotos.ExportAsync(request, cancellation.Token);
+            }
+            finally
+            {
+                exports.TryRemove(request.Operation, out _);
+            }
+        });
+    }
+
+    private static Task<string> RunBackgroundAsync(string method, Func<Task<string>> work)
     {
         var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _ = ExecuteBackgroundAsync(method, arguments, completion);
+        _ = ExecuteBackgroundAsync(method, work, completion);
         return completion.Task;
     }
 
-    private static async Task ExecuteBackgroundAsync(string method, string arguments, TaskCompletionSource<string> completion)
+    private static async Task ExecuteBackgroundAsync(string method, Func<Task<string>> work, TaskCompletionSource<string> completion)
     {
         await background.WaitAsync();
         try
         {
-            completion.SetResult(await Task.Run(() => Execute(method, arguments)));
+            completion.SetResult(await Task.Run(work));
         }
         catch (OperationCanceledException exception)
         {

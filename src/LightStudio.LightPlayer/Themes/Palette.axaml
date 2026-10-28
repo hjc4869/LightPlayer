@@ -8,6 +8,7 @@
     <x:Boolean x:Key="AppIsLiquidGlass">False</x:Boolean>
     <x:Boolean x:Key="AppIsContentLiquidGlass">False</x:Boolean>
     <x:Boolean x:Key="AppIsAppleChrome">False</x:Boolean>
+    <x:Boolean x:Key="AppIsAppleCsd">False</x:Boolean>
     <FontFamily x:Key="AppMacControlFontFamily">.AppleSystemUIFont</FontFamily>
     <x:Double x:Key="AppMacControlLetterSpacing">0</x:Double>
 
