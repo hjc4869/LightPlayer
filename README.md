@@ -5,6 +5,9 @@ Light Media Center is a cross-platform media player built with [Avalonia](https:
 browsable music/video library, with support for playlists, queues, history, artwork, subtitles,
 and lyrics.
 
+[![Get it from Flathub](https://flathub.org/api/badge?locale=en)](https://flathub.org/apps/im.hjc.LightPlayer)
+[![Get it from Microsoft](https://get.microsoft.com/images/en-us%20dark.svg)](https://apps.microsoft.com/detail/9N1FZ7MLX823)
+
 ### New features
 
 - **Video playback** -- Play videos from local folders, remote libraries, Blu-ray folders and ISO
