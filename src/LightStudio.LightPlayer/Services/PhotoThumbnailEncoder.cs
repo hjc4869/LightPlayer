@@ -5,9 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.ImageEncoding;
-using LightStudio.FfmpegShim.Media;
 using LightStudio.LightPlayer.Services.PhotoExport;
-using LightStudio.Logging;
 using LightStudio.NativeBindings.Types;
 
 namespace LightStudio.LightPlayer.Services;
@@ -15,48 +13,12 @@ namespace LightStudio.LightPlayer.Services;
 /// <summary>
 /// Encodes library thumbnails of photos and video frames with the photo save pipeline. SDR pictures become 8-bit
 /// JPEG on the smallest of sRGB, Display P3 and BT.2020 that holds their visible colors; gain-map pictures become
-/// JPEG with a gain map at the thumbnail's resolution; absolute-luminance pictures become 16-bit PQ JPEG XL, or JPEG
-/// with a gain map where no JPEG XL encoder is available.
+/// JPEG with a gain map at half the thumbnail's resolution; absolute-luminance pictures become 16-bit PQ JPEG XL, or
+/// JPEG with a gain map where no JPEG XL encoder is available.
 /// </summary>
-internal static class PhotoThumbnailEncoder
+internal static partial class PhotoThumbnailEncoder
 {
-    /// <summary>
-    /// Encodes the thumbnail of the photo in <paramref name="stream"/>, or returns null when it cannot be decoded.
-    /// RAW files and sRGB pictures without HDR use the sRGB thumbnail decoders.
-    /// </summary>
-    public static async Task<byte[]?> EncodePhotoAsync(Stream stream, int maxDimension, bool? renderRaw,
-        CancellationToken cancellationToken)
-    {
-        if (!stream.CanSeek)
-        {
-            using var buffered = new MemoryStream();
-            await stream.CopyToAsync(buffered, cancellationToken).ConfigureAwait(false);
-            buffered.Position = 0;
-            return await EncodePhotoAsync(buffered, maxDimension, renderRaw, cancellationToken).ConfigureAwait(false);
-        }
-
-        StillImageThumbnail? thumbnail = renderRaw == false
-            ? PhotoDecoder.DecodeDngThumbnail(stream, maxDimension, cancellationToken) : null;
-        if (thumbnail is null)
-        {
-            try
-            {
-                if (PhotoDecoder.DecodeThumbnailSource(stream, maxDimension, cancellationToken) is { } frame)
-                    return await EncodeAsync(frame, maxDimension, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception exception) when (exception is not OperationCanceledException)
-            {
-                AppLog.Warning("Photo", "Could not encode a color-managed thumbnail; encoding it in sRGB.", exception);
-            }
-
-            thumbnail = PhotoBitmap.DecodeThumbnail(stream, maxDimension, leaveOpen: true, cancellationToken);
-        }
-
-        return thumbnail is null
-            ? null
-            : VideoPreviewFactory.EncodeJpeg(thumbnail.Pixels, thumbnail.Width, thumbnail.Height)
-                ?? throw new InvalidDataException("The thumbnail could not be encoded.");
-    }
+    internal const int JpegQuality = 82;
 
     /// <summary>Encodes a thumbnail fitting <paramref name="maxDimension"/>, taking ownership of the frame.</summary>
     /// <param name="allowJpegXl">Whether absolute-luminance pictures may be stored as JPEG XL.</param>
@@ -99,13 +61,6 @@ internal static class PhotoThumbnailEncoder
         }
     }
 
-    /// <summary>Re-encodes a JPEG XL thumbnail as JPEG, keeping HDR as a gain map.</summary>
-    public static async Task<byte[]?> TranscodeToJpegAsync(byte[] thumbnail, int maxDimension, CancellationToken cancellationToken)
-    {
-        VideoFrame? frame = PhotoDecoder.DecodeThumbnailFrame(thumbnail, maxDimension, cancellationToken);
-        return frame is null ? null : await EncodeAsync(frame, maxDimension, cancellationToken, allowJpegXl: false).ConfigureAwait(false);
-    }
-
     private static byte[] Encode(PhotoExportInput input, int maxDimension, StillImageEncoderInfo? jpegXl,
         CancellationToken cancellationToken)
     {
@@ -116,13 +71,13 @@ internal static class PhotoThumbnailEncoder
             Format = jpegXl is null ? PhotoExportFormat.Jpeg : PhotoExportFormat.JpegXl,
             Encoder = jpegXl,
             PixelFormat = jpegXl is null ? PhotoExportPixelFormat.Yuv420 : PhotoExportPixelFormat.Rgb16,
-            Quality = VideoPreviewFactory.PreviewJpegQuality,
+            Quality = JpegQuality,
             Speed = StillEncodeSpeed.Faster,
             Width = Math.Max(1, (int)Math.Round(orientation.DisplayWidth * scale)),
             Height = Math.Max(1, (int)Math.Round(orientation.DisplayHeight * scale)),
             Hdr = jpegXl is null ? PhotoExportHdrEncoding.GainMap : PhotoExportHdrEncoding.Pq,
         };
-        using PhotoExportScene scene = PhotoExporter.Place(input, options, cancellationToken, gainScale: 1);
+        using PhotoExportScene scene = PhotoExporter.Place(input, options, cancellationToken, gainScale: 2);
         options = PhotoExporter.ResolveHdr(scene, options);
         PhotoExportGamutStatistics colors = scene.Statistics;
         PhotoExportPrimaries primaries = options.Hdr == PhotoExportHdrEncoding.Pq ||

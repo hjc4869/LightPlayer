@@ -99,7 +99,10 @@ public sealed record WireRecover(int Decoder, VideoDecoderRecovery Recovery, str
 public sealed record WireSubtitles(WireSource Source, int Stream, bool PreserveContainerTimestamps);
 
 /// <summary>A one-shot probe of a source; <paramref name="MaxDimension"/> bounds the preview picture.</summary>
-public sealed record WireProbeRequest(WireSource Source, bool WithPreview, int MaxDimension);
+public sealed record WireProbeRequest(WireSource Source, bool WithPreview, int MaxDimension)
+{
+    public int Operation { get; init; }
+}
 
 /// <summary>
 /// Decodes a picture to fit <paramref name="MaxDimension"/>, or with <paramref name="Embedded"/> the artwork a
@@ -113,9 +116,8 @@ public sealed record WireImageRequest(WireSource Source, int MaxDimension, bool 
     /// </summary>
     public float BlurSigma { get; init; }
 
-    /// <summary>Whether the picture is sent as a JPEG file rather than as pixels.</summary>
-    public bool EncodeJpeg { get; init; }
     public bool? RenderRaw { get; init; }
+    public int Operation { get; init; }
 }
 
 /// <summary>An upright, tightly packed BGRA picture, sent along with the result.</summary>
@@ -130,6 +132,8 @@ public sealed record WireMediaTags(long DurationTicks, IReadOnlyList<KeyValuePai
 public sealed record WirePhotoRequest(WireSource Source, PhotoPreviewRequest? Preview = null)
 {
     public bool? RenderRaw { get; init; }
+    public bool WholeImage { get; init; }
+    public int ThumbnailWidth { get; init; }
 }
 public sealed record WirePhotoResult(WirePhoto? Photo)
 {

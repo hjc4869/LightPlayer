@@ -48,6 +48,12 @@ public sealed class DolbyVisionMetadata
 
 	public bool IsPresent { get; set; }
 
+	/// <summary>
+	/// Whether the metadata is present and every value it carries is finite, so a renderer can apply
+	/// it; a record holding a NaN or an infinity is left unapplied and the frame renders as plain PQ.
+	/// </summary>
+	public bool IsApplicable => IsPresent && HasFiniteValues();
+
 	public int Profile { get; set; }
 
 	public int Level { get; set; }
@@ -118,5 +124,43 @@ public sealed class DolbyVisionMetadata
 		Array.Clear(LinearMatrix);
 		foreach (DolbyVisionReshapingCurve curve in Curves)
 			curve.Reset();
+	}
+
+	private bool HasFiniteValues()
+	{
+		if (!float.IsFinite(SourceMinimumPq) || !float.IsFinite(SourceMaximumPq) ||
+			!float.IsFinite(SceneMaximumPq) || !float.IsFinite(SceneAveragePq) ||
+			!double.IsFinite(EffectivePeakLuminance))
+		{
+			return false;
+		}
+
+		foreach (float[] values in (float[][])[NlqOffset, NlqDeadzoneSlope, NlqDeadzoneThreshold, NonlinearOffset, NonlinearMatrix, LinearMatrix])
+		{
+			if (!AllFinite(values))
+				return false;
+		}
+
+		foreach (DolbyVisionReshapingCurve curve in Curves)
+		{
+			if (!AllFinite(curve.Pivots) || !AllFinite(curve.Methods) || !AllFinite(curve.PolynomialCoefficients) ||
+				!AllFinite(curve.MmrOrders) || !AllFinite(curve.MmrConstants) || !AllFinite(curve.MmrCoefficients))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private static bool AllFinite(float[] values)
+	{
+		foreach (float value in values)
+		{
+			if (!float.IsFinite(value))
+				return false;
+		}
+
+		return true;
 	}
 }

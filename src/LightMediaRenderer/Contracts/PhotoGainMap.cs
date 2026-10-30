@@ -9,7 +9,7 @@ public sealed class PhotoGainMap
 {
     private int references = 1;
 
-    public PhotoGainMap(int width, int height, byte[] pixels,
+    public PhotoGainMap(int width, int height, ReadOnlyMemory<byte> pixels,
         Vector3 minimum, Vector3 maximum, Vector3 gamma, Vector3 offsetSdr, Vector3 offsetHdr,
         float capacityMin, float capacityMax, float[] toBase, float[] toBt2020)
         : this(width, height, pixels, minimum, maximum, gamma, offsetSdr, offsetHdr,
@@ -17,7 +17,8 @@ public sealed class PhotoGainMap
     {
     }
 
-    public PhotoGainMap(int width, int height, byte[] pixels,
+    /// <param name="pixels">Interleaved RGBA samples the gain map keeps referencing without copying them.</param>
+    public PhotoGainMap(int width, int height, ReadOnlyMemory<byte> pixels,
         Vector3 minimum, Vector3 maximum, Vector3 gamma, Vector3 offsetSdr, Vector3 offsetHdr,
         float capacityMin, float capacityMax, float[] toBase, float[] toBt2020, int bitsPerComponent)
         : this(width, height, pixels, null, minimum, maximum, gamma, offsetSdr, offsetHdr,
@@ -28,12 +29,12 @@ public sealed class PhotoGainMap
     public PhotoGainMap(VideoFrame samples,
         Vector3 minimum, Vector3 maximum, Vector3 gamma, Vector3 offsetSdr, Vector3 offsetHdr,
         float capacityMin, float capacityMax, float[] toBase, float[] toBt2020)
-        : this(samples.Width, samples.Height, [], samples, minimum, maximum, gamma, offsetSdr, offsetHdr,
+        : this(samples.Width, samples.Height, default, samples, minimum, maximum, gamma, offsetSdr, offsetHdr,
             capacityMin, capacityMax, toBase, toBt2020, 16)
     {
     }
 
-    private PhotoGainMap(int width, int height, byte[] pixels, VideoFrame? samples,
+    private PhotoGainMap(int width, int height, ReadOnlyMemory<byte> pixels, VideoFrame? samples,
         Vector3 minimum, Vector3 maximum, Vector3 gamma, Vector3 offsetSdr, Vector3 offsetHdr,
         float capacityMin, float capacityMax, float[] toBase, float[] toBt2020, int bitsPerComponent)
     {

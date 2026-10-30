@@ -718,6 +718,7 @@ public sealed unsafe partial class FfmpegDemuxer : IPacketSource, IAdaptiveVideo
     {
         AVStream* stream = GetStream(streamIndex);
         AVRational sampleAspectRatio = av_guess_sample_aspect_ratio(format, stream, null);
+        AVDictionaryEntry* alphaMode = av_dict_get(stream->metadata, "alpha_mode", null, 0);
         return CodecParameters.FromNative(
             stream->codecpar,
             stream->time_base,
@@ -725,6 +726,7 @@ public sealed unsafe partial class FfmpegDemuxer : IPacketSource, IAdaptiveVideo
         {
             SampleAspectRatioNum = sampleAspectRatio.num,
             SampleAspectRatioDen = sampleAspectRatio.den,
+            AlphaMode = alphaMode != null && Marshal.PtrToStringUTF8((IntPtr)alphaMode->value) == "1",
         };
     }
 

@@ -170,9 +170,11 @@ internal sealed unsafe partial class IccImage : IDisposable
             AVColorRange range = input->color_range == AVColorRange.AVCOL_RANGE_UNSPECIFIED ? parameters->color_range : input->color_range;
             int fullRange = range == AVColorRange.AVCOL_RANGE_JPEG ||
                 VideoFrameMetadata.IsFullRangeFormat((AVPixelFormat)input->format) ? 1 : 0;
+            // An RGB source round-trips through swscale's internal YUV, so both tables are the
+            // source's: a different output table would recolor it on the way back.
             CheckFfmpeg(sws_setColorspaceDetails(scaler,
                 sws_getCoefficients(coefficients), fullRange,
-                sws_getCoefficients(1), 1, 0, 1 << 16, 1 << 16), "configure RGB conversion");
+                sws_getCoefficients(coefficients), 1, 0, 1 << 16, 1 << 16), "configure RGB conversion");
 
             byte** sourceData = stackalloc byte*[4] { input->data[0], input->data[1], input->data[2], input->data[3] };
             int* sourceStrides = stackalloc int[4] { input->linesize[0], input->linesize[1], input->linesize[2], input->linesize[3] };

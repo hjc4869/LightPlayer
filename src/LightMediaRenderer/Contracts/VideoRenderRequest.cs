@@ -56,11 +56,16 @@ public readonly record struct VideoRenderRequest(
 
     public SKRect? DeviceViewport { get; init; }
 
-    /// <summary>How the samples this draw reads are laid out.</summary>
+    /// <summary>
+    /// How the samples this draw reads are laid out. A packed image of a frame that has its own
+    /// planes keeps the frame's depth, so a deep RGB source is still known to be deep.
+    /// </summary>
     public VideoPlanarLayout Layout => PackedImage is null
         ? Frame.Layout
         : Frame.ExternalTextureColorModel == VideoExternalTextureColorModel.Yuv
             ? VideoPlanarLayout.NormalizedYuv(Frame.ExternalTextureBitDepth)
-            : VideoPlanarLayout.Packed;
+            : Frame.Format == VideoPixelFormat.ExternalTexture
+                ? VideoPlanarLayout.Packed
+                : Frame.Layout;
 }
 

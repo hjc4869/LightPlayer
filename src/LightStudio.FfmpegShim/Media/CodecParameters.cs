@@ -34,6 +34,9 @@ public sealed partial record CodecParameters
     /// <summary>FFmpeg codec short name, e.g. <c>h264</c>, <c>hevc</c>, <c>aac</c>, <c>flac</c>.</summary>
     public string CodecName { get; init; } = string.Empty;
 
+    /// <summary>The container marks the stream's block additions as an alpha plane (Matroska AlphaMode).</summary>
+    public bool AlphaMode { get; init; }
+
     public uint CodecTag { get; init; }
 
     /// <summary>Codec-private setup bytes, empty when the stream needs none.</summary>

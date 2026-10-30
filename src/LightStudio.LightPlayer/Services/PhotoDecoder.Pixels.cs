@@ -45,12 +45,13 @@ internal static unsafe partial class PhotoDecoder
         return source.ReadPixels(destination.Info, destination.GetPixels(), destination.RowBytes);
     }
 
+    /// <param name="gainMaxDimension">Longest edge the gain samples are reduced to, or zero to keep them as stored.</param>
     private static VideoFrame? DecodeContainerGainMap(Stream stream, GainMapSource source, CancellationToken cancellationToken,
-        bool useTiles = true)
+        bool useTiles = true, int gainMaxDimension = 0)
     {
         long origin = stream.Position;
         using var gainStream = source.EncodedGain is { } encoded ? new MemoryStream(encoded, writable: false) : null;
-        using SKData? primaryData = source.BaseItem is null ? SKData.Create(stream) : null;
+        using SKData? primaryData = source.BaseItem is null ? ReadData(stream) : null;
         using SKCodec? primaryCodec = primaryData is null ? null : SKCodec.Create(primaryData);
         using SKData? gainData = source.EncodedGain is { } bytes ? SKData.CreateCopy(bytes) : null;
         using SKCodec? gainCodec = gainData is null ? null : SKCodec.Create(gainData);
@@ -58,14 +59,15 @@ internal static unsafe partial class PhotoDecoder
             return Reconstruct(primaryCodec, gainCodec, source.Metadata, cancellationToken, primaryData, gainData, useTiles);
 
         stream.Position = origin;
-        if (ReconstructContainerGpu(stream, source, cancellationToken, useTiles) is { } direct)
+        if (ReconstructContainerGpu(stream, source, cancellationToken, useTiles, gainMaxDimension) is { } direct)
             return direct;
 
         StillImagePixels? primary = StillImage.DecodePixels(stream, source.BaseItem, cancellationToken);
         if (primary is null)
             return null;
         stream.Position = origin;
-        StillImagePixels? gain = StillImage.DecodePixels(gainStream ?? stream, source.GainItem, cancellationToken);
+        StillImagePixels? gain = StillImage.DecodePixels(gainStream ?? stream, source.GainItem, cancellationToken,
+            gainMaxDimension > 0 ? Math.Min(gainMaxDimension, Math.Max(primary.Width, primary.Height)) : 0);
         if (gain is null)
             return null;
 

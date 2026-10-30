@@ -4,6 +4,7 @@ using System.Runtime.InteropServices.JavaScript;
 using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Threading;
 using LightStudio.Logging;
 
 namespace LightStudio.LightPlayer.Web;
@@ -50,7 +51,7 @@ internal static partial class BrowserFileActivation
             }
 
             AppLog.Information("Web.Activation", $"Opening {paths.Count} file(s) handed to the app.");
-            (Application.Current as App)?.OpenFiles(paths);
+            Dispatcher.UIThread.Post(() => (Application.Current as App)?.OpenFiles(paths));
         }
     }
 

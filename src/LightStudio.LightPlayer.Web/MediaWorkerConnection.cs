@@ -33,6 +33,7 @@ internal sealed partial class MediaWorkerConnection
 
     /// <summary>Set once the worker stopped; every later command fails with it.</summary>
     public Exception? Failure { get; private set; }
+    internal static bool CanDecodeJpegXl { get; private set; }
 
     internal static Task InitializeAsync() => initialization ??= InitializeCoreAsync();
 
@@ -54,6 +55,8 @@ internal sealed partial class MediaWorkerConnection
         await InitializeAsync();
         var connection = new MediaWorkerConnection(StartWorker((int)AppLogLevel.Information));
         connections.Add(connection.Id, connection);
+        CanDecodeJpegXl = await connection.CallAsync("canDecodeJpegXl", 0, EngineWireContext.Default.Int32,
+            EngineWireContext.Default.Boolean);
         return connection;
     }
 

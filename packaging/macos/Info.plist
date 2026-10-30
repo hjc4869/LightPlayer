@@ -31,7 +31,7 @@
     <key>CFBundleExecutable</key>
     <string>lmc</string>
 
-    <!-- AppIcon.icns is generated from the app icon by the Makefile. -->
+    <!-- AppIcon.icns is copied into the bundle by the Makefile. -->
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
 

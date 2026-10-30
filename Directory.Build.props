@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Platforms>x64;ARM64</Platforms>
     <Configurations>Debug;Release</Configurations>
-    <Version>2.1.0.0</Version>
+    <Version>2.1.2.0</Version>
     <AssemblyVersion>$(Version)</AssemblyVersion>
     <FileVersion>$(Version)</FileVersion>
     <NoWarn>$(NoWarn);IL2026;IL2104;IL2111;IL3050;IL3053;XA1040;WASM0001</NoWarn>

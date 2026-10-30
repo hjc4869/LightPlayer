@@ -152,6 +152,11 @@ internal static class VideoColorStages
             float second = gradientNoise(pixel.yx + float2(37.0, 17.0), ditherParams.y + 0.61803399);
             return (first - second) * ditherParams.x;
         }
+
+        float3 quantize(float3 encoded, float2 coord) {
+            float3 level = floor((encoded + dither(coord)) * ditherParams.z + 0.5) / ditherParams.z;
+            return clamp(floor(level * ditherParams.w + 0.5) / ditherParams.w, 0.0, 1.0);
+        }
         """;
 
     // How wide one unit of the quantized signal is in linear light at this level, taken from the
@@ -681,11 +686,15 @@ internal static class VideoColorStages
         }
         """;
 
-    /// <summary>PQ signal scaled by .x and limited to the target's PQ signal in .y.</summary>
+    /// <summary>
+    /// PQ signal scaled by .x and limited to the target's PQ signal in .y. The clip is applied in
+    /// nits as well, since the PQ round trip is not exact on every backend.
+    /// </summary>
     public const string ToneLinear = """
         float3 toneMap(float3 nits) {
             float luminance = max(dot(sourceLuma.xyz, nits), 0.0);
             float mapped = pqToNits(min(nitsToPq(luminance) * toneParams.x, toneParams.y));
+            mapped = min(mapped, toneParams.w);
             return nits * (luminance > 1e-6 ? mapped / luminance : 0.0);
         }
         """;
@@ -803,13 +812,16 @@ internal static class VideoColorStages
         }
         """;
 
+    // A bounded surface is quantized here rather than left to its own conversion, so a panel depth
+    // below the surface's lands on the panel's grid, and then on the surface's own codes so that
+    // nothing is left for a backend's half-precision store to round differently.
     public const string EncodeSrgbDithered = LinearToSrgb + """
         float3 encodeOutput(float3 rgb, float2 coord) {
             float3 encoded = float3(
                 linearToSrgb(rgb.r),
                 linearToSrgb(rgb.g),
                 linearToSrgb(rgb.b));
-            return clamp(encoded + float3(dither(coord)), 0.0, 1.0);
+            return quantize(encoded, coord);
         }
         """;
 
@@ -824,7 +836,7 @@ internal static class VideoColorStages
 
     public const string EncodePowerDithered = LinearToPower + """
         float3 encodeOutput(float3 rgb, float2 coord) {
-            return clamp(linearToPower(rgb) + float3(dither(coord)), 0.0, 1.0);
+            return quantize(linearToPower(rgb), coord);
         }
         """;
 
@@ -837,7 +849,7 @@ internal static class VideoColorStages
     /// <summary>The signal already carries the surface's encoding, so only quantization is left.</summary>
     public const string EncodeDirectDithered = """
         float3 encodeOutput(float3 rgb, float2 coord) {
-            return clamp(rgb + float3(dither(coord)), 0.0, 1.0);
+            return quantize(rgb, coord);
         }
         """;
 

@@ -100,6 +100,10 @@ public static unsafe partial class DolbyVisionMetadataReader
                 return false;
         }
 
+        // The RPU's YCbCr conversion takes codes over 2^N, which puts its offsets at 64/1024 and
+        // 512/1024 exactly, while the renderer normalizes samples over 2^N - 1; the matrix and the
+        // offsets absorb the ratio so neutral chroma lands exactly on the offset.
+        double codeScale = ((1 << header->bl_bit_depth) - 1) / (double)(1 << header->bl_bit_depth);
         for (int index = 0; index < DolbyVisionMetadata.MatrixElementCount; index++)
         {
             if (!TryReadRational(color->ycc_to_rgb_matrix[index], out destination.NonlinearMatrix[index]) ||
@@ -107,12 +111,16 @@ public static unsafe partial class DolbyVisionMetadataReader
             {
                 return false;
             }
+
+            destination.NonlinearMatrix[index] = (float)(destination.NonlinearMatrix[index] * codeScale);
         }
 
         for (int index = 0; index < DolbyVisionMetadata.ComponentCount; index++)
         {
             if (!TryReadRational(color->ycc_to_rgb_offset[index], out destination.NonlinearOffset[index]))
                 return false;
+
+            destination.NonlinearOffset[index] = (float)(destination.NonlinearOffset[index] / codeScale);
         }
 
         destination.EnhancementLayerResidual = enhancementLayerResidual;

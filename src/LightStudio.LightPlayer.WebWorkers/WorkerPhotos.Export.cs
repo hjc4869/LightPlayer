@@ -10,12 +10,22 @@ using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim;
 using LightStudio.FfmpegShim.Engine;
 using LightStudio.FfmpegShim.ImageEncoding;
+using LightStudio.LightPlayer.Services;
 using LightStudio.LightPlayer.Services.PhotoExport;
 
 namespace LightStudio.LightPlayer.WebWorkers;
 
 internal static partial class WorkerPhotos
 {
+    public static async Task<string> EncodeThumbnailAsync(WireImageRequest request, CancellationToken cancellationToken)
+    {
+        using var source = new SourceBridgeContext(request.Source.Id, (long)request.Source.Length, WindowBytes, Windows, Prefetch);
+        cancellationToken.ThrowIfCancellationRequested();
+        VideoFrame frame = DecodeWhole(source, request.Source.Name, request.RenderRaw, request.MaxDimension);
+        byte[] encoded = await PhotoThumbnailEncoder.EncodeAsync(frame, request.MaxDimension, cancellationToken);
+        return Payloads.Envelope("null", Payloads.Copy(encoded));
+    }
+
     /// <summary>
     /// Saves a photo with the apps' save pipeline. The file follows the result in native memory; a failure the save
     /// panel explains comes back as the result instead.
@@ -49,15 +59,20 @@ internal static partial class WorkerPhotos
 
     /// <summary>
     /// Decodes a whole photo, with tile grids assembled, and gives it the color and gain map the page shows it with.
+    /// A positive <paramref name="thumbnailDimension"/> allows an embedded thumbnail or reduced decoding that stays at
+    /// least that size.
     /// </summary>
-    private static VideoFrame DecodeWhole(Stream stream, string name, bool? renderRaw)
+    private static VideoFrame DecodeWhole(Stream stream, string name, bool? renderRaw, int thumbnailDimension = 0)
     {
         var frames = new List<VideoFrame>();
         var session = new Session();
         VideoFrame? frame = null;
         try
         {
-            WirePhoto photo = OpenPicture(stream, name, renderRaw, frames, session, useTiles: false);
+            WirePhoto photo = thumbnailDimension > 0 && renderRaw != true &&
+                PhotoDecoder.FindLibraryThumbnail(stream, thumbnailDimension, default) is { } item
+                    ? OpenPhoto(stream, frames, session, item, useTiles: false, inheritPrimaryGainMap: true)
+                    : OpenPicture(stream, name, renderRaw, frames, session, useTiles: false, thumbnailWidth: thumbnailDimension);
             bool hasGainMap = WirePhotoFrames.HasGainMap(photo);
             PhotoColorProfile? profile = WirePhotoFrames.BaseProfile(photo);
             frame = frames[photo.Base.Frame].AddRef();

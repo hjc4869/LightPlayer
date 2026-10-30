@@ -22,7 +22,7 @@ namespace LightStudio.LightPlayer.Android;
 [Activity(
     Label = "@string/app_name",
     Theme = "@style/MyTheme.NoActionBar",
-    Icon = "@drawable/icon",
+    Icon = "@mipmap/ic_launcher",
     MainLauncher = true,
     LaunchMode = LaunchMode.SingleTask,
     ResizeableActivity = true,

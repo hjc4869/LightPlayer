@@ -14,10 +14,17 @@ internal static unsafe partial class PhotoDecoder
     private const int MaxGainMapBytes = 64 * 1024 * 1024;
     private const int MaxContainerMetadataBytes = 8 * 1024 * 1024;
 
+    /// <summary>Smallest longest edge of an embedded HEIF/AVIF thumbnail that stands in for the picture.</summary>
+    private const int MinimumContainerThumbnail = 256;
+
     private sealed record GainMapSource(GainMap Metadata, uint? BaseItem = null, uint? GainItem = null,
         byte[]? EncodedGain = null, byte[]? BaseProfile = null, byte[]? MathProfile = null, int MathPrimaries = 0);
 
-    private static GainMapSource? ReadContainer(Stream stream, CancellationToken cancellationToken, uint? imageItem = null)
+    /// <param name="inheritPrimaryGainMap">
+    /// Whether a thumbnail item of the primary image without a gain map of its own takes the primary image's.
+    /// </param>
+    private static GainMapSource? ReadContainer(Stream stream, CancellationToken cancellationToken, uint? imageItem = null,
+        bool inheritPrimaryGainMap = false)
     {
         long origin = stream.Position;
         Span<byte> signature = stackalloc byte[12];
@@ -37,7 +44,7 @@ internal static unsafe partial class PhotoDecoder
             if (type == FourCc("meta"u8) && length <= MaxContainerMetadataBytes)
             {
                 var items = new IsoImageItems(ReadBytes(stream, (int)length), origin);
-                GainMapSource? result = items.FindGainMap(stream, imageItem);
+                GainMapSource? result = items.FindGainMap(stream, imageItem, inheritPrimaryGainMap);
                 if (result is not null)
                     return result;
             }
@@ -56,6 +63,22 @@ internal static unsafe partial class PhotoDecoder
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// The embedded HEIF/AVIF thumbnail item a library thumbnail is encoded from instead of the picture. A gain map of
+    /// the picture applies to the item as well.
+    /// </summary>
+    internal static uint? FindLibraryThumbnail(Stream stream, int maxDimension, CancellationToken cancellationToken)
+    {
+        long origin = stream.Position;
+        try
+        {
+            return FindContainerThumbnail(stream, new PhotoPreviewRequest(maxDimension, maxDimension), cancellationToken) is { } thumbnail &&
+                Math.Max(thumbnail.Width, thumbnail.Height) >= Math.Min(maxDimension, MinimumContainerThumbnail)
+                    ? thumbnail.Item : null;
+        }
+        finally { stream.Position = origin; }
     }
 
     private static (uint Item, int Width, int Height)? FindContainerThumbnail(Stream stream,
@@ -388,7 +411,7 @@ internal static unsafe partial class PhotoDecoder
             return selected;
         }
 
-        public GainMapSource? FindGainMap(Stream stream, uint? imageItem = null)
+        public GainMapSource? FindGainMap(Stream stream, uint? imageItem = null, bool inheritPrimaryGainMap = false)
         {
             uint selected = imageItem ?? primary;
             foreach ((uint id, Item item) in items)
@@ -428,8 +451,14 @@ internal static unsafe partial class PhotoDecoder
                     return new GainMapSource(AppleMetadata(appleHeadroom.Value), selected, reference.From, BaseProfile: Profile(selected));
             }
 
+            if (inheritPrimaryGainMap && selected != primary && IsThumbnail(selected) &&
+                FindGainMap(stream) is { BaseItem: not null } inherited)
+                return inherited with { BaseItem = selected, BaseProfile = Profile(selected) };
             return null;
         }
+
+        private bool IsThumbnail(uint id) =>
+            references.Any(reference => reference.Type == FourCc("thmb"u8) && reference.From == id && reference.To.Contains(primary));
 
         private byte[] ReadItem(Stream stream, uint requested)
         {

@@ -25,12 +25,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AndroidResource Include="Icon.png">
-      <Link>Resources\drawable\Icon.png</Link>
-    </AndroidResource>
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Avalonia.Android" />
     <PackageReference Include="LightStudio.AvaloniaStatic" />
     <PackageReference Include="LightStudio.Ffmpeg" />

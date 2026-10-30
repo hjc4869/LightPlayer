@@ -9,10 +9,6 @@
 #   make ios-sim                    Build the iOS simulator .app bundle.
 #   make ios-sim-deploy             Build, install, and launch on IOS_SIMULATOR.
 #   make run                        Build and run the app.
-#   make video-validation           Generate and run the desktop video conformance matrix.
-#   make video-validation-publish   Build a user-runnable conformance bundle.
-#   make video-validation-web       Generate assets and run WebCodecs validation in Playwright.
-#   make video-validation-web-serve Serve the interactive web validation workbench.
 #   make web                        Build the full shared UI for WebAssembly.
 #   make web-cf                     Package the WebAssembly build for Cloudflare Workers.
 #   make web-run                    Build and serve the full shared UI WebAssembly app on localhost.
@@ -35,6 +31,8 @@
 #   RID                  .NET runtime identifier for the Flatpak publish (default: linux-x64)
 #   INCLUDE_WEB          bundle the browser client in the container image (default: false)
 #   WEB_RUN_PORT         localhost port that web-run serves on (default: 5000)
+#   MULTI_THREAD_APP     build the browser client on the threaded .NET runtime, decoding in
+#                        process instead of in the media worker (default: 0)
 #   DOTNET_SDK_VERSION   dotnet SDK extension major version (default: 10; must match the manifest)
 #   FREEDESKTOP_VERSION  freedesktop runtime/SDK version (default: 26.08; must match the manifest)
 #   IOS_DEVICE           device identifier or name for ios-deploy (required)
@@ -53,20 +51,13 @@ WEB_CF_OUTPUT                   := artifacts/web-cf
 WEB_CF_SOURCE                   := packaging/cloudflare
 WEB_RUN_OUTPUT                  := artifacts/web-run
 WEB_RUN_PORT                    ?= 5000
+MULTI_THREAD_APP                ?= 0
+WEB_BUILD_PROPERTIES            := $(if $(filter 1 true,$(MULTI_THREAD_APP)),-p:MultiThreadApp=true)
 # Cloudflare rejects any single static asset larger than this.
 WEB_CF_ASSET_LIMIT              := 26214400
 SERVER_PROJECT                  := src/LightStudio.LightPlayer.Server/LightStudio.LightPlayer.Server.csproj
 VIDEODEMO_PROJECT               := tools/videodemo/videodemo.csproj
 VIDEODEMO_MEDIA                 ?= artifacts/test.mkv
-VIDEO_VALIDATION_PROJECT        := tools/VideoValidation/Desktop/ValidationDesktop.csproj
-VIDEO_VALIDATION_OUTPUT         ?= artifacts/video-validation
-VIDEO_VALIDATION_BUNDLE         ?= artifacts/video-validation-bundle
-VIDEO_VALIDATION_WEB_PROJECT    := tools/VideoValidation/Web/ValidationWeb.csproj
-VIDEO_VALIDATION_WEB_AUTOMATION := tools/VideoValidation/Web/Automation
-VIDEO_VALIDATION_WEB_OUTPUT     ?= artifacts/video-validation-web
-VIDEO_VALIDATION_WEB_RESULTS    ?= artifacts/video-validation-web-results
-VIDEO_VALIDATION_BROWSER        ?= chromium
-VIDEO_VALIDATION_WEB_ARGS       ?=
 CONFIGURATION                   ?= Release
 RID                             ?= linux-x64
 
@@ -97,16 +88,15 @@ DOCKERFILE       := packaging/docker/Dockerfile
 INCLUDE_WEB      ?= false
 
 # macOS build layout (Apple Silicon, matching the GitHub Actions release job).
-# The .app bundle assembly, AppIcon.icns generation, Info.plist versioning,
-# ad-hoc signing and ZIP packaging are handled by the osxapp target below
-# without a separate packaging script.
+# The .app bundle assembly, Info.plist versioning, ad-hoc signing and ZIP
+# packaging are handled by the osxapp target below without a separate
+# packaging script.
 MACOS_DIR         := artifacts/macos
 MACOS_PUBLISH     := $(MACOS_DIR)/publish
 MACOS_APP         := $(MACOS_DIR)/Light Player.app
 MACOS_ZIP         := artifacts/release/LightPlayer-osx-arm64.zip
-MACOS_ICONSET     := $(MACOS_DIR)/AppIcon.iconset
 MACOS_EXECUTABLE  := lmc
-MACOS_ICON_SOURCE := packaging/flatpak/icons/256x256/im.hjc.LightPlayer.png
+MACOS_ICON        := packaging/macos/AppIcon.icns
 MACOS_INFO_PLIST  := packaging/macos/Info.plist
 
 # Bundle version from Directory.Build.props. macOS caps CFBundleShortVersionString
@@ -144,7 +134,7 @@ FLATPAK_GENERATOR     := packaging/flatpak/nuget-sources.py
 CSPROJ_FILES          := $(shell find src tools/LightStudio.LightPlayer.Generators tools/NativeBindings -name '*.csproj')
 NUGET_INPUTS          := $(CSPROJ_FILES) Directory.Build.props Directory.Build.targets Directory.Packages.props build/GitHubNuGet.targets build/NativeBindings.Configuration.targets tools/NativeBindings/NativeBindings.props tools/NativeBindings/NativeBindings.Selection.targets tools/NativeBindings/NativeBindings.targets nuget.config
 
-.PHONY: all build run videodemo video-validation video-validation-generate video-validation-publish video-validation-web video-validation-web-publish video-validation-web-deps video-validation-web-serve osxapp macos-publish web web-cf web-run browser-build browser-run browser-media docker docker-run flatpak flatpak-deps flatpak-nuget-sources flatpak-install clean
+.PHONY: all build run videodemo osxapp macos-publish web web-cf web-run browser-build browser-run browser-media docker docker-run flatpak flatpak-deps flatpak-nuget-sources flatpak-install clean
 .PHONY: iosapp ios-deploy ios-sim ios-sim-deploy src
 
 all: build
@@ -163,53 +153,6 @@ run:
 videodemo:
 	dotnet run --project "$(VIDEODEMO_PROJECT)" -c "$(CONFIGURATION)" -p:Platform=$(PLATFORM) -- "$(VIDEODEMO_MEDIA)"
 
-# Generate deterministic clips and run the production desktop decoder/renderer matrix.
-video-validation:
-	dotnet run --project "$(VIDEO_VALIDATION_PROJECT)" -c "$(CONFIGURATION)" -- \
-		--run --exit --generate --output "$(VIDEO_VALIDATION_OUTPUT)"
-
-video-validation-generate:
-	dotnet run --project "$(VIDEO_VALIDATION_PROJECT)" -c "$(CONFIGURATION)" -- \
-		--generate-only --output "$(VIDEO_VALIDATION_OUTPUT)"
-
-# Self-contained .NET host plus pre-generated media. Native FFmpeg and graphics drivers remain
-# properties of the machine being tested and are intentionally not bundled on Linux.
-video-validation-publish: video-validation-generate
-	rm -rf "$(VIDEO_VALIDATION_BUNDLE)"
-	dotnet publish "$(VIDEO_VALIDATION_PROJECT)" \
-		-c "$(CONFIGURATION)" -r "$(RID)" -p:Platform=$(if $(filter %-arm64,$(RID)),ARM64,x64) --self-contained true \
-		-o "$(VIDEO_VALIDATION_BUNDLE)"
-	mkdir -p "$(VIDEO_VALIDATION_BUNDLE)/artifacts/video-validation"
-	cp -a "$(VIDEO_VALIDATION_OUTPUT)/assets" "$(VIDEO_VALIDATION_BUNDLE)/artifacts/video-validation/"
-	cp -a "$(VIDEO_VALIDATION_OUTPUT)/references" "$(VIDEO_VALIDATION_BUNDLE)/artifacts/video-validation/"
-	cp "$(VIDEO_VALIDATION_OUTPUT)/assets-manifest.json" "$(VIDEO_VALIDATION_BUNDLE)/artifacts/video-validation/"
-	cp tools/VideoValidation/README.md "$(VIDEO_VALIDATION_BUNDLE)/README.md"
-	@echo "==> Wrote $(VIDEO_VALIDATION_BUNDLE)"
-
-# Publish the browser head with the same threaded, SIMD and AOT settings as the production client.
-video-validation-web-publish:
-	dotnet publish "$(VIDEO_VALIDATION_WEB_PROJECT)" \
-		-c Release -o "$(VIDEO_VALIDATION_WEB_OUTPUT)"
-
-# Install the pinned Playwright package and its selected browser runtime.
-video-validation-web-deps:
-	npm ci --prefix "$(VIDEO_VALIDATION_WEB_AUTOMATION)"
-	npm exec --prefix "$(VIDEO_VALIDATION_WEB_AUTOMATION)" -- \
-		playwright install "$(VIDEO_VALIDATION_BROWSER)"
-
-# Run the six shared hardware-codec cases through production WebCodecs/WebGL by default.
-video-validation-web: video-validation-generate video-validation-web-publish video-validation-web-deps
-	node "$(VIDEO_VALIDATION_WEB_AUTOMATION)/run.mjs" \
-		--app "$(VIDEO_VALIDATION_WEB_OUTPUT)" \
-		--corpus "$(VIDEO_VALIDATION_OUTPUT)" \
-		--output "$(VIDEO_VALIDATION_WEB_RESULTS)" \
-		--browser "$(VIDEO_VALIDATION_BROWSER)" $(VIDEO_VALIDATION_WEB_ARGS)
-
-# Serve the workbench without auto-running; Ctrl+C stops the isolated static host.
-video-validation-web-serve: video-validation-generate video-validation-web-publish video-validation-web-deps
-	node "$(VIDEO_VALIDATION_WEB_AUTOMATION)/run.mjs" \
-		--serve --app "$(VIDEO_VALIDATION_WEB_OUTPUT)" --corpus "$(VIDEO_VALIDATION_OUTPUT)"
-
 # Publish the macOS desktop head with the same NativeAOT settings as CI.
 macos-publish:
 	dotnet publish "$(AVALONIA_PROJECT)" \
@@ -221,10 +164,9 @@ macos-publish:
 
 # Assemble the macOS .app bundle from the self-contained publish: copy the
 # payload, trim runtime-unneeded files (debug symbols, satellite assemblies),
-# inject the version into Info.plist, generate AppIcon.icns from the app icon
-# PNG, then ad-hoc code sign (required for arm64 to launch; --deep re-signs the
-# bundled native dylibs the file moves above invalidated). macOS only: needs
-# sips/iconutil/codesign/PlistBuddy/ditto.
+# inject the version into Info.plist, copy AppIcon.icns, then ad-hoc code sign
+# (required for arm64 to launch; --deep re-signs the bundled native dylibs the
+# file moves above invalidated). macOS only: needs codesign/PlistBuddy/ditto.
 osxapp: macos-publish
 	@test "$$(uname -s)" = "Darwin" || { echo "error: 'make osxapp' requires macOS." >&2; exit 1; }
 	rm -rf "$(MACOS_APP)"
@@ -238,20 +180,7 @@ osxapp: macos-publish
 	cp "$(MACOS_INFO_PLIST)" "$(MACOS_APP)/Contents/Info.plist"
 	/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $(MACOS_SHORT_VERSION)" "$(MACOS_APP)/Contents/Info.plist"
 	/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(MACOS_VERSION)" "$(MACOS_APP)/Contents/Info.plist"
-	rm -rf "$(MACOS_ICONSET)"
-	mkdir -p "$(MACOS_ICONSET)"
-	sips -z 16 16     "$(MACOS_ICON_SOURCE)" --out "$(MACOS_ICONSET)/icon_16x16.png"      >/dev/null
-	sips -z 32 32     "$(MACOS_ICON_SOURCE)" --out "$(MACOS_ICONSET)/icon_16x16@2x.png"   >/dev/null
-	sips -z 32 32     "$(MACOS_ICON_SOURCE)" --out "$(MACOS_ICONSET)/icon_32x32.png"      >/dev/null
-	sips -z 64 64     "$(MACOS_ICON_SOURCE)" --out "$(MACOS_ICONSET)/icon_32x32@2x.png"   >/dev/null
-	sips -z 128 128   "$(MACOS_ICON_SOURCE)" --out "$(MACOS_ICONSET)/icon_128x128.png"    >/dev/null
-	sips -z 256 256   "$(MACOS_ICON_SOURCE)" --out "$(MACOS_ICONSET)/icon_128x128@2x.png" >/dev/null
-	sips -z 256 256   "$(MACOS_ICON_SOURCE)" --out "$(MACOS_ICONSET)/icon_256x256.png"    >/dev/null
-	sips -z 512 512   "$(MACOS_ICON_SOURCE)" --out "$(MACOS_ICONSET)/icon_256x256@2x.png" >/dev/null
-	sips -z 512 512   "$(MACOS_ICON_SOURCE)" --out "$(MACOS_ICONSET)/icon_512x512.png"    >/dev/null
-	sips -z 1024 1024 "$(MACOS_ICON_SOURCE)" --out "$(MACOS_ICONSET)/icon_512x512@2x.png" >/dev/null
-	iconutil -c icns "$(MACOS_ICONSET)" -o "$(MACOS_APP)/Contents/Resources/AppIcon.icns"
-	rm -rf "$(MACOS_ICONSET)"
+	cp "$(MACOS_ICON)" "$(MACOS_APP)/Contents/Resources/AppIcon.icns"
 	codesign --force --deep --sign - --timestamp=none "$(MACOS_APP)"
 	codesign --verify --deep --strict "$(MACOS_APP)"
 	@echo "==> Wrote $(MACOS_APP)"
@@ -262,7 +191,7 @@ osxapp: macos-publish
 
 # Build the complete shared Avalonia UI with browser-local and REST-backed services.
 web:
-	dotnet publish "$(WEB_PROJECT)" -o "$(WEB_OUTPUT)" -c "$(CONFIGURATION)"
+	dotnet publish "$(WEB_PROJECT)" -o "$(WEB_OUTPUT)" -c "$(CONFIGURATION)" $(WEB_BUILD_PROPERTIES)
 	python3 tools/package-web.py "$(WEB_OUTPUT)/wwwroot"
 
 # Package the same app for Cloudflare Workers. Assets above the 25 MiB per-file limit ship as
@@ -270,7 +199,7 @@ web:
 # them a second time. Deploy with `wrangler deploy` from $(WEB_CF_OUTPUT).
 web-cf:
 	@command -v brotli >/dev/null 2>&1 || { echo "error: brotli is required"; exit 1; }
-	dotnet publish "$(WEB_PROJECT)" -o "$(WEB_CF_OUTPUT)" -c "$(CONFIGURATION)"
+	dotnet publish "$(WEB_PROJECT)" -o "$(WEB_CF_OUTPUT)" -c "$(CONFIGURATION)" $(WEB_BUILD_PROPERTIES)
 	python3 tools/package-web.py "$(WEB_CF_OUTPUT)/wwwroot"
 	find "$(WEB_CF_OUTPUT)/wwwroot" -type f ! -name '*.br' -size +$(WEB_CF_ASSET_LIMIT)c \
 		-exec brotli --quality=6 --rm -- {} +
@@ -284,7 +213,7 @@ web-cf:
 # cross-origin isolation its threaded media worker needs; Ctrl+C stops the server.
 web-run:
 	dotnet publish "$(WEB_PROJECT)" -o "$(WEB_RUN_OUTPUT)" -c Release \
-		-p:RunAOTCompilation=false -p:BrowserMediaWorkerAot=false
+		-p:RunAOTCompilation=false -p:BrowserMediaWorkerAot=false $(WEB_BUILD_PROPERTIES)
 	python3 tools/package-web.py "$(WEB_RUN_OUTPUT)/wwwroot"
 	node src/LightStudio.LightPlayer.Web/serve.mjs "$(WEB_RUN_OUTPUT)/wwwroot" "$(WEB_RUN_PORT)"
 

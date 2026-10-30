@@ -718,7 +718,8 @@ public partial class PhotoView : Control
                 frame is { GainMap: null, ColorTransfer: VideoColorTransfer.Pq } ? ReportAutomaticToneMapping : null));
         bool hasHdrContent = hdrPassthrough && HdrContentHint.IsHdr(frame);
         if (hasHdrContent)
-            contentMetadata = HdrContentHint.Combine(contentMetadata, HdrContentHint.Describe(frame));
+            contentMetadata = HdrContentHint.Combine(contentMetadata, HdrContentHint.Describe(frame,
+                frame is { GainMap: null, ColorTransfer: VideoColorTransfer.Pq } ? ToneMapping : null));
         return hasHdrContent;
     }
 

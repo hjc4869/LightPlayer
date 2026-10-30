@@ -66,6 +66,8 @@ function cancelRequest(memory, request) {
 
 // Worker transport for the native source client.
 export class WorkerSources {
+    closing = new Set();
+
     constructor(heapBuffer, post) {
         this.heapBuffer = heapBuffer;
         this.post = post;
@@ -167,6 +169,7 @@ export class WorkerSources {
     // Page sources free their windows only after the page confirms the close, see PageSources.handle.
     close(id) {
         const source = this.sources.get(id);
+        if (!source) return !this.closing.has(id);
         if (source) {
             source.closed = true;
             for (const request of source.requests.values()) request.controller.abort();
@@ -174,8 +177,13 @@ export class WorkerSources {
         }
         this.sources.delete(id);
         if (source?.kind !== "page") return true;
+        this.closing.add(id);
         this.post({ type: "source-close", source: id });
         return false;
+    }
+
+    acknowledgeClose(id) {
+        this.closing.delete(id);
     }
 }
 

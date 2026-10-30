@@ -17,7 +17,7 @@ public partial class AboutDialog : Window
     public AboutDialog()
     {
         InitializeComponent();
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "2.1.0.0";
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "2.1.2.0";
         VersionText.Text = string.Format(Strings.Resources.About_VersionFormat, version, BuildInfo.SourceVersion);
         LicenseText.Text = LicenseNotices.LoadCombinedText();
         GitHubLink.Click += OnGitHubLinkClick;

@@ -7,11 +7,16 @@ import { PhotoDecoders } from "./photo-codecs.js";
 const moduleName = "lp-media-worker";
 const settings = new URL(import.meta.url).searchParams;
 const threadLimit = Math.min(10, Math.max(1, Math.floor(globalThis.navigator?.hardwareConcurrency || 2)));
-const poolLimit = Math.max(2, threadLimit);
+// Viewer photo jobs are admitted apart from library and whole-image jobs; each holds a pool thread while it runs.
+const bulkJobs = Math.min(2, Math.max(1, threadLimit - 1));
+const viewerJobs = Math.min(2, Math.max(1, threadLimit - 3));
+// One more thread than admitted jobs keeps interop completions running without waiting for thread injection.
+const poolThreads = bulkJobs + viewerJobs + 1;
+const poolLimit = Math.max(poolThreads, threadLimit);
 const pumpBudgetMilliseconds = 8;
 const statusIntervalMilliseconds = 250;
 const webCodecs = new Map();
-const payloadMethods = new Set(["probeVideo", "albumCover", "image", "bitmapSubtitles", "photoExport"]);
+const payloadMethods = new Set(["probeVideo", "albumCover", "image", "bitmapSubtitles", "photoExport", "photoThumbnail"]);
 const frameMethods = new Set(["photoOpen", "photoTiles", "photoAnimationRead"]);
 const updates = { allowances: new Map(), releases: [], positions: new Map(), speeds: new Map(), faults: [] };
 const pendingFrames = { frames: [], objects: [] };
@@ -32,11 +37,11 @@ const ready = (async () => {
     runtime = await dotnet
         .withEnvironmentVariables({
             DOTNET_PROCESSOR_COUNT: String(threadLimit),
-            DOTNET_ThreadPool_ForceMinWorkerThreads: Math.min(2, poolLimit).toString(16),
+            DOTNET_ThreadPool_ForceMinWorkerThreads: poolThreads.toString(16),
             DOTNET_ThreadPool_ForceMaxWorkerThreads: poolLimit.toString(16),
         })
         .withConfig({
-            pthreadPoolInitialSize: Math.max(3, Math.min(5, threadLimit)),
+            pthreadPoolInitialSize: Math.max(poolThreads, Math.min(5, threadLimit)),
             pthreadPoolUnusedSize: 2,
             jsThreadBlockingMode: "ThrowWhenBlockingWait",
         })
@@ -58,7 +63,7 @@ const ready = (async () => {
     });
     const exports = await runtime.getAssemblyExports("LightStudio.LightPlayer.WebWorkers");
     worker = exports.LightStudio.LightPlayer.WebWorkers.MediaWorker;
-    await worker.Initialize(Number(settings.get("ffmpegLog") ?? 16), Number(settings.get("appLog") ?? 1));
+    await worker.Initialize(Number(settings.get("ffmpegLog") ?? 16), Number(settings.get("appLog") ?? 1), bulkJobs, viewerJobs);
 })();
 ready.catch(async error => self.postMessage({ type: "fatal", error: (await describeError(error)).stack }));
 
@@ -102,6 +107,7 @@ async function handle(message) {
             await worker.CancelPhotoExport(message.operation);
             return;
         case "source-closed":
+            sources.acknowledgeClose(message.source);
             await worker.ReleaseSource(message.source);
             return;
         case "updates":
@@ -151,7 +157,14 @@ async function call(method, args) {
             break;
         }
     }
-    const result = await worker.Call(method, args);
+    const source = method === "photoThumbnail" || method === "photoExport" || method === "probeVideo"
+        ? JSON.parse(args).source : null;
+    let result;
+    try {
+        result = await worker.Call(method, args);
+    } finally {
+        if (source && sources.close(source.id)) await worker.ReleaseSource(source.id);
+    }
     requestPump();
     if (frameMethods.has(method)) {
         // The frames' planes stay in this runtime's memory, which the page reads them from.

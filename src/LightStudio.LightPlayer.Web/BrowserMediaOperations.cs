@@ -23,15 +23,21 @@ internal static class BrowserMediaOperations
 
     private static int nextExport;
 
+    private static int NextImageOperation() => nextExport = nextExport == int.MaxValue ? 1 : nextExport + 1;
+
     internal static async Task<WireMediaTags> ReadTagsAsync(MediaInput input, CancellationToken cancellationToken) =>
         (await RunAsync(input, "readTags", source => source, EngineWireContext.Default.WireSource,
             EngineWireContext.Default.WireMediaTags, cancellationToken)).Value
         ?? throw new InvalidDataException("The media worker returned no tags.");
 
     internal static async Task<(VideoProbeResult? Probe, byte[]? Preview)> ProbeVideoAsync(
-        MediaInput input, bool withPreview, int maxDimension, CancellationToken cancellationToken) =>
-        await RunAsync(input, "probeVideo", source => new WireProbeRequest(source, withPreview, maxDimension),
-            EngineWireContext.Default.WireProbeRequest, EngineWireContext.Default.VideoProbeResult, cancellationToken);
+        MediaInput input, bool withPreview, int maxDimension, CancellationToken cancellationToken)
+    {
+        int operation = NextImageOperation();
+        return await RunAsync(input, "probeVideo", source => new WireProbeRequest(source, withPreview, maxDimension) { Operation = operation },
+            EngineWireContext.Default.WireProbeRequest, EngineWireContext.Default.VideoProbeResult,
+            cancellationToken, operation);
+    }
 
     internal static async Task<IReadOnlyList<VideoProbeAudioStreamInfo>> ProbeAudioStreamsAsync(
         MediaInput input, CancellationToken cancellationToken) =>
@@ -82,13 +88,15 @@ internal static class BrowserMediaOperations
         return new BrowserPicture(picture.Width, picture.Height, pixels);
     }
 
-    /// <summary>Encodes an upright picture that fits <paramref name="maxDimension"/> as JPEG. Null when there is none.</summary>
-    internal static async Task<byte[]?> EncodeImageAsync(MediaInput input, int maxDimension, CancellationToken cancellationToken, bool? renderRaw = null)
+    /// <summary>Encodes an upright thumbnail, keeping its gamut, gain map and HDR transfer.</summary>
+    internal static async Task<byte[]?> EncodePhotoThumbnailAsync(MediaInput input, int maxDimension, CancellationToken cancellationToken,
+        bool? renderRaw = null)
     {
-        var (picture, encoded) = await RunAsync(input, "image",
-            source => new WireImageRequest(source, maxDimension, false, 0) { EncodeJpeg = true, RenderRaw = renderRaw },
-            EngineWireContext.Default.WireImageRequest, EngineWireContext.Default.WirePicture, cancellationToken);
-        return picture is null ? null : encoded ?? throw new InvalidDataException("The media worker returned no picture.");
+        int operation = NextImageOperation();
+        var (_, encoded) = await RunAsync(input, "photoThumbnail",
+            source => new WireImageRequest(source, maxDimension, false, 0) { RenderRaw = renderRaw, Operation = operation },
+            EngineWireContext.Default.WireImageRequest, EngineWireContext.Default.String, cancellationToken, operation);
+        return encoded;
     }
 
     internal static Task<string> ReadLicenseNoticeAsync() =>
@@ -107,17 +115,13 @@ internal static class BrowserMediaOperations
     internal static async Task<NativePayload> ExportPhotoAsync(MediaInput input, bool? renderRaw, PhotoExportOptions options,
         CancellationToken cancellationToken)
     {
-        int operation = nextExport = nextExport == int.MaxValue ? 1 : nextExport + 1;
+        int operation = NextImageOperation();
         var (failure, encoded) = await RunAsync(input, "photoExport",
             source => new WirePhotoExport(source, renderRaw, options.Encoder?.Name, options) { Operation = operation },
             PhotoExportWireContext.Default.WirePhotoExport, EngineWireContext.Default.String,
-            async (worker, method, arguments, argumentType, resultType) =>
-            {
-                var pending = worker.CallWithNativePayloadAsync(method, arguments, argumentType, resultType);
-                using (cancellationToken.Register(() => worker.CancelPhotoExport(operation)))
-                    return await pending;
-            },
-            static result => result.Payload?.Dispose(), cancellationToken);
+            static (worker, method, arguments, argumentType, resultType) =>
+                worker.CallWithNativePayloadAsync(method, arguments, argumentType, resultType),
+            static result => result.Payload?.Dispose(), cancellationToken, operation);
         if (failure is null)
             return encoded ?? throw new InvalidDataException("The media worker returned no saved photo.");
         encoded?.Dispose();
@@ -156,7 +160,8 @@ internal static class BrowserMediaOperations
 
     /// <summary>Opens a photo for viewing. Its pictures are decoded or, when large, split into tiles decoded on request.</summary>
     internal static Task<BrowserPhoto?> OpenPhotoAsync(MediaInput input, CancellationToken cancellationToken,
-        PhotoPreviewRequest? preview = null, bool? renderRaw = null, IProgress<Size>? displaySize = null) =>
+        PhotoPreviewRequest? preview = null, bool? renderRaw = null, IProgress<Size>? displaySize = null, bool wholeImage = false,
+        int thumbnailWidth = 0) =>
         BackgroundMediaJobs.RunAsync(async (worker, slot) =>
         {
             await using WorkerSource source = await WorkerSource.RegisterAsync(worker, input, readAhead: false, cancellationToken);
@@ -164,7 +169,9 @@ internal static class BrowserMediaOperations
             {
                 try
                 {
-                    var (result, frames) = await worker.CallWithFramesAsync("photoOpen", new WirePhotoRequest(source.Wire, preview) { RenderRaw = renderRaw },
+                    var (result, frames) = await worker.CallWithFramesAsync("photoOpen",
+                        new WirePhotoRequest(source.Wire, preview)
+                        { RenderRaw = renderRaw, WholeImage = wholeImage, ThumbnailWidth = thumbnailWidth },
                         EngineWireContext.Default.WirePhotoRequest, EngineWireContext.Default.WirePhotoResult);
                     if (result.DisplayWidth > 0 && result.DisplayHeight > 0 && !cancellationToken.IsCancellationRequested)
                         displaySize?.Report(new Size(result.DisplayWidth, result.DisplayHeight));
@@ -186,7 +193,7 @@ internal static class BrowserMediaOperations
         {
             if (photo is not null)
                 _ = photo.DisposeAsync().AsTask();
-        });
+        }, viewer: !wholeImage || thumbnailWidth > 0);
 
     private static Task<(TResult? Value, byte[]? Payload)> RunAsync<TArguments, TResult>(
         MediaInput input,
@@ -194,12 +201,13 @@ internal static class BrowserMediaOperations
         Func<WireSource, TArguments> arguments,
         JsonTypeInfo<TArguments> argumentType,
         JsonTypeInfo<TResult> resultType,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int operation = 0)
         where TResult : class =>
         RunAsync(input, method, arguments, argumentType, resultType,
             static (worker, method, arguments, argumentType, resultType) =>
                 worker.CallWithPayloadAsync(method, arguments, argumentType, resultType),
-            null, cancellationToken);
+            null, cancellationToken, operation);
 
     /// <summary>
     /// Registers <paramref name="input"/> with the shared worker and runs <paramref name="method"/> on it through
@@ -213,7 +221,8 @@ internal static class BrowserMediaOperations
         JsonTypeInfo<TResult> resultType,
         Func<MediaWorkerConnection, string, TArguments, JsonTypeInfo<TArguments>, JsonTypeInfo<TResult>, Task<TOutput>> call,
         Action<TOutput>? discard,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int operation = 0)
         where TResult : class =>
         BackgroundMediaJobs.RunAsync(async (worker, _) =>
         {
@@ -222,7 +231,11 @@ internal static class BrowserMediaOperations
             try
             {
                 using (cancellationToken.Register(source.Cancel))
-                    result = await call(worker, method, arguments(source.Wire), argumentType, resultType);
+                {
+                    var pending = call(worker, method, arguments(source.Wire), argumentType, resultType);
+                    using var registration = operation == 0 ? default : cancellationToken.Register(() => worker.CancelPhotoExport(operation));
+                    result = await pending;
+                }
             }
             catch (Exception exception)
             {
@@ -261,14 +274,16 @@ internal sealed class BrowserPicture(int width, int height, NativePayload pixels
 
 /// <summary>
 /// Bounded background lanes in the shared media worker. Each lane admits one operation at a time
-/// and preserves ordering for photo sessions, including cancellation cleanup.
+/// and preserves ordering for photo sessions, including cancellation cleanup. Viewer photo sessions
+/// have lanes of their own, so library work never queues them.
 /// </summary>
 [SupportedOSPlatform("browser")]
 internal static class BackgroundMediaJobs
 {
     internal const int Count = 2;
-    private static readonly SemaphoreSlim[] turns = [new(1, 1), new(1, 1)];
-    private static readonly int[] demand = new int[Count];
+    private const int ViewerCount = 2;
+    private static readonly SemaphoreSlim[] turns = [new(1, 1), new(1, 1), new(1, 1), new(1, 1)];
+    private static readonly int[] demand = new int[Count + ViewerCount];
 
     /// <summary>Runs <paramref name="operation"/> on the lane with the least work in line.</summary>
     internal static Task<T> RunAsync<T>(Func<MediaWorkerConnection, Task<T>> operation, CancellationToken cancellationToken) =>
@@ -277,10 +292,11 @@ internal static class BackgroundMediaJobs
     /// <inheritdoc cref="RunAsync{T}(Func{MediaWorkerConnection, Task{T}}, CancellationToken)"/>
     /// <remarks>The operation learns its lane, to continue there with <see cref="RunOnAsync"/>.</remarks>
     internal static Task<T> RunAsync<T>(Func<MediaWorkerConnection, int, Task<T>> operation, CancellationToken cancellationToken,
-        Action<T>? discard = null)
+        Action<T>? discard = null, bool viewer = false)
     {
-        int slot = 0;
-        for (int index = 1; index < Count; index++)
+        int first = viewer ? Count : 0;
+        int slot = first;
+        for (int index = first + 1; index < first + (viewer ? ViewerCount : Count); index++)
         {
             if (demand[index] < demand[slot])
                 slot = index;

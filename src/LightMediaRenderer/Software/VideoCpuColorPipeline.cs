@@ -30,7 +30,7 @@ internal sealed class VideoCpuColorPipeline
     {
         this.frame = frame;
         this.sceneLight = sceneLight;
-        bool dovi = frame.DolbyVision.IsPresent;
+        bool dovi = frame.DolbyVision.IsApplicable;
         hdr = dovi || frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
         VideoColorPrimaries primaries = dovi ? VideoColorPrimaries.Bt2020 : frame.ColorPrimaries;
         (gamut, luma) = VideoColorGamut.ToBt709Single(primaries);
@@ -129,7 +129,7 @@ internal sealed class VideoCpuColorPipeline
         bool useSimd = true)
     {
         ValidateChannels(r, g, b);
-        bool enhancement = frame.DolbyVision is { IsPresent: true, EnhancementLayerResidual: true } &&
+        bool enhancement = frame.DolbyVision is { IsApplicable: true, EnhancementLayerResidual: true } &&
             frame.EnhancementLayer is not null;
         if (enhancement && (er.Length < r.Length || eg.Length < r.Length || eb.Length < r.Length))
             throw new ArgumentException("Enhancement samples must cover the base-layer row.");
@@ -195,7 +195,7 @@ internal sealed class VideoCpuColorPipeline
     public void DecodeSignal(Span<float> r, Span<float> g, Span<float> b)
     {
         ValidateChannels(r, g, b);
-        if (frame.DolbyVision.IsPresent)
+        if (frame.DolbyVision.IsApplicable)
             throw new InvalidOperationException("Dolby Vision pictures are only defined once reshaped into light.");
         bool planar = VideoPlanarLayout.IsPlanar(frame.Format);
         for (int x = 0; x < r.Length; x++)
@@ -216,7 +216,7 @@ internal sealed class VideoCpuColorPipeline
     private void DecodePixel<T>(ref T r, ref T g, ref T b, T er, T eg, T eb, bool enhancement)
         where T : struct, IColorMath<T>
     {
-        if (frame.DolbyVision.IsPresent)
+        if (frame.DolbyVision.IsApplicable)
         {
             DolbyVisionMetadata metadata = frame.DolbyVision;
             T x = Clamp(r, 0, 1), y = Clamp(g, 0, 1), z = Clamp(b, 0, 1);

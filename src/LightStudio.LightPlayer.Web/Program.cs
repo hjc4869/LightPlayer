@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Browser;
 using Avalonia.Media;
 using Avalonia.Media.Fonts;
+using Avalonia.Threading;
 using LightMediaRenderer.Subtitles;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Remote;
@@ -74,9 +75,12 @@ internal static class Program
 
         await BrowserVideoBootstrap.RegisterVideoPipelineAsync();
         _ = LoadFfmpegLicenseNoticeAsync();
+#if !MULTI_THREAD_APP
+        // The threaded page keeps the in-process defaults of these, as the installed heads do.
         ImageDecoding.Decoder = new BrowserImageDecoder();
         PlatformServices.MaxConcurrentArtworkLoads = BackgroundMediaJobs.Count;
         PlatformServices.PcmPlaybackSourceFactory = (request, resolver) => new BrowserPcmPlaybackSource(request, resolver);
+#endif
         var deviceState = new BrowserKeyValueStore();
 
         PlatformServices.AppDataPath = "/LightPlayer";
@@ -192,8 +196,10 @@ internal static class Program
         // starts on its own could do nothing but raise warnings.
         PlatformServices.SupportsStartupLibraryScan = false;
         PlatformServices.SupportsSampleRateSettings = false;
+#if !MULTI_THREAD_APP
         PlatformServices.PhotoExport = new BrowserPhotoExportService();
         PlatformServices.VideoScreenshotEncoder = null;
+#endif
     #if LMR_AVALONIA_FORK
         PlatformServices.SupportsAdvancedColorOutput = true;
     #endif
@@ -225,7 +231,9 @@ internal static class Program
             PreferHdr = true
 #endif
         });
-        BrowserPageTheme.Register();
+
+        // The threaded runtime runs Avalonia on a thread of its own, so the view is reached through its dispatcher.
+        await Dispatcher.UIThread.InvokeAsync(BrowserPageTheme.Register);
 
         if (pairingRequest is not null || pairingLaunchError is not null)
         {
@@ -323,12 +331,16 @@ internal static class Program
             TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default);
 
-    /// <summary>Reads the notice from a background media worker without holding up startup.</summary>
+    /// <summary>Reads the notice from the runtime that links FFmpeg without holding up startup.</summary>
     private static async Task LoadFfmpegLicenseNoticeAsync()
     {
         try
         {
+#if MULTI_THREAD_APP
+            PlatformServices.FfmpegLicenseNotice = await Task.Run(FfmpegShim.FfmpegLicenseHelper.BuildNoticeText);
+#else
             PlatformServices.FfmpegLicenseNotice = await BrowserMediaOperations.ReadLicenseNoticeAsync();
+#endif
         }
         catch (Exception exception)
         {
@@ -371,6 +383,9 @@ internal static class Program
             .AfterSetup(_ =>
             {
                 MenuBackdrop.Install(MenuBackdropMode.Overlay);
+#if MULTI_THREAD_APP
+                BrowserInputPump.Start();
+#endif
                 BrowserFonts.Register();
             })
             .WithInterFont()

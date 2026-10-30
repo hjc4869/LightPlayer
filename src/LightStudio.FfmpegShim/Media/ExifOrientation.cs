@@ -93,7 +93,7 @@ public static class ExifOrientation
             return false;
 
         uint directory = ReadUInt32(tiff[4..], littleEndian);
-        if (directory + 2 > (uint)tiff.Length)
+        if (directory > (uint)(tiff.Length - 2))
             return false;
 
         ReadOnlySpan<byte> ifd = tiff[(int)directory..];

@@ -152,7 +152,7 @@ public static unsafe class VideoFrameSnapshots
 
     private static VideoFrameSnapshot Convert(VideoFrame frame, CancellationToken cancellationToken)
     {
-        bool dolbyVision = frame.DolbyVision.IsPresent;
+        bool dolbyVision = frame.DolbyVision.IsApplicable;
         int depth = dolbyVision ? 16 : frame.Format switch
         {
             VideoPixelFormat.Bgra32 => 8,

@@ -11,7 +11,7 @@
   <Identity
     Name="LightStudio.LightPlayer"
     Publisher="CN=Light Studio, O=Light Studio, C=US"
-    Version="2.1.0.0" />
+    Version="2.1.2.0" />
 
   <mp:PhoneIdentity PhoneProductId="b4da3669-0964-4eb3-88a3-1bda18456815" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
@@ -40,7 +40,7 @@
         BackgroundColor="transparent"
         Square150x150Logo="Images\Square150x150Logo.png"
         Square44x44Logo="Images\Square44x44Logo.png">
-        <uap:DefaultTile Wide310x150Logo="Images\Wide310x150Logo.png" />
+        <uap:DefaultTile Wide310x150Logo="Images\Wide310x150Logo.png" Square71x71Logo="Images\Square71x71Logo.png" Square310x310Logo="Images\Square310x310Logo.png" />
         <uap:LockScreen BadgeLogo="Images\BadgeLogo.png" Notification="badgeAndTileText"/>
         <uap:SplashScreen Image="Images\SplashScreen.png"/>
       </uap:VisualElements>

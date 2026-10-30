@@ -171,7 +171,7 @@ internal sealed class VideoColorPlan
     /// </summary>
     public static bool NeedsColorProcessing(VideoFrame frame, VideoOutputColorSpace target) =>
         frame.PhotoColor is not null ||
-        frame.DolbyVision.IsPresent ||
+        frame.DolbyVision.IsApplicable ||
         frame.Hdr10Plus.IsPresent ||
         (frame.ColorTransfer == VideoColorTransfer.Bt709 && VideoSurfaceTransfers.ForBt709() is not null) ||
         frame.ColorTransfer is VideoColorTransfer.Srgb or VideoColorTransfer.Pq or
@@ -195,7 +195,7 @@ internal sealed class VideoColorPlan
         VideoDebandingQuality debanding = VideoDebandingQuality.Off,
         VideoSdrToneMappingOptions? sdrToneMapping = null)
     {
-        bool dolbyVision = frame.DolbyVision.IsPresent;
+        bool dolbyVision = frame.DolbyVision.IsApplicable;
         VideoFrame? enhancementLayer = frame.EnhancementLayer;
         bool dolbyVisionEnhancementLayer = dolbyVision &&
             frame.DolbyVision.EnhancementLayerResidual &&
@@ -258,7 +258,7 @@ internal sealed class VideoColorPlan
         bool customToneMap = sdrToneMap || sdrToneMapping is not null;
         if (customToneMap)
             toneOptions.Validate();
-        if (customToneMap && VideoShaderToneCurves.Supports(toneOptions.Algorithm) && sourcePeak <= (float)toneMapPeak)
+        if (customToneMap && OnlyCompresses(toneOptions.Algorithm) && sourcePeak <= (float)toneMapPeak)
             toneMap = false;
 
         double unitScale = hdrOutput.ReferenceWhiteScale;
@@ -415,7 +415,8 @@ internal sealed class VideoColorPlan
             float seed = double.IsFinite(frame.Pts)
                 ? (float)(Math.Abs(frame.Pts * 60.0) % 1024.0) * 0.75487767f
                 : 0;
-            uniforms[VideoShaderUniforms.DitherParams] = [1.0f / ((1 << outputBitDepth) - 1), seed, 0, 0];
+            float levels = (1 << outputBitDepth) - 1;
+            uniforms[VideoShaderUniforms.DitherParams] = [1.0f / levels, seed, levels, extended ? 0 : 255];
         }
 
         if (debanding != VideoDebandingQuality.Off)
@@ -503,7 +504,7 @@ internal sealed class VideoColorPlan
         VideoOutputColorVolume? colorVolume,
         VideoSdrToneMappingOptions? sdrToneMapping = null)
     {
-        bool dolbyVision = frame.DolbyVision.IsPresent;
+        bool dolbyVision = frame.DolbyVision.IsApplicable;
         bool hdr = dolbyVision || frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
         return target.ResolveHdrOutput(
             ResolveSourcePeak(frame, target, hdrPassthrough, colorVolume),
@@ -544,7 +545,7 @@ internal sealed class VideoColorPlan
         if (customToneMap)
             toneOptions.Validate();
         bool shaderCurve = customToneMap && VideoShaderToneCurves.Supports(toneOptions.Algorithm);
-        if (shaderCurve && sourcePeak <= toneMapPeak)
+        if (customToneMap && OnlyCompresses(toneOptions.Algorithm) && sourcePeak <= toneMapPeak)
             toneMap = false;
 
         if (toneMap && shaderCurve)
@@ -577,17 +578,24 @@ internal sealed class VideoColorPlan
         return hdrOutput;
     }
 
+    /// <summary>
+    /// Curves that map the source peak onto the target peak and nothing else, so a source already
+    /// within the target has nothing for them to do; BT.2446A would otherwise expand it.
+    /// </summary>
+    private static bool OnlyCompresses(VideoSdrToneMappingAlgorithm algorithm) =>
+        algorithm == VideoSdrToneMappingAlgorithm.Bt2446A || VideoShaderToneCurves.Supports(algorithm);
+
     private static float ResolveSourcePeak(VideoFrame frame, VideoOutputColorSpace target,
         bool hdrPassthrough, VideoOutputColorVolume? colorVolume)
     {
-        if (!frame.DolbyVision.IsPresent && frame.ColorTransfer == VideoColorTransfer.Hlg &&
+        if (!frame.DolbyVision.IsApplicable && frame.ColorTransfer == VideoColorTransfer.Hlg &&
             (!target.UsesAbsoluteLuminance(hdrPassthrough, colorVolume) ||
              !VideoOutputColorSpaceExtensions.HasHdrHeadroom(colorVolume)))
             return 1000;
 
-        double peak = frame.DolbyVision.IsPresent && frame.DolbyVision.EffectivePeakLuminance > 0
+        double peak = frame.DolbyVision.IsApplicable && frame.DolbyVision.EffectivePeakLuminance > 0
             ? frame.DolbyVision.EffectivePeakLuminance
-            : frame.Hdr10Plus.IsPresent && !frame.DolbyVision.IsPresent && frame.Hdr10Plus.EffectivePeakLuminance > 0
+            : frame.Hdr10Plus.IsPresent && !frame.DolbyVision.IsApplicable && frame.Hdr10Plus.EffectivePeakLuminance > 0
                 ? frame.Hdr10Plus.EffectivePeakLuminance
                 : frame.PhotoPeakLuminance is > 0 and var measured && double.IsFinite(measured)
                     ? measured : frame.HdrPeakLuminance;

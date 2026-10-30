@@ -86,8 +86,13 @@ public static class VideoFramePipeline
             request.Frame.ColorTransfer);
         IVideoScaleStage? preScale = request.Scaler.PreScaleStage?.Resolve(scaleContext);
         IVideoScaler scaler = VideoScalers.WithoutPreScaleStage(request.Scaler);
-        if (preScale is null && scaler.RequiresSceneBuffer && IsAtOutputSize(request, scaleContext.Scaling))
+        bool resamples = !IsAtOutputSize(request, scaleContext.Scaling);
+        if (preScale is null && scaler.RequiresSceneBuffer && !resamples)
             scaler = VideoScalers.For(VideoScalingQuality.Bilinear);
+
+        // A filter that blends samples blends scene light, so a resized picture goes through the
+        // scene buffer even with the one filter Skia could apply to the planes directly.
+        bool sceneBuffer = scaler.RequiresSceneBuffer || (resamples && VideoScalers.Blends(scaler));
 
         VideoRenderRequest resolved = VideoDebanding.Applies(request.Debanding, request.Layout)
             ? request
@@ -119,7 +124,7 @@ public static class VideoFramePipeline
             };
             fusedRequest = resolved;
         }
-        if (preScale is not null || scaler.RequiresSceneBuffer || request.Frame.HasAlpha ||
+        if (preScale is not null || sceneBuffer || request.Frame.HasAlpha ||
             resolved.Debanding != VideoDebandingQuality.Off || deinterlace)
         {
             if (TryRenderScaled(resolved, scaler, preScale, scaleContext, out declined))

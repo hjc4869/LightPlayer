@@ -8,8 +8,15 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WasmBuildNative>true</WasmBuildNative>
     <WasmMainJSPath>main.js</WasmMainJSPath>
-    <WasmEnableThreads>false</WasmEnableThreads>
-    <NativeBindingsEmitImports>false</NativeBindingsEmitImports>
+    <!--
+      MultiThreadApp=true builds the page on the threaded runtime: it links FFmpeg and the photo codecs
+      itself and decodes on its own threads, like the installed heads, instead of starting the media worker.
+    -->
+    <MultiThreadApp Condition="'$(MultiThreadApp)' == ''">false</MultiThreadApp>
+    <WasmEnableThreads Condition="'$(MultiThreadApp)' == 'true'">true</WasmEnableThreads>
+    <WasmEnableThreads Condition="'$(MultiThreadApp)' != 'true'">false</WasmEnableThreads>
+    <NativeBindingsEmitImports Condition="'$(MultiThreadApp)' != 'true'">false</NativeBindingsEmitImports>
+    <DefineConstants Condition="'$(MultiThreadApp)' == 'true'">$(DefineConstants);MULTI_THREAD_APP</DefineConstants>
     <WasmEnableSIMD>true</WasmEnableSIMD>
     <WasmNativeStrip>true</WasmNativeStrip>
     <WasmNativeDebugSymbols>false</WasmNativeDebugSymbols>
@@ -81,6 +88,7 @@
   <Target Name="CleanWebPublishDirectory" BeforeTargets="PrepareForPublish" Condition="'$(PublishDir)' != ''">
     <RemoveDir Directories="$(PublishDir)" />
   </Target>
-  <Import Project="../../build/BrowserMediaWorker.targets" />
+  <Import Project="../../build/BrowserMediaWorker.targets" Condition="'$(MultiThreadApp)' != 'true'" />
+  <Import Project="../../build/WasmThreadIdentity.targets" Condition="'$(MultiThreadApp)' == 'true'" />
   <Import Project="../../build/BrowserSqliteWorker.targets" />
 </Project>

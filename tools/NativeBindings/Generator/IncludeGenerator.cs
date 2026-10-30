@@ -26,11 +26,13 @@ public sealed class IncludeGenerator : IIncrementalGenerator
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        context.RegisterPostInitializationOutput(static output => output.AddEmbeddedAttributeDefinition());
         context.RegisterPostInitializationOutput(output => output.AddSource("IncludeAttribute.g.cs", SourceText.From("""
             #nullable enable
             namespace LightStudio.NativeBindings
             {
                 /// <summary>Generates members for the declarations of a C header of the selected native libraries.</summary>
+                [global::Microsoft.CodeAnalysis.Embedded]
                 [global::System.AttributeUsage(global::System.AttributeTargets.Class | global::System.AttributeTargets.Struct, AllowMultiple = true, Inherited = false)]
                 internal sealed class IncludeAttribute : global::System.Attribute
                 {

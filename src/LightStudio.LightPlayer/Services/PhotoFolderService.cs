@@ -61,7 +61,9 @@ public sealed record PhotoFileReference(LibrarySourceId Source, string Path, str
 /// </para>
 /// <para>
 /// The decode is throttled the same way stored video previews are, because scrolling a folder of
-/// several hundred pictures would otherwise start a decode for every one of them at once.
+/// several hundred pictures would otherwise start a decode for every one of them at once. Encoding
+/// from source pictures runs on its own bounded queue that serves the newest request first and
+/// finishes what it started even after the tile that asked has scrolled away.
 /// </para>
 /// </remarks>
 public sealed class PhotoFolderService
@@ -72,11 +74,15 @@ public sealed class PhotoFolderService
     private readonly SemaphoreSlim throttle = OperatingSystem.IsBrowser()
         ? new(BrowserMaxConcurrentLoads, BrowserMaxConcurrentLoads)
         : new(MaxConcurrentLoads, MaxConcurrentLoads);
+
+    // Encoding from the source picture can take far longer than loading a stored thumbnail, so it is bounded on its own.
+    private readonly GenerationQueue generation;
     private readonly ThumbnailMemoryCache thumbnails;
 
     public PhotoFolderService(ThumbnailMemoryCache? thumbnails = null)
     {
         this.thumbnails = thumbnails ?? ThumbnailMemoryCache.Shared;
+        generation = new GenerationQueue(this.thumbnails, OperatingSystem.IsBrowser() ? BrowserMaxConcurrentLoads : MaxConcurrentLoads);
     }
 
     public static async Task<ImageProbeInfo?> ProbeMetadataAsync(
@@ -165,39 +171,35 @@ public sealed class PhotoFolderService
         try
         {
             await throttle.WaitAsync(cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            return null;
-        }
-
-        try
-        {
-            var cached = await thumbnails.TryGetAsync(ThumbnailCacheKind.Photo, path, cancellationToken)
-                .ConfigureAwait(false);
-            if (cached.Found)
+            try
             {
-                return await DecodeAsync(cached.Thumbnail, cancellationToken).ConfigureAwait(false);
+                var cached = await thumbnails.TryGetAsync(ThumbnailCacheKind.Photo, path, cancellationToken)
+                    .ConfigureAwait(false);
+                if (cached.Found)
+                {
+                    return await DecodeAsync(cached.Thumbnail, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                throttle.Release();
             }
 
-            byte[]? encoded = await ImageDecoding.EncodePhotoThumbnailAsync(
-                new PhotoDecodeRequest(IMultiMediaPlatformIO.Instance, path),
-                VideoPreviewFactory.PreviewMaxDimension,
-                cancellationToken).ConfigureAwait(false);
-
-            if (encoded is null || cancellationToken.IsCancellationRequested)
+            byte[]? encoded = await generation.GenerateAsync(path, cancellationToken).ConfigureAwait(false);
+            if (encoded is null)
             {
-                if (!cancellationToken.IsCancellationRequested)
-                {
-                    await thumbnails.SetAsync(ThumbnailCacheKind.Photo, path, null).ConfigureAwait(false);
-                }
-
                 return null;
             }
 
-            await thumbnails.SetAsync(ThumbnailCacheKind.Photo, path, encoded, cancellationToken)
-                .ConfigureAwait(false);
-            return await DecodeAsync(encoded, cancellationToken).ConfigureAwait(false);
+            await throttle.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                return await DecodeAsync(encoded, cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                throttle.Release();
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -206,19 +208,135 @@ public sealed class PhotoFolderService
         catch (Exception exception)
         {
             AppLog.Warning("Photo", $"Could not decode thumbnail for {path}.", exception);
-            if (!cancellationToken.IsCancellationRequested)
+            if (!cancellationToken.IsCancellationRequested && !VideoPreviewFactory.IsTransientFailure(exception))
             {
                 await thumbnails.SetAsync(ThumbnailCacheKind.Photo, path, null).ConfigureAwait(false);
             }
 
             return null;
         }
-        finally
-        {
-            throttle.Release();
-        }
     }
 
     private static Task<IImage?> DecodeAsync(byte[]? encoded, CancellationToken cancellationToken) =>
         ImageDecoding.DecodeThumbnailAsync(encoded, VideoPreviewService.DecodeWidth, cancellationToken);
+
+    /// <summary>
+    /// Encodes thumbnails from source pictures on a bounded number of workers, newest request first. Requests for the
+    /// same picture share one job, and leaving only abandons a job that has not started: a started job finishes and
+    /// stores its thumbnail even after every request for it has gone, so scrolling past a picture never discards the
+    /// work spent on it.
+    /// </summary>
+    private sealed class GenerationQueue(ThumbnailMemoryCache thumbnails, int workers)
+    {
+        private readonly object gate = new();
+        private readonly Dictionary<string, Job> jobs = [];
+        private readonly List<Job> waiting = [];
+        private int running;
+
+        public async Task<byte[]?> GenerateAsync(string path, CancellationToken cancellationToken)
+        {
+            Job? job;
+            Job? started;
+            lock (gate)
+            {
+                if (!jobs.TryGetValue(path, out job))
+                {
+                    jobs.Add(path, job = new Job(path));
+                    waiting.Add(job);
+                }
+
+                job.Requests++;
+                started = TakeNext();
+            }
+
+            if (started is not null)
+            {
+                _ = RunAsync(started);
+            }
+
+            try
+            {
+                return await job.Completion.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                lock (gate)
+                {
+                    if (--job.Requests == 0 && !job.Started)
+                    {
+                        waiting.Remove(job);
+                        jobs.Remove(job.Path);
+                    }
+                }
+
+                throw;
+            }
+        }
+
+        private Job? TakeNext()
+        {
+            if (running >= workers || waiting.Count == 0)
+            {
+                return null;
+            }
+
+            Job job = waiting[^1];
+            waiting.RemoveAt(waiting.Count - 1);
+            job.Started = true;
+            running++;
+            return job;
+        }
+
+        private async Task RunAsync(Job job)
+        {
+            byte[]? encoded = null;
+            bool remember = true;
+            try
+            {
+                encoded = await ImageDecoding.EncodePhotoThumbnailAsync(
+                    new PhotoDecodeRequest(IMultiMediaPlatformIO.Instance, job.Path),
+                    VideoPreviewFactory.PreviewMaxDimension).ConfigureAwait(false);
+            }
+            catch (Exception exception)
+            {
+                AppLog.Warning("Photo", $"Could not decode thumbnail for {job.Path}.", exception);
+                remember = !VideoPreviewFactory.IsTransientFailure(exception);
+            }
+
+            try
+            {
+                if (remember)
+                {
+                    await thumbnails.SetAsync(ThumbnailCacheKind.Photo, job.Path, encoded).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                Job? next;
+                lock (gate)
+                {
+                    jobs.Remove(job.Path);
+                    running--;
+                    next = TakeNext();
+                }
+
+                job.Completion.TrySetResult(encoded);
+                if (next is not null)
+                {
+                    _ = RunAsync(next);
+                }
+            }
+        }
+
+        private sealed class Job(string path)
+        {
+            public string Path { get; } = path;
+
+            public TaskCompletionSource<byte[]?> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public int Requests { get; set; }
+
+            public bool Started { get; set; }
+        }
+    }
 }

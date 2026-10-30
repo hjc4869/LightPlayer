@@ -100,10 +100,14 @@ modules:
       # Install every icon size the source provides so shells (e.g. the KDE menu)
       # can pick the exact size they need instead of downscaling one large icon.
       - install -Dm644 packaging/flatpak/icons/16x16/im.hjc.LightPlayer.png /app/share/icons/hicolor/16x16/apps/im.hjc.LightPlayer.png
+      - install -Dm644 packaging/flatpak/icons/24x24/im.hjc.LightPlayer.png /app/share/icons/hicolor/24x24/apps/im.hjc.LightPlayer.png
       - install -Dm644 packaging/flatpak/icons/32x32/im.hjc.LightPlayer.png /app/share/icons/hicolor/32x32/apps/im.hjc.LightPlayer.png
       - install -Dm644 packaging/flatpak/icons/48x48/im.hjc.LightPlayer.png /app/share/icons/hicolor/48x48/apps/im.hjc.LightPlayer.png
       - install -Dm644 packaging/flatpak/icons/64x64/im.hjc.LightPlayer.png /app/share/icons/hicolor/64x64/apps/im.hjc.LightPlayer.png
+      - install -Dm644 packaging/flatpak/icons/128x128/im.hjc.LightPlayer.png /app/share/icons/hicolor/128x128/apps/im.hjc.LightPlayer.png
       - install -Dm644 packaging/flatpak/icons/256x256/im.hjc.LightPlayer.png /app/share/icons/hicolor/256x256/apps/im.hjc.LightPlayer.png
+      - install -Dm644 packaging/icons/app-icon.svg /app/share/icons/hicolor/scalable/apps/im.hjc.LightPlayer.svg
+      - install -Dm644 packaging/flatpak/icons/symbolic/im.hjc.LightPlayer-symbolic.svg /app/share/icons/hicolor/symbolic/apps/im.hjc.LightPlayer-symbolic.svg
     sources:
       - type: archive
         path: LightPlayer.tar.gz

@@ -318,14 +318,19 @@ public static unsafe partial class StillImage
         });
     }
 
-    public static StillImagePixels DecodePixels(Stream stream, uint? itemId = null, CancellationToken cancellationToken = default)
+    /// <param name="maxDimension">Longest edge the picture is reduced to while converting, or zero for its stored size.</param>
+    public static StillImagePixels DecodePixels(Stream stream, uint? itemId = null, CancellationToken cancellationToken = default,
+        int maxDimension = 0)
     {
         ArgumentNullException.ThrowIfNull(stream);
         cancellationToken.ThrowIfCancellationRequested();
         bool hasExif = ExifOrientation.TryRead(stream, out int exifRotation, out bool exifMirror);
         return Open(stream, true, 0, (parameters, frame) =>
         {
-            AVFrame* rgb = IccImage.DecodeRgb(frame, parameters);
+            int width = 0, height = 0;
+            if (maxDimension > 0 && Math.Max(frame->width, frame->height) > maxDimension)
+                ComputeSize(frame->width, frame->height, new AVRational { num = 1, den = 1 }, maxDimension, out width, out height);
+            AVFrame* rgb = IccImage.DecodeRgb(frame, parameters, width, height);
             try
             {
                 ushort[] pixels = new ushort[checked(rgb->width * rgb->height * 4)];
@@ -458,6 +463,50 @@ public static unsafe partial class StillImage
         where T : class;
 
     /// <summary>
+    /// Whether the stream starts with a plausible TGA header: a known image type, a pixel depth
+    /// that type can carry, a color map only where the type uses one, and enough bytes behind the
+    /// header for the map and an uncompressed picture.
+    /// </summary>
+    private static bool IsTga(Stream stream)
+    {
+        if (!stream.CanSeek)
+            return false;
+        long origin = stream.Position;
+        try
+        {
+            Span<byte> header = stackalloc byte[18];
+            if (stream.ReadAtLeast(header, header.Length, false) != header.Length)
+                return false;
+            int idLength = header[0];
+            int colorMapType = header[1];
+            int imageType = header[2];
+            int colorMapLength = BinaryPrimitives.ReadUInt16LittleEndian(header[5..]);
+            int colorMapDepth = header[7];
+            int width = BinaryPrimitives.ReadUInt16LittleEndian(header[12..]);
+            int height = BinaryPrimitives.ReadUInt16LittleEndian(header[14..]);
+            int depth = header[16];
+            bool mapped = imageType is 1 or 9;
+            bool uncompressed = imageType is 1 or 2 or 3;
+            if (imageType is not (1 or 2 or 3 or 9 or 10 or 11) || colorMapType > 1 || width == 0 || height == 0 ||
+                (header[17] & 0xC0) != 0 || mapped != (colorMapType == 1) ||
+                (colorMapType == 1 && (colorMapLength == 0 || colorMapDepth is not (15 or 16 or 24 or 32))) ||
+                (colorMapType == 0 && colorMapLength != 0) ||
+                depth is not (8 or 15 or 16 or 24 or 32) || (mapped && depth != 8) || (imageType is 3 or 11 && depth != 8))
+            {
+                return false;
+            }
+
+            long pixels = uncompressed ? (long)width * height * ((depth + 7) / 8) : 0;
+            long needed = 18 + idLength + (colorMapType == 1 ? (long)colorMapLength * ((colorMapDepth + 7) / 8) : 0) + pixels;
+            return stream.Length - origin >= needed;
+        }
+        finally
+        {
+            stream.Position = origin;
+        }
+    }
+
+    /// <summary>
     /// Opens the stream, decodes its picture, and hands it to <paramref name="use"/> while
     /// everything is still alive. Null whenever any step fails.
     /// </summary>
@@ -483,6 +532,10 @@ public static unsafe partial class StillImage
         long origin = stream.CanSeek ? stream.Position : 0;
         try
         {
+            // TGA has no signature for libavformat to probe, so a file that looks like one is
+            // opened again with its decoder named.
+            if (codecHint == AVCodecID.AV_CODEC_ID_NONE && IsTga(stream))
+                codecHint = AVCodecID.AV_CODEC_ID_TARGA;
             T result = OpenCore(stream, smallestUsefulDimension, use, decoderThreadCount, itemId,
                 stream.CanSeek, preserveHardware, maxDecodeDimension, includeAlpha, codecHint, out bool hardwareAttempted);
             if (result != null || !hardwareAttempted)
@@ -616,6 +669,8 @@ public static unsafe partial class StillImage
             if (video->codecpar->codec_id == AVCodecID.AV_CODEC_ID_MJPEG && frame->color_range == AVColorRange.AVCOL_RANGE_UNSPECIFIED)
                 frame->color_range = video->codecpar->color_range == AVColorRange.AVCOL_RANGE_UNSPECIFIED
                     ? AVColorRange.AVCOL_RANGE_JPEG : video->codecpar->color_range;
+            if (properties != null)
+                ApplyItemColor(frame, video->codecpar);
             if (hardware?.UsedHardware == true)
                 AppLog.Information("FFmpeg.Photo", $"Decoded {frame->width}x{frame->height} {video->codecpar->codec_id} photo with {hardware.PixelFormat}" +
                     (frame->hw_frames_ctx != null ? " surface delivery." : " readback."));
@@ -878,6 +933,7 @@ public static unsafe partial class StillImage
         if (workers > 1 && grid->nb_tiles > 1)
             return TryAssembleTileGridParallel(format, mosaic, packet, canvas, tileOfStream, workers, hardware);
 
+        using var software = new SoftwareTileDecoders(1);
         AVFrame* tileFrame = av_frame_alloc();
         if (tileFrame == null)
             return false;
@@ -894,7 +950,7 @@ public static unsafe partial class StillImage
                     if (tile < 0)
                         continue;
 
-                    if (!TryDecodeTile(format->streams[streamIndex], packet, tileFrame, hardware, 0))
+                    if (!TryDecodeTile(format->streams[streamIndex], packet, tileFrame, hardware, 0, software: software))
                         return false;
 
                     bool laid = (canvas->data[0] != null || TryAllocateCanvas(canvas, tileFrame, grid)) &&
@@ -943,6 +999,7 @@ public static unsafe partial class StillImage
         var frames = new IntPtr[workers];
         var tiles = new int[workers];
         var options = new ParallelOptions { MaxDegreeOfParallelism = workers };
+        using var software = new SoftwareTileDecoders(workers);
         try
         {
             uint placed = 0;
@@ -981,7 +1038,7 @@ public static unsafe partial class StillImage
                     if (decoded == null)
                         return;
                     AVPacket* retained = (AVPacket*)packets[work];
-                    if (!TryDecodeTile(format->streams[retained->stream_index], retained, decoded, hardware, work))
+                    if (!TryDecodeTile(format->streams[retained->stream_index], retained, decoded, hardware, work, software: software))
                     {
                         av_frame_free(&decoded);
                         frames[work] = IntPtr.Zero;
@@ -1045,6 +1102,22 @@ public static unsafe partial class StillImage
             Buffer.MemoryCopy(sideData->data, target->data, matrixBytes, matrixBytes);
     }
 
+    /// <summary>
+    /// An image item's <c>colr</c> property, which libavformat keeps in the stream parameters, takes precedence
+    /// over the bitstream's own signaling (ISO/IEC 14496-12 12.1.5); HEVC reports limited range when its VUI has none.
+    /// </summary>
+    private static void ApplyItemColor(AVFrame* frame, AVCodecParameters* parameters)
+    {
+        if (parameters->color_range != AVColorRange.AVCOL_RANGE_UNSPECIFIED)
+            frame->color_range = parameters->color_range;
+        if (parameters->color_primaries != AVColorPrimaries.AVCOL_PRI_UNSPECIFIED)
+            frame->color_primaries = parameters->color_primaries;
+        if (parameters->color_trc != AVColorTransferCharacteristic.AVCOL_TRC_UNSPECIFIED)
+            frame->color_trc = parameters->color_trc;
+        if (parameters->color_space != AVColorSpace.AVCOL_SPC_UNSPECIFIED)
+            frame->colorspace = parameters->color_space;
+    }
+
     private static void ApplyItemOrientation(AVFrame* frame, AVCodecParameters* parameters, IsoImageProperties.Item item)
     {
         if (item == null || VideoDisplayMatrix.TryRead(frame, out _, out _))
@@ -1072,20 +1145,28 @@ public static unsafe partial class StillImage
     /// <summary>
     /// Decodes one independent tile, reusing a hardware decoder when its parameters match.
     /// </summary>
+    /// <param name="software">Software decoders kept open across the tiles of one picture, or null to open one per tile.</param>
     private static bool TryDecodeTile(AVStream* stream, AVPacket* packet, AVFrame* frame, StillImageHardwareDecoder hardware, int worker,
-        bool preserveHardware = false, int reduction = 1)
+        bool preserveHardware = false, int reduction = 1, SoftwareTileDecoders software = null)
     {
-        AVCodecContext* context = hardware == null ? null : hardware.GetTileDecoder(stream->codecpar, worker);
+        AVCodecContext* context = hardware != null ? hardware.GetTileDecoder(stream->codecpar, worker)
+            : software != null ? software.Get(stream->codecpar, worker, reduction) : null;
+        bool owned = false;
         if (context == null)
         {
             context = OpenDecoder(stream, threadCount: 1, hardware, retainedSurfaces: preserveHardware ? 16 : 0, reduction);
             if (context == null)
                 return false;
-            if (hardware != null && !hardware.CacheTileDecoder(context, stream->codecpar, worker))
+            if (hardware != null)
             {
-                avcodec_free_context(&context);
-                return false;
+                if (!hardware.CacheTileDecoder(context, stream->codecpar, worker))
+                {
+                    avcodec_free_context(&context);
+                    return false;
+                }
             }
+            else
+                owned = software == null || !software.Cache(context, stream->codecpar, worker, reduction);
         }
 
         try
@@ -1097,8 +1178,67 @@ public static unsafe partial class StillImage
         }
         finally
         {
-            if (hardware == null)
+            if (owned)
                 avcodec_free_context(&context);
+        }
+    }
+
+    /// <summary>Software tile decoders kept open per worker, reused for tiles coded with the same parameters.</summary>
+    private sealed class SoftwareTileDecoders(int workers) : IDisposable
+    {
+        private readonly IntPtr[] contexts = new IntPtr[workers];
+        private readonly IntPtr[] parameters = new IntPtr[workers];
+        private readonly int[] reductions = new int[workers];
+
+        public AVCodecContext* Get(AVCodecParameters* codecParameters, int worker, int reduction)
+        {
+            var context = (AVCodecContext*)contexts[worker];
+            if (context == null)
+                return null;
+            if (reductions[worker] != reduction ||
+                !StillImageHardwareDecoder.ParametersMatch((AVCodecParameters*)parameters[worker], codecParameters))
+            {
+                Release(worker);
+                return null;
+            }
+
+            avcodec_flush_buffers(context);
+            return context;
+        }
+
+        public bool Cache(AVCodecContext* context, AVCodecParameters* codecParameters, int worker, int reduction)
+        {
+            AVCodecParameters* retained = avcodec_parameters_alloc();
+            if (retained == null)
+                return false;
+            if (avcodec_parameters_copy(retained, codecParameters) < 0)
+            {
+                avcodec_parameters_free(&retained);
+                return false;
+            }
+
+            contexts[worker] = (IntPtr)context;
+            parameters[worker] = (IntPtr)retained;
+            reductions[worker] = reduction;
+            return true;
+        }
+
+        private void Release(int worker)
+        {
+            var context = (AVCodecContext*)contexts[worker];
+            if (context != null)
+                avcodec_free_context(&context);
+            var retained = (AVCodecParameters*)parameters[worker];
+            if (retained != null)
+                avcodec_parameters_free(&retained);
+            contexts[worker] = IntPtr.Zero;
+            parameters[worker] = IntPtr.Zero;
+        }
+
+        public void Dispose()
+        {
+            for (int worker = 0; worker < contexts.Length; worker++)
+                Release(worker);
         }
     }
 
@@ -1259,6 +1399,8 @@ public static unsafe partial class StillImage
         int height = input->height;
 
         AVPixFmtDescriptor* descriptor = av_pix_fmt_desc_get(format);
+        if (descriptor != null && IsDeepIntegerRgb(descriptor))
+            return PackDeepRgb(input, descriptor, associatedAlpha);
         if (descriptor != null && (descriptor->flags & AV_PIX_FMT_FLAG_ALPHA) != 0)
         {
             VideoFrame packed = PackNative(input, descriptor->comp[0].depth > 8, associatedAlpha);
@@ -1293,6 +1435,58 @@ public static unsafe partial class StillImage
         return deep
             ? ConvertDeep(input, parameters, width, height)
             : ConvertPacked(input, width, height);
+    }
+
+    private static bool IsDeepIntegerRgb(AVPixFmtDescriptor* descriptor) =>
+        descriptor->nb_components >= 3 && descriptor->comp[0].depth > 8 &&
+        (descriptor->flags & AV_PIX_FMT_FLAG_RGB) != 0 &&
+        (descriptor->flags & (AV_PIX_FMT_FLAG_PAL | AV_PIX_FMT_FLAG_BITSTREAM | AV_PIX_FMT_FLAG_FLOAT)) == 0;
+
+    /// <summary>
+    /// Packs deep RGB exactly: each component is read where its descriptor places it, in its own
+    /// byte order and bit depth, and rescaled to sixteen bits with rounding, so a 10- or 16-bit
+    /// still keeps its stored codes.
+    /// </summary>
+    private static VideoFrame PackDeepRgb(AVFrame* input, AVPixFmtDescriptor* descriptor, bool associatedAlpha)
+    {
+        bool bigEndian = (descriptor->flags & AV_PIX_FMT_FLAG_BE) != 0;
+        bool alpha = (descriptor->flags & AV_PIX_FMT_FLAG_ALPHA) != 0;
+        VideoFrame frame = VideoFrame.CreateStandalone(input->width, input->height, VideoPixelFormat.Rgba64);
+        frame.HasAlpha = alpha;
+        int components = alpha ? 4 : 3;
+        for (int row = 0; row < input->height; row++)
+        {
+            var output = (ushort*)((byte*)frame.Data + (long)row * frame.Stride);
+            for (int component = 0; component < components; component++)
+            {
+                AVComponentDescriptor layout = descriptor->comp[component];
+                byte* source = input->data[(uint)layout.plane] + (long)row * input->linesize[(uint)layout.plane] + layout.offset;
+                uint maximum = (1u << layout.depth) - 1;
+                int bits = layout.depth + layout.shift;
+                for (int column = 0; column < input->width; column++, source += layout.step)
+                {
+                    uint code = bits <= 8 ? *source
+                        : bits <= 16 ? bigEndian
+                            ? BinaryPrimitives.ReadUInt16BigEndian(new ReadOnlySpan<byte>(source, 2))
+                            : BinaryPrimitives.ReadUInt16LittleEndian(new ReadOnlySpan<byte>(source, 2))
+                        : bigEndian
+                            ? BinaryPrimitives.ReadUInt32BigEndian(new ReadOnlySpan<byte>(source, 4))
+                            : BinaryPrimitives.ReadUInt32LittleEndian(new ReadOnlySpan<byte>(source, 4));
+                    code = (code >> layout.shift) & maximum;
+                    output[column * 4 + component] = (ushort)((code * 65535 + maximum / 2) / maximum);
+                }
+            }
+
+            if (!alpha)
+            {
+                for (int column = 0; column < input->width; column++)
+                    output[column * 4 + 3] = ushort.MaxValue;
+            }
+        }
+
+        if (alpha && IsAlphaPremultiplied(input, associatedAlpha))
+            UnpremultiplyPhoto(frame);
+        return frame;
     }
 
     private static VideoFrame ConvertDeep(AVFrame* input, AVCodecParameters* parameters, int width, int height)

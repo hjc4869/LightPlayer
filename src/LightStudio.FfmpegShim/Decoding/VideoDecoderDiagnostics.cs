@@ -24,7 +24,10 @@ public enum VideoFrameDeliveryPath
     /// <summary>Hardware decode; the planes are read back into a pooled buffer, the shader converts.</summary>
     HardwareReadback,
 
-    /// <summary>Hardware decode; read back and then flattened to BGRA by swscale.</summary>
+    /// <summary>
+    /// Hardware decode; read back and then repacked by swscale, into the planar layout of the same
+    /// depth where the renderer samples one, otherwise flattened to BGRA.
+    /// </summary>
     HardwareConverted,
 
     /// <summary>The decoder wrote straight into a texture the renderer owns.</summary>

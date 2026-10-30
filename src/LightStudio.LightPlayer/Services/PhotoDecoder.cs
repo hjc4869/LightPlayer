@@ -178,11 +178,25 @@ internal static unsafe partial class PhotoDecoder
     private static SKData ReadData(Stream stream, ImageRange image)
     {
         image = TrimJpegRange(stream, image);
-        SKData data = SKData.Create(image.Length);
+        stream.Position = image.Offset;
+        return ReadData(stream, image.Length);
+    }
+
+    /// <summary>Copies the rest of the stream into native memory.</summary>
+    private static SKData ReadData(Stream stream) => ReadData(stream, stream.Length - stream.Position);
+
+    /// <summary>
+    /// Copies the next <paramref name="length"/> bytes into native memory. Skia's managed stream adapter passes
+    /// a single short read through as the end of the stream, so the copy loops until the bytes arrive.
+    /// </summary>
+    private static SKData ReadData(Stream stream, long length)
+    {
+        SKData data = SKData.Create(length);
         try
         {
-            stream.Position = image.Offset;
-            stream.ReadExactly(new Span<byte>((void*)data.Data, image.Length));
+            byte* target = (byte*)data.Data;
+            for (long offset = 0; offset < length; offset += int.MaxValue)
+                stream.ReadExactly(new Span<byte>(target + offset, (int)Math.Min(int.MaxValue, length - offset)));
             return data;
         }
         catch

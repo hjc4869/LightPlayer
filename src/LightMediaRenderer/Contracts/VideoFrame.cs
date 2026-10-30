@@ -516,7 +516,7 @@ public sealed class VideoFrame : IMediaQueueItem
 
         VideoPlanarLayout layout = Layout;
         planeCount = layout.PlaneCount;
-        planeRowBytes[0] = width * layout.BytesPerSample;
+        planeRowBytes[0] = width * layout.BytesPerSample * (VideoPlanarLayout.IsPlanar(format) ? 1 : 4);
         planeHeights[0] = height;
 
         // Both chroma components share one sample position in the interleaved layouts.

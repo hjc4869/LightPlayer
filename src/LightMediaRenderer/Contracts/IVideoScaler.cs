@@ -70,7 +70,9 @@ public interface IVideoScaler
 
     /// <summary>
     /// Whether the picture has to be converted into a scene buffer before this filter runs. False
-    /// lets the filter run on the decoder's planes as they are sampled, in a single pass.
+    /// lets the filter run on the decoder's planes as they are sampled, in a single pass, when the
+    /// picture is drawn at its own size; a filter that blends samples still reads the scene buffer
+    /// whenever the picture is resized.
     /// </summary>
     bool RequiresSceneBuffer { get; }
 

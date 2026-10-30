@@ -5,8 +5,8 @@
     <Flatpak Condition="'$(Flatpak)' == ''">false</Flatpak>
     <LightStudioFfmpegVersion Condition="'$(LightStudioFfmpegVersion)' == ''">9.0.2</LightStudioFfmpegVersion>
     <AvaloniaVersion>12.1.4</AvaloniaVersion>
-    <AvaloniaForkVersion>12.1.5-custom.20</AvaloniaForkVersion>
-    <AvaloniaForkSha256>5a6fbc41ed8a128a3ece00e3925301ca2ba6a47f62d04863baa2e2fa4bf17630</AvaloniaForkSha256>
+    <AvaloniaForkVersion>12.1.5-custom.21</AvaloniaForkVersion>
+    <AvaloniaForkSha256>314146a7d6e71bc065962d77760d659eedce5c5b3499d4481cd9d1a0ba9ca988</AvaloniaForkSha256>
     <AvaloniaPlatformVersion Condition="'$(UseAvaloniaFork)' == 'true'">$(AvaloniaForkVersion)</AvaloniaPlatformVersion>
     <AvaloniaPlatformVersion Condition="'$(UseAvaloniaFork)' != 'true'">$(AvaloniaVersion)</AvaloniaPlatformVersion>
   </PropertyGroup>

@@ -6,11 +6,13 @@ using System.Runtime.Versioning;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using LightStudio.FfmpegShim;
 using LightStudio.FfmpegShim.Core;
 using LightStudio.FfmpegShim.Engine;
 using LightStudio.FfmpegShim.Media;
 using LightStudio.LightPlayer.Services;
+using LightStudio.Logging;
 
 namespace LightStudio.LightPlayer.WebWorkers;
 
@@ -31,10 +33,32 @@ internal static class WorkerOperations
             EngineWireContext.Default.WireMediaTags);
     }
 
-    public static string ProbeVideo(WireProbeRequest request)
+    public static async Task<string> ProbeVideoAsync(WireProbeRequest request, CancellationToken cancellationToken)
     {
-        VideoProbeResult? probe = VideoProbe.Probe(Open(request.Source), request.WithPreview, request.MaxDimension, leaveOpen: false);
+        using Stream source = Open(request.Source);
+        cancellationToken.ThrowIfCancellationRequested();
+        VideoProbeResult? probe = VideoProbe.Probe(source, request.WithPreview, request.MaxDimension, leaveOpen: true,
+            retainPreviewFrame: true);
         string value = probe is null ? "null" : JsonSerializer.Serialize(probe, EngineWireContext.Default.VideoProbeResult);
+        if (probe?.PreviewFrame is { } frame)
+        {
+            try
+            {
+                try
+                {
+                    byte[] encoded = await PhotoThumbnailEncoder.EncodeAsync(frame.AddRef(), request.MaxDimension, cancellationToken);
+                    return Payloads.Envelope(value, Payloads.Copy(encoded));
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    AppLog.Warning("Preview", "Could not encode a color-managed video preview; encoding it in sRGB.", exception);
+                }
+
+                using NativeImageThumbnail thumbnail = StillImage.RenderThumbnail(frame, request.MaxDimension, cancellationToken);
+                return Payloads.Envelope(value, thumbnail.TakePixels(), thumbnail.Width, thumbnail.Height, "jpeg");
+            }
+            finally { frame.Release(); }
+        }
         return probe?.PreviewBgra is { } pixels
             ? Payloads.Envelope(value, pixels, probe.PreviewWidth, probe.PreviewHeight, "jpeg")
             : Payloads.Envelope(value);
@@ -99,8 +123,7 @@ internal static class WorkerOperations
             }
 
             return Payloads.Envelope(JsonSerializer.Serialize(new WirePicture(thumbnail.Width, thumbnail.Height),
-                EngineWireContext.Default.WirePicture), thumbnail.TakePixels(), thumbnail.Width, thumbnail.Height,
-                request.EncodeJpeg ? "jpeg" : null);
+                EngineWireContext.Default.WirePicture), thumbnail.TakePixels(), thumbnail.Width, thumbnail.Height);
         }
     }
 

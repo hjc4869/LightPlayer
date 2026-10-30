@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="plate-fill" x1="12" y1="12" x2="116" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#66717e"/>
+      <stop offset="1" stop-color="#2e353e"/>
+    </linearGradient>
+    <radialGradient id="plate-light" cx="64" cy="12" r="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sky-fill" x1="0" y1="32" x2="0" y2="76" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff4f86"/>
+      <stop offset=".55" stop-color="#ff8a3d"/>
+      <stop offset="1" stop-color="#ffbf47"/>
+    </linearGradient>
+    <radialGradient id="sun-fill" cx="59" cy="62" r="11" gradientUnits="userSpaceOnUse">
+      <stop offset=".5" stop-color="#fff"/>
+      <stop offset="1" stop-color="#fff3c2"/>
+    </radialGradient>
+  </defs>
+  <g id="plate">
+    <rect x="12" y="12" width="104" height="104" rx="24" fill="url(#plate-fill)"/>
+    <rect x="12" y="12" width="104" height="104" rx="24" fill="url(#plate-light)"/>
+  </g>
+  <g id="glyph">
+    <path d="M52.56 33.79L91.38 56.21A9 9 0 0 1 91.38 71.79L52.56 94.21A9 9 0 0 1 39.06 86.41L39.06 41.59A9 9 0 0 1 52.56 33.79Z" fill="url(#sky-fill)"/>
+    <circle cx="59" cy="62" r="11" fill="url(#sun-fill)"/>
+    <path d="M39.06 72C50 64 67 63 85.13 75.4L52.56 94.21A9 9 0 0 1 39.06 86.41Z" fill="#ff6b4a"/>
+    <path d="M39.06 84C46 76 56 78 69.34 84.52L52.56 94.21A9 9 0 0 1 39.06 86.41Z" fill="#e33d7c"/>
+  </g>
+  <path id="mono" display="none" fill="#fff" d="M39.06 67L39.06 41.59A9 9 0 0 1 52.56 33.79L91.38 56.21A9 9 0 0 1 91.38 71.79L89.1 73.11L85.13 70.4C79.95 66.85 74.85 64.4 69.96 62.9A11 11 0 1 0 48.01 62.51C44.72 63.53 41.71 65.06 39.06 67ZM39.06 72C50 64 67 63 85.13 75.4L52.56 94.21A9 9 0 0 1 39.06 86.41Z"/>
+</svg>

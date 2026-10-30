@@ -35,7 +35,7 @@ internal sealed partial class BrowserImageDecoder : IImageDecoder
 
     public Task<VideoFrame?> DecodePhotoAsync(PhotoDecodeRequest request, IProgress<Size>? displaySize, CancellationToken cancellationToken) =>
         DecodePhotoAsync(request.Path, token => request.Platform.OpenMediaFileAsync(request.Path, token), displaySize, cancellationToken,
-            request.Preview, request.RenderRaw);
+            request.Preview, request.RenderRaw, request.WholeImage);
 
     public async Task<StillImageThumbnail?> DecodePhotoThumbnailAsync(PhotoDecodeRequest request, int maxDimension, CancellationToken cancellationToken)
     {
@@ -48,9 +48,11 @@ internal sealed partial class BrowserImageDecoder : IImageDecoder
     }
 
     public Task<byte[]?> EncodePhotoThumbnailAsync(PhotoDecodeRequest request, int maxDimension, CancellationToken cancellationToken) =>
-        BrowserMediaOperations.EncodeImageAsync(
+        BrowserMediaOperations.EncodePhotoThumbnailAsync(
             BrowserSessionInput.Describe(request.Path, token => request.Platform.OpenMediaFileAsync(request.Path, token)),
             maxDimension, cancellationToken, request.RenderRaw);
+
+    public bool CanDecodeJpegXl => MediaWorkerConnection.CanDecodeJpegXl;
 
     public async Task<FastImageSource> DecodeArtworkAsync(ArtworkBuffer content, int pixelSize, CancellationToken cancellationToken)
     {

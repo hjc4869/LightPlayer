@@ -56,6 +56,8 @@
     <_FFmpegCliArchivePath>$(FFmpegCacheDirectory)$(_FFmpegCliArchiveName).zip</_FFmpegCliArchivePath>
     <_FFmpegCliStampPath>$(FFmpegCacheDirectory)$(_FFmpegCliArchiveName).extracted</_FFmpegCliStampPath>
     <_FFmpegCliBinDirectory>$(FFmpegCacheDirectory)$(_FFmpegCliArchiveName)\bin\</_FFmpegCliBinDirectory>
+    <!-- Where the CLI lands, for tooling that asks MSBuild (-getProperty:FFmpegCliDirectory) after ResolveFFmpegCliTools. -->
+    <FFmpegCliDirectory>$(_FFmpegCliBinDirectory)</FFmpegCliDirectory>
   </PropertyGroup>
 
   <Target Name="_ValidateFFmpegPlatform" Condition="'$(BundleFfmpeg)' == 'true' or '$(BundleFfmpegCli)' == 'true'">

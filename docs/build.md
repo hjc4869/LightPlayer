@@ -216,7 +216,7 @@ The generated sideload package is placed under `artifacts\msix\AppPackages`. Its
 Desktop builds require Xcode and its command-line tools, which provide Clang, libclang, and the
 Apple SDKs used for native bindings and NativeAOT linking.
 
-The Apple Silicon release target publishes a self-contained NativeAOT app and packages it as a ZIP archive. Run it on macOS, where the required `sips`, `iconutil`, `codesign`, and `ditto` tools are available:
+The Apple Silicon release target publishes a self-contained NativeAOT app and packages it as a ZIP archive. Run it on macOS, where the required `codesign` and `ditto` tools are available:
 
 ```sh
 make osxapp     # build artifacts/macos/Light\ Player.app and artifacts/release/LightPlayer-osx-arm64.zip
@@ -406,6 +406,9 @@ make web       # publish to artifacts/web
 make web-cf    # package for Cloudflare Workers into artifacts/web-cf
 make web-run   # publish without ahead-of-time compilation and serve on localhost
 ```
+
+Add `MULTI_THREAD_APP=1` to any of them to build the threaded page variant, which runs the client on
+the threaded runtime and decodes in process instead of publishing the media worker.
 
 The browser head references `LightStudio.Fonts`, with its version pinned in
 `Directory.Packages.props`. The package supplies the Noto Sans CJK SC Regular and Bold

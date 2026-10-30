@@ -139,7 +139,7 @@ internal sealed class AndroidPhotoDecodeAccelerator(Context context) : IPhotoDec
             }
             cancellationToken.ThrowIfCancellationRequested();
             AppLog.Information("Photo.Decoding", $"Platform decoded {frame.Width}x{frame.Height} {bounds.OutMimeType}: " +
-                $"bytes={actualBytes}, gainMap={frame.GainMap is not null}, elapsed={Stopwatch.GetElapsedTime(started).TotalMilliseconds:F1} ms.");
+                $"bytes={actualBytes}, transfer={profile.TransferCode}, gainMap={frame.GainMap is not null}, elapsed={Stopwatch.GetElapsedTime(started).TotalMilliseconds:F1} ms.");
             VideoFrame result = frame;
             frame = null;
             return result;
@@ -215,19 +215,21 @@ internal sealed class AndroidPhotoDecodeAccelerator(Context context) : IPhotoDec
         SKColorSpaceTransferFn curve;
         int transfer = 0;
         using ColorSpace.Rgb.TransferParameters? parameters = rgb.GetTransferParameters();
-        if (parameters is not null)
-            curve = new SKColorSpaceTransferFn((float)parameters.G, (float)parameters.A, (float)parameters.B,
-                (float)parameters.C, (float)parameters.D, (float)parameters.E, (float)parameters.F);
-        else if (color.Equals(ColorSpace.Get(ColorSpace.Named.Bt2020Pq!)))
+        // Only the named BT.2020 spaces report PQ and HLG without parameters; other gamuts carry the
+        // platform's PQ (-2) and HLG (-3) type markers in place of a power-curve exponent.
+        if (parameters is null ? color.Equals(ColorSpace.Get(ColorSpace.Named.Bt2020Pq!)) : parameters.G == -2)
         {
             curve = SKColorSpaceTransferFn.Pq;
             transfer = 16;
         }
-        else if (color.Equals(ColorSpace.Get(ColorSpace.Named.Bt2020Hlg!)))
+        else if (parameters is null ? color.Equals(ColorSpace.Get(ColorSpace.Named.Bt2020Hlg!)) : parameters.G == -3)
         {
             curve = SKColorSpaceTransferFn.Hlg;
             transfer = 18;
         }
+        else if (parameters is not null)
+            curve = new SKColorSpaceTransferFn((float)parameters.G, (float)parameters.A, (float)parameters.B,
+                (float)parameters.C, (float)parameters.D, (float)parameters.E, (float)parameters.F);
         else
             return null;
         return new PhotoColorProfile([curve.G, curve.A, curve.B, curve.C, curve.D, curve.E, curve.F],

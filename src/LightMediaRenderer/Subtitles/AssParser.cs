@@ -338,7 +338,7 @@ internal static class AssParser
             any = true;
         }
 
-        if (!any)
+        if (!any || total > TimeSpan.MaxValue.TotalSeconds)
             return false;
 
         time = TimeSpan.FromSeconds(total);

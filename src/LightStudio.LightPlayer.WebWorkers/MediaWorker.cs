@@ -30,16 +30,25 @@ namespace LightStudio.LightPlayer.WebWorkers;
 [Include("libavutil/hwcontext.h")]
 internal static partial class MediaWorker
 {
-    private static readonly int backgroundConcurrency = Math.Clamp(Environment.ProcessorCount - 1, 1, 2);
-    private static readonly SemaphoreSlim background = new(backgroundConcurrency, backgroundConcurrency);
     private static readonly ConcurrentDictionary<int, CancellationTokenSource> exports = [];
-    internal static int ActiveBackgroundJobs => backgroundConcurrency - background.CurrentCount;
 
+    // Viewer photo sessions have slots of their own, so slow library and whole-image jobs never hold them up.
+    private static SemaphoreSlim bulk = new(1, 1);
+    private static SemaphoreSlim viewer = new(1, 1);
+    private static int bulkConcurrency = 1;
+    private static int viewerConcurrency = 1;
+    internal static int ActiveBackgroundJobs => bulkConcurrency - bulk.CurrentCount + viewerConcurrency - viewer.CurrentCount;
+
+    /// <summary>Starts the worker with the job limits its script sized the thread pool for.</summary>
     [JSExport]
-    internal static Task<string> Initialize(int ffmpegLogLevel, int appLogLevel) => Complete(() =>
+    internal static Task<string> Initialize(int ffmpegLogLevel, int appLogLevel, int bulkJobs, int viewerJobs) => Complete(() =>
     {
         av_log_set_level(ffmpegLogLevel);
         AppLog.ConfigureConsole((AppLogLevel)appLogLevel);
+        bulkConcurrency = Math.Max(1, bulkJobs);
+        viewerConcurrency = Math.Max(1, viewerJobs);
+        bulk = new SemaphoreSlim(bulkConcurrency, bulkConcurrency);
+        viewer = new SemaphoreSlim(viewerConcurrency, viewerConcurrency);
         return av_version_info()!;
     });
 
@@ -53,18 +62,27 @@ internal static partial class MediaWorker
     [JSExport]
     internal static Task<string> Call(string method, string arguments) => method switch
     {
-        "subtitleScript" or "bitmapSubtitles" or "readTags" or "probeVideo" or "probeAudioStreams" or
-        "probeImage" or "inspect" or "albumCover" or "image" or "photoOpen" or "photoTiles" or "photoPackets" or "photoClose" or
-        "photoAnimationOpen" or "photoAnimationRead" or "photoAnimationClose" =>
-            RunBackgroundAsync(method, () => Task.FromResult(Execute(method, arguments))),
-        "stillImageEncoders" => RunBackgroundAsync(method, async () => Serialize<IReadOnlyList<WireStillImageEncoder>>(
+        "photoOpen" => Start(() =>
+        {
+            WirePhotoRequest request = Read(arguments, EngineWireContext.Default.WirePhotoRequest);
+            return RunBackgroundAsync(method, !request.WholeImage || request.ThumbnailWidth > 0,
+                () => Task.FromResult(WorkerPhotos.Open(request)));
+        }),
+        "photoTiles" or "photoPackets" or "photoClose" or "photoAnimationOpen" or "photoAnimationRead" or "photoAnimationClose" =>
+            RunBackgroundAsync(method, viewerJob: true, () => Task.FromResult(Execute(method, arguments))),
+        "subtitleScript" or "bitmapSubtitles" or "readTags" or "probeAudioStreams" or
+        "probeImage" or "inspect" or "albumCover" or "image" =>
+            RunBackgroundAsync(method, viewerJob: false, () => Task.FromResult(Execute(method, arguments))),
+        "stillImageEncoders" => RunBackgroundAsync(method, viewerJob: false, async () => Serialize<IReadOnlyList<WireStillImageEncoder>>(
             (await StillImageEncoders.ProbeAsync()).Select(encoder => encoder.ToWire()).ToArray(),
             EngineWireContext.Default.IReadOnlyListWireStillImageEncoder)),
-        "photoExport" => ExportPhotoAsync(arguments),
+        "photoExport" => Start(() => ExportPhotoAsync(arguments)),
+        "photoThumbnail" => Start(() => EncodeThumbnailAsync(arguments)),
+        "probeVideo" => Start(() => ProbeVideoAsync(arguments)),
         _ => Complete(() => Execute(method, arguments)),
     };
 
-    /// <summary>Cancels a photo save, whether it is still waiting for a background slot or running.</summary>
+    /// <summary>Cancels an image operation, whether it is waiting for a background slot or running.</summary>
     [JSExport]
     internal static Task CancelPhotoExport(int operation) => Complete(() =>
     {
@@ -73,46 +91,69 @@ internal static partial class MediaWorker
         return true;
     });
 
-    // Registered before it waits for a slot, so a cancellation that arrives meanwhile still reaches it.
     private static Task<string> ExportPhotoAsync(string arguments)
     {
-        WirePhotoExport request;
-        var cancellation = new CancellationTokenSource();
-        try
-        {
-            request = Read(arguments, PhotoExportWireContext.Default.WirePhotoExport);
-            if (!exports.TryAdd(request.Operation, cancellation))
-                throw new InvalidOperationException($"Photo save {request.Operation} is already running.");
-        }
-        catch (Exception exception)
-        {
-            AppLog.Warning("Worker.Media", "A photo save could not start.", exception);
-            return Task.FromException<string>(exception);
-        }
+        WirePhotoExport request = Read(arguments, PhotoExportWireContext.Default.WirePhotoExport);
+        return RunPhotoOperationAsync("photoExport", request.Operation, token => WorkerPhotos.ExportAsync(request, token));
+    }
 
-        return RunBackgroundAsync("photoExport", async () =>
+    private static Task<string> EncodeThumbnailAsync(string arguments)
+    {
+        WireImageRequest request = Read(arguments, EngineWireContext.Default.WireImageRequest);
+        return RunPhotoOperationAsync("photoThumbnail", request.Operation, token => WorkerPhotos.EncodeThumbnailAsync(request, token));
+    }
+
+    private static Task<string> ProbeVideoAsync(string arguments)
+    {
+        WireProbeRequest request = Read(arguments, EngineWireContext.Default.WireProbeRequest);
+        return RunPhotoOperationAsync("probeVideo", request.Operation, token => WorkerOperations.ProbeVideoAsync(request, token));
+    }
+
+    private static Task<string> RunPhotoOperationAsync(string method, int operation, Func<CancellationToken, Task<string>> work)
+    {
+        if (operation == 0)
+            return RunBackgroundAsync(method, viewerJob: false, () => work(CancellationToken.None));
+        var cancellation = new CancellationTokenSource();
+        if (!exports.TryAdd(operation, cancellation))
+            return Task.FromException<string>(new InvalidOperationException($"Image operation {operation} is already running."));
+
+        return RunBackgroundAsync(method, viewerJob: false, async () =>
         {
             try
             {
-                return await WorkerPhotos.ExportAsync(request, cancellation.Token);
+                return await work(cancellation.Token);
             }
             finally
             {
-                exports.TryRemove(request.Operation, out _);
+                exports.TryRemove(operation, out _);
             }
         });
     }
 
-    private static Task<string> RunBackgroundAsync(string method, Func<Task<string>> work)
+    private static Task<string> Start(Func<Task<string>> start)
+    {
+        try
+        {
+            return start();
+        }
+        catch (Exception exception)
+        {
+            AppLog.Warning("Worker.Media", "A media worker command could not start.", exception);
+            return Task.FromException<string>(exception);
+        }
+    }
+
+    private static Task<string> RunBackgroundAsync(string method, bool viewerJob, Func<Task<string>> work)
     {
         var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _ = ExecuteBackgroundAsync(method, work, completion);
+        _ = ExecuteBackgroundAsync(method, viewerJob ? viewer : bulk, work, completion);
         return completion.Task;
     }
 
-    private static async Task ExecuteBackgroundAsync(string method, Func<Task<string>> work, TaskCompletionSource<string> completion)
+    private static async Task ExecuteBackgroundAsync(string method, SemaphoreSlim admission, Func<Task<string>> work,
+        TaskCompletionSource<string> completion)
     {
-        await background.WaitAsync();
+        await admission.WaitAsync();
         try
         {
             completion.SetResult(await Task.Run(work));
@@ -127,7 +168,7 @@ internal static partial class MediaWorker
             AppLog.Warning("Worker.Media", "A background media command failed.", exception);
             completion.SetException(exception);
         }
-        finally { background.Release(); }
+        finally { admission.Release(); }
     }
 
     private static string Execute(string method, string arguments) => method switch
@@ -154,13 +195,13 @@ internal static partial class MediaWorker
         "bitmapSubtitles" => ReadBitmapSubtitles(Read(arguments, EngineWireContext.Default.WireSubtitles)),
         "bitmapSubtitlePackets" => DecodeBitmapSubtitles(Read(arguments, EngineWireContext.Default.WireSubtitles)),
         "readTags" => WorkerOperations.ReadTags(Read(arguments, EngineWireContext.Default.WireSource)),
-        "probeVideo" => WorkerOperations.ProbeVideo(Read(arguments, EngineWireContext.Default.WireProbeRequest)),
         "probeAudioStreams" => WorkerOperations.ProbeAudioStreams(Read(arguments, EngineWireContext.Default.WireSource)),
         "probeImage" => WorkerOperations.ProbeImage(Read(arguments, EngineWireContext.Default.WireSource)),
         "inspect" => WorkerOperations.Inspect(Read(arguments, EngineWireContext.Default.WireSource)),
+        "canDecodeJpegXl" => Serialize(LightStudio.FfmpegShim.Media.StillImage.IsDecoderAvailable(AVCodecID.AV_CODEC_ID_JPEGXL),
+            EngineWireContext.Default.Boolean),
         "albumCover" => WorkerOperations.ReadAlbumCover(Read(arguments, EngineWireContext.Default.WireSource)),
         "image" => WorkerOperations.DecodeImage(Read(arguments, EngineWireContext.Default.WireImageRequest)),
-        "photoOpen" => WorkerPhotos.Open(Read(arguments, EngineWireContext.Default.WirePhotoRequest)),
         "photoTiles" => WorkerPhotos.DecodeTiles(Read(arguments, EngineWireContext.Default.WirePhotoTiles)),
         "photoPackets" => WorkerPhotos.ReadPackets(Read(arguments, EngineWireContext.Default.WirePhotoTiles)),
         "photoClose" => Done(() => WorkerPhotos.Close(Read(arguments, EngineWireContext.Default.Int32))),

@@ -38,6 +38,12 @@ public static class VideoScalers
     public static bool SupportsPhotoSceneCaching(IVideoScaler scaler) =>
         scaler is SkiaVideoScaler or CubicVideoScaler or LanczosVideoScaler or JincVideoScaler;
 
+    /// <summary>Whether the filter mixes neighboring samples rather than picking one.</summary>
+    internal static bool Blends(IVideoScaler scaler) =>
+        scaler.Function is not null ||
+        scaler.Sampling.Filter != SKFilterMode.Nearest ||
+        scaler.Sampling.Mipmap != SKMipmapMode.None;
+
     public static IVideoScaler For(VideoScalingQuality quality)
     {
         lock (sync)

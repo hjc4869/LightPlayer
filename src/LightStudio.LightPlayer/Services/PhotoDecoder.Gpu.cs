@@ -1,6 +1,8 @@
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.Media;
@@ -43,7 +45,7 @@ internal static unsafe partial class PhotoDecoder
         {
             if (codecHint == AVCodecID.AV_CODEC_ID_NONE && !(read >= 8 && signature.Slice(4, 4).SequenceEqual("ftyp"u8)))
             {
-                using SKData data = SKData.Create(stream);
+                using SKData data = ReadData(stream);
                 using SKCodec? codec = SKCodec.Create(data);
                 using SKColorSpace? color = codec?.Info.ColorSpace ?? SKColorSpace.CreateSrgb();
                 bool hasAlpha = codec?.Info.AlphaType != SKAlphaType.Opaque;
@@ -173,7 +175,7 @@ internal static unsafe partial class PhotoDecoder
     }
 
     private static VideoFrame? ReconstructContainerGpu(Stream stream, GainMapSource source, CancellationToken cancellationToken,
-        bool useTiles)
+        bool useTiles, int gainMaxDimension = 0)
     {
         long origin = stream.Position;
         StillImage.TileSource? tiles = null;
@@ -209,14 +211,14 @@ internal static unsafe partial class PhotoDecoder
                 }
                 finally { gainFrame.Release(); }
             }
-            StillImagePixels? gain = StillImage.DecodePixels(gainStream ?? stream, source.GainItem, cancellationToken);
+            int baseDimension = Math.Max(tiles?.Width ?? native!.Frame.Width, tiles?.Height ?? native!.Frame.Height);
+            StillImagePixels? gain = StillImage.DecodePixels(gainStream ?? stream, source.GainItem, cancellationToken,
+                gainMaxDimension > 0 ? Math.Min(gainMaxDimension, baseDimension) : 0);
             if (gain is null)
                 return null;
-            byte[] samples = new byte[checked(gain.Width * gain.Height * 8)];
-            System.Runtime.InteropServices.MemoryMarshal.AsBytes(gain.Pixels.AsSpan()).CopyTo(samples);
             result = tiles is not null ? CreateNativeTiles(tiles, profile, hasGainMap: true) : native!.Frame.AddRef();
             tiles = null;
-            result.GainMap = CreateGainMap(gain.Width, gain.Height, samples, gamut, source.Metadata, 16);
+            result.GainMap = CreateGainMap(gain.Width, gain.Height, new SampleBytes(gain.Pixels).Memory, gamut, source.Metadata, 16);
             ApplyGpuProfile(result, profile, hasGainMap: true);
             VideoFrame completed = result;
             result = null;
@@ -244,13 +246,33 @@ internal static unsafe partial class PhotoDecoder
         frame.GainMap = CreateGainMap(pixels.Width, pixels.Height, samples, gamut, metadata, bits);
     }
 
-    private static PhotoGainMap CreateGainMap(int width, int height, byte[] samples, SKColorSpaceXyz gamut,
+    private static PhotoGainMap CreateGainMap(int width, int height, ReadOnlyMemory<byte> samples, SKColorSpaceXyz gamut,
         GainMap metadata, int bits) => new(width, height, samples,
             metadata.Minimum, metadata.Maximum, metadata.Gamma, metadata.OffsetSdr, metadata.OffsetHdr,
             metadata.CapacityMin, metadata.CapacityMax,
             SKColorSpaceXyz.Concat(gamut.Invert(), SKColorSpaceXyz.Rec2020).Values,
             SKColorSpaceXyz.Concat(SKColorSpaceXyz.Rec2020.Invert(), gamut).Values, bits)
         { IsApple = metadata.IsApple, BaseIsHdr = metadata.BaseIsHdr };
+
+    /// <summary>Reads 16-bit samples as bytes without copying them.</summary>
+    private sealed class SampleBytes(ushort[] samples) : MemoryManager<byte>
+    {
+        public override Span<byte> GetSpan() => MemoryMarshal.AsBytes(samples.AsSpan());
+
+        public override MemoryHandle Pin(int elementIndex = 0)
+        {
+            GCHandle handle = GCHandle.Alloc(samples, GCHandleType.Pinned);
+            return new MemoryHandle((byte*)handle.AddrOfPinnedObject() + elementIndex, handle, this);
+        }
+
+        public override void Unpin()
+        {
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+        }
+    }
 
     private static PhotoGainMap CreateGainMap(VideoFrame samples, SKColorSpaceXyz gamut, GainMap metadata) => new(samples,
         metadata.Minimum, metadata.Maximum, metadata.Gamma, metadata.OffsetSdr, metadata.OffsetHdr,

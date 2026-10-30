@@ -158,8 +158,12 @@ public sealed class FileVideoScaleStage : IVideoScaleStage, IDisposable
         if (!string.Equals(inputDomain, SignalRgbDomain, StringComparison.Ordinal))
             throw new InvalidDataException($"The inputDomain property must be {SignalRgbDomain}.");
 
-        string name = OptionalString(root, "name") ?? Path.GetFileNameWithoutExtension(fullManifestPath);
+        string name = root.TryGetProperty("name", out _)
+            ? RequiredString(root, "name")
+            : Path.GetFileNameWithoutExtension(fullManifestPath);
         string output = RequiredString(root, "output");
+        if (!string.Equals(output, SceneName, StringComparison.Ordinal))
+            throw new InvalidDataException($"The output property must be {SceneName}.");
         double minimumScale = OptionalDouble(root, "minimumScale", 0);
         if (!double.IsFinite(minimumScale) || minimumScale < 0)
             throw new InvalidDataException("The minimumScale property must be a finite non-negative number.");

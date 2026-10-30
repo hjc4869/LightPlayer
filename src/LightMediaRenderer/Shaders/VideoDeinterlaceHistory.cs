@@ -47,9 +47,13 @@ public sealed class VideoDeinterlaceHistory(Action<Action>? disposeOnRenderThrea
         if (compatible && sequence == request.FrameSequence)
             return;
 
+        // Timestamps tell a seek from the next frame; a stream without them falls back to the
+        // host's sequence, whose next number is the next frame.
         double elapsed = frame.Pts - pts;
-        bool consecutive = compatible && request.FrameSequence > sequence &&
-            elapsed > 0 && elapsed <= Math.Max(0.1, duration * 1.5);
+        bool adjacent = elapsed > 0
+            ? elapsed <= Math.Max(0.1, duration * 1.5)
+            : elapsed == 0 && request.FrameSequence == sequence + 1;
+        bool consecutive = compatible && request.FrameSequence > sequence && adjacent;
         PreviousSamples?.Dispose();
         PreviousSamples = consecutive ? Samples : null;
         if (!consecutive)

@@ -22,12 +22,13 @@ internal sealed record PhotoGainMapLocation(
 
 internal static partial class PhotoDecoder
 {
-    internal static PhotoGainMapLocation? FindGainMap(Stream stream, CancellationToken cancellationToken, uint? imageItem = null)
+    internal static PhotoGainMapLocation? FindGainMap(Stream stream, CancellationToken cancellationToken, uint? imageItem = null,
+        bool inheritPrimaryGainMap = false)
     {
         long origin = stream.Position;
         try
         {
-            if (ReadContainer(stream, cancellationToken, imageItem) is { } source)
+            if (ReadContainer(stream, cancellationToken, imageItem, inheritPrimaryGainMap) is { } source)
             {
                 return new PhotoGainMapLocation(Describe(source.Metadata), source.BaseItem, source.GainItem, source.EncodedGain,
                     source.BaseProfile, source.MathProfile, source.MathPrimaries, null, null);

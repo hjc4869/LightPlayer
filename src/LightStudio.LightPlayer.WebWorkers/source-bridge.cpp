@@ -9,10 +9,6 @@
 #include <limits.h>
 #include <mutex>
 
-extern "C" uint32_t __wrap_SystemNative_TryGetUInt32OSThreadId(void) {
-    return (uint32_t)(uintptr_t)pthread_self();
-}
-
 extern "C" int lightplayer_completion_wait(volatile int* word, int expected, int timeout_milliseconds) {
     int result = emscripten_futex_wait(word, (uint32_t)expected, (double)timeout_milliseconds);
     if (result == 0) return 0;

@@ -657,8 +657,9 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         bool decodeFullImage = !isPreviewSelecting && !isSwiping;
         Failure = null;
         IsLoading = decodeFullImage;
-        Task previewLoading = currentPreviewLoading = LoadViewerPreviewAsync(current, Preview, token, SupplyPreview,
-            size => NaturalSize = size);
+        var viewportPreviewTried = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        currentPreviewLoading = LoadViewerPreviewAsync(current, Preview, token, SupplyPreview,
+            size => NaturalSize = size, viewportPreviewTried);
         previousPreviewLoading = HasPrevious && PreviousPreview is null
             ? LoadViewerPreviewAsync(photos[index - 1], PreviousPreview, readAhead.Token, value => PreviousPreview = value,
                 size => PreviousNaturalSize = size)
@@ -675,7 +676,8 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
                 return;
             await imageReleased.WaitAsync(token).ConfigureAwait(true);
             await RefreshNameAsync(current, token).ConfigureAwait(true);
-            await previewLoading.ConfigureAwait(true);
+            // A library thumbnail still being generated would hold the photo up for as long as its decode takes.
+            await viewportPreviewTried.Task.ConfigureAwait(true);
             token.ThrowIfCancellationRequested();
 
             VideoFrame? decoded = await DecodeAsync(current, renderRaw, token, size => NaturalSize = size).ConfigureAwait(true);
@@ -723,11 +725,12 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         TrackLoadAsync(LoadPreviewCoreAsync(media, token, fill));
 
     private Task LoadViewerPreviewAsync(MediaReference media, PhotoPreview? existing, CancellationToken token,
-        Action<PhotoPreview> fill, Action<Size> setSize) =>
-        TrackLoadAsync(LoadViewerPreviewCoreAsync(media, existing?.AddRef(), token, fill, setSize));
+        Action<PhotoPreview> fill, Action<Size> setSize, TaskCompletionSource? viewportPreviewTried = null) =>
+        TrackLoadAsync(LoadViewerPreviewCoreAsync(media, existing?.AddRef(), token, fill, setSize, viewportPreviewTried));
 
+    /// <param name="viewportPreviewTried">Completed once the viewport preview was tried, before any library thumbnail.</param>
     private async Task LoadViewerPreviewCoreAsync(MediaReference media, PhotoPreview? existing, CancellationToken token,
-        Action<PhotoPreview> fill, Action<Size> setSize)
+        Action<PhotoPreview> fill, Action<Size> setSize, TaskCompletionSource? viewportPreviewTried)
     {
         try
         {
@@ -779,13 +782,18 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
             {
                 AppLog.Warning("Photo", $"Could not load embedded preview for {media.Path}.", exception);
             }
+            viewportPreviewTried?.TrySetResult();
             if (existing is null)
                 await LoadPreviewCoreAsync(media, token, fill).ConfigureAwait(true);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
         }
-        finally { existing?.Release(); }
+        finally
+        {
+            viewportPreviewTried?.TrySetResult();
+            existing?.Release();
+        }
     }
 
     private async Task LoadPreviewCoreAsync(MediaReference media, CancellationToken token, Action<PhotoPreview> fill)

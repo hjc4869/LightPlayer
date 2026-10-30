@@ -21,7 +21,8 @@ namespace LightStudio.LightPlayer.Web;
 /// </summary>
 /// <remarks>
 /// Media identifiers are <see cref="BrowserMediaPath"/> strings rather than filesystem paths.
-/// Media probes and embedded artwork are produced by the browser media worker.
+/// Media probes and embedded artwork are produced by the browser media worker, or by FFmpeg in this
+/// process on the threaded runtime.
 /// </remarks>
 [SupportedOSPlatform("browser")]
 internal sealed class BrowserMultimediaPlatformIO : IMultiMediaPlatformIO
@@ -48,10 +49,18 @@ internal sealed class BrowserMultimediaPlatformIO : IMultiMediaPlatformIO
         Directory.CreateDirectory(LocalDataPath);
     }
 
+#if MULTI_THREAD_APP
+    /// <summary>
+    /// Probing is CPU-bound on worker threads, but every read funnels through the thread that owns
+    /// the JavaScript bindings, so more workers than this only deepen that queue.
+    /// </summary>
+    public int OptimalIoThreadCount => Math.Clamp(Environment.ProcessorCount, 1, 4);
+#else
     /// <summary>
     /// Probe concurrency follows the number of background media workers.
     /// </summary>
     public int OptimalIoThreadCount => BackgroundMediaJobs.Count;
+#endif
 
     /// <summary>
     /// The logical application data root used by browser storage services.
@@ -156,11 +165,16 @@ internal sealed class BrowserMultimediaPlatformIO : IMultiMediaPlatformIO
 
     public async Task<MediaInfo> GetMediaInfoAsync(string mediaFilePath, CancellationToken cancellationToken)
     {
+#if MULTI_THREAD_APP
+        return FfmpegMediaInfoMapper.Create(await ProbeAsync(mediaFilePath,
+            static stream => FfmpegCodec.GetMediaInfoFromStream(stream, close: false), cancellationToken));
+#else
         var tags = await BrowserMediaOperations.ReadTagsAsync(Input(mediaFilePath), cancellationToken);
         var properties = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, value) in tags.Properties)
             properties.TryAdd(key, value);
         return FfmpegMediaInfoMapper.Create(new FfmpegMediaInfo(TimeSpan.FromTicks(tags.DurationTicks), properties));
+#endif
     }
 
     public async ValueTask YieldScanAsync(CancellationToken cancellationToken)
@@ -170,6 +184,38 @@ internal sealed class BrowserMultimediaPlatformIO : IMultiMediaPlatformIO
         cancellationToken.ThrowIfCancellationRequested();
     }
 
+#if MULTI_THREAD_APP
+    public Task<VideoProbeInfo?> ProbeVideoAsync(
+        string mediaFilePath,
+        bool withPreview = true,
+        CancellationToken cancellationToken = default) =>
+        ProbeAsync(mediaFilePath, stream => VideoPreviewFactory.Probe(stream, withPreview, leaveOpen: true), cancellationToken);
+
+    public Task<IReadOnlyList<AudioStreamProbeInfo>> ProbeAudioStreamsAsync(
+        string mediaFilePath,
+        CancellationToken cancellationToken = default) =>
+        ProbeAsync(mediaFilePath, static stream => VideoPreviewFactory.ProbeAudioStreams(stream, leaveOpen: true), cancellationToken);
+
+    public Task<ImageProbeInfo?> ProbeImageAsync(
+        string mediaFilePath,
+        CancellationToken cancellationToken = default) =>
+        PhotoFolderService.ProbeMetadataAsync(this, mediaFilePath, cancellationToken);
+
+    public Task<MediaProbeReport?> InspectMediaAsync(
+        string mediaFilePath,
+        CancellationToken cancellationToken = default) =>
+        ProbeAsync(mediaFilePath, static stream => MediaProbeFactory.Inspect(stream, leaveOpen: true), cancellationToken);
+
+    /// <summary>
+    /// Runs an FFmpeg probe off the thread that owns the JavaScript bindings: the stream's reads wait
+    /// for calls marshalled to that thread, so probing on it would deadlock.
+    /// </summary>
+    private async Task<T> ProbeAsync<T>(string mediaFilePath, Func<Stream, T> probe, CancellationToken cancellationToken)
+    {
+        await using var stream = await OpenMediaFileAsync(mediaFilePath, cancellationToken).ConfigureAwait(false);
+        return await Task.Run(() => probe(stream), cancellationToken).ConfigureAwait(false);
+    }
+#else
     public async Task<VideoProbeInfo?> ProbeVideoAsync(
         string mediaFilePath,
         bool withPreview = true,
@@ -202,6 +248,7 @@ internal sealed class BrowserMultimediaPlatformIO : IMultiMediaPlatformIO
         await BrowserMediaOperations.InspectAsync(Input(mediaFilePath), cancellationToken) is { } inspection
             ? MediaProbeFactory.Map(inspection)
             : null;
+#endif
 
     public Task<byte[]?> GetAlbumCoverAsync(
         string mediaFilePath,
@@ -239,9 +286,13 @@ internal sealed class BrowserMultimediaPlatformIO : IMultiMediaPlatformIO
         CancellationToken cancellationToken)
         where T : class
         => ReadAlbumCoverCoreAsync(mediaFilePath,
+#if MULTI_THREAD_APP
+            token => ProbeAsync(mediaFilePath, stream => (T?)FfmpegCodec.ReadAlbumCoverFromStream(stream, readEmbedded, close: false), token),
+#else
             async token => await BrowserMediaOperations.ReadAlbumCoverAsync(Input(mediaFilePath), token) is { Length: > 0 } cover
                 ? readEmbedded(cover)
                 : null,
+#endif
             async (path, token) =>
             {
                 await using var artwork = await BrowserFileStream.OpenAsync(path, token).ConfigureAwait(false);
@@ -353,7 +404,9 @@ internal sealed class BrowserMultimediaPlatformIO : IMultiMediaPlatformIO
         }
     }
 
+#if !MULTI_THREAD_APP
     private MediaInput Input(string path) => BrowserSessionInput.Describe(path, token => OpenMediaFileAsync(path, token));
+#endif
 
     private static BrowserMediaPath Parse(string path) =>
         BrowserMediaPath.TryParse(path, out var parsed)

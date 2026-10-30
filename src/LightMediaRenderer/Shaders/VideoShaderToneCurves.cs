@@ -1,8 +1,6 @@
 using System;
-using System.Collections.Generic;
 using LightMediaRenderer.Contracts;
 using LightMediaRenderer.Software;
-using SkiaSharp;
 
 namespace LightMediaRenderer.Shaders;
 
@@ -12,15 +10,6 @@ namespace LightMediaRenderer.Shaders;
 /// </summary>
 internal static class VideoShaderToneCurves
 {
-    private const string EvaluateMain = """
-        float4 main(float2 coord) {
-            float nits = float4(source.eval(coord)).r;
-            return float4(toneMap(float3(nits)).r, 0.0, 0.0, 1.0);
-        }
-        """;
-
-    private static readonly float[] NeutralLuma = [1, 0, 0, 0];
-
     public static bool Supports(VideoSdrToneMappingAlgorithm algorithm) => algorithm is
         VideoSdrToneMappingAlgorithm.Clip or VideoSdrToneMappingAlgorithm.Mobius or
         VideoSdrToneMappingAlgorithm.Reinhard or VideoSdrToneMappingAlgorithm.Hable or
@@ -70,53 +59,42 @@ internal static class VideoShaderToneCurves
         }
     }
 
-    /// <summary>Maps neutral luminance in nits through the curve's stage on Skia's raster backend.</summary>
-    public static unsafe void Evaluate(VideoSdrToneMappingAlgorithm algorithm, float[] parameters,
+    /// <summary>Maps neutral luminance in nits through the curve's equations, in software.</summary>
+    public static void Evaluate(VideoSdrToneMappingAlgorithm algorithm, float[] parameters,
         ReadOnlySpan<float> nits, Span<float> mapped)
     {
         int count = Math.Min(nits.Length, mapped.Length);
-        if (count == 0)
-            return;
-
-        VideoShaderProgram program = new VideoShaderBuilder()
-            .AddUniform(VideoShaderUniforms.SourceLuma)
-            .AddUniform(VideoShaderUniforms.ToneParams)
-            .AddChild(VideoShaderChildren.Source)
-            .AddStage(VideoColorStages.LinearHelpers)
-            .AddStage(Stage(algorithm))
-            .Build(EvaluateMain) ?? throw new InvalidOperationException($"The {algorithm} tone curve did not compile.");
-
-        var info = new SKImageInfo(count, 1, SKColorType.RgbaF32, SKAlphaType.Premul);
-        float[] pixels = new float[count * 4];
+        float targetPeak = parameters[3];
         for (int index = 0; index < count; index++)
         {
-            pixels[index * 4] = nits[index];
-            pixels[index * 4 + 3] = 1;
+            float luminance = MathF.Max(nits[index], 0);
+            float value = algorithm switch
+            {
+                VideoSdrToneMappingAlgorithm.Clip => luminance,
+                VideoSdrToneMappingAlgorithm.Mobius => Mobius(luminance, parameters),
+                VideoSdrToneMappingAlgorithm.Reinhard => luminance / (parameters[0] * luminance + parameters[1]),
+                VideoSdrToneMappingAlgorithm.Hable =>
+                    Hable(luminance * parameters[0]) / Hable(parameters[1]) * targetPeak,
+                VideoSdrToneMappingAlgorithm.Gamma => luminance > parameters[0]
+                    ? parameters[0] * MathF.Pow(luminance / parameters[0], parameters[1])
+                    : luminance,
+                VideoSdrToneMappingAlgorithm.Linear => VideoToneCurve.PqToNits(
+                    MathF.Min(VideoToneCurve.NitsToPq(luminance) * parameters[0], parameters[1])),
+                _ => throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "Not a shader-only tone curve."),
+            };
+            mapped[index] = MathF.Min(value, targetPeak);
         }
+    }
 
-        fixed (float* data = pixels)
-        {
-            using SKImage input = SKImage.FromPixelCopy(info, (IntPtr)data, info.RowBytes) ??
-                throw new InvalidOperationException("The tone curve input could not be created.");
-            using SKShader child = input.ToRawShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
-                new SKSamplingOptions(SKFilterMode.Nearest));
-            using SKShader shader = program.ToShader(
-                new Dictionary<string, float[]>
-                {
-                    [VideoShaderUniforms.SourceLuma] = NeutralLuma,
-                    [VideoShaderUniforms.ToneParams] = parameters,
-                },
-                new Dictionary<string, SKShader> { [VideoShaderChildren.Source] = child },
-                out string failure) ?? throw new InvalidOperationException($"The tone curve shader failed: {failure}.");
+    private static float Mobius(float luminance, float[] parameters)
+    {
+        float excess = MathF.Max(luminance - parameters[0], 0);
+        return MathF.Min(luminance, parameters[0]) + parameters[1] * excess / (parameters[1] + excess);
+    }
 
-            // The input was copied, so the surface draws over the same buffer.
-            using SKSurface surface = SKSurface.Create(info, (IntPtr)data, info.RowBytes) ??
-                throw new InvalidOperationException("The tone curve surface could not be created.");
-            using var paint = new SKPaint { Shader = shader, BlendMode = SKBlendMode.Src };
-            surface.Canvas.DrawPaint(paint);
-        }
-
-        for (int index = 0; index < count; index++)
-            mapped[index] = pixels[index * 4];
+    private static float Hable(float x)
+    {
+        const float a = 0.15f, b = 0.50f, c = 0.10f, d = 0.20f, e = 0.02f, f = 0.30f;
+        return (x * (a * x + c * b) + d * e) / (x * (a * x + b) + d * f) - e / f;
     }
 }

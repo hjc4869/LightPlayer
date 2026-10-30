@@ -82,7 +82,8 @@ internal static partial class WorkerPhotos
                     }
                 }
                 else
-                    photo = OpenPicture(stream, request.Source.Name, request.RenderRaw, frames, session, useTiles: true);
+                    photo = OpenPicture(stream, request.Source.Name, request.RenderRaw, frames, session, useTiles: !request.WholeImage,
+                        thumbnailWidth: request.ThumbnailWidth);
                 if (photo.GainMap is null && session.Animation is null)
                     photo = photo with { PeakLuminance = MeasurePeak(photo, frames, session) };
             }
@@ -285,7 +286,7 @@ internal static partial class WorkerPhotos
 
     /// <summary>A photo file's picture: a DNG's embedded rendition unless RAW is asked for, or the photo itself.</summary>
     private static WirePhoto OpenPicture(Stream stream, string name, bool? renderRaw, List<VideoFrame> frames, Session session,
-        bool useTiles)
+        bool useTiles, int thumbnailWidth = 0)
     {
         if (string.Equals(Path.GetExtension(name), ".tga", StringComparison.OrdinalIgnoreCase))
         {
@@ -295,12 +296,13 @@ internal static partial class WorkerPhotos
             return new WirePhoto(0, AddNativeFrame(native, frames), null, null, null, null, 0);
         }
 
-        return (renderRaw == true ? null : OpenPreview(stream, frames, session, renderRaw == false, useTiles))
-            ?? OpenPhoto(stream, frames, session, useTiles: useTiles);
+        return (renderRaw == true ? null : OpenPreview(stream, frames, session, renderRaw == false, useTiles, thumbnailWidth))
+            ?? OpenPhoto(stream, frames, session, useTiles: useTiles, thumbnailWidth: thumbnailWidth);
     }
 
+    /// <param name="inheritPrimaryGainMap">Whether a thumbnail item takes the primary image's gain map.</param>
     private static WirePhoto OpenPhoto(Stream stream, List<VideoFrame> frames, Session session, uint? item = null,
-        bool useTiles = true)
+        bool useTiles = true, int thumbnailWidth = 0, bool inheritPrimaryGainMap = false)
     {
         if (useTiles && item is null && StillImage.OpenAnimation(stream, out StillImageNative first) is { } animation)
         {
@@ -309,18 +311,18 @@ internal static partial class WorkerPhotos
                 return new WirePhoto(0, AddNativeFrame(first, frames), null, null, null, null, 0)
                     { AnimationBytes = animation.EncodedBytes };
         }
-        PhotoGainMapLocation? gain = PhotoDecoder.FindGainMap(stream, default, item);
+        PhotoGainMapLocation? gain = PhotoDecoder.FindGainMap(stream, default, item, inheritPrimaryGainMap);
         long origin = stream.Position;
-        WirePhotoImage image = OpenImage(stream, gain?.BaseItem ?? item, gain?.BaseRange, frames, out session.Base, useTiles);
+        WirePhotoImage image = OpenImage(stream, gain?.BaseItem ?? item, gain?.BaseRange, frames, out session.Base, useTiles, thumbnailWidth);
         // Whole-picture decoders leave the stream where they stopped, and a gain item is read from the same start.
         stream.Position = origin;
-        WirePhotoImage? gainImage = gain is null ? null : OpenGain(stream, gain, frames, out session.Gain, useTiles);
+        WirePhotoImage? gainImage = gain is null ? null : OpenGain(stream, gain, frames, out session.Gain, useTiles, thumbnailWidth);
         return new WirePhoto(0, image, gainImage, gainImage is null ? null : gain!.Parameters,
             gain?.BaseProfile, gain?.MathProfile, gain?.MathPrimaries ?? 0);
     }
 
     private static WirePhoto? OpenPreview(Stream stream, List<VideoFrame> frames, Session session, bool includeReduced,
-        bool useTiles)
+        bool useTiles, int thumbnailWidth = 0)
     {
         long origin = stream.Position;
         foreach (DngPreview preview in PhotoDecoder.FindDngPreviews(stream, default, includeReduced))
@@ -329,8 +331,12 @@ internal static partial class WorkerPhotos
             try
             {
                 WirePhoto photo = OpenPhoto(new SubStream(stream, preview.Offset, preview.Length), frames, session,
-                    useTiles: useTiles);
-                if (photo.Base.Width != preview.Width || photo.Base.Height != preview.Height)
+                    useTiles: useTiles, thumbnailWidth: thumbnailWidth);
+                // Reduced JPEG decoding rounds each side up.
+                int reduction = thumbnailWidth > 0
+                    ? Math.Max(1, (int)Math.Round(preview.Width / (double)Math.Max(1, photo.Base.Width))) : 1;
+                if (reduction is not (1 or 2 or 4 or 8) || photo.Base.Width != (preview.Width + reduction - 1) / reduction ||
+                    photo.Base.Height != (preview.Height + reduction - 1) / reduction)
                     throw new InvalidDataException("The embedded DNG preview is not the size its directory gives.");
                 return photo with { Base = Orient(photo.Base, preview.Orientation, frames), IsEmbeddedRawPreview = true };
             }
@@ -369,17 +375,19 @@ internal static partial class WorkerPhotos
     }
 
     private static WirePhotoImage OpenImage(Stream stream, uint? item, (long Offset, int Length)? range, List<VideoFrame> frames,
-        out StillImage.TileSource? tiles, bool useTiles = true)
+        out StillImage.TileSource? tiles, bool useTiles = true, int thumbnailWidth = 0)
     {
         tiles = null;
         if (range is { } part)
-            return OpenImage(new SubStream(stream, part.Offset, part.Length), null, null, frames, out tiles, useTiles);
+            return OpenImage(new SubStream(stream, part.Offset, part.Length), null, null, frames, out tiles, useTiles, thumbnailWidth);
 
         Span<byte> signature = stackalloc byte[12];
         long origin = stream.Position;
         int read = stream.ReadAtLeast(signature, signature.Length, throwOnEndOfStream: false);
         stream.Position = origin;
-        if (useTiles && read >= 8 && (signature.Slice(4, 4).SequenceEqual("ftyp"u8) || signature.Slice(4, 4).SequenceEqual("jP  "u8) ||
+        // Only single JPEG and JPEG 2000 codestreams decode reduced; ISO containers use their thumbnail items instead.
+        bool reducible = thumbnailWidth > 0 && !signature.Slice(4, 4).SequenceEqual("ftyp"u8);
+        if ((useTiles || reducible) && read >= 8 && (signature.Slice(4, 4).SequenceEqual("ftyp"u8) || signature.Slice(4, 4).SequenceEqual("jP  "u8) ||
             signature.StartsWith((ReadOnlySpan<byte>)[0xff, 0xd8]) ||
             signature.StartsWith((ReadOnlySpan<byte>)[0xff, 0x4f, 0xff, 0x51])) &&
             StillImage.OpenTiles(stream, item, default, includeSingleImages: true) is { } opened)
@@ -393,9 +401,23 @@ internal static partial class WorkerPhotos
                 stream.Position = origin;
                 if (space is not null && PhotoColorProfile.Create(space) is { } profile)
                 {
-                    WirePhotoImage image = Describe(opened) with { Color = WirePhotoColor.From(profile) };
-                    tiles = opened;
-                    return image;
+                    if (thumbnailWidth > 0 && opened.HasScaledOverview)
+                    {
+                        int reduction = 1;
+                        while (reduction < 8 && opened.Width / (reduction * 2) >= thumbnailWidth)
+                            reduction *= 2;
+                        VideoFrame frame = opened.DecodeBatch(new[] { new PhotoTileRequest(-1, reduction) }, default)[0];
+                        frame.Rotation = opened.Rotation;
+                        frame.MirrorHorizontally = opened.MirrorHorizontally;
+                        frame.PixelAspectRatio = opened.PixelAspectRatio;
+                        return AddFrame(frame, frames) with { Color = WirePhotoColor.From(profile) };
+                    }
+                    if (useTiles)
+                    {
+                        WirePhotoImage image = Describe(opened) with { Color = WirePhotoColor.From(profile) };
+                        tiles = opened;
+                        return image;
+                    }
                 }
             }
             finally
@@ -434,7 +456,7 @@ internal static partial class WorkerPhotos
     }
 
     private static WirePhotoImage OpenGain(Stream stream, PhotoGainMapLocation gain, List<VideoFrame> frames,
-        out StillImage.TileSource? tiles, bool useTiles)
+        out StillImage.TileSource? tiles, bool useTiles, int thumbnailWidth = 0)
     {
         tiles = null;
         if (useTiles && gain.GainItem is { } item && StillImage.OpenTiles(stream, item, default, includeSingleImages: true) is { } opened)
@@ -446,7 +468,7 @@ internal static partial class WorkerPhotos
         if (gain.EncodedGain is { } encoded)
             return DecodeNative(new MemoryStream(encoded, writable: false), null, frames);
         if (gain.GainRange is { } range)
-            return OpenImage(new SubStream(stream, range.Offset, range.Length), null, null, frames, out tiles, useTiles);
+            return OpenImage(new SubStream(stream, range.Offset, range.Length), null, null, frames, out tiles, useTiles, thumbnailWidth);
         return DecodeNative(stream, gain.GainItem, frames);
     }
 

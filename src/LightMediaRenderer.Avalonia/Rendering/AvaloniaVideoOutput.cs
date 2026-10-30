@@ -47,7 +47,7 @@ internal static class AvaloniaVideoOutput
 #if LMR_AVALONIA_FORK
         ToRendererColorVolume(lease.PreferredColorVolume);
 
-    private static VideoOutputColorVolume? ToRendererColorVolume(PlatformSurfaceColorVolume? volume) =>
+    internal static VideoOutputColorVolume? ToRendererColorVolume(PlatformSurfaceColorVolume? volume) =>
         volume is { } value
             ? new VideoOutputColorVolume(
                 value.Transfer switch

@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using LightStudio.FfmpegShim.Demuxing;
 using LightStudio.FfmpegShim.Media;
+using LightStudio.LightPlayer.Services.PhotoExport;
 using LightStudio.Logging;
 using LightStudio.MediaLibraryCore.IO;
 using SkiaSharp;
@@ -21,7 +22,7 @@ public static class VideoPreviewFactory
     /// <summary>Longest edge of the stored preview, chosen to cover a video tile at 2x scaling.</summary>
     public const int PreviewMaxDimension = 720;
 
-    internal const int PreviewJpegQuality = 82;
+    internal const int PreviewJpegQuality = PhotoThumbnailEncoder.JpegQuality;
 
     /// <summary>
     /// Probes <paramref name="stream"/>, returning null when it carries no video stream. Preview
@@ -97,6 +98,13 @@ public static class VideoPreviewFactory
             return null;
         }
     }
+
+    /// <summary>
+    /// Whether a preview failed for a reason that may pass later, such as a busy file, missing permission or a
+    /// shortage of memory, so the picture is not remembered as having no preview.
+    /// </summary>
+    public static bool IsTransientFailure(Exception exception) => exception is IOException or UnauthorizedAccessException or
+        OutOfMemoryException or PhotoExportException { Failure: PhotoExportFailure.TooLarge };
 
     /// <summary>Whether an encoded preview is JPEG XL, which stores HDR previews of absolute luminance.</summary>
     public static bool IsJpegXl(byte[] preview) => PhotoDecoder.IsJpegXl(preview);

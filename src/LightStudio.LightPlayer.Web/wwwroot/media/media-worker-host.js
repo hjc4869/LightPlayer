@@ -16,9 +16,6 @@ let pageSources;
 
 export function getDiagnostics() { return JSON.stringify(diagnostics); }
 
-/** Whether remote video packets are streamed over a WebSocket rather than read with HTTP requests. */
-export function usesPacketSocket() { return (globalThis.navigator?.userAgent ?? "").includes("Firefox/"); }
-
 export async function initialize(assembly) {
     const exports = await globalThis.getDotnetRuntime(0).getAssemblyExports(assembly);
     managed = exports.LightStudio.LightPlayer.Web;

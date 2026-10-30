@@ -9,9 +9,6 @@ namespace LightStudio.LightPlayer.Services;
 
 internal static partial class PhotoDecoder
 {
-    /// <summary>Smallest longest edge of an embedded HEIF/AVIF thumbnail that stands in for the picture.</summary>
-    private const int MinimumContainerThumbnail = 256;
-
     /// <summary>
     /// Decodes a picture for thumbnail encoding with its color, HDR transfer and gain map, or returns null for
     /// pictures the sRGB thumbnail path covers: RAW files and sRGB pictures without HDR.
@@ -25,18 +22,13 @@ internal static partial class PhotoDecoder
             if (IsDng(stream, cancellationToken) || IsSrgbWithoutHdr(stream, cancellationToken))
                 return null;
 
-            // An embedded container thumbnail is enough unless only the picture itself carries the gain map.
-            GainMapSource? pictureGain = ReadContainer(stream, cancellationToken);
-            stream.Position = origin;
-            if (pictureGain is null &&
-                FindContainerThumbnail(stream, new PhotoPreviewRequest(maxDimension, maxDimension), cancellationToken) is { } thumbnail &&
-                Math.Max(thumbnail.Width, thumbnail.Height) >= Math.Min(maxDimension, MinimumContainerThumbnail))
+            if (FindLibraryThumbnail(stream, maxDimension, cancellationToken) is { } item)
             {
-                GainMapSource? gain = ReadContainer(stream, cancellationToken, thumbnail.Item);
+                GainMapSource? gain = ReadContainer(stream, cancellationToken, item, inheritPrimaryGainMap: true);
                 stream.Position = origin;
                 VideoFrame? frame = gain is not null
-                    ? DecodeContainerGainMap(stream, gain, cancellationToken, useTiles: false)
-                    : DecodeGpu(stream, cancellationToken, thumbnail.Item, useTiles: false);
+                    ? DecodeContainerGainMap(stream, gain, cancellationToken, useTiles: false, gainMaxDimension: maxDimension)
+                    : DecodeGpu(stream, cancellationToken, item, useTiles: false);
                 if (frame is not null)
                     return frame;
             }
@@ -135,7 +127,7 @@ internal static partial class PhotoDecoder
             stream.Position = origin;
             if (read == 8 && signature.SequenceEqual((ReadOnlySpan<byte>)[137, 80, 78, 71, 13, 10, 26, 10]))
             {
-                using SKData data = SKData.Create(stream);
+                using SKData data = ReadData(stream);
                 return ReadPngColorProfile(data, hasAlpha: false, out _) is null;
             }
 
@@ -174,7 +166,11 @@ internal static partial class PhotoDecoder
     private static VideoFrame DecodeCodecFrame(SKCodec codec, SKData data, PhotoColorProfile profile, bool hasGainMap, int width,
         CancellationToken cancellationToken)
     {
-        SKSizeI size = codec.GetScaledDimensions(Math.Min(1f, width / (float)codec.Info.Width));
+        float scale = Math.Min(1f, width / (float)codec.Info.Width);
+        SKSizeI size = codec.GetScaledDimensions(scale);
+        // JPEG rounds to the nearest eighth; round up instead so the result is never narrower than asked.
+        if (size.Width < Math.Min(width, codec.Info.Width))
+            size = codec.GetScaledDimensions(Math.Min(1f, MathF.Ceiling(scale * 8) / 8));
         if (size.Width < Math.Min(width, codec.Info.Width))
             size = codec.Info.Size;
         bool opaque = codec.Info.AlphaType == SKAlphaType.Opaque;

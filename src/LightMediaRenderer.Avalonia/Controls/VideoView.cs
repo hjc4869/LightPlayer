@@ -634,7 +634,7 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
 
         IsHdrContent = frame is { Width: > 0, Height: > 0 } && HdrContentHint.IsHdr(frame);
         bool hasHdrContent = EnableHdrPassthrough && IsHdrContent && bounds.Width > 0 && bounds.Height > 0;
-        hdrContentHint.Update(hasHdrContent, hasHdrContent ? HdrContentHint.Describe(frame!) : null);
+        hdrContentHint.Update(hasHdrContent, hasHdrContent ? HdrContentHint.Describe(frame!, ToneMapping) : null);
 
         // Without a picture the subtitles still have to land somewhere, so they use the whole control.
         Rect destination = bounds;

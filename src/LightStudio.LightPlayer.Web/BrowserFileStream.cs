@@ -11,8 +11,10 @@ namespace LightStudio.LightPlayer.Web;
 /// browser's file picker.
 /// </summary>
 /// <remarks>
-/// Reads await the module owner and retain one bounded block. Synchronous reads require a cached
-/// range; concurrent seeks are rejected instead of waiting for an asynchronous read.
+/// Reads await the module owner and retain one bounded block. On the owner's thread, synchronous
+/// reads require a cached range; any other thread waits for the asynchronous read instead, which
+/// is how FFmpeg's callbacks read on the threaded runtime. Concurrent seeks are rejected instead
+/// of waiting for an asynchronous read.
 /// </remarks>
 [SupportedOSPlatform("browser")]
 internal sealed class BrowserFileStream : Stream
@@ -88,9 +90,17 @@ internal sealed class BrowserFileStream : Stream
             return 0;
         }
 
-        var acquired = gate.WaitAsync(0);
-        if (!acquired.IsCompletedSuccessfully || !acquired.Result)
-            throw new InvalidOperationException("The browser file is already being read.");
+        bool owner = BrowserMainThread.IsOwnerThread;
+        if (owner)
+        {
+            var acquired = gate.WaitAsync(0);
+            if (!acquired.IsCompletedSuccessfully || !acquired.Result)
+                throw new InvalidOperationException("The browser file is already being read.");
+        }
+        else
+        {
+            gate.Wait();
+        }
         try
         {
             ObjectDisposedException.ThrowIf(disposed, this);
@@ -98,7 +108,11 @@ internal sealed class BrowserFileStream : Stream
             if (remaining == 0)
                 return 0;
             if (blockOffset < 0 || position < blockOffset || position >= blockOffset + blockLength)
-                throw new NotSupportedException("Browser file cache misses require ReadAsync.");
+            {
+                if (owner)
+                    throw new NotSupportedException("Browser file cache misses require ReadAsync.");
+                EnsureBlockAsync(position).GetAwaiter().GetResult();
+            }
             int copied = CopyFromBlock(position, buffer[..remaining]);
             position += copied;
             return copied;

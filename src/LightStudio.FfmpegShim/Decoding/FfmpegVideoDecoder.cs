@@ -91,7 +91,10 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
     private AVFrame* scaled;
     private SwsContext* scaler;
     private DolbyVisionEnhancementDecoder enhancementDecoder;
+    private AlphaBlockAdditionDecoder alphaAdditionDecoder;
+    private AVFrame* alphaComposite;
     private AVPixelFormat scalerInputFormat = AVPixelFormat.AV_PIX_FMT_NONE;
+    private AVPixelFormat scalerOutputFormat = AVPixelFormat.AV_PIX_FMT_NONE;
     private int scalerWidth;
     private int scalerHeight;
     private int scalerColorSpace = -1;
@@ -137,6 +140,10 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
     private readonly List<string> hardwareFailures = new();
     private string hardwareDeviceType = string.Empty;
     private bool softwareFallbackOccurred;
+    /// <summary><c>AV_FRAME_CROP_UNALIGNED</c>.</summary>
+    private const int FrameCropUnaligned = 1;
+
+    private readonly bool alphaMode;
     private VideoFrameDeliveryPath deliveryPath;
     private AVPixelFormat deliveredSampleFormat = AVPixelFormat.AV_PIX_FMT_NONE;
     private VideoPixelFormat? deliveredFormat;
@@ -188,6 +195,10 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         dolbyVisionCompatibilityId = description.DolbyVisionCompatibilityId;
 
         defaultDecoder = avcodec_find_decoder(codecParameters->codec_id);
+        alphaMode = description.AlphaMode;
+        AVCodec* alphaDecoder = alphaMode ? FindAlphaDecoder(codecParameters->codec_id) : null;
+        if (alphaDecoder != null)
+            defaultDecoder = alphaDecoder;
         if (defaultDecoder == null)
         {
             AVCodecParameters* owned = codecParameters;
@@ -243,6 +254,23 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
                 }
             }
 
+            // Without libvpx, the native VP8 and VP9 decoders leave the alpha addition in the packet.
+            if (alphaMode && alphaDecoder == null)
+            {
+                try
+                {
+                    alphaAdditionDecoder = new AlphaBlockAdditionDecoder(description, defaultDecoder, options);
+                    AppLog.Information("FFmpeg.Decode", $"#{id} opened alpha block addition decoder.");
+                }
+                catch (Exception exception)
+                {
+                    AppLog.Warning(
+                        "FFmpeg.Decode",
+                        $"#{id} could not open the alpha block addition decoder; decoding without alpha.",
+                        exception);
+                }
+            }
+
             PublishDiagnostics();
         }
         catch (Exception exception)
@@ -253,9 +281,21 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         }
     }
 
+    /// <summary>
+    /// The decoder that composes a Matroska alpha block addition: libvpx reads it beside the
+    /// picture, while the native VP8 and VP9 decoders leave it in the packet.
+    /// </summary>
+    private static AVCodec* FindAlphaDecoder(AVCodecID codec) => codec switch
+    {
+        AVCodecID.AV_CODEC_ID_VP9 => avcodec_find_decoder_by_name("libvpx-vp9"),
+        AVCodecID.AV_CODEC_ID_VP8 => avcodec_find_decoder_by_name("libvpx"),
+        _ => null,
+    };
+
     private AVCodecContext* OpenCodec()
     {
-        hardwareCandidates = GetHardwareCandidates(options);
+        // A hardware decoder has no alpha plane to give back.
+        hardwareCandidates = alphaMode ? Array.Empty<string>() : GetHardwareCandidates(options);
         hardwareAttempts.Clear();
         hardwareFailures.Clear();
         if (!string.IsNullOrEmpty(options.SoftwareFallbackReason))
@@ -344,6 +384,10 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         }
 
         context->pkt_timebase = packetTimeBase;
+
+        // Cropping is applied exactly: a left or top offset libavcodec would otherwise round down
+        // to keep the plane pointers aligned, leaving part of the conformance window in view.
+        context->flags |= AV_CODEC_FLAG_UNALIGNED;
 
         // Frame + slice threading is what makes 1080p/4K software decoding viable. 0 lets
         // libavcodec size the pool from the machine; the cap keeps very wide machines from
@@ -1145,6 +1189,7 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
 
         avcodec_flush_buffers(codec);
         enhancementDecoder?.Flush();
+        alphaAdditionDecoder?.Flush();
         lastPts = MediaTime.NoTimestamp;
         decodeSubmissions.Clear();
         pendingDecodeWorkSeconds = 0;
@@ -1174,6 +1219,7 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
             int drain = avcodec_send_packet(context, null);
             if (drain >= 0 || FfmpegError.IsEndOfFile(drain))
             {
+                SendAlphaAddition(null);
                 try
                 {
                     enhancementDecoder?.Send(null);
@@ -1196,6 +1242,7 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         int ret = avcodec_send_packet(context, packet.Handle);
         if (ret >= 0)
         {
+            SendAlphaAddition(packet.Handle);
             try
             {
                 enhancementDecoder?.Send(packet.Handle);
@@ -1218,6 +1265,20 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         // Corrupt packets and mid-stream parameter changes surface here; the decoder resynchronizes
         // at the next keyframe, so playback continues rather than failing.
         return ClassifyDecodeError(ret);
+    }
+
+    private void SendAlphaAddition(AVPacket* value)
+    {
+        try
+        {
+            alphaAdditionDecoder?.Send(value);
+        }
+        catch (FfmpegException exception)
+        {
+            AppLog.Warning("FFmpeg.Decode", $"#{id} alpha block addition decode failed; continuing without alpha.", exception);
+            alphaAdditionDecoder?.Dispose();
+            alphaAdditionDecoder = null;
+        }
     }
 
     public DecoderStatus Receive(out VideoFrame decoded)
@@ -1416,6 +1477,9 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         int width,
         int height)
     {
+        if (input->crop_left > 0 || input->crop_top > 0)
+            return TransferCroppedPlanes(input, format, sampleFormat, width, height);
+
         VideoFrame target = pool.Rent(width, height, format);
 
         // The transfer allocates its own storage unless buf[0] says the frame already has some, so
@@ -1454,6 +1518,34 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         return target;
     }
 
+    /// <summary>
+    /// Reads a frame back through the transfer's own storage so the left and top of its cropping
+    /// can be applied before the planes are copied into the pool.
+    /// </summary>
+    private VideoFrame TransferCroppedPlanes(
+        AVFrame* input,
+        VideoPixelFormat format,
+        AVPixelFormat sampleFormat,
+        int width,
+        int height)
+    {
+        transferredFrame->format = (int)sampleFormat;
+        transferredFrame->width = width;
+        transferredFrame->height = height;
+        try
+        {
+            FfmpegError.ThrowIfError(D3D11HardwareContext.TransferFrame(transferredFrame, input), "av_hwframe_transfer_data");
+            transferredFrame->crop_left = input->crop_left;
+            transferredFrame->crop_top = input->crop_top;
+            FfmpegError.ThrowIfError(av_frame_apply_cropping(transferredFrame, FrameCropUnaligned), "av_frame_apply_cropping");
+            return CopyPlanes(transferredFrame, format, transferredFrame->width, transferredFrame->height);
+        }
+        finally
+        {
+            av_frame_unref(transferredFrame);
+        }
+    }
+
     private VideoFrame Convert(AVFrame* input)
     {        int width = input->width;
         int height = input->height;
@@ -1476,7 +1568,10 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
                 MapHardwareDeliveryFormats(
                     sampleFormat,
                     VideoFrameCapabilities.MaxPlanarBytesPerSample);
-            VideoFrame shared = surfaceFormat is { } directSurface
+            // libavcodec applies only the right and bottom of a hardware frame's cropping; the
+            // rest is applied on readback, which a shared surface cannot have.
+            bool cropped = input->crop_left > 0 || input->crop_top > 0;
+            VideoFrame shared = !cropped && surfaceFormat is { } directSurface
                 ? TryShareSurface(input, directSurface, width, height)
                 : null;
             if (shared is not null)
@@ -1501,11 +1596,23 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
                 FfmpegError.ThrowIfError(
                     av_frame_copy_props(transferredFrame, input),
                     "av_frame_copy_props");
+                if (cropped)
+                    FfmpegError.ThrowIfError(av_frame_apply_cropping(transferredFrame, FrameCropUnaligned), "av_frame_apply_cropping");
 
                 sampleFormat = (AVPixelFormat)transferredFrame->format;
-                target = ConvertToBgra(transferredFrame, width, height, sampleFormat);
+                AVPixelFormat planarFormat = NearestPlanarFormat(sampleFormat);
+                target = planarFormat != AVPixelFormat.AV_PIX_FMT_NONE && MapPlanarFormat(planarFormat) is { } planarLayout
+                    ? ConvertToPlanar(transferredFrame, transferredFrame->width, transferredFrame->height, sampleFormat, planarFormat, planarLayout)
+                    : ConvertToBgra(transferredFrame, transferredFrame->width, transferredFrame->height, sampleFormat);
                 path = VideoFrameDeliveryPath.HardwareConverted;
             }
+        }
+        else if (alphaAdditionDecoder is not null &&
+                 ConvertWithAlpha(input, inputFormat, width, height, out AVPixelFormat alphaFormat) is { } withAlpha)
+        {
+            sampleFormat = alphaFormat;
+            target = withAlpha;
+            path = VideoFrameDeliveryPath.SoftwareConverted;
         }
         else if (MapPlanarFormat(inputFormat) is { } planar)
         {
@@ -1526,6 +1633,8 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
                 : VideoFrameDeliveryPath.SoftwareConverted;
         }
 
+        if (target.Format == VideoPixelFormat.Bgra32)
+            target.HasAlpha = HasAlphaPlane(sampleFormat);
         ApplyColorMetadata(target, input, sampleFormat);
 
         long timestamp = input->best_effort_timestamp != AV_NOPTS_VALUE
@@ -1996,9 +2105,125 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         return peak > 0 ? peak : declaredHdrPeakLuminance;
     }
 
+    /// <summary>Whether swscale carried an alpha plane into the BGRA conversion.</summary>
+    private static bool HasAlphaPlane(AVPixelFormat format)
+    {
+        AVPixFmtDescriptor* descriptor = av_pix_fmt_desc_get(format);
+        return descriptor != null && (descriptor->flags & AV_PIX_FMT_FLAG_ALPHA) != 0;
+    }
+
+    /// <summary>
+    /// The planar layout a semi-planar sample format repacks into with its depth and chroma
+    /// resolution intact, where a hardware surface reads back as one the renderer cannot sample.
+    /// </summary>
+    private static AVPixelFormat NearestPlanarFormat(AVPixelFormat format) => format switch
+    {
+        AVPixelFormat.AV_PIX_FMT_NV16 => AVPixelFormat.AV_PIX_FMT_YUV422P,
+        AVPixelFormat.AV_PIX_FMT_NV24 => AVPixelFormat.AV_PIX_FMT_YUV444P,
+        AVPixelFormat.AV_PIX_FMT_P210LE => AVPixelFormat.AV_PIX_FMT_YUV422P10LE,
+        AVPixelFormat.AV_PIX_FMT_P410LE => AVPixelFormat.AV_PIX_FMT_YUV444P10LE,
+        AVPixelFormat.AV_PIX_FMT_P212LE => AVPixelFormat.AV_PIX_FMT_YUV422P12LE,
+        AVPixelFormat.AV_PIX_FMT_P412LE => AVPixelFormat.AV_PIX_FMT_YUV444P12LE,
+        AVPixelFormat.AV_PIX_FMT_P216LE => AVPixelFormat.AV_PIX_FMT_YUV422P16LE,
+        AVPixelFormat.AV_PIX_FMT_P416LE => AVPixelFormat.AV_PIX_FMT_YUV444P16LE,
+        _ => AVPixelFormat.AV_PIX_FMT_NONE,
+    };
+
+    private VideoFrame ConvertToPlanar(
+        AVFrame* input,
+        int width,
+        int height,
+        AVPixelFormat inputFormat,
+        AVPixelFormat planarFormat,
+        VideoPixelFormat layout)
+    {
+        EnsureScaler(width, height, inputFormat, planarFormat, input->colorspace, input->color_range);
+
+        VideoFrame target = pool.Rent(width, height, layout);
+
+        int converted = Scale(input, target);
+        if (converted < 0)
+        {
+            target.Release();
+            throw new FfmpegException($"sws_scale_frame failed: {FfmpegError.Describe(converted)}", converted);
+        }
+
+        return target;
+    }
+
+    /// <summary>
+    /// Converts <paramref name="input"/> together with the alpha picture decoded beside it, viewed
+    /// as one frame with an alpha plane, or returns null when no alpha picture accompanies it.
+    /// </summary>
+    private VideoFrame ConvertWithAlpha(AVFrame* input, AVPixelFormat format, int width, int height, out AVPixelFormat alphaFormat)
+    {
+        alphaFormat = format switch
+        {
+            AVPixelFormat.AV_PIX_FMT_YUV420P => AVPixelFormat.AV_PIX_FMT_YUVA420P,
+            AVPixelFormat.AV_PIX_FMT_YUV422P => AVPixelFormat.AV_PIX_FMT_YUVA422P,
+            AVPixelFormat.AV_PIX_FMT_YUV444P => AVPixelFormat.AV_PIX_FMT_YUVA444P,
+            AVPixelFormat.AV_PIX_FMT_YUV420P10LE => AVPixelFormat.AV_PIX_FMT_YUVA420P10LE,
+            AVPixelFormat.AV_PIX_FMT_YUV422P10LE => AVPixelFormat.AV_PIX_FMT_YUVA422P10LE,
+            AVPixelFormat.AV_PIX_FMT_YUV444P10LE => AVPixelFormat.AV_PIX_FMT_YUVA444P10LE,
+            _ => AVPixelFormat.AV_PIX_FMT_NONE,
+        };
+        if (alphaFormat == AVPixelFormat.AV_PIX_FMT_NONE)
+            return null;
+
+        long timestamp = input->best_effort_timestamp != AV_NOPTS_VALUE ? input->best_effort_timestamp : input->pts;
+        AVFrame* alpha = alphaAdditionDecoder.Take(timestamp);
+        if (alpha == null)
+            return null;
+
+        try
+        {
+            if (alpha->width != width || alpha->height != height || alpha->buf[0] == null || input->buf[0] == null)
+                return null;
+
+            if (alphaComposite == null)
+                alphaComposite = av_frame_alloc();
+            if (alphaComposite == null)
+                throw new FfmpegException("av_frame_alloc returned null", 0);
+
+            // A view over both pictures: the color planes and buffers of the main frame, the alpha
+            // picture's luma as the fourth plane, each buffer referenced so the view keeps them alive.
+            av_frame_unref(alphaComposite);
+            FfmpegError.ThrowIfError(av_frame_copy_props(alphaComposite, input), "av_frame_copy_props");
+            alphaComposite->format = (int)alphaFormat;
+            alphaComposite->width = width;
+            alphaComposite->height = height;
+            uint slot = 0;
+            for (uint plane = 0; plane < 3; plane++)
+            {
+                alphaComposite->data[plane] = input->data[plane];
+                alphaComposite->linesize[plane] = input->linesize[plane];
+            }
+            alphaComposite->data[3] = alpha->data[0];
+            alphaComposite->linesize[3] = alpha->linesize[0];
+            for (uint buffer = 0; buffer < 7; buffer++)
+            {
+                if (input->buf[buffer] != null)
+                    alphaComposite->buf[slot++] = av_buffer_ref(input->buf[buffer]);
+            }
+            alphaComposite->buf[slot] = av_buffer_ref(alpha->buf[0]);
+            try
+            {
+                return ConvertToBgra(alphaComposite, width, height, alphaFormat);
+            }
+            finally
+            {
+                av_frame_unref(alphaComposite);
+            }
+        }
+        finally
+        {
+            av_frame_free(&alpha);
+        }
+    }
+
     private VideoFrame ConvertToBgra(AVFrame* input, int width, int height, AVPixelFormat inputFormat)
     {
-        EnsureScaler(width, height, inputFormat, input->colorspace, input->color_range);
+        EnsureScaler(width, height, inputFormat, AVPixelFormat.AV_PIX_FMT_BGRA, input->colorspace, input->color_range);
 
         VideoFrame target = pool.Rent(width, height, VideoPixelFormat.Bgra32);
 
@@ -2030,9 +2255,13 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
 
         scaled->width = target.Width;
         scaled->height = target.Height;
-        scaled->format = (int)AVPixelFormat.AV_PIX_FMT_BGRA;
-        scaled->data[0] = (byte*)target.Data;
-        scaled->linesize[0] = target.Stride;
+        scaled->format = (int)scalerOutputFormat;
+        for (int plane = 0; plane < target.PlaneCount; plane++)
+        {
+            scaled->data[(uint)plane] = (byte*)target.GetPlane(plane);
+            scaled->linesize[(uint)plane] = target.GetStride(plane);
+        }
+
         scaled->buf[0] = wrapper;
 
         int ret = sws_scale_frame(scaler, scaled, input);
@@ -2045,12 +2274,13 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
     {
     }
 
-    private void EnsureScaler(int width, int height, AVPixelFormat format, AVColorSpace colorSpace, AVColorRange colorRange)
+    private void EnsureScaler(int width, int height, AVPixelFormat format, AVPixelFormat outputFormat, AVColorSpace colorSpace, AVColorRange colorRange)
     {
         if (scaler != null &&
             scalerWidth == width &&
             scalerHeight == height &&
             scalerInputFormat == format &&
+            scalerOutputFormat == outputFormat &&
             scalerColorSpace == (int)colorSpace &&
             scalerColorRange == (int)colorRange)
         {
@@ -2069,7 +2299,7 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         if (created == null)
             throw new FfmpegException("sws_alloc_context returned null", 0);
 
-        int ret = ConfigureScaler(created, width, height, format, ScalerThreadCount(height));
+        int ret = ConfigureScaler(created, width, height, format, outputFormat, ScalerThreadCount(height));
         if (ret >= 0)
             ret = sws_init_context(created, null, null);
 
@@ -2083,13 +2313,16 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         scalerWidth = width;
         scalerHeight = height;
         scalerInputFormat = format;
+        scalerOutputFormat = outputFormat;
         scalerColorSpace = (int)colorSpace;
         scalerColorRange = (int)colorRange;
 
-        ApplyColorSpace(colorSpace, colorRange);
+        // A planar repack keeps the samples' own range; only the RGB conversion decodes the matrix.
+        if (outputFormat == AVPixelFormat.AV_PIX_FMT_BGRA)
+            ApplyColorSpace(colorSpace, colorRange);
     }
 
-    private static int ConfigureScaler(SwsContext* context, int width, int height, AVPixelFormat format, int threads)
+    private static int ConfigureScaler(SwsContext* context, int width, int height, AVPixelFormat format, AVPixelFormat outputFormat, int threads)
     {
         int ret;
         if ((ret = av_opt_set_int(context, "srcw", width, 0)) < 0 ||
@@ -2097,7 +2330,7 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
             (ret = av_opt_set_pixel_fmt(context, "src_format", format, 0)) < 0 ||
             (ret = av_opt_set_int(context, "dstw", width, 0)) < 0 ||
             (ret = av_opt_set_int(context, "dsth", height, 0)) < 0 ||
-            (ret = av_opt_set_pixel_fmt(context, "dst_format", AVPixelFormat.AV_PIX_FMT_BGRA, 0)) < 0 ||
+            (ret = av_opt_set_pixel_fmt(context, "dst_format", outputFormat, 0)) < 0 ||
             (ret = av_opt_set_int(context, "sws_flags", ScalerFlags, 0)) < 0 ||
             (ret = av_opt_set_int(context, "threads", threads, 0)) < 0)
         {
@@ -2173,6 +2406,14 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         ReleaseCodec(codec);
         enhancementDecoder?.Dispose();
         enhancementDecoder = null;
+        alphaAdditionDecoder?.Dispose();
+        alphaAdditionDecoder = null;
+        if (alphaComposite != null)
+        {
+            AVFrame* handle = alphaComposite;
+            av_frame_free(&handle);
+            alphaComposite = null;
+        }
 
         if (codecParameters != null)
         {

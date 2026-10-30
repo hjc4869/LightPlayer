@@ -1413,6 +1413,7 @@ public sealed class RemoteApiServer : IDisposable
         }
 
         byte[]? preview;
+        bool remember = true;
         try
         {
             preview = await Task.Run(
@@ -1427,11 +1428,16 @@ public sealed class RemoteApiServer : IDisposable
         {
             AppLog.Warning("Photo", $"Could not create preview for {path}.", exception);
             preview = null;
+            remember = !VideoPreviewFactory.IsTransientFailure(exception);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        await thumbnails.SetAsync(ThumbnailCacheKind.Photo, path, preview, cancellationToken)
-            .ConfigureAwait(false);
+        if (remember)
+        {
+            await thumbnails.SetAsync(ThumbnailCacheKind.Photo, path, preview, cancellationToken)
+                .ConfigureAwait(false);
+        }
+
         return preview;
     }
 

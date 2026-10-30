@@ -154,7 +154,7 @@ internal sealed unsafe partial class StillImageHardwareDecoder : IDisposable
         return true;
     }
 
-    private static bool ParametersMatch(AVCodecParameters* first, AVCodecParameters* second) =>
+    internal static bool ParametersMatch(AVCodecParameters* first, AVCodecParameters* second) =>
         first->codec_id == second->codec_id && first->codec_tag == second->codec_tag &&
         first->format == second->format && first->width == second->width && first->height == second->height &&
         first->profile == second->profile && first->level == second->level &&

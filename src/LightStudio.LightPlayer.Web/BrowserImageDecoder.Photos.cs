@@ -1,5 +1,7 @@
 using System.Runtime.Versioning;
 using Avalonia;
+using Avalonia.Media;
+using LightMediaRenderer.Avalonia.Controls;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.Engine;
 using LightStudio.FfmpegShim.Media;
@@ -11,10 +13,28 @@ namespace LightStudio.LightPlayer.Web;
 internal sealed partial class BrowserImageDecoder
 {
     internal static async Task<VideoFrame?> DecodePhotoAsync(string path, Func<CancellationToken, Task<Stream>>? openSource,
-        IProgress<Size>? displaySize, CancellationToken cancellationToken, PhotoPreviewRequest? preview = null, bool? renderRaw = null)
+        IProgress<Size>? displaySize, CancellationToken cancellationToken, PhotoPreviewRequest? preview = null, bool? renderRaw = null,
+        bool wholeImage = false)
     {
         BrowserPhoto? opened = await BrowserMediaOperations.OpenPhotoAsync(
-            BrowserSessionInput.Describe(path, openSource), cancellationToken, preview, renderRaw, displaySize);
+            BrowserSessionInput.Describe(path, openSource), cancellationToken, preview, renderRaw, displaySize, wholeImage);
+        return await CreatePhotoAsync(opened, preview is null ? displaySize : null, cancellationToken);
+    }
+
+    public async Task<IImage?> DecodeThumbnailAsync(byte[] content, int width, CancellationToken cancellationToken)
+    {
+        BrowserPhoto? opened = await BrowserMediaOperations.OpenPhotoAsync(new MemoryMediaInput("thumbnail", content),
+            cancellationToken, wholeImage: true, thumbnailWidth: width);
+        VideoFrame? frame = await CreatePhotoAsync(opened, null, cancellationToken);
+        if (frame is null)
+            return null;
+        try { return new PhotoFrameImage(frame); }
+        finally { frame.Release(); }
+    }
+
+    private static async Task<VideoFrame?> CreatePhotoAsync(BrowserPhoto? opened, IProgress<Size>? displaySize,
+        CancellationToken cancellationToken)
+    {
         if (opened is null)
             return null;
         var owner = new BrowserPhotoLifetime(opened);
@@ -23,9 +43,8 @@ internal sealed partial class BrowserImageDecoder
         {
             WirePhoto photo = owner.Photo.Description;
             WirePhotoImage image = photo.Base;
-            if (preview is null)
-                displaySize?.Report(image.Rotation % 180 == 0 ? new Size(image.Width * image.PixelAspect, image.Height) :
-                    new Size(image.Height, image.Width * image.PixelAspect));
+            displaySize?.Report(image.Rotation % 180 == 0 ? new Size(image.Width * image.PixelAspect, image.Height) :
+                new Size(image.Height, image.Width * image.PixelAspect));
             var gain = WirePhotoFrames.HasGainMap(photo);
             var profile = WirePhotoFrames.BaseProfile(photo);
             frame = CreatePicture(owner, image, profile, gain, false);

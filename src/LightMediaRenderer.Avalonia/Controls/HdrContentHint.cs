@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
@@ -7,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Platform;
 using Avalonia.VisualTree;
 using LightMediaRenderer.Contracts;
+using LightMediaRenderer.Avalonia.Rendering;
 using LightStudio.FfmpegShim.Media;
 
 namespace LightMediaRenderer.Avalonia.Controls;
@@ -16,7 +18,8 @@ internal sealed class HdrContentHint
     internal readonly record struct Metadata(
         double? HeadroomRatio = null,
         double? ReferenceWhiteNits = null,
-        VideoLuminance? MasteringLuminance = null);
+        VideoLuminance? MasteringLuminance = null,
+        VideoSdrToneMappingOptions? ToneMapping = null);
 
     private static readonly ConditionalWeakTable<TopLevel, SurfaceHints> requests = new();
     private readonly Control control;
@@ -40,7 +43,10 @@ internal sealed class HdrContentHint
         frame.GainMap is not null || frame.DolbyVision.IsPresent ||
         frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
 
-    public static Metadata Describe(VideoFrame frame)
+    public static Metadata Describe(VideoFrame frame, VideoSdrToneMappingOptions? toneMapping = null) =>
+        DescribeSource(frame) with { ToneMapping = toneMapping };
+
+    private static Metadata DescribeSource(VideoFrame frame)
     {
         double white = VideoOutputColorSpaceExtensions.HdrReferenceWhiteNits;
         double? peak;
@@ -90,7 +96,8 @@ internal sealed class HdrContentHint
         double? maximum = Maximum(previous.MasteringLuminance?.MaximumNits * firstScale,
             second.MasteringLuminance?.MaximumNits * secondScale);
         return new Metadata(Maximum(previous.HeadroomRatio, second.HeadroomRatio), white,
-            minimum is not null || maximum is not null ? new VideoLuminance(minimum, maximum) : null);
+            minimum is not null || maximum is not null ? new VideoLuminance(minimum, maximum) : null,
+            previous.ToneMapping == second.ToneMapping ? previous.ToneMapping : null);
     }
 
     public void Update(bool value, Metadata? sourceMetadata = null)
@@ -203,6 +210,9 @@ internal sealed class HdrContentHint
         public HashSet<HdrContentHint> Active { get; } = new();
         private Metadata? published;
         private bool enabled;
+#if LMR_AVALONIA_FORK
+        private Metadata[] outputSources = [];
+#endif
 
         public void Publish(TopLevel topLevel)
         {
@@ -210,6 +220,17 @@ internal sealed class HdrContentHint
             Metadata? combined = null;
             foreach (HdrContentHint hint in Active)
                 combined = Combine(combined, hint.metadata ?? new Metadata());
+#if LMR_AVALONIA_FORK
+            if (topLevel.PlatformImpl?.TryGetFeature<IPlatformHdrOutputFeature>() is { } outputFeature)
+            {
+                Metadata[] sources = Active.Select(hint => hint.metadata ?? new Metadata()).ToArray();
+                if (!sources.AsSpan().SequenceEqual(outputSources))
+                {
+                    outputFeature.SetHdrOutput(sources.Length > 0 ? new OutputMetadata(sources) : null);
+                    outputSources = sources;
+                }
+            }
+#endif
             if (enabled == hasContent && published == combined)
                 return;
 #if LMR_AVALONIA_FORK
@@ -226,4 +247,33 @@ internal sealed class HdrContentHint
             published = combined;
         }
     }
+
+#if LMR_AVALONIA_FORK
+    private sealed class OutputMetadata(Metadata[] sources) : IPlatformHdrOutputMetadataProvider
+    {
+        public PlatformHdrContentMetadata? GetOutputMetadata(PlatformSurfaceColorVolume? colorVolume)
+        {
+            VideoOutputColorVolume? volume = AvaloniaVideoOutput.ToRendererColorVolume(colorVolume);
+            double headroom = 1;
+            if (volume?.ReferenceWhiteScale is > 0 and var scale && double.IsFinite(scale))
+            {
+                if (volume?.ToneMapping == VideoToneMappingMode.Client)
+                    headroom = VideoOutputColorSpace.ScRgbLinear.ResolveDisplayToneTarget(true, volume).Headroom;
+                else if (volume?.ToneMapping == VideoToneMappingMode.Platform)
+                {
+                    foreach (Metadata source in sources)
+                    {
+                        double peak = (source.HeadroomRatio ?? 1000 / VideoOutputColorSpaceExtensions.HdrReferenceWhiteNits) *
+                            VideoOutputColorSpaceExtensions.HdrReferenceWhiteNits;
+                        VideoHdrOutputMapping output = VideoOutputColorSpace.ScRgbLinear.ResolveHdrOutput(
+                            peak, true, source.ToneMapping, componentGain: 1, colorVolume: volume);
+                        headroom = Math.Max(headroom, output.ToneMapPeakNits / output.LinearNitsPerUnit);
+                    }
+                }
+            }
+            double white = VideoOutputColorSpaceExtensions.HdrReferenceWhiteNits;
+            return new PlatformHdrContentMetadata(headroom, white, new PlatformLuminanceRange(0, headroom * white));
+        }
+    }
+#endif
 }

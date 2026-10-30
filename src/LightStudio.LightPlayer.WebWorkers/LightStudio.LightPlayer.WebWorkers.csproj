@@ -21,11 +21,6 @@
     <WasmBitcodeCompileOptimizationFlag>-O3</WasmBitcodeCompileOptimizationFlag>
     <EmccLinkOptimizationFlag>-O3</EmccLinkOptimizationFlag>
     <EmccCompileOptimizationFlag>-O3</EmccCompileOptimizationFlag>
-    <!--
-      CoreLib's Lock needs distinct thread IDs; the native wrapper uses Emscripten's pthread_self().
-      Review this override after upgrading the .NET runtime: https://github.com/dotnet/runtime/issues/129900
-    -->
-    <EmccExtraLDFlags>$(EmccExtraLDFlags) -Wl,--wrap=SystemNative_TryGetUInt32OSThreadId</EmccExtraLDFlags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -54,6 +49,7 @@
     <Compile Include="..\LightStudio.LightPlayer\Services\PhotoDecoder.ExportMetadata.cs" Link="Photos\PhotoDecoder.ExportMetadata.cs" />
     <!-- The apps' save pipeline, so a photo saved here comes out the same. -->
     <Compile Include="..\LightStudio.LightPlayer\Services\PhotoExport\*.cs" Link="PhotoExport\%(Filename)%(Extension)" />
+    <Compile Include="..\LightStudio.LightPlayer\Services\PhotoThumbnailEncoder.cs" Link="Photos\PhotoThumbnailEncoder.cs" />
   </ItemGroup>
 
   <Target Name="SelectWorkerImageCodec" BeforeTargets="PrepareForBuild"
@@ -65,6 +61,7 @@
   </Target>
 
   <Import Project="../../build/WasmWorkerRuntime.targets" />
+  <Import Project="../../build/WasmThreadIdentity.targets" />
   <PropertyGroup>
     <NativeBindingsEnabled>true</NativeBindingsEnabled>
   </PropertyGroup>

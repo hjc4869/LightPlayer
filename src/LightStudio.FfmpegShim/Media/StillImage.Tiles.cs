@@ -118,7 +118,7 @@ public static unsafe partial class StillImage
             var result = new TileSource(tiles.ToArray(), grid->width, grid->height, rotation, mirror,
                 profile, (int)primary->color_primaries, (int)primary->color_trc,
                 properties?.Get((uint)mosaic->id)?.PixelAspectRatio is > 0 and var aspect ? aspect :
-                    Utils.RationalToDouble(ReadSampleAspectRatio(metadata, primary)));
+                    Utils.RationalToDouble(ReadSampleAspectRatio(metadata, primary))) { ItemColor = properties != null };
             tiles.Clear();
             AppLog.Information("Photo.Decoding", $"Opened {result.Width}x{result.Height} photo tiles: " +
                 $"tiles={result.Count}, encodedBytes={result.EncodedBytes}, " +
@@ -202,7 +202,7 @@ public static unsafe partial class StillImage
                     properties?.Get((uint)format->streams[index]->id)?.PixelAspectRatio is > 0 and var aspect ? aspect :
                         densityAspect > 0 ? densityAspect :
                         original->sample_aspect_ratio.num > 0 && original->sample_aspect_ratio.den > 0
-                            ? Utils.RationalToDouble(original->sample_aspect_ratio) : 1);
+                            ? Utils.RationalToDouble(original->sample_aspect_ratio) : 1) { ItemColor = properties != null };
                 retained = true;
                 return source;
             }
@@ -219,6 +219,7 @@ public static unsafe partial class StillImage
     {
         private readonly EncodedTile[] tiles;
         private StillImageHardwareDecoder hardware;
+        private SoftwareTileDecoders software;
         private bool initialized;
         private bool disposed;
 
@@ -253,6 +254,10 @@ public static unsafe partial class StillImage
         public int Count => tiles.Length;
         public long EncodedBytes { get; }
         public bool HasScaledOverview { get; }
+
+        /// <summary>Whether the tiles are ISOBMFF items, whose <c>colr</c> property overrides their bitstreams.</summary>
+        internal bool ItemColor { get; init; }
+
         public bool AlwaysPreferMemory => true;
         public PhotoTileBounds GetBounds(int index) => index == -1 && HasScaledOverview
             ? new PhotoTileBounds(0, 0, Width, Height) : tiles[index].Bounds;
@@ -375,16 +380,20 @@ public static unsafe partial class StillImage
                 AVStream item = default;
                 item.codecpar = parameters;
                 item.time_base = new AVRational { num = 1, den = 1 };
-                bool success = TryDecodeTile(&item, (AVPacket*)tile.Packet, decoded, decoder, 0, preserveHardware: true, reduction);
+                bool success = TryDecodeTile(&item, (AVPacket*)tile.Packet, decoded, decoder, 0, preserveHardware: true, reduction,
+                    decoder == null ? software ??= new SoftwareTileDecoders(1) : null);
                 if (!success && decoder != null)
                 {
                     hardwareFailed = true;
                     av_frame_unref(decoded);
-                    success = TryDecodeTile(&item, (AVPacket*)tile.Packet, decoded, null, 0, reduction: reduction);
+                    success = TryDecodeTile(&item, (AVPacket*)tile.Packet, decoded, null, 0, reduction: reduction,
+                        software: software ??= new SoftwareTileDecoders(1));
                 }
                 if (!success)
                     throw new InvalidDataException($"Could not decode photo tile {index}.");
                 cancellationToken.ThrowIfCancellationRequested();
+                if (ItemColor)
+                    ApplyItemColor(decoded, parameters);
                 VideoFrame frame = RetainNative(decoded, parameters)
                     ?? throw new InvalidDataException("Unsupported photo tile layout.");
                 try
@@ -410,6 +419,8 @@ public static unsafe partial class StillImage
                     return;
                 disposed = true;
                 ReleaseHardware();
+                software?.Dispose();
+                software = null;
                 foreach (EncodedTile tile in tiles)
                     tile.Dispose();
             }

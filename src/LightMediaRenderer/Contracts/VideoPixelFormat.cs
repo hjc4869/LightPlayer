@@ -186,8 +186,11 @@ public readonly record struct VideoPlanarLayout(
     bool SwappedChroma,
     bool MsbAligned)
 {
-    /// <summary>The layout used for packed formats, which have no chroma planes to describe.</summary>
-    public static VideoPlanarLayout Packed { get; } = new(1, 0, 0, 8, 4, false, false, false);
+    /// <summary>
+    /// The layout used for packed formats, which have no chroma planes to describe; their four
+    /// samples per pixel share one container width.
+    /// </summary>
+    public static VideoPlanarLayout Packed { get; } = new(1, 0, 0, 8, 1, false, false, false);
 
     /// <summary>The layout used for frames that carry no CPU-side planes at all.</summary>
     public static VideoPlanarLayout None { get; } = new(0, 0, 0, 8, 0, false, false, false);
@@ -241,7 +244,7 @@ public readonly record struct VideoPlanarLayout(
         VideoPixelFormat.Yuv444p16 => Planar(16, 2, 0, 0),
 
         VideoPixelFormat.ExternalTexture => None,
-        VideoPixelFormat.Rgba64 or VideoPixelFormat.RgbaF16 => new(1, 0, 0, 16, 8, false, false, false),
+        VideoPixelFormat.Rgba64 or VideoPixelFormat.RgbaF16 => new(1, 0, 0, 16, 2, false, false, false),
         _ => Packed,
     };
 
