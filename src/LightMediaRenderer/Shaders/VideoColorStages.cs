@@ -52,6 +52,8 @@ internal readonly record struct DolbyVisionCurveShape
 internal static class VideoColorStages
 {
     // Keep color equations in sync with ../Software/VideoCpuColorPipeline.cs and ../Software/VideoCpuPreview.cs.
+    // The PQ decoders copy the signal into a local, which GLSL ES keeps highp. An inlined mediump
+    // sample would otherwise run the power at 16 bits on many mobile GPUs, which PQ turns into bands.
     /// <summary>Transfer functions, needed by any stage that works in light rather than in signal.</summary>
     public const string LinearHelpers = """
         float pqToNits(float signal) {
@@ -60,7 +62,8 @@ internal static class VideoColorStages
             const float c1 = 0.8359375;
             const float c2 = 18.8515625;
             const float c3 = 18.6875;
-            float power = pow(max(signal, 0.0), 1.0 / m2);
+            float value = max(signal, 0.0);
+            float power = pow(value, 1.0 / m2);
             float level = max(power - c1, 0.0) / max(c2 - c3 * power, 1e-6);
             return 10000.0 * pow(level, 1.0 / m1);
         }
@@ -71,7 +74,8 @@ internal static class VideoColorStages
             const float c1 = 0.8359375;
             const float c2 = 18.8515625;
             const float c3 = 18.6875;
-            float3 power = pow(max(signal, float3(0.0)), float3(1.0 / m2));
+            float3 value = max(signal, float3(0.0));
+            float3 power = pow(value, float3(1.0 / m2));
             float3 level = max(power - float3(c1), float3(0.0))
                 / max(float3(c2) - c3 * power, float3(1e-6));
             return 10000.0 * pow(level, float3(1.0 / m1));
@@ -185,16 +189,18 @@ internal static class VideoColorStages
     // images and the matrix rather than into the program.
     public const string SamplePlanar = """
         float3 sampleSource(float2 coord) {
-            return float3(
+            float3 sample = float3(
                 float(luma.eval(coord).a),
                 float(cb.eval(coord).a),
                 float(cr.eval(coord).a));
+            return sample;
         }
         """;
 
     public const string SampleInterleaved = """
         float3 sampleSource(float2 coord) {
-            return float3(float(luma.eval(coord).a), float2(chroma.eval(coord).rg));
+            float3 sample = float3(float(luma.eval(coord).a), float2(chroma.eval(coord).rg));
+            return sample;
         }
         """;
 
@@ -206,78 +212,129 @@ internal static class VideoColorStages
 
     public const string SamplePlanarClamped = ClampPlaneCoordinates + """
         float3 sampleSource(float2 coord) {
-            return float3(
+            float3 sample = float3(
                 float(luma.eval(planeCoord(coord, lumaBounds)).a),
                 float(cb.eval(planeCoord(coord, chromaBounds)).a),
                 float(cr.eval(planeCoord(coord, chromaBounds)).a));
+            return sample;
         }
         """;
 
     public const string SampleInterleavedClamped = ClampPlaneCoordinates + """
         float3 sampleSource(float2 coord) {
-            return float3(
+            float3 sample = float3(
                 float(luma.eval(planeCoord(coord, lumaBounds)).a),
                 float2(chroma.eval(planeCoord(coord, chromaBounds)).rg));
+            return sample;
         }
         """;
 
-    // Backends without a 16-bit texture format take those planes as byte pairs instead. Rebuilding
-    // the sample is a linear function of the two bytes, and bilinear filtering is itself linear, so
-    // filtering the bytes separately and combining them afterwards lands on the same value the
-    // hardware would have reached filtering whole samples: the loss is precision, not correctness.
-    public const string SampleWidePlanar = """
+    // Backends without a faithful 16-bit texture format, and those whose shader samples are 16-bit floats,
+    // take 16-bit samples as byte pairs. Rebuilding a sample is a linear function of its two bytes, and
+    // bilinear filtering is itself linear, so where samples keep 32 bits the sampler may blend the bytes
+    // and the sum still lands on the blended sample.
+    private const string WideFilteredHelpers = """
         float wide(float2 pair) {
-            return dot(pair, float2(255.0, 65280.0) / 65535.0);
+            float2 bytes = pair;
+            return dot(bytes, float2(255.0, 65280.0) / 65535.0);
         }
 
-        float3 sampleSource(float2 coord) {
-            return float3(
-                wide(float2(luma.eval(coord).rg)),
-                wide(float2(cb.eval(coord).rg)),
-                wide(float2(cr.eval(coord).rg)));
+        float2 widePairs(float4 pairs) {
+            return float2(wide(pairs.rg), wide(pairs.ba));
         }
+
         """;
 
-    public const string SampleWideInterleaved = """
+    // A 16-bit float carries a blended byte to only 11 significant bits. Read at its own texel, though, a
+    // byte comes back within a fraction of a code, so rounding restores it exactly, and the bytes are
+    // combined at full precision. A sample the picture is interpolated from is then read at its four
+    // nearest texels and blended here rather than by the sampler.
+    private const string WideRoundedHelpers = """
         float wide(float2 pair) {
-            return dot(pair, float2(255.0, 65280.0) / 65535.0);
+            float2 bytes = floor(pair * 255.0 + 0.5);
+            float value = bytes.x + bytes.y * 256.0;
+            return value / 65535.0;
         }
 
+        float2 widePairs(float4 pairs) {
+            return float2(wide(pairs.rg), wide(pairs.ba));
+        }
+
+        """;
+
+    /// <summary>
+    /// The SkSL that reads byte-pair planes, filtered by the sampler or, when <paramref name="rounded"/>,
+    /// read texel by texel. A rounded plane marked linear is interpolated from its texels, which
+    /// <c>lumaTexel</c> or <c>chromaTexel</c> locate as <c>coord * xy + zw</c>.
+    /// </summary>
+    public static string SampleWide(bool interleaved, bool clampToVisible, bool rounded, bool lumaLinear, bool chromaLinear)
+    {
+        string? lumaBounds = clampToVisible ? "lumaBounds" : null;
+        string? chromaBounds = clampToVisible ? "chromaBounds" : null;
+        return (clampToVisible ? ClampPlaneCoordinates + "\n" : "") + (rounded ? WideRoundedHelpers : WideFilteredHelpers) +
+            WideRead("Luma", "lumaTexel", "float", lumaLinear, lumaBounds, at => $"wide(float2(luma.eval({at}).rg))") +
+            WideRead("Chroma", "chromaTexel", "float2", chromaLinear, chromaBounds, interleaved
+                ? at => $"widePairs(float4(chroma.eval({at})))"
+                : at => $"float2(wide(float2(cb.eval({at}).rg)), wide(float2(cr.eval({at}).rg)))") +
+            """
+            float3 sampleSource(float2 coord) {
+                return float3(sampleLuma(coord), sampleChroma(coord));
+            }
+            """;
+    }
+
+    /// <summary>
+    /// The SkSL that reads 16-bit RGBA taken apart into 8-bit RGBA twice as wide, red and green byte pairs
+    /// in the even texel and blue and alpha in the odd one. The image is scaled into the picture's
+    /// coordinates, so the two texels of a pixel sit a quarter of a pixel either side of its center. A
+    /// sampler would blend the two, so pixels are always read texel by texel.
+    /// </summary>
+    public static string SampleWidePacked(bool linear) => WideRoundedHelpers + """
+        float4 widePixel(float2 coord) {
+            float2 center = floor(coord) + 0.5;
+            float4 even = float4(image.eval(center - float2(0.25, 0.0)));
+            float4 odd = float4(image.eval(center + float2(0.25, 0.0)));
+            return float4(widePairs(even), widePairs(odd));
+        }
+
+        """ + WideRead("Pixel", "imageTexel", "float4", linear, null, at => $"widePixel({at})") + """
         float3 sampleSource(float2 coord) {
-            float4 pairs = float4(chroma.eval(coord));
-            return float3(
-                wide(float2(luma.eval(coord).rg)),
-                wide(pairs.rg),
-                wide(pairs.ba));
+            return samplePixel(coord).rgb;
+        }
+
+        float sampleAlpha(float2 coord) {
+            return samplePixel(coord).a;
         }
         """;
 
-    public const string SampleWidePlanarClamped = ClampPlaneCoordinates + """
-        float wide(float2 pair) {
-            return dot(pair, float2(255.0, 65280.0) / 65535.0);
+    private static string WideRead(string name, string texel, string type, bool linear, string? bounds,
+        System.Func<string, string> read)
+    {
+        string At(string coord) => read(bounds is null ? coord : $"planeCoord({coord}, {bounds})");
+        if (!linear)
+        {
+            return $$"""
+                {{type}} sample{{name}}(float2 coord) {
+                    return {{At("coord")}};
+                }
+
+                """;
         }
 
-        float3 sampleSource(float2 coord) {
-            return float3(
-                wide(float2(luma.eval(planeCoord(coord, lumaBounds)).rg)),
-                wide(float2(cb.eval(planeCoord(coord, chromaBounds)).rg)),
-                wide(float2(cr.eval(planeCoord(coord, chromaBounds)).rg)));
-        }
-        """;
+        return $$"""
+            {{type}} sample{{name}}(float2 coord) {
+                float2 position = coord * {{texel}}.xy + {{texel}}.zw - 0.5;
+                float2 cell = floor(position);
+                float2 weight = position - cell;
+                float2 pitch = 1.0 / {{texel}}.xy;
+                float2 origin = (cell + 0.5 - {{texel}}.zw) * pitch;
+                {{type}} upper = mix({{At("origin")}}, {{At("origin + float2(pitch.x, 0.0)")}}, weight.x);
+                {{type}} lower = mix({{At("origin + float2(0.0, pitch.y)")}}, {{At("origin + pitch")}}, weight.x);
+                return mix(upper, lower, weight.y);
+            }
 
-    public const string SampleWideInterleavedClamped = ClampPlaneCoordinates + """
-        float wide(float2 pair) {
-            return dot(pair, float2(255.0, 65280.0) / 65535.0);
-        }
-
-        float3 sampleSource(float2 coord) {
-            float4 pairs = float4(chroma.eval(planeCoord(coord, chromaBounds)));
-            return float3(
-                wide(float2(luma.eval(planeCoord(coord, lumaBounds)).rg)),
-                wide(pairs.rg),
-                wide(pairs.ba));
-        }
-        """;
+            """;
+    }
 
     public const string SampleInterlacedChroma = """
 
@@ -315,7 +372,13 @@ internal static class VideoColorStages
 
     public const string SamplePacked = """
         float3 sampleSource(float2 coord) {
-            return float4(image.eval(coord)).rgb;
+            float4 sample = float4(image.eval(coord));
+            return sample.rgb;
+        }
+
+        float sampleAlpha(float2 coord) {
+            float alpha = float(image.eval(coord).a);
+            return alpha;
         }
         """;
 
@@ -327,7 +390,8 @@ internal static class VideoColorStages
 
     public const string SamplePreviousFrame = """
         float3 samplePrevious(float2 coord) {
-            return float4(previousSamples.eval(coord)).rgb;
+            float4 sample = float4(previousSamples.eval(coord));
+            return sample.rgb;
         }
         """;
 
@@ -468,7 +532,8 @@ internal static class VideoColorStages
 
     public const string DecodeSignalSource = """
         float3 decodeSignal(float2 coord) {
-            return clamp(float4(source.eval(coord)).rgb, 0.0, 1.0);
+            float4 sample = float4(source.eval(coord));
+            return clamp(sample.rgb, 0.0, 1.0);
         }
         """;
 
@@ -548,6 +613,36 @@ internal static class VideoColorStages
                 hlgToScene(signal.r),
                 hlgToScene(signal.g),
                 hlgToScene(signal.b));
+            float luminance = max(dot(sourceLuma.xyz, scene), 0.0);
+            return scene * pow(max(luminance, 1e-6), sourceLuma.w - 1.0) * transferParams.x;
+        }
+        """;
+
+    /// <summary>
+    /// Apple Log decoded to scene reflectance, placed so that reflectance 1 is HLG reference white
+    /// (BT.2408), with the highlights above twice that rolled into HLG's range, then shown through
+    /// the HLG OOTF.
+    /// </summary>
+    public const string TransferAppleLog = """
+        float3 appleLogToScene(float3 signal) {
+            const float r0 = -0.05641088;
+            const float c = 47.28711236;
+            const float beta = 0.00964052;
+            const float gamma = 0.08550479;
+            const float delta = 0.69336945;
+            const float pt = 0.20855532;
+            float3 logSegment = exp2((signal - delta) / gamma) - beta;
+            float3 rootSegment = sqrt(max(signal, 0.0) / c) + r0;
+            return mix(rootSegment, logSegment, step(pt, signal));
+        }
+
+        float3 decodeTransfer(float3 signal) {
+            const float referenceWhite = 0.26496256;
+            const float knee = 0.5;
+            const float shoulder = 1.62680319;
+            float3 scene = max(appleLogToScene(signal), 0.0) * referenceWhite;
+            float3 over = max(scene - knee, 0.0);
+            scene = min(scene, knee) + over / (1.0 + over * shoulder);
             float luminance = max(dot(sourceLuma.xyz, scene), 0.0);
             return scene * pow(max(luminance, 1e-6), sourceLuma.w - 1.0) * transferParams.x;
         }
@@ -736,7 +831,8 @@ internal static class VideoColorStages
     /// <summary>Reads one sample, leaving the filtering to whatever Skia was asked to do.</summary>
     public const string ScaleDirect = """
         float3 scaleScene(float2 coord) {
-            return float4(source.eval(coord)).rgb;
+            float4 sample = float4(source.eval(coord));
+            return sample.rgb;
         }
         """;
 

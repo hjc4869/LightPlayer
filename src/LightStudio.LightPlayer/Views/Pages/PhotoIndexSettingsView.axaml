@@ -115,7 +115,7 @@
                                      Header="{Binding Inference_Device, Source={x:Static strings:LocalizedStrings.Instance}}">
                     <controls:SettingRow.DescriptionContent>
                         <TextBlock Text="{Binding DeviceFallbackDescription}" TextWrapping="Wrap"
-                                   Classes="settingDescription" IsVisible="{Binding IsDeviceFallback}" FontSize="12" />
+                                   Classes="settingDescription" IsVisible="{Binding IsDeviceFallback}" FontSize="{DynamicResource AppSettingDescriptionFontSize}" />
                     </controls:SettingRow.DescriptionContent>
                     <controls:SettingRow.ActionContent>
                         <ComboBox x:Name="InferenceDeviceSelector" Width="160" ItemsSource="{Binding Status.Devices}"

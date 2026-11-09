@@ -14,6 +14,7 @@ internal enum VideoSourceVariant
     WideInterleaved,
     Packed,
     PackedYuv,
+    WidePacked,
 }
 
 /// <summary>
@@ -45,7 +46,11 @@ internal sealed class VideoPlaneSampler : IDisposable
         float[]? fieldChromaScale = null,
         float[]? fieldChromaSize = null,
         float[]? fieldLumaScale = null,
-        bool premultipliedAlpha = false)
+        bool premultipliedAlpha = false,
+        float[]? lumaTexel = null,
+        float[]? chromaTexel = null,
+        float[]? imageTexel = null,
+        bool texelByTexel = false)
     {
         Variant = variant;
         this.images = images;
@@ -60,6 +65,10 @@ internal sealed class VideoPlaneSampler : IDisposable
         FieldChromaSize = fieldChromaSize;
         FieldLumaScale = fieldLumaScale;
         PremultipliedAlpha = premultipliedAlpha;
+        LumaTexel = lumaTexel;
+        ChromaTexel = chromaTexel;
+        ImageTexel = imageTexel;
+        TexelByTexel = texelByTexel;
     }
 
     public VideoSourceVariant Variant { get; }
@@ -80,6 +89,18 @@ internal sealed class VideoPlaneSampler : IDisposable
 
     private bool PremultipliedAlpha { get; }
 
+    /// <summary>Where byte-pair luma texels lie, for a luma plane the shader interpolates itself.</summary>
+    private float[]? LumaTexel { get; }
+
+    /// <summary>Where byte-pair chroma texels lie, for chroma planes the shader interpolates itself.</summary>
+    private float[]? ChromaTexel { get; }
+
+    /// <summary>Where byte-pair pixels lie, for a packed image the shader interpolates itself.</summary>
+    private float[]? ImageTexel { get; }
+
+    /// <summary>Whether byte-pair planes are read texel by texel rather than filtered by the sampler.</summary>
+    private bool TexelByTexel { get; }
+
     /// <summary>The SkSL that reads this layout.</summary>
     public string Function
     {
@@ -91,17 +112,22 @@ internal sealed class VideoPlaneSampler : IDisposable
                         float4 sample = float4(image.eval(coord));
                         return sample.a > 0.0 ? sample.rgb / sample.a : float3(0.0);
                     }
+
+                    float sampleAlpha(float2 coord) {
+                        float alpha = float(image.eval(coord).a);
+                        return alpha;
+                    }
                     """;
             string function = (Variant, ClampToVisible) switch
             {
         (VideoSourceVariant.Planar, true) => VideoColorStages.SamplePlanarClamped,
         (VideoSourceVariant.Interleaved, true) => VideoColorStages.SampleInterleavedClamped,
-        (VideoSourceVariant.WidePlanar, true) => VideoColorStages.SampleWidePlanarClamped,
-        (VideoSourceVariant.WideInterleaved, true) => VideoColorStages.SampleWideInterleavedClamped,
         (VideoSourceVariant.Planar, false) => VideoColorStages.SamplePlanar,
         (VideoSourceVariant.Interleaved, false) => VideoColorStages.SampleInterleaved,
-        (VideoSourceVariant.WidePlanar, false) => VideoColorStages.SampleWidePlanar,
-        (VideoSourceVariant.WideInterleaved, false) => VideoColorStages.SampleWideInterleaved,
+        (VideoSourceVariant.WidePlanar or VideoSourceVariant.WideInterleaved, _) => VideoColorStages.SampleWide(
+            Variant == VideoSourceVariant.WideInterleaved, ClampToVisible, TexelByTexel, LumaTexel is not null,
+            ChromaTexel is not null),
+        (VideoSourceVariant.WidePacked, _) => VideoColorStages.SampleWidePacked(ImageTexel is not null),
         _ => VideoColorStages.SamplePacked,
             };
             if (FieldChromaScale is not null)
@@ -114,7 +140,7 @@ internal sealed class VideoPlaneSampler : IDisposable
     }
 
     /// <summary>Whether the samples still need the color matrix applied to them.</summary>
-    public bool NeedsColorMatrix => Variant != VideoSourceVariant.Packed;
+    public bool NeedsColorMatrix => Variant is not (VideoSourceVariant.Packed or VideoSourceVariant.WidePacked);
 
     public void AddSamplingUniforms(
         VideoShaderBuilder builder,
@@ -125,6 +151,9 @@ internal sealed class VideoPlaneSampler : IDisposable
         Add("fieldChromaScale", FieldChromaScale);
         Add("fieldChromaSize", FieldChromaSize);
         Add("fieldLumaScale", FieldLumaScale);
+        Add("lumaTexel", LumaTexel);
+        Add("chromaTexel", ChromaTexel);
+        Add("imageTexel", ImageTexel);
 
         void Add(string name, float[]? values)
         {
@@ -152,35 +181,44 @@ internal sealed class VideoPlaneSampler : IDisposable
     /// codec's own choosing, and often the other way up. The local matrix carries that, so the
     /// shader body still reads the picture at its own coordinates.
     /// </remarks>
+    /// <param name="bytePairs">
+    /// Whether <paramref name="image"/> holds 16-bit RGBA taken apart into 8-bit RGBA twice as wide.
+    /// </param>
     public static VideoPlaneSampler? CreatePacked(
         SKImage image,
         SKSamplingOptions sampling,
         VideoTextureRect source,
         VideoExternalTextureColorModel colorModel = VideoExternalTextureColorModel.Rgb,
-        SKPoint origin = default)
+        SKPoint origin = default,
+        bool bytePairs = false)
     {
-        SKMatrix local = SourceMatrix(source, image.Width, image.Height);
+        SKMatrix local = bytePairs
+            ? SKMatrix.CreateScale(0.5f, 1)
+            : SourceMatrix(source, image.Width, image.Height);
         local.TransX += origin.X;
         local.TransY += origin.Y;
         SKShader? shader = image.ToRawShader(
             SKShaderTileMode.Clamp,
             SKShaderTileMode.Clamp,
-            sampling,
+            bytePairs ? Nearest : sampling,
             local);
 
         return shader is null
             ? null
             : new VideoPlaneSampler(
-                colorModel == VideoExternalTextureColorModel.Yuv
-                    ? VideoSourceVariant.PackedYuv
-                    : VideoSourceVariant.Packed,
+                bytePairs
+                    ? VideoSourceVariant.WidePacked
+                    : colorModel == VideoExternalTextureColorModel.Yuv
+                        ? VideoSourceVariant.PackedYuv
+                        : VideoSourceVariant.Packed,
                 [],
                 [shader],
                 new Dictionary<string, SKShader>(StringComparer.Ordinal)
                 {
                     [VideoShaderChildren.Image] = shader,
                 },
-                premultipliedAlpha: image.AlphaType == SKAlphaType.Premul && colorModel == VideoExternalTextureColorModel.Rgb);
+                premultipliedAlpha: image.AlphaType == SKAlphaType.Premul && colorModel == VideoExternalTextureColorModel.Rgb,
+                imageTexel: bytePairs && Filters(sampling) ? [1, 1, -origin.X, -origin.Y] : null);
     }
 
     /// <summary>
@@ -228,7 +266,7 @@ internal sealed class VideoPlaneSampler : IDisposable
 
         VideoPlanarLayout layout = frame.Layout;
         bool wide = layout.BytesPerSample == 2;
-        bool bytePairs = wide && (planeSource?.UseBytePairPlanes ?? VideoPlaneFormatProbe.UseBytePairPlanes);
+        bool bytePairs = wide && (planeSource?.UseBytePairPlanes ?? VideoPlaneFormatProbe.UsesBytePairPlanes(grContext));
         VideoSourceVariant variant = (layout.InterleavedChroma, bytePairs) switch
         {
             (true, false) => VideoSourceVariant.Interleaved,
@@ -273,6 +311,12 @@ internal sealed class VideoPlaneSampler : IDisposable
         var shaders = new SKShader[count];
         bool ownsImages = !(planeSource?.ImagesAreBorrowed ?? false);
         bool clampToVisible = visibleBounds is not null;
+
+        // Where shader samples are 16-bit floats, a byte pair only comes back whole from its own texel,
+        // so those planes are read texel by texel and a filtered one is interpolated by the shader.
+        bool texelByTexel = bytePairs && VideoSamplePrecisionProbe.RoundsToHalf(grContext);
+        float[]? lumaTexel = null;
+        float[]? chromaTexel = null;
 
         try
         {
@@ -349,12 +393,27 @@ internal sealed class VideoPlaneSampler : IDisposable
                     local.TransY += subset.Top * local.ScaleY;
                 }
 
+                SKSamplingOptions sampling = i == 0 || !subsampled ? lumaSampling : fieldChroma
+                    ? Nearest
+                    : chromaSampling;
+
+                if (texelByTexel)
+                {
+                    if (Filters(sampling))
+                    {
+                        float[] texel = TexelMapping(local);
+                        if (i == 0)
+                            lumaTexel = texel;
+                        else
+                            chromaTexel = texel;
+                    }
+                    sampling = Nearest;
+                }
+
                 SKShader? shader = plane.ToRawShader(
                     SKShaderTileMode.Clamp,
                     SKShaderTileMode.Clamp,
-                    i == 0 || !subsampled ? lumaSampling : fieldChroma
-                        ? new SKSamplingOptions(SKFilterMode.Nearest, SKMipmapMode.None)
-                        : chromaSampling,
+                    sampling,
                     local);
 
                 if (shader is null)
@@ -411,7 +470,10 @@ internal sealed class VideoPlaneSampler : IDisposable
                 childPrefix,
                 fieldChroma ? [(float)combinedScaleX, (float)combinedScaleY, (float)chromaX, (float)chromaY] : null,
                 fieldChroma ? [layout.ChromaWidth(frame.Width), layout.ChromaHeight(frame.Height), interpolateChroma ? 1 : 0, 0] : null,
-                fieldChroma ? [(float)layerScaleX, (float)layerScaleY, (float)layerX, (float)layerY] : null);
+                fieldChroma ? [(float)layerScaleX, (float)layerScaleY, (float)layerX, (float)layerY] : null,
+                lumaTexel: lumaTexel,
+                chromaTexel: chromaTexel,
+                texelByTexel: texelByTexel);
         }
         catch
         {
@@ -429,12 +491,29 @@ internal sealed class VideoPlaneSampler : IDisposable
         .Replace("fieldLumaScale", prefix + "fieldLumaScale", StringComparison.Ordinal)
         .Replace("planeCoord", prefix + "PlaneCoord", StringComparison.Ordinal)
         .Replace("wide(", prefix + "Wide(", StringComparison.Ordinal)
+        .Replace("widePairs(", prefix + "WidePairs(", StringComparison.Ordinal)
+        .Replace("sampleLuma(", prefix + "SampleLuma(", StringComparison.Ordinal)
+        .Replace("sampleChroma(", prefix + "SampleChroma(", StringComparison.Ordinal)
+        .Replace("lumaTexel", prefix + "lumaTexel", StringComparison.Ordinal)
+        .Replace("chromaTexel", prefix + "chromaTexel", StringComparison.Ordinal)
         .Replace("lumaBounds", prefix + "LumaBounds", StringComparison.Ordinal)
         .Replace("chromaBounds", prefix + "ChromaBounds", StringComparison.Ordinal)
         .Replace("luma.", prefix + "luma.", StringComparison.Ordinal)
         .Replace("chroma.", prefix + "chroma.", StringComparison.Ordinal)
         .Replace("cb.", prefix + "cb.", StringComparison.Ordinal)
         .Replace("cr.", prefix + "cr.", StringComparison.Ordinal);
+
+    private static readonly SKSamplingOptions Nearest = new(SKFilterMode.Nearest, SKMipmapMode.None);
+
+    private static bool Filters(SKSamplingOptions sampling) =>
+        sampling.Filter != SKFilterMode.Nearest || sampling.Mipmap != SKMipmapMode.None || sampling.UseCubic;
+
+    /// <summary>
+    /// The texel position <c>coord * xy + zw</c> a child shader with <paramref name="local"/> reads at
+    /// luma coordinate <c>coord</c>; Skia samples at the inverse of a local matrix.
+    /// </summary>
+    private static float[] TexelMapping(SKMatrix local) =>
+        [1 / local.ScaleX, 1 / local.ScaleY, -local.TransX / local.ScaleX, -local.TransY / local.ScaleY];
 
     /// <summary>
     /// Bounds in luma-coordinate space that map to the first and last visible texel centers of a

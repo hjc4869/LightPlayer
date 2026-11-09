@@ -20,6 +20,14 @@ public partial class PlaybackBar : UserControl
     public static readonly StyledProperty<bool> ShowAllControlsProperty =
         AvaloniaProperty.Register<PlaybackBar, bool>(nameof(ShowAllControls), defaultValue: true);
 
+    // Below this width touch chrome leaves out the remaining time, as iOS mini players do, so the
+    // title and progress keep their room.
+    private const double TouchTimeWidthThreshold = 480d;
+
+    /// <summary>Whether the bar shows the remaining time beside the progress slider.</summary>
+    public static readonly StyledProperty<bool> ShowRemainingTimeProperty =
+        AvaloniaProperty.Register<PlaybackBar, bool>(nameof(ShowRemainingTime), defaultValue: true);
+
     public PlaybackBar()
     {
         InitializeComponent();
@@ -36,6 +44,12 @@ public partial class PlaybackBar : UserControl
         set => SetValue(ShowAllControlsProperty, value);
     }
 
+    public bool ShowRemainingTime
+    {
+        get => GetValue(ShowRemainingTimeProperty);
+        set => SetValue(ShowRemainingTimeProperty, value);
+    }
+
     private void OnProgressScrubStarted(object? sender, EventArgs e) =>
         ViewModel?.BeginScrub();
 
@@ -48,6 +62,9 @@ public partial class PlaybackBar : UserControl
             AudioSeparationMenu.Populate(menu.Items, ViewModel);
     }
 
-    private void OnSizeChanged(object? sender, SizeChangedEventArgs e) =>
+    private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
         ShowAllControls = e.NewSize.Width > CompactWidthThreshold;
+        ShowRemainingTime = !PlatformServices.UsesTouchChrome || e.NewSize.Width > TouchTimeWidthThreshold;
+    }
 }

@@ -23,6 +23,32 @@ jobs:
     name: Build Linux x64 Flatpak
     runs-on: ubuntu-26.04
     steps:
+      # The runner image preinstalls toolchains this job never uses; the Flatpak
+      # runtimes, offline NuGet feed, and NativeAOT link need that disk space.
+      - name: Free disk space
+        run: |
+          df -h /
+          printf '%s\n' \
+            /usr/local/lib/android \
+            /usr/share/dotnet \
+            /opt/hostedtoolcache \
+            /usr/local/.ghcup \
+            /opt/ghc \
+            /usr/share/swift \
+            /usr/lib/jvm \
+            /usr/share/rust \
+            /usr/share/miniconda \
+            /usr/local/share/vcpkg \
+            /usr/local/share/chromium \
+            /usr/local/lib/node_modules \
+            /home/linuxbrew \
+            /opt/google \
+            /opt/microsoft \
+            /opt/az \
+            /usr/local/aws-cli \
+            | sudo xargs -P 8 -n 1 rm -rf
+          df -h /
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -34,12 +60,13 @@ jobs:
       - name: Allow unprivileged user namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
-      # Cache flatpak-builder's downloaded sources (the offline NuGet feed, etc.) and
-      # build state so subsequent runs don't re-fetch everything.
-      - name: Cache flatpak-builder state
+      # Cache flatpak-builder's downloaded sources (the offline NuGet feed, etc.) so
+      # subsequent runs don't re-fetch everything. Build stages are not cached
+      # because the build runs with --disable-cache.
+      - name: Cache flatpak-builder downloads
         uses: actions/cache@v4
         with:
-          path: artifacts/flatpak-x86_64/.flatpak-builder
+          path: artifacts/flatpak-x86_64/.flatpak-builder/downloads
           key: flatpak-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packaging/flatpak/im.hjc.LightPlayer.yml', 'src/**/*.csproj', 'Makefile') }}
           restore-keys: |
             flatpak-builder-${{ runner.os }}-${{ runner.arch }}-
@@ -50,6 +77,12 @@ jobs:
       # extension (via its flatpak-deps prerequisite).
       - name: Build Flatpak bundle
         run: make flatpak RID=linux-x64
+
+      - name: Report disk usage
+        if: always()
+        run: |
+          df -h /
+          du -sh ~/.local/share/flatpak artifacts/flatpak-x86_64/* artifacts/flatpak-x86_64/.flatpak-builder/* 2>/dev/null || true
 
       - name: Stage Linux x64 release asset
         run: |
@@ -68,6 +101,30 @@ jobs:
     name: Build Linux ARM64 Flatpak
     runs-on: ubuntu-26.04-arm
     steps:
+      - name: Free disk space
+        run: |
+          df -h /
+          printf '%s\n' \
+            /usr/local/lib/android \
+            /usr/share/dotnet \
+            /opt/hostedtoolcache \
+            /usr/local/.ghcup \
+            /opt/ghc \
+            /usr/share/swift \
+            /usr/lib/jvm \
+            /usr/share/rust \
+            /usr/share/miniconda \
+            /usr/local/share/vcpkg \
+            /usr/local/share/chromium \
+            /usr/local/lib/node_modules \
+            /home/linuxbrew \
+            /opt/google \
+            /opt/microsoft \
+            /opt/az \
+            /usr/local/aws-cli \
+            | sudo xargs -P 8 -n 1 rm -rf
+          df -h /
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -79,11 +136,11 @@ jobs:
       - name: Allow unprivileged user namespaces
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
 
-      # Keep ARM64 build state separate from the x64 cache.
-      - name: Cache flatpak-builder state
+      # Keep ARM64 downloads separate from the x64 cache.
+      - name: Cache flatpak-builder downloads
         uses: actions/cache@v4
         with:
-          path: artifacts/flatpak-aarch64/.flatpak-builder
+          path: artifacts/flatpak-aarch64/.flatpak-builder/downloads
           key: flatpak-builder-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('packaging/flatpak/im.hjc.LightPlayer.yml', 'src/**/*.csproj', 'Makefile') }}
           restore-keys: |
             flatpak-builder-${{ runner.os }}-${{ runner.arch }}-
@@ -91,6 +148,12 @@ jobs:
       # Build natively on an ARM64 runner instead of emulating with QEMU on x64.
       - name: Build Flatpak bundle
         run: make flatpak RID=linux-arm64
+
+      - name: Report disk usage
+        if: always()
+        run: |
+          df -h /
+          du -sh ~/.local/share/flatpak artifacts/flatpak-aarch64/* artifacts/flatpak-aarch64/.flatpak-builder/* 2>/dev/null || true
 
       - name: Stage Linux ARM64 release asset
         run: |

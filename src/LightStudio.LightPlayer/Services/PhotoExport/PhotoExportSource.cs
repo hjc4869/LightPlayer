@@ -230,7 +230,8 @@ internal static class PhotoExportSource
 
     public static PhotoExportSourceKind Classify(VideoFrame frame) =>
         frame.GainMap is not null ? PhotoExportSourceKind.GainMap
-        : frame.DolbyVision.IsPresent || frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg
+        : frame.DolbyVision.IsPresent ||
+            frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog
             ? PhotoExportSourceKind.Absolute
             : PhotoExportSourceKind.Sdr;
 

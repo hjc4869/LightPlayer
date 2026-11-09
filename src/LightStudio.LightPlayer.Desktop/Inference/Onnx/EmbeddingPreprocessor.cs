@@ -45,7 +45,7 @@ internal sealed class EmbeddingPreprocessor
             throw new InvalidDataException("Invalid embedding model image size.");
         sampling = config.GetProperty("resample").GetInt32() switch
         {
-            2 => new SKSamplingOptions(SKFilterMode.Linear),
+            2 => new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear),
             3 => new SKSamplingOptions(SKCubicResampler.CatmullRom),
             _ => throw new InvalidDataException("The embedding model must use bilinear or bicubic image resizing."),
         };
@@ -122,32 +122,42 @@ internal sealed class EmbeddingPreprocessor
 
     internal float[] PrepareImage(StillImageThumbnail thumbnail)
     {
-        using var source = new SKBitmap(thumbnail.Width, thumbnail.Height, SKColorType.Bgra8888, SKAlphaType.Opaque);
-        Marshal.Copy(thumbnail.Pixels, 0, source.GetPixels(), thumbnail.Pixels.Length);
-        var region = SKRect.Create(thumbnail.Width, thumbnail.Height);
-        if (!siglip2)
+        var info = new SKImageInfo(thumbnail.Width, thumbnail.Height, SKColorType.Bgra8888, SKAlphaType.Opaque);
+        if (thumbnail.Pixels.Length < info.BytesSize)
+            throw new ArgumentException("The thumbnail pixel buffer is smaller than its dimensions.", nameof(thumbnail));
+        var pinned = GCHandle.Alloc(thumbnail.Pixels, GCHandleType.Pinned);
+        try
         {
-            var width = thumbnail.Width <= thumbnail.Height ? resizeEdge : (int)((long)thumbnail.Width * resizeEdge / thumbnail.Height);
-            var height = thumbnail.Height <= thumbnail.Width ? resizeEdge : (int)((long)thumbnail.Height * resizeEdge / thumbnail.Width);
-            float scaleX = (float)thumbnail.Width / width;
-            float scaleY = (float)thumbnail.Height / height;
-            region = SKRect.Create((width - Width) / 2 * scaleX, (height - Height) / 2 * scaleY,
-                Width * scaleX, Height * scaleY);
+            using var image = SKImage.FromPixels(info, pinned.AddrOfPinnedObject(), info.RowBytes);
+            var region = SKRect.Create(thumbnail.Width, thumbnail.Height);
+            if (!siglip2)
+            {
+                var width = thumbnail.Width <= thumbnail.Height ? resizeEdge : (int)((long)thumbnail.Width * resizeEdge / thumbnail.Height);
+                var height = thumbnail.Height <= thumbnail.Width ? resizeEdge : (int)((long)thumbnail.Height * resizeEdge / thumbnail.Width);
+                float scaleX = (float)thumbnail.Width / width;
+                float scaleY = (float)thumbnail.Height / height;
+                region = SKRect.Create((width - Width) / 2 * scaleX, (height - Height) / 2 * scaleY,
+                    Width * scaleX, Height * scaleY);
+            }
+            using var crop = new SKBitmap(Width, Height, SKColorType.Rgba8888, SKAlphaType.Opaque);
+            using var canvas = new SKCanvas(crop);
+            canvas.DrawImage(image, region, SKRect.Create(Width, Height), sampling);
+            var colors = crop.GetPixelSpan();
+            var area = Width * Height;
+            var values = new float[3 * area];
+            for (var index = 0; index < area; index++)
+            {
+                var offset = index * 4;
+                values[index] = (colors[offset] * rescale - means[0]) / deviations[0];
+                values[area + index] = (colors[offset + 1] * rescale - means[1]) / deviations[1];
+                values[2 * area + index] = (colors[offset + 2] * rescale - means[2]) / deviations[2];
+            }
+            return values;
         }
-        using var crop = new SKBitmap(Width, Height, SKColorType.Rgba8888, SKAlphaType.Opaque);
-        using var canvas = new SKCanvas(crop);
-        using var image = SKImage.FromBitmap(source);
-        canvas.DrawImage(image, region, SKRect.Create(Width, Height), sampling);
-        var colors = crop.Pixels;
-        var area = Width * Height;
-        var values = new float[3 * area];
-        for (var index = 0; index < area; index++)
+        finally
         {
-            values[index] = (colors[index].Red * rescale - means[0]) / deviations[0];
-            values[area + index] = (colors[index].Green * rescale - means[1]) / deviations[1];
-            values[2 * area + index] = (colors[index].Blue * rescale - means[2]) / deviations[2];
+            pinned.Free();
         }
-        return values;
     }
 
     internal static void Normalize(float[] embedding, int count, int dimensions)

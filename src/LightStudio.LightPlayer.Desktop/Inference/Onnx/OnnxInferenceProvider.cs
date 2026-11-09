@@ -44,13 +44,22 @@ public sealed partial class OnnxInferenceProvider : OnnxInferenceProviderBase
         var options = new SessionOptions { IntraOpNumThreads = Math.Clamp(Environment.ProcessorCount / 2, 1, 8) };
         try
         {
+            // Embedding sessions run in the background, so idle inference threads sleep instead of spinning.
+            if (width > 0)
+                options.AddSessionConfigEntry("session.intra_op.allow_spinning", "0");
             if ((OperatingSystem.IsMacOS() || OperatingSystem.IsIOS()) && deviceId == "coreml")
             {
                 options.AppendExecutionProvider("CoreML", new Dictionary<string, string>
                 {
                     ["ModelFormat"] = "MLProgram",
-                    ["MLComputeUnits"] = "ALL",
+                    // Neural Engine execution returns incorrect SigLIP2 embeddings.
+                    ["MLComputeUnits"] = "CPUAndGPU",
                 });
+                // Core ML fails to run SigLIP2 with dynamic input shapes, so embedding sessions encode one image per run.
+                if (width > 0)
+                    foreach (var (name, value) in new[] { ("image_batch_size", 1), ("num_channels", 3), ("height", height),
+                        ("width", width), ("text_batch_size", 1), ("sequence_length", sequenceLength) })
+                        options.AddFreeDimensionOverrideByName(name, value);
             }
 #if ANDROID
             else if (deviceId == "gpu")
@@ -59,7 +68,7 @@ public sealed partial class OnnxInferenceProvider : OnnxInferenceProviderBase
                 {
                     ["dawnProcTable"] = GetDawnProcTable().ToInt64().ToString(CultureInfo.InvariantCulture),
                     ["dawnBackendType"] = "Vulkan",
-                    ["preferredLayout"] = "NHWC",
+                    ["preferredLayout"] = width > 0 ? "NCHW" : "NHWC",
                     ["validationMode"] = "basic",
                 });
             }
@@ -71,7 +80,8 @@ public sealed partial class OnnxInferenceProvider : OnnxInferenceProviderBase
                 options.AppendExecutionProvider(OrtEnv.Instance(), [selected], new Dictionary<string, string>
                 {
                     ["dawnProcTable"] = GetDawnProcTable().ToInt64().ToString(CultureInfo.InvariantCulture),
-                    ["preferredLayout"] = "NHWC",
+                    // NHWC produces incorrect SigLIP2 image embeddings on the WebGPU provider.
+                    ["preferredLayout"] = width > 0 ? "NCHW" : "NHWC",
                     ["validationMode"] = "basic",
                 });
             }

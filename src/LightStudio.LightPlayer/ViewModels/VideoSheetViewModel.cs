@@ -39,6 +39,7 @@ public sealed partial class VideoSheetViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsActive))]
     [NotifyPropertyChangedFor(nameof(IsVisible))]
     [NotifyPropertyChangedFor(nameof(IsShellChromeHidden))]
+    [NotifyPropertyChangedFor(nameof(IsOverShellChrome))]
     [NotifyPropertyChangedFor(nameof(IsFullScreen))]
     private VideoPlayerPageViewModel? content;
 
@@ -53,6 +54,7 @@ public sealed partial class VideoSheetViewModel : ObservableObject
     // has actually covered it.
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsShellChromeHidden))]
+    [NotifyPropertyChangedFor(nameof(IsOverShellChrome))]
     private double progress;
 
     // True while the picture is showing in a window of its own, which is when the sheet has nothing
@@ -61,6 +63,7 @@ public sealed partial class VideoSheetViewModel : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsVisible))]
     [NotifyPropertyChangedFor(nameof(IsShellChromeHidden))]
+    [NotifyPropertyChangedFor(nameof(IsOverShellChrome))]
     private bool isPictureDetached;
 
     /// <param name="close">Ends the video session and tears the sheet down; supplied by the shell.</param>
@@ -116,6 +119,9 @@ public sealed partial class VideoSheetViewModel : ObservableObject
     /// replaces it has actually arrived.
     /// </summary>
     public bool IsShellChromeHidden => IsVisible && Progress > 0.98d;
+
+    /// <summary>Whether the card has left its corner, on its way to or from covering the shell's chrome.</summary>
+    public bool IsOverShellChrome => IsVisible && Progress > 0d;
 
     /// <summary>Puts a freshly opened session on the sheet, maximized.</summary>
     public void Attach(VideoPlayerPageViewModel player)

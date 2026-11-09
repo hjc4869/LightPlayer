@@ -11,6 +11,7 @@ using LightStudio.FfmpegShim;
 using LightStudio.FfmpegShim.Core;
 using LightStudio.LightPlayer.Services.Playback;
 using LightStudio.Logging;
+using LightStudio.NativeBindings.Types;
 
 namespace LightStudio.LightPlayer.Android.Playback;
 
@@ -23,8 +24,8 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
     private const int MaxTimestampLagSeconds = 2;
 
     // Format preference orders passed to the stream builder, most-preferred first.
-    private static readonly int[] Formats24Then16 = { AAudioNative.FormatPcmI24Packed, AAudioNative.FormatPcmI16 };
-    private static readonly int[] Formats16Only = { AAudioNative.FormatPcmI16 };
+    private static readonly int[] Formats24Then16 = { AAudioNative.AAUDIO_FORMAT_PCM_I24_PACKED, AAudioNative.AAUDIO_FORMAT_PCM_I16 };
+    private static readonly int[] Formats16Only = { AAudioNative.AAUDIO_FORMAT_PCM_I16 };
 
     private readonly AAudioSettings settings;
     private readonly PlaybackThread playbackThread;
@@ -38,7 +39,7 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
     private readonly object disposalGate = new();
     private AudioPlayoutSnapshot playoutSnapshot = AudioPlayoutSnapshot.Empty;
     private Task? disposal;
-    private nint stream;
+    private unsafe AAudioStreamStruct* stream;
     private AudioOutputPullCallback? pullAudio;
     private ReadOnlyMemory<byte> pendingPcm;
     private AudioOutputReadResult pendingResult;
@@ -220,7 +221,7 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
         playbackThread.Invoke(() => StartCore(pullAudioCallback));
     }
 
-    public void Pause()
+    public unsafe void Pause()
     {
         ThrowIfDisposed();
         playbackThread.Invoke(() =>
@@ -233,15 +234,15 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
 
             UpdateRenderedPositionCore();
             var currentStream = stream;
-            if (currentStream != 0)
+            if (currentStream != null)
             {
                 try
                 {
                     ThrowIfError(AAudioNative.AAudioStream_requestPause(currentStream), "pause");
                     WaitForStateCore(
                         currentStream,
-                        AAudioNative.StreamStatePausing,
-                        AAudioNative.StreamStatePaused,
+                        AAudioNative.AAUDIO_STREAM_STATE_PAUSING,
+                        AAudioNative.AAUDIO_STREAM_STATE_PAUSED,
                         "pause");
                     UpdateRenderedPositionCore();
                 }
@@ -364,7 +365,7 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
         UpdateRenderedPositionCore();
     }
 
-    private void PumpSafely()
+    private unsafe void PumpSafely()
     {
         if (disposed)
         {
@@ -384,7 +385,7 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
                 FillRingBufferCore();
             }
 
-            if (stream == 0 &&
+            if (stream == null &&
                 State != AudioOutputState.Stopped &&
                 Stopwatch.GetTimestamp() >= nextRecoveryTimestamp &&
                 TryOpenOutputCore(reportError: false) &&
@@ -399,11 +400,11 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
         }
     }
 
-    private bool TryOpenOutputCore(bool reportError, bool throwOnError = false)
+    private unsafe bool TryOpenOutputCore(bool reportError, bool throwOnError = false)
     {
-        if (stream != 0 || disposed)
+        if (stream != null || disposed)
         {
-            return stream != 0;
+            return stream != null;
         }
 
         // Preserve 16-bit source PCM byte-for-byte. Packed 24-bit sources prefer a matching native
@@ -459,12 +460,12 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
 
     private unsafe void OpenStreamWithFormat(int requestedFormat)
     {
-        nint builder = 0;
-        nint openedStream = 0;
+        AAudioStreamBuilderStruct* builder = null;
+        AAudioStreamStruct* openedStream = null;
         try
         {
-            ThrowIfError(AAudioNative.AAudio_createStreamBuilder(out builder), "create stream builder");
-            if (builder == 0)
+            ThrowIfError(AAudioNative.AAudio_createStreamBuilder(&builder), "create stream builder");
+            if (builder == null)
             {
                 throw new InvalidOperationException("AAudio returned a null stream builder.");
             }
@@ -472,34 +473,34 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
             var selectedDeviceId = settings.SelectedNativeDeviceId;
             var exclusive = settings.Exclusive;
             var nativeBufferFrames = GetNativeBufferTargetFrames();
-            AAudioNative.AAudioStreamBuilder_setDirection(builder, AAudioNative.DirectionOutput);
+            AAudioNative.AAudioStreamBuilder_setDirection(builder, AAudioNative.AAUDIO_DIRECTION_OUTPUT);
             AAudioNative.AAudioStreamBuilder_setSampleRate(builder, checked((int)Format.SampleRate));
             AAudioNative.AAudioStreamBuilder_setChannelCount(builder, checked((int)Format.ChannelCount));
             AAudioNative.AAudioStreamBuilder_setFormat(builder, requestedFormat);
             AAudioNative.AAudioStreamBuilder_setSharingMode(
                 builder,
-                exclusive ? AAudioNative.SharingModeExclusive : AAudioNative.SharingModeShared);
+                exclusive ? AAudioNative.AAUDIO_SHARING_MODE_EXCLUSIVE : AAudioNative.AAUDIO_SHARING_MODE_SHARED);
             AAudioNative.AAudioStreamBuilder_setPerformanceMode(
                 builder,
-                exclusive ? AAudioNative.PerformanceModeLowLatency : AAudioNative.PerformanceModePowerSaving);
+                exclusive ? AAudioNative.AAUDIO_PERFORMANCE_MODE_LOW_LATENCY : AAudioNative.AAUDIO_PERFORMANCE_MODE_POWER_SAVING);
             AAudioNative.AAudioStreamBuilder_setBufferCapacityInFrames(builder, nativeBufferFrames);
             if (selectedDeviceId > 0)
             {
                 AAudioNative.AAudioStreamBuilder_setDeviceId(builder, selectedDeviceId);
             }
 
-            var callbackUserData = GCHandle.ToIntPtr(callbackHandle);
+            var callbackUserData = (void*)GCHandle.ToIntPtr(callbackHandle);
             AAudioNative.AAudioStreamBuilder_setDataCallback(
                 builder,
-                (nint)(delegate* unmanaged[Cdecl]<nint, nint, nint, int, int>)&OnDataCallback,
+                (delegate* unmanaged[Cdecl]<AAudioStreamStruct*, void*, void*, int, int>)&OnDataCallback,
                 callbackUserData);
             AAudioNative.AAudioStreamBuilder_setErrorCallback(
                 builder,
-                (nint)(delegate* unmanaged[Cdecl]<nint, nint, int, void>)&OnErrorCallback,
+                (delegate* unmanaged[Cdecl]<AAudioStreamStruct*, void*, int, void>)&OnErrorCallback,
                 callbackUserData);
 
-            ThrowIfError(AAudioNative.AAudioStreamBuilder_openStream(builder, out openedStream), "open stream");
-            if (openedStream == 0)
+            ThrowIfError(AAudioNative.AAudioStreamBuilder_openStream(builder, &openedStream), "open stream");
+            if (openedStream == null)
             {
                 throw new InvalidOperationException("AAudio returned a null stream.");
             }
@@ -509,7 +510,7 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
             // Adopt whatever PCM format the stream actually exposes so the data callback narrows the
             // decoder's packed 24-bit PCM only when the opened stream is 16-bit.
             outputBytesPerSample =
-                AAudioNative.AAudioStream_getFormat(openedStream) == AAudioNative.FormatPcmI24Packed
+                AAudioNative.AAudioStream_getFormat(openedStream) == AAudioNative.AAUDIO_FORMAT_PCM_I24_PACKED
                     ? PcmConvert.Bytes24
                     : sizeof(short);
             outputBlockAlign = checked((int)Format.ChannelCount * outputBytesPerSample);
@@ -524,29 +525,29 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
             streamPositionBaseByte = Interlocked.Read(ref submittedBytes);
             timestampLagFrames = 0;
             exclusiveFallbackPending = exclusive &&
-                AAudioNative.AAudioStream_getSharingMode(openedStream) != AAudioNative.SharingModeExclusive;
+                AAudioNative.AAudioStream_getSharingMode(openedStream) != AAudioNative.AAUDIO_SHARING_MODE_EXCLUSIVE;
             stream = openedStream;
-            openedStream = 0;
+            openedStream = null;
         }
         finally
         {
-            if (openedStream != 0)
+            if (openedStream != null)
             {
                 AAudioNative.AAudioStream_close(openedStream);
             }
 
-            if (builder != 0)
+            if (builder != null)
             {
                 AAudioNative.AAudioStreamBuilder_delete(builder);
             }
         }
     }
 
-    private void VerifyOpenedStream(nint openedStream, int selectedDeviceId)
+    private unsafe void VerifyOpenedStream(AAudioStreamStruct* openedStream, int selectedDeviceId)
     {
         var openedFormat = AAudioNative.AAudioStream_getFormat(openedStream);
-        var isSupportedConversion = openedFormat == AAudioNative.FormatPcmI16 ||
-            (Format.BitsPerSample == 24 && openedFormat == AAudioNative.FormatPcmI24Packed);
+        var isSupportedConversion = openedFormat == AAudioNative.AAUDIO_FORMAT_PCM_I16 ||
+            (Format.BitsPerSample == 24 && openedFormat == AAudioNative.AAUDIO_FORMAT_PCM_I24_PACKED);
         if (AAudioNative.AAudioStream_getSampleRate(openedStream) != checked((int)Format.SampleRate) ||
             AAudioNative.AAudioStream_getChannelCount(openedStream) != checked((int)Format.ChannelCount) ||
             !isSupportedConversion)
@@ -560,7 +561,7 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
         }
     }
 
-    private static void TuneNativeBuffer(nint openedStream, int requestedFrames, bool exclusive)
+    private static unsafe void TuneNativeBuffer(AAudioStreamStruct* openedStream, int requestedFrames, bool exclusive)
     {
         var capacity = Math.Max(1, AAudioNative.AAudioStream_getBufferCapacityInFrames(openedStream));
         var burstFrames = Math.Max(1, AAudioNative.AAudioStream_getFramesPerBurst(openedStream));
@@ -570,35 +571,35 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
         AAudioNative.AAudioStream_setBufferSizeInFrames(openedStream, Math.Max(1, desiredFrames));
     }
 
-    private void EnsureStartedCore()
+    private unsafe void EnsureStartedCore()
     {
         if (disposed || State != AudioOutputState.Playing)
         {
             return;
         }
 
-        if (stream == 0)
+        if (stream == null)
         {
             TryOpenOutputCore(reportError: true, throwOnError: true);
         }
 
         var currentStream = stream;
         var nativeState = AAudioNative.AAudioStream_getState(currentStream);
-        if (nativeState == AAudioNative.StreamStateStarted)
+        if (nativeState == AAudioNative.AAUDIO_STREAM_STATE_STARTED)
         {
             return;
         }
 
         try
         {
-            if (nativeState != AAudioNative.StreamStateStarting)
+            if (nativeState != AAudioNative.AAUDIO_STREAM_STATE_STARTING)
             {
                 ThrowIfError(AAudioNative.AAudioStream_requestStart(currentStream), "start");
             }
             WaitForStateCore(
                 currentStream,
-                AAudioNative.StreamStateStarting,
-                AAudioNative.StreamStateStarted,
+                AAudioNative.AAUDIO_STREAM_STATE_STARTING,
+                AAudioNative.AAUDIO_STREAM_STATE_STARTED,
                 "start");
         }
         catch (Exception exception)
@@ -693,10 +694,11 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
         }
     }
 
-    private void UpdateRenderedPositionCore(nint currentStream = 0)
+    private unsafe void UpdateRenderedPositionCore() => UpdateRenderedPositionCore(stream);
+
+    private unsafe void UpdateRenderedPositionCore(AAudioStreamStruct* currentStream)
     {
-        currentStream = currentStream == 0 ? stream : currentStream;
-        if (currentStream == 0)
+        if (currentStream == null)
         {
             return;
         }
@@ -733,13 +735,15 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
     /// read cursor, so the mixer, HAL, and Bluetooth transport delay are invisible to it. The
     /// presentation timestamp includes these delays, which cause most A/V offset on a wireless headset.
     /// </summary>
-    private long GetPresentedFramesCore(nint currentStream, long framesRead)
+    private unsafe long GetPresentedFramesCore(AAudioStreamStruct* currentStream, long framesRead)
     {
+        long framePosition;
+        long timeNanoseconds;
         if (AAudioNative.AAudioStream_getTimestamp(
                 currentStream,
-                AAudioNative.ClockMonotonic,
-                out var framePosition,
-                out var timeNanoseconds) != AAudioNative.Ok)
+                AAudioNative.CLOCK_MONOTONIC,
+                &framePosition,
+                &timeNanoseconds) != AAudioNative.AAUDIO_OK)
         {
             // Timestamps exist only while the stream is started; holding the last measured distance
             // stops a pause from snapping the position forward onto the endpoint's read cursor.
@@ -757,13 +761,13 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
         return presentedFrames;
     }
 
-    private void ReportUnderrunsCore()
+    private unsafe void ReportUnderrunsCore()
     {
         var callbackStarvations = Volatile.Read(ref callbackStarvationCount);
         var callbackDelta = Math.Max(0, callbackStarvations - observedCallbackStarvationCount);
         observedCallbackStarvationCount = callbackStarvations;
 
-        var nativeXRunCount = stream == 0
+        var nativeXRunCount = stream == null
             ? observedNativeXRunCount
             : Math.Max(0, AAudioNative.AAudioStream_getXRunCount(stream));
         var nativeDelta = Math.Max(0, nativeXRunCount - observedNativeXRunCount);
@@ -779,7 +783,7 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
         Underrun?.Invoke(this, $"AAudio output underrun #{total}.");
     }
 
-    private void HandleStreamFailureCore(nint failedStream, Exception exception, string operation)
+    private unsafe void HandleStreamFailureCore(AAudioStreamStruct* failedStream, Exception exception, string operation)
     {
         if (failedStream != stream)
         {
@@ -794,7 +798,7 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
         nextRecoveryTimestamp = Stopwatch.GetTimestamp();
     }
 
-    private void HandleNativeErrorCore(nint failedStream, int error)
+    private unsafe void HandleNativeErrorCore(AAudioStreamStruct* failedStream, int error)
     {
         if (disposed || failedStream != stream)
         {
@@ -831,16 +835,16 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
         }
     }
 
-    private void CloseOutputCore(bool dropBufferedAudio)
+    private unsafe void CloseOutputCore(bool dropBufferedAudio)
     {
         var closingStream = stream;
-        if (closingStream == 0)
+        if (closingStream == null)
         {
             return;
         }
 
         UpdateRenderedPositionCore(closingStream);
-        stream = 0;
+        stream = null;
         var result = AAudioNative.AAudioStream_close(closingStream);
         if (dropBufferedAudio)
         {
@@ -1047,7 +1051,7 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
             // Advance by the full request in source (24-bit) units: any frames not filled above were
             // zeroed but are still handed to the device, so the play cursor must cover them too.
             Interlocked.Add(ref submittedBytes, checked(numFrames * sourceBlockAlign));
-            return AAudioNative.CallbackResultContinue;
+            return AAudioNative.AAUDIO_CALLBACK_RESULT_CONTINUE;
         }
         finally
         {
@@ -1084,17 +1088,18 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
 
     private static void ThrowIfError(int result, string operation)
     {
-        if (result != AAudioNative.Ok)
+        if (result != AAudioNative.AAUDIO_OK)
         {
             throw new InvalidOperationException(
                 $"AAudio could not {operation}: {AAudioNative.GetResultText(result)}.");
         }
     }
 
-    private static void WaitForStateCore(nint currentStream, int pendingState, int completedState, string operation)
+    private static unsafe void WaitForStateCore(AAudioStreamStruct* currentStream, int pendingState, int completedState, string operation)
     {
+        int nextState;
         ThrowIfError(AAudioNative.AAudioStream_waitForStateChange(
-            currentStream, pendingState, out var nextState, StateTransitionTimeoutNanoseconds), operation);
+            currentStream, pendingState, &nextState, StateTransitionTimeoutNanoseconds), operation);
         if (nextState != completedState)
         {
             throw new InvalidOperationException(
@@ -1109,39 +1114,40 @@ internal sealed class AAudioOutputDevice : IAudioOutputDevice
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static unsafe int OnDataCallback(
-        nint callbackStream,
-        nint userData,
-        nint audioData,
+        AAudioStreamStruct* callbackStream,
+        void* userData,
+        void* audioData,
         int numFrames)
     {
         try
         {
-            if (userData == 0 || audioData == 0 || numFrames <= 0 ||
-                GCHandle.FromIntPtr(userData).Target is not AAudioOutputDevice owner)
+            if (userData == null || audioData == null || numFrames <= 0 ||
+                GCHandle.FromIntPtr((nint)userData).Target is not AAudioOutputDevice owner)
             {
-                return AAudioNative.CallbackResultContinue;
+                return AAudioNative.AAUDIO_CALLBACK_RESULT_CONTINUE;
             }
 
             var byteCount = checked(numFrames * owner.outputBlockAlign);
-            return owner.FillAudioData(new Span<byte>((void*)audioData, byteCount), numFrames);
+            return owner.FillAudioData(new Span<byte>(audioData, byteCount), numFrames);
         }
         catch
         {
-            return AAudioNative.CallbackResultContinue;
+            return AAudioNative.AAUDIO_CALLBACK_RESULT_CONTINUE;
         }
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static void OnErrorCallback(nint callbackStream, nint userData, int error)
+    private static unsafe void OnErrorCallback(AAudioStreamStruct* callbackStream, void* userData, int error)
     {
         try
         {
-            if (userData == 0 || GCHandle.FromIntPtr(userData).Target is not AAudioOutputDevice owner)
+            if (userData == null || GCHandle.FromIntPtr((nint)userData).Target is not AAudioOutputDevice owner)
             {
                 return;
             }
 
-            owner.playbackThread.Post(() => owner.HandleNativeErrorCore(callbackStream, error));
+            var failedStream = (nint)callbackStream;
+            owner.playbackThread.Post(() => owner.HandleNativeErrorCore((AAudioStreamStruct*)failedStream, error));
         }
         catch (ObjectDisposedException)
         {

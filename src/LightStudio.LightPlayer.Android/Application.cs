@@ -89,7 +89,7 @@ public class Application : AvaloniaAndroidApplication<App>
         VideoOutputDiagnostics.RecordRequest("Android standard color");
     #endif
         Video.AndroidVideoOutput.Install(Context);
-        LightMediaRenderer.Contracts.PhotoDecodeAcceleration.Decoder = new Photos.AndroidPhotoDecodeAccelerator(Context);
+        LightMediaRenderer.Contracts.PhotoDecodeAcceleration.Decoder = new Photos.AndroidPhotoDecodeAccelerator();
 
         return base.CustomizeAppBuilder(builder)
             .AfterSetup(_ => MenuBackdrop.Install(MenuBackdropMode.Default))
@@ -101,7 +101,7 @@ public class Application : AvaloniaAndroidApplication<App>
             })
             .With(new SkiaOptions
             {
-                MaxGpuResourceSizeBytes = 512 * 1024 * 1024
+                MaxGpuResourceSizeBytes = 256 * 1024 * 1024
             })
             .WithInterFont();
     }

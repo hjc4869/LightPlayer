@@ -85,7 +85,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
     private readonly string? shaderPackageOverride;
     private readonly Action<bool, double>? outputChanged;
     private readonly Action<bool>? hdrOutputChanged;
-    private readonly Action<VideoHdrOutputMapping, VideoDisplayToneTarget>? toneMappingOutputChanged;
+    private readonly Action<VideoHdrOutputMapping, VideoDisplayToneTarget, VideoSdrToneMappingOptions>? toneMappingOutputChanged;
     private readonly CompositionCustomVisual? fencePollTarget;
 
     /// <summary>
@@ -93,6 +93,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
     /// stand a picture up without rewriting the file.
     /// </summary>
     private readonly int extraRotation;
+    private readonly bool inMotion;
 
     // Taken from the lease on every draw: the window can move to a surface with a different color
     // format or display volume at any time, and nothing outside the lease has a frame-stable view.
@@ -124,9 +125,11 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
         Action<bool>? hdrOutputChanged = null,
         Compositor? compositor = null,
         VideoSdrToneMappingOptions? toneMapping = null,
-        Action<VideoHdrOutputMapping, VideoDisplayToneTarget>? toneMappingOutputChanged = null)
+        Action<VideoHdrOutputMapping, VideoDisplayToneTarget, VideoSdrToneMappingOptions>? toneMappingOutputChanged = null,
+        bool inMotion = false)
     {
         this.frame = frame;
+        this.inMotion = inMotion;
         fencePollTarget = frame.HasSurface ? VideoSurfaceReadFence.GetPollTarget(compositor) : null;
         this.destination = destination;
         this.debanding = debanding;
@@ -174,6 +177,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
         toneMapping == operation.toneMapping &&
         panelBitDepth == operation.panelBitDepth &&
         extraRotation == operation.extraRotation &&
+        inMotion == operation.inMotion &&
         ReferenceEquals(captureRequest, operation.captureRequest) &&
         string.Equals(shaderPackageOverride, operation.shaderPackageOverride, StringComparison.Ordinal);
 
@@ -233,7 +237,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
         hdrOutputChanged?.Invoke(target.IsExtendedRange() && preferredColorVolume is
             { MaximumHeadroomRatio: > 1 } or { ToneMapping: VideoToneMappingMode.Platform });
         bool hdr = frame.DolbyVision.IsPresent ||
-            frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
+            frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog;
         VideoHdrOutputMapping hdrOutput = VideoFramePipeline.ResolveOutput(
             frame,
             target,
@@ -242,11 +246,16 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
             toneMapping);
         linearNitsPerUnit = hdrOutput.LinearNitsPerUnit;
         // The automatic mapping is reported whatever options are applied, so a host can show it.
-        toneMappingOutputChanged?.Invoke(
-            toneMapping is null
+        if (toneMappingOutputChanged is not null)
+        {
+            VideoHdrOutputMapping automatic = toneMapping is null
                 ? hdrOutput
-                : VideoFramePipeline.ResolveOutput(frame, target, hdrPassthrough, preferredColorVolume),
-            target.ResolveDisplayToneTarget(hdrPassthrough, preferredColorVolume));
+                : VideoFramePipeline.ResolveOutput(frame, target, hdrPassthrough, preferredColorVolume);
+            toneMappingOutputChanged(
+                automatic,
+                target.ResolveDisplayToneTarget(hdrPassthrough, preferredColorVolume),
+                VideoFramePipeline.DescribeAutomaticToneMapping(frame, automatic));
+        }
         outputChanged?.Invoke(target.IsExtendedRange(), hdr
             ? hdrOutput.ToneMapPeakNits / hdrOutput.LinearNitsPerUnit
             : 1);
@@ -300,11 +309,13 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
     {
         try
         {
+            // A picture cropped by the control is read only as far as it shows.
+            Rect visible = destination.Intersect(Bounds);
             SKRect logical = new(
-                (float)destination.X,
-                (float)destination.Y,
-                (float)destination.Right,
-                (float)destination.Bottom);
+                (float)visible.X,
+                (float)visible.Y,
+                (float)visible.Right,
+                (float)visible.Bottom);
             SKRect device = canvas.TotalMatrix.MapRect(logical);
             int left = (int)Math.Floor(device.Left);
             int top = (int)Math.Floor(device.Top);
@@ -561,12 +572,13 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
 
     private void RenderPacked(SKCanvas canvas, GRContext? grContext, byte alpha)
     {
+        SKAlphaType alphaType = frame.HasAlpha ? SKAlphaType.Unpremul : SKAlphaType.Opaque;
         var info = new SKImageInfo(frame.Width, frame.Height, frame.Format switch
             {
                 VideoPixelFormat.Rgba64 => SKColorType.Rgba16161616,
                 VideoPixelFormat.RgbaF16 => SKColorType.RgbaF16,
                 _ => SKColorType.Bgra8888,
-            }, frame.HasAlpha ? SKAlphaType.Unpremul : SKAlphaType.Opaque,
+            }, alphaType,
             SourceColorSpace(VideoSurfaceTransfers.For(target, preferredColorVolume)));
 
         if (frame.PlaneSource is { } source)
@@ -575,6 +587,10 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
             if (supplied is not null) RenderImage(canvas, grContext, supplied, alpha);
             return;
         }
+
+        // Only the pipeline reads 16-bit RGBA taken apart into byte pairs.
+        if (NeedsPipeline())
+            info = VideoPackedFormatProbe.FrameImageInfo(frame, grContext, alphaType);
 
         if (imageCache is { } cache)
         {
@@ -587,12 +603,26 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
             return;
         }
 
-        using SKImage? image = SKImage.FromPixels(info, frame.Data, frame.Stride);
+        using SKImage? image = VideoPackedFormatProbe.CreateRaster(info, frame.Data, frame.Stride, grContext);
         if (image is null)
             return;
 
         RenderImage(canvas, grContext, image, alpha);
     }
+
+    /// <summary>
+    /// Whether a packed picture goes through the pipeline. An extended surface stores light, so even an
+    /// otherwise ordinary packed picture needs its transfer decoded there. A filter carrying its own kernel
+    /// likewise exists only there, and Skia does not know that alternate rows were sampled at different instants.
+    /// </summary>
+    private bool NeedsPipeline() =>
+        frame.ExternalTextureColorModel == VideoExternalTextureColorModel.Yuv ||
+        VideoFramePipeline.NeedsColorProcessing(frame, target) ||
+        target.IsExtendedRange() ||
+        VideoFramePipeline.NeedsDeinterlacing(frame) ||
+        scaler.RequiresSceneBuffer ||
+        !frame.ExternalTextureRect.IsWhole ||
+        VideoDebanding.Applies(debanding, VideoPlanarLayout.Packed);
 
     /// <summary>
     /// Draws an already interleaved picture. One the surface can take as it stands is left to Skia,
@@ -602,24 +632,15 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
     {
         bool rawYuv = frame.ExternalTextureColorModel == VideoExternalTextureColorModel.Yuv;
 
-        // An extended surface stores light, so even an otherwise ordinary packed picture needs its
-        // transfer decoded by the pipeline. A filter carrying its own kernel likewise exists only
-        // there, and Skia does not know that alternate rows were sampled at different instants.
-        if ((rawYuv ||
-             VideoFramePipeline.NeedsColorProcessing(frame, target) ||
-                         target.IsExtendedRange() ||
-                         VideoFramePipeline.NeedsDeinterlacing(frame) ||
-                         scaler.RequiresSceneBuffer ||
-                         !frame.ExternalTextureRect.IsWhole ||
-                         VideoDebanding.Applies(debanding, VideoPlanarLayout.Packed)) &&
+        if (NeedsPipeline() &&
             VideoFramePipeline.Render(Request(canvas, grContext, alpha) with { PackedImage = image }))
         {
             return true;
         }
 
-        // These channels are Y, Cb, and Cr rather than a display color. Showing them as RGB would
-        // hide a shader failure behind a plausible but corrupt picture and keep hardware active.
-        if (rawYuv)
+        // These channels are Y, Cb, and Cr, or byte pairs, rather than a display color. Showing them
+        // as RGB would hide a shader failure behind a plausible but corrupt picture and keep hardware active.
+        if (rawYuv || frame.Format == VideoPixelFormat.Rgba64 && image.ColorType == SKColorType.Rgba8888)
             return false;
 
         // Skia would read the whole texture, which for a picture sitting inside a larger one is
@@ -694,6 +715,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
             FrameSequence = frameSequence,
             ImageCache = imageCache,
             DeviceViewport = imageCache is null ? null : deviceViewport,
+            InMotion = inMotion,
             UpscalingQuality = upscalingQuality,
             DownscalingQuality = downscalingQuality,
             SdrToneMapping = toneMapping,

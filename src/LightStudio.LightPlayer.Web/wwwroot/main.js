@@ -95,6 +95,12 @@ async function startInstance() {
                     forwarded: '開いている Light Media Center ウィンドウにファイルを送信しました。このウィンドウを閉じることができます。',
                     failed: 'ファイルの受信を確認できませんでした。再度ファイルを開く前に、開いている Light Media Center ウィンドウを確認してください。',
                 },
+                pt: {
+                    alreadyOpen: 'O Light Media Center já está aberto em outra guia ou janela. Feche-o e recarregue esta página.',
+                    forwarding: 'Enviando arquivos para a janela aberta do Light Media Center...',
+                    forwarded: 'Os arquivos foram enviados para a janela aberta do Light Media Center. Você pode fechar esta janela.',
+                    failed: 'Não foi possível confirmar o recebimento dos arquivos. Verifique a janela aberta do Light Media Center antes de abrir os arquivos novamente.',
+                },
                 'zh-Hans': {
                     alreadyOpen: 'Light Media Center 已在其他标签页或窗口中打开。请将其关闭，然后重新加载此页面。',
                     forwarding: '正在将文件发送到已打开的 Light Media Center 窗口...',

@@ -21,7 +21,7 @@ internal sealed class AndroidMediaStoreProvider : INativeMediaLibraryProvider, I
     private readonly ContentResolver resolver;
     private readonly AndroidMultimediaPlatformIO platform;
     private readonly AndroidMediaStoreCatalog catalog;
-    private readonly AndroidMediaStoreQueryService query;
+    private readonly SystemLibraryQueryService query;
     private readonly Handler handler = new(Looper.MainLooper!);
     private readonly MediaObserver observer;
     private readonly Action notifyChanged;
@@ -32,7 +32,7 @@ internal sealed class AndroidMediaStoreProvider : INativeMediaLibraryProvider, I
         this.platform = platform;
         resolver = context.ContentResolver!;
         catalog = new AndroidMediaStoreCatalog(context);
-        query = new AndroidMediaStoreQueryService(catalog);
+        query = new SystemLibraryQueryService(catalog);
         notifyChanged = () => CatalogChanged?.Invoke(this, EventArgs.Empty);
         observer = new MediaObserver(handler, OnMediaChanged);
         using var root = AndroidUri.Parse("content://media")!;
@@ -50,9 +50,10 @@ internal sealed class AndroidMediaStoreProvider : INativeMediaLibraryProvider, I
             .Select(item => item.Image).OfType<DbImageFile>().ToArray();
 
     public ILibrarySource CreateSource(IAppSettingsStore settingsStore, IPhotoSearchService? photoSearch) =>
-        new SystemLibrarySource(this, settingsStore, new LibrarySourceServices(
-            query, query, platform, null, new RefreshService(this), query,
-            PhotoSearch: photoSearch, MusicFolders: new IndexedMusicFolderBrowser(query, query.GetMusicRootsAsync)));
+        new SystemLibrarySource(settingsStore, new LibrarySourceServices(
+            query, query, platform, null, new SystemLibraryRefreshService(Refresh), query,
+            PhotoSearch: photoSearch, MusicFolders: new IndexedMusicFolderBrowser(query, query.GetMusicRootsAsync)),
+            new LibrarySourceCapabilities(SupportsFileReveal: true), () => disposed);
 
     public async Task<bool> RequestAccessAsync(LibraryMediaCategory category, bool manageAccess = false,
         CancellationToken cancellationToken = default)
@@ -132,46 +133,5 @@ internal sealed class AndroidMediaStoreProvider : INativeMediaLibraryProvider, I
     private sealed class MediaObserver(Handler handler, Action changed) : ContentObserver(handler)
     {
         public override void OnChange(bool selfChange) => changed();
-    }
-
-    private sealed class SystemLibrarySource(
-        AndroidMediaStoreProvider provider, IAppSettingsStore settings, LibrarySourceServices services) : ILibrarySource
-    {
-        public LibrarySourceId Id => LibrarySourceId.System;
-        public string DisplayName => Strings.Resources.LibrarySource_SystemLibrary;
-        public bool LoadMusic => settings.NativeLibrary.UseSystemMusicLibrary;
-        public bool LoadVideo => settings.NativeLibrary.UseSystemMediaLibrary;
-        public LibrarySourceStatus Status => LibrarySourceStatus.Online;
-        public string? LastError => null;
-        public LibrarySourceCapabilities Capabilities { get; } = new(SupportsFileReveal: true);
-        public LibrarySourceServices Services => services;
-        public event EventHandler? StatusChanged
-        {
-            add { }
-            remove { }
-        }
-
-        public Task<LibrarySourceServices> EnsureConnectedAsync(CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            ObjectDisposedException.ThrowIf(provider.disposed, provider);
-            return Task.FromResult(services);
-        }
-
-        public void Dispose() { }
-    }
-
-    private sealed class RefreshService(AndroidMediaStoreProvider provider) : ILibraryScanService
-    {
-        public event EventHandler<LibraryScanStartedEventArgs>? ScanStarted { add { } remove { } }
-        public event EventHandler<LibraryScanProgressEventArgs>? ScanProgressChanged { add { } remove { } }
-        public event EventHandler<LibraryScanWarningEventArgs>? ScanWarning { add { } remove { } }
-        public event EventHandler<LibraryScanCompletedEventArgs>? ScanCompleted { add { } remove { } }
-
-        public Task<LibraryScanResult> ScanAsync()
-        {
-            provider.Refresh();
-            return Task.FromResult(new LibraryScanResult(0, []));
-        }
     }
 }

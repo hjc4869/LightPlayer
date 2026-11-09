@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -8,21 +7,21 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using LightStudio.LightPlayer.Models;
-using LightStudio.LightPlayer.Services;
 using LightStudio.MediaLibraryCore.Database;
 using LightStudio.MediaLibraryCore.Database.Entities;
 
-namespace LightStudio.LightPlayer.Android.Services;
+namespace LightStudio.LightPlayer.Services;
 
-internal sealed class AndroidMediaStoreQueryService : ILibraryQueryService, IVideoLibraryQueryService,
+/// <summary>Library queries over in-memory snapshots of a platform media catalog.</summary>
+public sealed class SystemLibraryQueryService : ILibraryQueryService, IVideoLibraryQueryService,
     IMediaLibraryQueryService, IVideoFolderBrowser
 {
     private static readonly StringComparer TextComparer = StringComparer.OrdinalIgnoreCase;
-    private readonly AndroidMediaStoreCatalog catalog;
+    private readonly ISystemLibraryCatalog catalog;
     private readonly LibraryBrowseIndexCache<IndexedMediaFile> browseIndex;
     private readonly ConcurrentDictionary<string, object> pages = new(StringComparer.Ordinal);
 
-    public AndroidMediaStoreQueryService(AndroidMediaStoreCatalog catalog)
+    public SystemLibraryQueryService(ISystemLibraryCatalog catalog)
     {
         this.catalog = catalog;
         browseIndex = LibraryBrowseIndexes.Media(this);

@@ -159,7 +159,8 @@ public static unsafe partial class VideoProbe
                 hasExif: false,
                 exifRotation: 0,
                 exifMirror: false,
-                retainPreviewFrame);
+                retainPreviewFrame,
+                demuxer.LogTransferFunctions);
         }
         catch (FfmpegException)
         {
@@ -223,7 +224,8 @@ public static unsafe partial class VideoProbe
                 hasExif,
                 exifRotation,
                 exifMirror,
-                retainPreviewFrame);
+                retainPreviewFrame,
+                withPreview ? QuickTimeLogTransfer.Read(stream, format) : null);
         }
         catch (FfmpegException)
         {
@@ -246,7 +248,8 @@ public static unsafe partial class VideoProbe
         bool hasExif,
         int exifRotation,
         bool exifMirror,
-        bool retainPreviewFrame)
+        bool retainPreviewFrame,
+        IReadOnlyDictionary<int, string> logTransferFunctions)
     {
         int videoIndex = av_find_best_stream(format, AVMediaType.AVMEDIA_TYPE_VIDEO, -1, -1, null, 0);
         if (videoIndex < 0)
@@ -295,7 +298,8 @@ public static unsafe partial class VideoProbe
         if (!withPreview)
             return result;
 
-        return DecodePreview(format, video, videoIndex, result, previewPosition, maxPreviewDimension, retainPreviewFrame) ?? result;
+        return DecodePreview(format, video, videoIndex, result, previewPosition, maxPreviewDimension, retainPreviewFrame,
+            logTransferFunctions?.GetValueOrDefault(videoIndex)) ?? result;
     }
 
     private static VideoProbeResult DecodePreview(
@@ -305,7 +309,8 @@ public static unsafe partial class VideoProbe
         VideoProbeResult probe,
         TimeSpan position,
         int maxPreviewDimension,
-        bool retainPreviewFrame)
+        bool retainPreviewFrame,
+        string logTransferFunction)
     {
         AVCodec* codec = avcodec_find_decoder(video->codecpar->codec_id);
         if (codec == null)
@@ -375,11 +380,13 @@ public static unsafe partial class VideoProbe
 
             byte[] pixels = null;
             VideoFrame previewFrame = null;
-            if (StillImage.NeedsSoftwareColor(frame, video->codecpar))
+            if (logTransferFunction is not null || StillImage.NeedsSoftwareColor(frame, video->codecpar))
             {
                 VideoFrame retained = StillImage.RetainSoftwareFrame(frame, video->codecpar);
                 try
                 {
+                    if (logTransferFunction is not null)
+                        VideoFrameMetadata.ApplyLogTransferFunction(retained, logTransferFunction);
                     VideoFrame layer = enhancement?.Take(frame->pts);
                     if (retained.DolbyVision.EnhancementLayerResidual)
                         retained.AttachEnhancementLayer(layer);

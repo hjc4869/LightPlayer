@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
+using Avalonia.Media.Immutable;
 using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -148,6 +149,13 @@ public sealed class AvaloniaThemeService : IThemeService
         resources["AppIsContentLiquidGlass"] = style is BackdropStyle.LiquidGlassContentOnly or BackdropStyle.LiquidGlass;
         resources["AppIsAppleChrome"] = IsAppleChromeEnabled;
         resources["AppIsAppleCsd"] = PlatformServices.SupportsClientSideWindowControls && IsAppleChromeEnabled;
+
+        // Touch chrome lays settings rows out as iOS lists do: 17-point names over 15-point descriptions.
+        bool touch = PlatformServices.UsesTouchChrome && IsAppleChromeEnabled;
+        resources["AppSettingNameFontSize"] = touch ? 17d : 14d;
+        resources["AppSettingDescriptionFontSize"] = touch ? 15d : 12d;
+        resources["AppSettingRowPadding"] = touch ? new Thickness(20, 10) : new Thickness(16, 12);
+        resources["AppSettingRowMinHeight"] = touch ? 32d : 0d;
     }
 
     public void ReportMicaApplied(bool applied)
@@ -411,6 +419,30 @@ public sealed class AvaloniaThemeService : IThemeService
         installedOverride = overrideDict;
     }
 
+    // Alpha ramp of the tile caption fade, top to bottom. Only the alpha varies; keeping the RGB
+    // constant avoids the muddy interpolation a fade from Colors.Transparent would produce.
+    private static readonly (double Offset, double Alpha)[] TileFadeStops =
+    [
+        (0.00, 0.00),
+        (0.45, 0.45),
+        (0.70, 0.72),
+        (1.00, 0.94),
+    ];
+
+    private static ImmutableLinearGradientBrush CreateTileFade(Color color)
+    {
+        var stops = new List<ImmutableGradientStop>(TileFadeStops.Length);
+        foreach (var (offset, alpha) in TileFadeStops)
+        {
+            stops.Add(new ImmutableGradientStop(offset, Color.FromArgb((byte)Math.Round(alpha * 255), color.R, color.G, color.B)));
+        }
+
+        return new ImmutableLinearGradientBrush(
+            stops,
+            startPoint: new RelativePoint(0, 0, RelativeUnit.Relative),
+            endPoint: new RelativePoint(0, 1, RelativeUnit.Relative));
+    }
+
     private static ResourceDictionary BuildVariantDictionary(ColorTheme theme, bool mica)
     {
         var dictionary = new ResourceDictionary();
@@ -425,6 +457,7 @@ public sealed class AvaloniaThemeService : IThemeService
         }
 
         AddShellSurfaces(dictionary, theme, mica);
+        dictionary["AppTileFadeBrush"] = CreateTileFade(theme.Get(AppColorRole.PageBackground));
 
         var navigation = theme.Get(AppColorRole.NavBackground);
         var queue = theme.Get(AppColorRole.PageBackground);

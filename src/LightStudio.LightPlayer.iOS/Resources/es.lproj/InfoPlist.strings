@@ -1,1 +1,3 @@
 "NSLocalNetworkUsageDescription" = "Conectarse a bibliotecas multimedia en su red local.";
+"NSAppleMusicUsageDescription" = "Reproducir música de la biblioteca multimedia del dispositivo.";
+"NSPhotoLibraryUsageDescription" = "Mostrar fotos y vídeos de la biblioteca multimedia del dispositivo.";

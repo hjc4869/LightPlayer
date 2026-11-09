@@ -16,7 +16,8 @@ namespace LightStudio.LightPlayer.Services;
 
 /// <summary>
 /// Loads album/track artwork through the active media platform, which can extract an embedded
-/// cover or fall back to a folder/cover image next to the file. Extractions
+/// cover or fall back to a folder/cover image next to the file. Every image is decoded at the
+/// device-pixel size it is displayed at, never at the encoded picture's own size. Extractions
 /// are throttled so a large library does not saturate the thread pool.
 /// </summary>
 public sealed class AlbumArtService
@@ -25,6 +26,15 @@ public sealed class AlbumArtService
     internal const int DefaultThumbnailPixelSize = 300;
 
     public static FastImageCache ThumbnailCache { get; } = new();
+
+    /// <summary>
+    /// Render scaling of the shell that displays the artwork, published by the shell view so view
+    /// models can size their initial requests in device pixels.
+    /// </summary>
+    public static double DisplayScaling { get; set; } = 1;
+
+    /// <summary>Device pixels covered by <paramref name="dips"/> at the shell's render scaling.</summary>
+    public static int DisplayPixels(double dips) => Math.Max(1, (int)Math.Ceiling(dips * DisplayScaling));
 
     /// <summary>
     /// Extraction is file I/O plus a single decode, so extra parallelism buys little while each
@@ -45,20 +55,24 @@ public sealed class AlbumArtService
             ?? new CapturedPlatformMediaResolver(LightStudio.MediaLibraryCore.IO.IMultiMediaPlatformIO.Instance);
     }
 
-    public Task<Bitmap?> GetHighQualityTrackArtAsync(string? filePath, CancellationToken cancellationToken = default)
-        => LoadAlbumArtAsync(LocalMedia(filePath), cancellationToken);
-
-    public Task<Bitmap?> GetHighQualityTrackArtAsync(
+    /// <summary>
+    /// Loads a track's cover for a hero placement, decoded so its shorter side covers
+    /// <paramref name="pixelSize"/> device pixels. Not pooled: these sizes would serve tile
+    /// requests many times smaller than the pixels.
+    /// </summary>
+    public Task<FastImageSource?> GetHighQualityTrackArtAsync(
         MediaReference media,
+        int pixelSize,
         CancellationToken cancellationToken = default) =>
-        LoadAlbumArtAsync(media, cancellationToken);
+        LoadThumbnailAsync(media, pixelSize, 1, cancellationToken);
 
     /// <summary>
-    /// Loads a track's full-size artwork together with a blurred backdrop of it, both decoded from one read of
-    /// the encoded picture.
+    /// Loads a track's cover at <paramref name="pixelSize"/> together with a blurred backdrop of it, both
+    /// decoded from one read of the encoded picture.
     /// </summary>
     internal Task<ArtworkWithBackdrop?> GetHighQualityTrackArtWithBackdropAsync(
         MediaReference media,
+        int pixelSize,
         int backdropWidth,
         float backdropBlurSigma,
         CancellationToken cancellationToken = default) =>
@@ -72,7 +86,12 @@ public sealed class AlbumArtService
                     return null;
                 }
 
-                var cover = await ImageDecoding.DecodeBitmapAsync(content, cancellationToken: token).ConfigureAwait(false);
+                FastImageSource cover;
+                using (var encoded = ArtworkBuffer.Copy(content))
+                {
+                    cover = await ImageDecoding.DecodeArtworkAsync(encoded, pixelSize, token).ConfigureAwait(false);
+                }
+
                 Bitmap? backdrop = null;
                 try
                 {
@@ -85,11 +104,11 @@ public sealed class AlbumArtService
                 }
                 catch
                 {
-                    cover?.Dispose();
+                    cover.Dispose();
                     throw;
                 }
 
-                return cover is null && backdrop is null ? null : new ArtworkWithBackdrop(cover, backdrop);
+                return new ArtworkWithBackdrop(cover, backdrop);
             },
             1,
             cancellationToken);
@@ -170,22 +189,6 @@ public sealed class AlbumArtService
             },
             DispatcherPriority.Background);
     }
-
-    private Task<Bitmap?> LoadAlbumArtAsync(MediaReference? media, CancellationToken cancellationToken) =>
-        LoadAsync(
-            media,
-            async (reference, token) =>
-            {
-                var content = await LoadArtworkContentAsync(reference, token).ConfigureAwait(false);
-                if (content is null || token.IsCancellationRequested)
-                {
-                    return null;
-                }
-
-                return await ImageDecoding.DecodeBitmapAsync(content, cancellationToken: token).ConfigureAwait(false);
-            },
-            1,
-            cancellationToken);
 
     private Task<FastImageSource?> LoadThumbnailAsync(
         MediaReference? media,
@@ -402,15 +405,15 @@ public sealed class AlbumArtService
 }
 
 /// <summary>Artwork and its blurred backdrop, owned together until each is handed on or disposed.</summary>
-internal sealed class ArtworkWithBackdrop(Bitmap? cover, Bitmap? backdrop) : IDisposable
+internal sealed class ArtworkWithBackdrop(FastImageSource cover, Bitmap? backdrop) : IDisposable
 {
-    public Bitmap? Cover { get; } = cover;
+    public FastImageSource Cover { get; } = cover;
 
     public Bitmap? Backdrop { get; } = backdrop;
 
     public void Dispose()
     {
-        Cover?.Dispose();
+        Cover.Dispose();
         Backdrop?.Dispose();
     }
 }

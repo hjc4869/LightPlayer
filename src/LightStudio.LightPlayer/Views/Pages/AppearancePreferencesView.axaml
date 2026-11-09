@@ -17,7 +17,7 @@
             <Grid ColumnDefinitions="*,Auto" Margin="16,12">
                 <TextBlock Text="{Binding DefaultPageSettings_StartupPageHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                            Classes="settingName"
-                           FontSize="14"
+                           FontSize="{DynamicResource AppSettingNameFontSize}"
                            VerticalAlignment="Center" />
                 <ComboBox Grid.Column="1"
                           Width="110"
@@ -37,7 +37,7 @@
             <Grid ColumnDefinitions="*,Auto" Margin="16,12">
                 <TextBlock Text="{Binding LanguageSettings_InterfaceLanguageHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                            Classes="settingName"
-                           FontSize="14"
+                           FontSize="{DynamicResource AppSettingNameFontSize}"
                            VerticalAlignment="Center" />
                 <ComboBox Grid.Column="1"
                           Width="110"
@@ -60,7 +60,7 @@
                   IsVisible="{Binding ShowBackdropStyle}">
                 <TextBlock Text="{Binding ThemeColor_BackdropHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                            Classes="settingName"
-                           FontSize="14"
+                           FontSize="{DynamicResource AppSettingNameFontSize}"
                            TextWrapping="Wrap"
                            VerticalAlignment="Center" />
                 <ComboBox x:Name="BackdropStylePicker"
@@ -87,7 +87,7 @@
                   IsVisible="{x:Static services:PlatformServices.SupportsWaylandSettings}">
                 <TextBlock Text="{Binding WaylandSettings_EnableHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                            Classes="settingName"
-                           FontSize="14"
+                           FontSize="{DynamicResource AppSettingNameFontSize}"
                            VerticalAlignment="Center" />
                 <ComboBox Grid.Column="1"
                           Width="110"
@@ -110,7 +110,7 @@
                   IsVisible="{Binding ShowLiquidGlassFrost}">
                 <TextBlock Text="{Binding ThemeColor_GlassFrostHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                            Classes="settingName"
-                           FontSize="14"
+                           FontSize="{DynamicResource AppSettingNameFontSize}"
                            TextWrapping="Wrap"
                            VerticalAlignment="Center" />
                 <!-- Overlapping panes mark the ends: clear glass shows the pane behind it, frosted glass hides it. -->

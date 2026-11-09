@@ -137,6 +137,55 @@
         <Style Selector="Border#Card.open">
             <Setter Property="BorderBrush" Value="Transparent" />
         </Style>
+        <Style Selector="Border#CardSurface">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <Style Selector="Grid#CompactContent">
+            <Setter Property="Margin" Value="10,10,6,10" />
+        </Style>
+
+        <!-- Touch chrome: the compact card is a floating glass capsule, so the card draws neither
+             fill nor outline. CardSurface fades in with the drag as the capsule fades out, and the
+             shell's bands beside the safe area follow the same opacity. -->
+        <Style Selector=":is(TopLevel).appleTouch Border#Card">
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector=":is(TopLevel).appleTouch Border#CardSurface">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector=":is(TopLevel).appleTouch lmr|BackdropBorder#CompactGlass">
+            <Setter Property="Margin" Value="12,4" />
+            <Setter Property="CornerRadius" Value="34" />
+            <Setter Property="IsPressAnimationEnabled" Value="True" />
+        </Style>
+        <!-- The artwork keeps clear of the capsule's rounded end. -->
+        <Style Selector=":is(TopLevel).appleTouch Grid#CompactContent">
+            <Setter Property="Margin" Value="14,6,10,6" />
+        </Style>
+        <!-- The compact card leaves the scrubber to the full page, as iOS's mini player does. -->
+        <Style Selector=":is(TopLevel).appleTouch Slider#CompactSlider">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- The full page's title bar buttons stand in 48-DIP glass capsules, as the narrow top bar's do. -->
+        <Style Selector=":is(TopLevel).appleTouch Grid#ExpandedHeader">
+            <Style Selector="^ lmr|BackdropBorder.narrowGlass">
+                <Setter Property="Height" Value="48" />
+                <Setter Property="CornerRadius" Value="24" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+            <Style Selector="^ Button.icon">
+                <Setter Property="Width" Value="48" />
+                <Setter Property="Height" Value="48" />
+                <Setter Property="CornerRadius" Value="24" />
+            </Style>
+            <Style Selector="^ Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropHoverBrush}" />
+            </Style>
+            <Style Selector="^ Button.icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+                <Setter Property="Background" Value="{DynamicResource AppBackdropPressedBrush}" />
+            </Style>
+        </Style>
     </UserControl.Styles>
 
     <!--
@@ -152,21 +201,27 @@
             ClipToBounds="True"
             BoxShadow="0 -2 14 0 #22000000">
         <Grid RowDefinitions="Auto,*">
+            <Border x:Name="CardSurface"
+                    Grid.RowSpan="2"
+                    Background="{DynamicResource AppPageBackgroundBrush}"
+                    IsHitTestVisible="False" />
             <!-- Header strip. Owns the drag gesture in both directions: dragging up from the compact
                  mini player opens the sheet, dragging down from the full page's title bar closes it.
                  Its height is the artwork plus one uniform inset on every side, keeping the compact
                  card as dense as the artwork allows. -->
             <Panel Grid.Row="0" x:Name="HeaderHost" Height="{x:Static controls:NowPlayingSheet.CompactHeight}">
-                <!-- Compact mini player (visible while the sheet is closed). -->
+                <!-- Compact mini player (visible while the sheet is closed). On touch heads it floats in
+                     a glass capsule of its own, as iOS's mini player does. -->
+                <lmr:BackdropBorder x:Name="CompactGlass" Classes="narrowGlass">
                 <Grid x:Name="CompactContent"
-                      ColumnDefinitions="Auto,*,Auto"
-                      Margin="10,10,6,10">
+                      ColumnDefinitions="Auto,*,Auto">
                     <controls:MediaThumbnail Grid.Column="0"
                                              Width="56"
                                              Height="56"
                                              VerticalAlignment="Center"
                                              CornerRadius="8"
                                              Source="{Binding Playback.AlbumImage}"
+                                             SizeTarget="{Binding Playback}"
                                              PlaceholderKind="Album" />
 
                     <!-- Metadata, progress and timing packed tightly so the text block spans the
@@ -183,7 +238,6 @@
                                    TextTrimming="CharacterEllipsis"
                                    Foreground="{DynamicResource AppPrimaryTextBrush}" />
                         <controls:FixedLineTextBlock Text="{Binding Playback.ArtistAlbum}"
-                                   Margin="0,0,0,-6"
                                    FontSize="11"
                                    LineHeight="13"
                                    MaxLines="1"
@@ -194,7 +248,7 @@
                             <x:Double x:Key="SliderHorizontalThumbHeight">10</x:Double>
                         </StackPanel.Resources>
                         <controls:PlaybackProgressSlider x:Name="CompactSlider"
-                                Margin="0,-3"
+                                Margin="0,-9,0,-3"
                                 Height="24"
                                 Minimum="0"
                                 Maximum="{Binding Playback.DurationMs}"
@@ -255,14 +309,16 @@
                         </Button>
                     </StackPanel>
                 </Grid>
+                </lmr:BackdropBorder>
 
-                <!-- Full-page title bar (visible while the sheet is open). -->
+                <!-- Full-page title bar (visible while the sheet is open). On touch heads each button
+                     stands in a glass capsule of its own, as the narrow top bar's buttons do. -->
                 <Grid x:Name="ExpandedHeader"
                       ColumnDefinitions="Auto,*,Auto"
                       Margin="8,0"
                       Opacity="0">
-                    <Button Grid.Column="0"
-                            Classes="icon"
+                    <lmr:BackdropBorder Grid.Column="0" Classes="narrowGlass">
+                    <Button Classes="icon"
                             VerticalAlignment="Center"
                             ToolTip.Tip="{Binding NowPlaying_Minimize, Source={x:Static strings:LocalizedStrings.Instance}}"
                             Command="{Binding CollapseCommand}">
@@ -271,6 +327,7 @@
                                   Fill="{DynamicResource AppPrimaryTextBrush}" />
                         </Viewbox>
                     </Button>
+                    </lmr:BackdropBorder>
                     <TextBlock Grid.Column="1"
                                Text="{Binding Nav_NowPlaying, Source={x:Static strings:LocalizedStrings.Instance}}"
                                FontSize="16"
@@ -278,8 +335,8 @@
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                    <Button Grid.Column="2"
-                            Classes="icon"
+                    <lmr:BackdropBorder Grid.Column="2" Classes="narrowGlass">
+                    <Button Classes="icon"
                             VerticalAlignment="Center"
                             Click="OnMoreClick"
                             ToolTip.Tip="{Binding Shell_More, Source={x:Static strings:LocalizedStrings.Instance}}">
@@ -306,6 +363,7 @@
                             </MenuFlyout>
                         </services:NativeContextMenu.Menu>
                     </Button>
+                    </lmr:BackdropBorder>
                 </Grid>
             </Panel>
 
@@ -375,6 +433,7 @@
                                                                 Height="320"
                                                                 CornerRadius="12"
                                                                 Source="{Binding Playback.AlbumImage}"
+                                                                SizeTarget="{Binding Playback}"
                                                                 PlaceholderKind="Album" />
                                 </Viewbox>
                                 <StackPanel Grid.Row="1" Margin="0,12,0,0" Spacing="2">

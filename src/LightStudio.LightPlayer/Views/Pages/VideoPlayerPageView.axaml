@@ -97,20 +97,6 @@
             <Setter Property="CornerRadius" Value="24" />
             <Setter Property="BorderBrush" Value="{x:Null}" />
         </Style>
-        <Style Selector="lmr|BackdropBorder#StatisticsPanel">
-            <Setter Property="BackdropStyle" Value="Off" />
-            <Setter Property="CornerRadius" Value="6" />
-            <Style Selector="^ > Border">
-                <Setter Property="BorderBrush" Value="#40FFFFFF" />
-            </Style>
-        </Style>
-        <Style Selector=":is(UserControl).liquidGlass lmr|BackdropBorder#StatisticsPanel">
-            <Setter Property="BackdropStyle" Value="{DynamicResource AppContentBackdropStyle}" />
-            <Setter Property="CornerRadius" Value="24" />
-            <Style Selector="^ > Border">
-                <Setter Property="BorderBrush" Value="{x:Null}" />
-            </Style>
-        </Style>
         <Style Selector="controls|MediaSeekBar#SeekBar">
             <Setter Property="TrackBrush" Value="{lmr:BackdropForeground Color=#59FFFFFF}" />
             <Setter Property="BufferedBrush" Value="{lmr:BackdropForeground Color=#A6D6D6D6}" />
@@ -327,25 +313,24 @@
                 </Border>
 
                 <!-- Diagnostics. Clear of the title bar, and selectable so a report can be pasted. -->
-                <lmr:BackdropBorder x:Name="StatisticsPanel"
-                                         IsVisible="{Binding IsStatisticsPanelVisible}"
-                                         HorizontalAlignment="Left"
-                                         VerticalAlignment="Top"
-                                         Margin="12,56,12,12"
-                                         MaxWidth="620"
-                                         FallbackColor="#C0000000"
-                                         TintColor="#50000000">
-                    <Border Padding="12,8"
-                            CornerRadius="{Binding #StatisticsPanel.CornerRadius}"
-                            BorderThickness="1">
-                        <ScrollViewer MaxHeight="420" HorizontalScrollBarVisibility="Auto">
-                            <SelectableTextBlock Text="{Binding StatisticsText}"
-                                                 FontFamily="Consolas,Menlo,DejaVu Sans Mono,monospace"
-                                                 FontSize="12"
-                                                 Foreground="{lmr:BackdropForeground Color=#E0FFE0}" />
-                        </ScrollViewer>
-                    </Border>
-                </lmr:BackdropBorder>
+                <Border x:Name="StatisticsPanel"
+                        IsVisible="{Binding IsStatisticsPanelVisible}"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="12,56,12,12"
+                        MaxWidth="620"
+                        Padding="12,8"
+                        Background="#C0000000"
+                        BorderBrush="#40FFFFFF"
+                        BorderThickness="1"
+                        CornerRadius="6">
+                    <ScrollViewer MaxHeight="420" HorizontalScrollBarVisibility="Auto">
+                        <SelectableTextBlock Text="{Binding StatisticsText}"
+                                             FontFamily="Consolas,Menlo,DejaVu Sans Mono,monospace"
+                                             FontSize="12"
+                                             Foreground="#E0FFE0" />
+                    </ScrollViewer>
+                </Border>
 
                 <!-- Errors are dismissible so a failed sidecar does not block the picture. -->
                 <Border x:Name="ErrorPanel"
@@ -371,9 +356,8 @@
                      so both are there on hosts without a hardware or system back key as well. -->
                 <Border x:Name="TitleBar"
                         VerticalAlignment="Top"
-                        IsVisible="{Binding AreDeckControlsVisible}"
-                        Padding="{Binding $self.(controls:ShellChrome.WindowControlsInset)}">
-                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="8,6">
+                        IsVisible="{Binding AreDeckControlsVisible}">
+                    <Grid x:Name="TitleContent" ColumnDefinitions="Auto,Auto,*,Auto" Margin="8,6">
                         <lmr:BackdropBorder Grid.Column="1" Classes="videoHeaderGlass" IsVisible="{Binding CanMinimize}">
                         <Button
                                 Classes="transport"
@@ -711,6 +695,24 @@
                                                         <TextBlock Grid.Column="0"
                                                                    VerticalAlignment="Center"
                                                                    TextWrapping="Wrap"
+                                                                   Text="{Binding VideoPlayer_Stretch, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                                        <ComboBox Grid.Column="1"
+                                                                  Width="150"
+                                                                  ItemsSource="{Binding StretchOptions}"
+                                                                  SelectedItem="{Binding SelectedStretchOption, Mode=TwoWay}"
+                                                                  AutomationProperties.Name="{Binding VideoPlayer_Stretch, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                                            <ComboBox.ItemTemplate>
+                                                                <DataTemplate x:DataType="vm:StretchOption">
+                                                                    <TextBlock Text="{Binding DisplayName}" />
+                                                                </DataTemplate>
+                                                            </ComboBox.ItemTemplate>
+                                                        </ComboBox>
+                                                    </Grid>
+
+                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                                        <TextBlock Grid.Column="0"
+                                                                   VerticalAlignment="Center"
+                                                                   TextWrapping="Wrap"
                                                                    Text="{Binding VideoPlayer_Speed, Source={x:Static strings:LocalizedStrings.Instance}}" />
                                                         <ComboBox Grid.Column="1"
                                                                   Width="150"
@@ -884,7 +886,8 @@
                                     <Viewbox Width="22" Height="22"><Path Data="{StaticResource IconPictureInPicture}" /></Viewbox>
                                 </Button>
 
-                                <Button Classes="transport"
+                                <Button x:Name="FullScreenButton"
+                                        Classes="transport"
                                         Command="{Binding ToggleFullScreenCommand}">
                                     <Viewbox Width="22" Height="22">
                                         <Panel>
@@ -963,7 +966,8 @@
                         Width="300"
                         IsVisible="False"
                         Background="Transparent">
-                    <lmr:BackdropBorder CornerRadius="{Binding #PlaylistPanel.CornerRadius}"
+                    <lmr:BackdropBorder x:Name="PlaylistBackdrop"
+                                             CornerRadius="{Binding #PlaylistPanel.CornerRadius}"
                                              BackdropStyle="{DynamicResource AppContentBackdropStyle}"
                                              FallbackColor="#E0000000"
                                              TintColor="#B0000000">
@@ -1205,6 +1209,10 @@
                                         <DockPanel>
                                             <TextBlock Classes="shortcutKey" Text="F" />
                                             <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_FullScreen, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <TextBlock Classes="shortcutKey" Text="Z" />
+                                            <TextBlock Classes="shortcutAction" Text="{Binding VideoPlayer_ShortcutStretch, Source={x:Static strings:LocalizedStrings.Instance}}" />
                                         </DockPanel>
                                         <DockPanel IsVisible="{Binding CanUsePictureInPicture}">
                                             <TextBlock Classes="shortcutKey" Text="P" />

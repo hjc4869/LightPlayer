@@ -114,8 +114,8 @@ public sealed class PhotoFolderService
     }
 
     public static Task<StillImageThumbnail?> DecodeIndexImageAsync(
-        IMultiMediaPlatformIO platform, string path, CancellationToken cancellationToken = default) =>
-        ImageDecoding.DecodePhotoThumbnailAsync(new PhotoDecodeRequest(platform, path), 1536, cancellationToken);
+        IMultiMediaPlatformIO platform, string path, int maxDimension, CancellationToken cancellationToken = default) =>
+        ImageDecoding.DecodePhotoThumbnailAsync(new PhotoDecodeRequest(platform, path), maxDimension, cancellationToken);
 
     /// <summary>
     /// Returns the pictures supplied by the platform or server's folder listing.

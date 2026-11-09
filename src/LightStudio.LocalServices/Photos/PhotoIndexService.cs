@@ -540,6 +540,14 @@ public sealed class PhotoIndexService : IPhotoIndexService, IDisposable, IAsyncD
             var pending = new List<PreparedPhoto>(batchSize);
             using var pipelineCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var token = pipelineCancellation.Token;
+            // The first changed photo loads the model, so scans that find only unchanged photos leave it unloaded. Twice the
+            // model input keeps the final resize within bilinear range while allowing embedded thumbnails and reduced decodes.
+            var decodeDimension = new Lazy<Task<int>>(async () =>
+            {
+                var dimension = 2 * await EncodeAsync(current => ValueTask.FromResult(current.ImageSize), token).ConfigureAwait(false);
+                AppLog.Information("PhotoIndex", $"Decoding changed photos at {dimension} pixels.");
+                return dimension;
+            });
             var prepared = Channel.CreateBounded<PreparedPhoto>(new BoundedChannelOptions(batchSize)
             {
                 SingleReader = true,
@@ -609,7 +617,8 @@ public sealed class PhotoIndexService : IPhotoIndexService, IDisposable, IAsyncD
                         }
                         if (Path.IsPathFullyQualified(file.Path))
                             metadata = metadata with { CreatedUtc = File.GetCreationTimeUtc(file.Path) };
-                        var image = await PhotoFolderService.DecodeIndexImageAsync(platform, file.Path, preparationToken).ConfigureAwait(false)
+                        var dimension = await decodeDimension.Value.ConfigureAwait(false);
+                        var image = await PhotoFolderService.DecodeIndexImageAsync(platform, file.Path, dimension, preparationToken).ConfigureAwait(false)
                             ?? throw new InvalidDataException("The photo could not be decoded.");
                         if (metadata.Width <= 0 || metadata.Height <= 0)
                             metadata = metadata with { Width = image.Width, Height = image.Height };
@@ -620,7 +629,8 @@ public sealed class PhotoIndexService : IPhotoIndexService, IDisposable, IAsyncD
                 {
                     throw;
                 }
-                catch (Exception exception)
+                // A model that cannot load stops the scan instead of recording a failure for every photo.
+                catch (Exception exception) when (!decodeDimension.IsValueCreated || !decodeDimension.Value.IsFaulted)
                 {
                     result = new PreparedPhoto(metadata, null, exception);
                 }
@@ -659,6 +669,12 @@ public sealed class PhotoIndexService : IPhotoIndexService, IDisposable, IAsyncD
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested)
                 {
+                }
+                finally
+                {
+                    // Model loading and photo decoding leave freed buffers spread across the workers' native heaps.
+                    if (decodeDimension.IsValueCreated)
+                        NativeHeap.Trim();
                 }
             }
 

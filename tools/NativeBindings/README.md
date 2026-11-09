@@ -50,15 +50,16 @@ internal static partial class Errors;
 | `Header` | Header path relative to the include roots of the selected provider, with `/` separators. |
 | `Class` | Generated nested static partial class that receives the members. Members are added to the annotated type when omitted. |
 | `Access` | `BindingFlags.Public` or `BindingFlags.NonPublic` (default, generates private members). Includes sharing a generated class must agree. |
-| `ImportName` | Overrides the module name of dynamically linked imports from this header. The named library must provide every affected function. |
+| `ImportName` | Loads the functions of this header from the named module at run time, also in statically linked builds, in place of the module the selected libraries would give them. The named library must provide every affected function. |
 | `Macros` | Selects only these macros, evaluated after including the header, wherever they are defined (for example C library macros). No functions or types are generated for such an include. |
+| `Prerequisites` | Headers included before this one in its translation unit, for a header that only compiles after its core header, such as a Khronos extension header. They are not requested by this include; their own declarations belong to their own includes. |
 
 The annotated type and all containing types must be non-generic partial classes or structs. Several `[Include]` attributes can target the same type; identical declarations from different headers merge, while conflicting ones are errors.
 
 ## What is generated
 
 - **Functions** declared in headers that belong to the selected libraries, with external linkage and a providing library. Each becomes a `DllImport` with the native entry point and calling convention; a function exported by several selected libraries is an error. Functions with `const char*` parameters or results also get a wrapper that converts .NET strings to and from UTF-8; the raw import is then named `__native_<name>`.
-- **Constants** from enum members and from object-like macros that evaluate to an integer, floating-point, or string constant in the target compiler.
+- **Constants** from enum members and from object-like macros that evaluate to an integer, floating-point, or string constant in the target compiler. The enumerators of an enum without a name or typedef are `int` when every value fits, as in C; the constants of a named enum use its underlying type.
 - **Types** in the namespace `NativeBindingsTypeNamespace`: named enums with their underlying type, structs and unions with the native size, alignment, and field offsets (sequential layout only for scalar-only structs whose managed layout reproduces them, explicit layout otherwise), fixed arrays (`NativeArray_<element>_<length>` with checked indexers), bitfield accessor properties, flexible array member pointers, and empty opaque structs for records that are incomplete or belong to other libraries. A project that references an assembly already containing a type with the same name reuses it, so types from one binding owner flow through its consumers.
 
 Scalar types follow the target ABI: `size_t` and `uintptr_t` lower to `nuint`, `ptrdiff_t`, `intptr_t`, and `ssize_t` to `nint`, C `long` to the target's width, `char` and `_Bool` to `byte`, and function pointer fields to typed `delegate* unmanaged` pointers. Function pointer parameters lower to `void*`.
@@ -82,8 +83,11 @@ Every selection uses exactly one provider.
 | Native package | `NativeBindingsPackageDirectory`, optionally `NativeBindingsProfile` | Any supported target, including cross-compilation. |
 | pkg-config | `NativeBindingsPkgConfigModules` (semicolon-separated); `NativeBindingsPkgConfig` selects the executable, defaulting to `PKG_CONFIG` or `pkg-config` | The build host's own runtime. |
 | Explicit directories | `NativeBindingsIncludeDirectory`, `NativeBindingsLibraryDirectory`, `NativeBindingsLibraries` (semicolon-separated library names without `lib` prefix or extension) | The build host's own runtime. |
+| Android NDK | `NativeBindingsNdkLibraries` (semicolon-separated platform library names without `lib` prefix or extension), `NativeBindingsAndroidApiLevel` | Android runtimes; the platform libraries of the NDK sysroot. |
 
 With pkg-config, explicit include directories, library directories, or library names replace the corresponding pkg-config results. System providers resolve `lib<name>.so` (Linux) or `lib<name>.dylib` (macOS) for dynamic linkage, and `lib<name>.a` for static linkage.
+
+The Android NDK provider parses the sysroot headers of the target API level, which defaults to the major part of `SupportedOSPlatformVersion`, and reads the exports of the sysroot's stub libraries (`lib<name>.so`). Those headers are system headers, so each request owns its top-level directory, such as `aaudio/` or `android/`. The provider takes precedence over `NativeBindingsPackageDirectory` within the project, which still reaches referenced projects. Libraries whose exports overlap (`android` and `nativewindow`, or `GLESv2` and `GLESv3`) cannot be selected together.
 
 ### Package manifest
 
@@ -143,7 +147,7 @@ NativeBindings.targets passes the selection to referenced projects as global pro
 | Mode | Imports | Linking |
 | --- | --- | --- |
 | Dynamic (default) | Module names are the runtime identity of the library exporting each function: ELF `DT_SONAME`, Mach-O install name, or PE DLL file name. | Libraries are loaded at run time; deploying them is the responsibility of the application or package. |
-| Static NativeAOT (`NativeBindingsStatic=true`) | One import token, `__Internal` by default or `NativeBindingsImportName`. | Executables register the token as `DirectPInvoke` and must use `PublishAot=true`. Package providers supply link inputs through their own targets. For system providers, the archives and the dependencies from `pkg-config --static --libs` are added as `NativeLibrary` link inputs. |
+| Static NativeAOT (`NativeBindingsStatic=true`) | One import token, `__Internal` by default or `NativeBindingsImportName`. | Executables register the token as `DirectPInvoke` and must use `PublishAot=true`. Package providers supply link inputs through their own targets. For system providers, the archives and the dependencies from `pkg-config --static --libs` are added as `NativeLibrary` link inputs. Android NDK libraries stay shared objects of the platform; executables add them as `NativeSystemLibrary` items, so direct calls resolve against the sysroot stubs. |
 | Browser (`browser-wasm`, always static) | The archive name without `lib` prefix and extension, as registered by the WebAssembly SDK's native linking. | Archives are linked through `NativeFileReference` by the package. |
 
 `NativeBindingsEmitImports=false` generates the same API with members that throw `PlatformNotSupportedException` instead of calling native code, for builds that must compile shared code without linking the libraries.
@@ -162,6 +166,8 @@ NativeBindings.targets passes the selection to referenced projects as global pro
 | `NativeBindingsPackageDirectory` | | Native package root. |
 | `NativeBindingsPkgConfigModules`, `NativeBindingsPkgConfig` | | pkg-config provider. |
 | `NativeBindingsIncludeDirectory`, `NativeBindingsLibraryDirectory`, `NativeBindingsLibraries` | | Explicit system provider, or overrides of pkg-config results. |
+| `NativeBindingsNdkLibraries` | | Android NDK provider: platform libraries of the sysroot. |
+| `NativeBindingsAndroidApiLevel` | Android: major part of `SupportedOSPlatformVersion` | API level of the NDK sysroot headers and stub libraries. |
 | `NativeBindingsCompilerArgument` items | | Additional compiler arguments, such as `-D` definitions. |
 | `NativeBindingsClang`, `NativeBindingsLibClang`, `NativeBindingsSymbolTool`, `NativeBindingsSysroot` | Discovered | Target compiler, libclang library, `nm`-compatible symbol tool, and sysroot. |
 | `NativeBindingsNdkDirectory` | Discovered | Android NDK; also read from `AndroidNdkDirectory`, `ANDROID_NDK_ROOT`, and `ANDROID_NDK_HOME`. |

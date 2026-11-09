@@ -26,7 +26,8 @@
     <_NativeBindingsReferenceProperties Condition="'$(SkipCompilerExecution)' == 'true' and $(NativeBindingsRuntime.StartsWith('android-'))">$(_NativeBindingsReferenceProperties);SkipCompilerExecution=false</_NativeBindingsReferenceProperties>
     <_NativeBindingsReferenceGlobalPropertiesToRemove Condition="'$(SkipCompilerExecution)' == 'true' and $(NativeBindingsRuntime.StartsWith('android-'))">_ComputeFilesToPublishForRuntimeIdentifiers;_OuterIntermediateAssembly;_OuterIntermediateSatelliteAssembliesWithTargetPath;_OuterOutputPath;_OuterIntermediateOutputPath;_OuterCustomViewMapFile</_NativeBindingsReferenceGlobalPropertiesToRemove>
 
-    <_NativeBindingsExecutable Condition="('$(OutputType)' == 'Exe' or '$(OutputType)' == 'WinExe') and '$(NativeBindingsBuildTool)' != 'true'">true</_NativeBindingsExecutable>
+    <!-- An Android application is a library loaded by its Java host, but it is the project that links the native image. -->
+    <_NativeBindingsExecutable Condition="('$(OutputType)' == 'Exe' or '$(OutputType)' == 'WinExe' or '$(AndroidApplication)' == 'true') and '$(NativeBindingsBuildTool)' != 'true'">true</_NativeBindingsExecutable>
     <_NativeBindingsDirectLink Condition="'$(NativeBindingsStatic)' == 'true' and '$(NativeBindingsRuntime)' != 'browser-wasm'">true</_NativeBindingsDirectLink>
     <_NativeBindingsSystemLink Condition="'$(_NativeBindingsExecutable)' == 'true' and '$(_NativeBindingsDirectLink)' == 'true' and '$(NativeBindingsPackageDirectory)' == '' and ('$(NativeBindingsPkgConfigModules)' != '' or '$(NativeBindingsLibraries)' != '')">true</_NativeBindingsSystemLink>
     <_NativeBindingsHost>$(DOTNET_HOST_PATH)</_NativeBindingsHost>
@@ -73,6 +74,8 @@
 
   <ItemGroup Condition="'$(_NativeBindingsExecutable)' == 'true' and '$(_NativeBindingsDirectLink)' == 'true'">
     <DirectPInvoke Include="$(NativeBindingsImportName)" Exclude="@(DirectPInvoke)" />
+    <!-- Android NDK libraries are shared objects of the platform; the native linker resolves direct calls against their stubs. -->
+    <NativeSystemLibrary Include="$(NativeBindingsNdkLibraries)" Condition="'$(NativeBindingsNdkLibraries)' != ''" />
   </ItemGroup>
 
   <Target Name="_PrepareNativeBindingsOptions">
@@ -91,6 +94,8 @@
       <_NativeBindingsOption Include="includeDirectories=$([MSBuild]::Escape('$(NativeBindingsIncludeDirectory)'))" />
       <_NativeBindingsOption Include="libraryDirectories=$([MSBuild]::Escape('$(NativeBindingsLibraryDirectory)'))" />
       <_NativeBindingsOption Include="libraries=$([MSBuild]::Escape('$(NativeBindingsLibraries)'))" />
+      <_NativeBindingsOption Include="ndkLibraries=$([MSBuild]::Escape('$(NativeBindingsNdkLibraries)'))" />
+      <_NativeBindingsOption Include="androidApiLevel=$([MSBuild]::Escape('$(NativeBindingsAndroidApiLevel)'))" />
       <_NativeBindingsOption Include="compilerArguments=$([MSBuild]::Escape('$(_NativeBindingsCompilerArguments)'))" />
       <_NativeBindingsOption Include="sysroot=$([MSBuild]::Escape('$(NativeBindingsSysroot)'))" />
       <_NativeBindingsOption Include="clang=$([MSBuild]::Escape('$(NativeBindingsClang)'))" />

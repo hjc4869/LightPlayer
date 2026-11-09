@@ -72,6 +72,7 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
     private readonly bool hasDeclaredPixelAspectRatio;
     private readonly double declaredHdrPeakLuminance;
     private readonly VideoLuminance? declaredHdrMasteringLuminance;
+    private readonly string logTransferFunction;
     private readonly VideoFieldOrder declaredFieldOrder;
     private readonly int dolbyVisionProfile;
     private readonly int dolbyVisionLevel;
@@ -189,6 +190,7 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
             description.SampleAspectRatioNum > 0 && description.SampleAspectRatioDen > 0;
         declaredHdrPeakLuminance = description.HdrPeakLuminance;
         declaredHdrMasteringLuminance = description.HdrMasteringLuminance;
+        logTransferFunction = description.LogTransferFunction;
         declaredFieldOrder = VideoFieldOrders.FromFfmpeg(description.FieldOrder);
         dolbyVisionProfile = description.DolbyVisionProfile;
         dolbyVisionLevel = description.DolbyVisionLevel;
@@ -221,6 +223,7 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
             $"frameRate={description.FrameRate:F3}; timeBase={description.TimeBaseNum}/{description.TimeBaseDen}; " +
             $"dolbyVision={description.DolbyVisionProfile}; doviConfig={description.DolbyVisionConfiguration.Length}; " +
             $"enhancementConfig={description.DolbyVisionEnhancementConfiguration.Length}; " +
+            $"logTransfer={logTransferFunction ?? "none"}; " +
             $"hardware={options.EnableHardwareDecoding}; requestedDeviceType={options.HardwareDeviceType ?? "auto"}; " +
             $"framePool={options.FramePoolSize}; framePoolBytes={options.FramePoolByteCapacity}.");
 
@@ -1771,13 +1774,11 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         target.ColorSpace = VideoFrameMetadata.MapColorSpace(colorSpace, decodedHeight > 0 ? decodedHeight : input->height);
         target.ColorPrimaries = VideoFrameMetadata.MapColorPrimaries(primaries, target.ColorSpace);
         target.ColorTransfer = VideoFrameMetadata.MapColorTransfer(transfer);
+        if (logTransferFunction is not null)
+            VideoFrameMetadata.ApplyLogTransferFunction(target, logTransferFunction);
         target.HdrPeakLuminance = ReadHdrPeakLuminance(input);
         target.HdrMasteringLuminance = VideoFrameMetadata.ReadHdrMasteringLuminance(input) ?? declaredHdrMasteringLuminance;
-        if (Hdr10PlusMetadataReader.TryRead(input, target.Hdr10Plus) &&
-            target.Hdr10Plus.EffectivePeakLuminance > 0)
-        {
-            target.HdrPeakLuminance = target.Hdr10Plus.EffectivePeakLuminance;
-        }
+        Hdr10PlusMetadataReader.TryRead(input, target.Hdr10Plus);
         target.ColorRange = range == AVColorRange.AVCOL_RANGE_JPEG ||
                     (target.Format == VideoPixelFormat.ExternalTexture &&
                      target.ExternalTextureColorModel == VideoExternalTextureColorModel.Rgb) ||
@@ -1786,7 +1787,11 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
             : VideoColorRange.Limited;
         target.ChromaLocation = VideoFrameMetadata.MapChromaLocation(chromaLocation);
 
-        if (VideoPlanarLayout.IsPlanar(target.Format) &&
+        // Reshaping needs the coded samples, which an RGB external texture no longer holds.
+        bool codedSamples = VideoPlanarLayout.IsPlanar(target.Format) ||
+            (target.Format == VideoPixelFormat.ExternalTexture &&
+             target.ExternalTextureColorModel == VideoExternalTextureColorModel.Yuv);
+        if (codedSamples &&
             DolbyVisionMetadataReader.TryRead(
                 input,
                 dolbyVisionProfile,
@@ -1802,7 +1807,6 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
             target.ColorRange = target.DolbyVision.BaseLayerFullRange
                 ? VideoColorRange.Full
                 : VideoColorRange.Limited;
-            target.HdrPeakLuminance = target.DolbyVision.EffectivePeakLuminance;
         }
     }
 

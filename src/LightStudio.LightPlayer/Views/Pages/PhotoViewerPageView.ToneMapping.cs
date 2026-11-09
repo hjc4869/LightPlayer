@@ -16,6 +16,8 @@ public partial class PhotoViewerPageView
             HdrFlyout.Hide();
         if (args.PropertyName == nameof(PhotoViewerPageViewModel.HasAbsoluteLuminance))
             UpdateHdrControls();
+        if (args.PropertyName is nameof(PhotoViewerPageViewModel.IsFullScreen) or nameof(PhotoViewerPageViewModel.PictureAspectRatio))
+            UpdateFullScreenButton();
     }
 
     private void UpdateHdrControls()

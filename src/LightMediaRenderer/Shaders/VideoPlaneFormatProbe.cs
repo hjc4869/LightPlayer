@@ -70,6 +70,13 @@ public static class VideoPlaneFormatProbe
         }
     }
 
+    /// <summary>
+    /// Whether 16-bit planes are taken as byte pairs in this context: where the backend needs them, and
+    /// where its shader samples are 16-bit floats, which only hold a 16-bit sample exactly in two halves.
+    /// </summary>
+    public static bool UsesBytePairPlanes(GRContext? context) =>
+        wideAsBytePairs || VideoSamplePrecisionProbe.RoundsToHalf(context);
+
     public static bool Supports(GRContext? context, VideoPixelFormat format)
     {
         if (!VideoPlanarLayout.IsPlanar(format))

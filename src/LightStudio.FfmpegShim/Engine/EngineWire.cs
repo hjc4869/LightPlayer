@@ -242,6 +242,16 @@ public sealed record WireDemuxerStatus(int Demuxer, DemuxerStatus Status);
 
 public sealed record WireDecoderStatus(int Decoder, VideoDecoderDiagnostics Diagnostics);
 
+/// <summary>
+/// Color codes the worker sends alongside H.273 values for encodings H.273 does not define. They lie
+/// above FFmpeg's own extension range so the two never collide.
+/// </summary>
+public static class WireColorCodes
+{
+    public const int AppleLogTransfer = 0x10000;
+    public const int AppleWideGamutPrimaries = 0x10000;
+}
+
 public static class WireNotificationKind
 {
     public const string Reconfigured = "reconfigured";

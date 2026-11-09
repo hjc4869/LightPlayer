@@ -5,17 +5,16 @@ using System.IO;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
-using Android.App;
-using Android.Content;
 using Android.Graphics;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.Media;
 using LightStudio.Logging;
+using AndroidBitmapInfo = LightStudio.NativeBindings.Types.AndroidBitmapInfo;
 using SkiaSharp;
 
 namespace LightStudio.LightPlayer.Android.Photos;
 
-internal sealed class AndroidPhotoDecodeAccelerator(Context context) : IPhotoDecodeAccelerator
+internal sealed class AndroidPhotoDecodeAccelerator : IPhotoDecodeAccelerator
 {
     private const long MaximumEncodedBytes = 128L * 1024 * 1024;
     private static readonly object budgetSync = new();
@@ -68,26 +67,29 @@ internal sealed class AndroidPhotoDecodeAccelerator(Context context) : IPhotoDec
             cancellationToken.ThrowIfCancellationRequested();
             bitmap = BitmapFactory.DecodeByteArray(encoded, 0, encoded.Length, options);
             cancellationToken.ThrowIfCancellationRequested();
-            if (bitmap is null || bitmap.HasAlpha || bitmap.GetConfig()?.Equals(Bitmap.Config.Hardware) != true ||
-                bitmap.Width != bounds.OutWidth || bitmap.Height != bounds.OutHeight)
+            if (bitmap is null)
+                return null;
+            AndroidBitmapInfo info = AndroidPhotoSurface.ReadInfo(bitmap);
+            if (!AndroidPhotoSurface.IsOpaque(info) || !AndroidPhotoSurface.IsHardware(info) ||
+                info.width != bounds.OutWidth || info.height != bounds.OutHeight)
                 return null;
 
             using Gainmap? gain = bitmap.HasGainmap ? bitmap.Gainmap : null;
             gainPixels = gain?.GainmapContents;
-            if (gainPixels is not null && gainPixels.GetConfig()?.Equals(Bitmap.Config.Hardware) != true)
-                return null;
-            long actualBytes = bitmap.AllocationByteCount + (long)(gainPixels?.AllocationByteCount ?? 0);
-            if (actualBytes + encoded.Length > reservation.Bytes)
+            AndroidBitmapInfo gainInfo = default;
+            if (gainPixels is not null && !AndroidPhotoSurface.IsHardware(gainInfo = AndroidPhotoSurface.ReadInfo(gainPixels)))
                 return null;
             using ColorSpace? baseColor = bitmap.ColorSpace;
             PhotoColorProfile? profile = CreateProfile(baseColor, out SKColorSpaceXyz gamut);
             if (profile is null)
                 return null;
+            long reserved = reservation.Bytes;
             storage = new AndroidPhotoStorage(bitmap, gainPixels, reservation);
             bitmap = null;
             gainPixels = null;
             reservation = null;
-            frame = CreateFrame(storage, storage.Bitmap, profile);
+            frame = CreateFrame(storage, storage.Bitmap, info, profile);
+            long actualBytes = frame.PhotoSurface!.SizeInBytes;
             frame.DownloadPhotoSurface = () =>
             {
                 using var input = new MemoryStream(encoded, writable: false);
@@ -120,10 +122,12 @@ internal sealed class AndroidPhotoDecodeAccelerator(Context context) : IPhotoDec
                 using ColorSpace? alternate = gain.AlternativeImagePrimaries;
                 if (alternate is not null && !TryReadGamut(alternate, out gamut))
                     throw new NotSupportedException("The platform gain-map gamut is not supported.");
-                var samples = VideoFrame.CreateHosted(gainBitmap.Width, gainBitmap.Height, VideoPixelFormat.Bgra32);
+                var samples = VideoFrame.CreateHosted((int)gainInfo.width, (int)gainInfo.height, VideoPixelFormat.Bgra32);
                 try
                 {
-                    samples.PhotoSurface = new AndroidPhotoSurface(storage, gainBitmap);
+                    var gainSurface = new AndroidPhotoSurface(storage, gainBitmap);
+                    samples.PhotoSurface = gainSurface;
+                    actualBytes += gainSurface.SizeInBytes;
                     frame.GainMap = new PhotoGainMap(samples,
                         ReadVector(gain.GetRatioMin(), logarithm: true), ReadVector(gain.GetRatioMax(), logarithm: true),
                         ReadVector(gain.GetGamma()), ReadVector(gain.GetEpsilonSdr()), ReadVector(gain.GetEpsilonHdr()),
@@ -137,6 +141,8 @@ internal sealed class AndroidPhotoDecodeAccelerator(Context context) : IPhotoDec
                 }
                 finally { samples.Release(); }
             }
+            if (actualBytes + encoded.Length > reserved)
+                return null;
             cancellationToken.ThrowIfCancellationRequested();
             AppLog.Information("Photo.Decoding", $"Platform decoded {frame.Width}x{frame.Height} {bounds.OutMimeType}: " +
                 $"bytes={actualBytes}, transfer={profile.TransferCode}, gainMap={frame.GainMap is not null}, elapsed={Stopwatch.GetElapsedTime(started).TotalMilliseconds:F1} ms.");
@@ -163,13 +169,11 @@ internal sealed class AndroidPhotoDecodeAccelerator(Context context) : IPhotoDec
         }
     }
 
-    private Reservation? TryReserve(long bytes)
+    private static Reservation? TryReserve(long bytes)
     {
-        using var manager = context.GetSystemService(Context.ActivityService) as ActivityManager;
-        using var memory = new ActivityManager.MemoryInfo();
-        manager?.GetMemoryInfo(memory);
-        long budget = Math.Min(1536L * 1024 * 1024, memory.TotalMem / 8);
-        if (memory.LowMemory || bytes > memory.AvailMem / 2 || bytes > budget)
+        (long total, long available) = ReadMemory();
+        long budget = Math.Min(1536L * 1024 * 1024, total / 8);
+        if (bytes > available / 2 || bytes > budget)
             return null;
         lock (budgetSync)
         {
@@ -180,9 +184,32 @@ internal sealed class AndroidPhotoDecodeAccelerator(Context context) : IPhotoDec
         }
     }
 
-    private static VideoFrame CreateFrame(AndroidPhotoStorage owner, Bitmap bitmap, PhotoColorProfile profile)
+    /// <summary>The kernel's own memory accounting, which is what the platform's memory service reports.</summary>
+    private static (long Total, long Available) ReadMemory()
     {
-        VideoFrame frame = VideoFrame.CreateHosted(bitmap.Width, bitmap.Height, VideoPixelFormat.Bgra32);
+        long total = 0, available = 0;
+        foreach (string line in File.ReadLines("/proc/meminfo"))
+        {
+            if (line.StartsWith("MemTotal:", StringComparison.Ordinal))
+                total = ParseKilobytes(line);
+            else if (line.StartsWith("MemAvailable:", StringComparison.Ordinal))
+                available = ParseKilobytes(line);
+            if (total != 0 && available != 0)
+                break;
+        }
+        return (total, available);
+    }
+
+    private static long ParseKilobytes(string line)
+    {
+        ReadOnlySpan<char> value = line.AsSpan(line.IndexOf(':') + 1).Trim();
+        int end = value.IndexOf(' ');
+        return long.Parse(end < 0 ? value : value[..end]) * 1024;
+    }
+
+    private static VideoFrame CreateFrame(AndroidPhotoStorage owner, Bitmap bitmap, in AndroidBitmapInfo info, PhotoColorProfile profile)
+    {
+        VideoFrame frame = VideoFrame.CreateHosted((int)info.width, (int)info.height, VideoPixelFormat.Bgra32);
         try
         {
             var surface = new AndroidPhotoSurface(owner, bitmap);

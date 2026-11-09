@@ -30,6 +30,13 @@ public static class VideoFramePipeline
 
     public static bool NeedsDeinterlacing(VideoFrame frame) => VideoColorPlan.NeedsDeinterlacing(frame);
 
+    /// <inheritdoc cref="VideoColorPlan.ResolveStreamPeak"/>
+    public static double ResolveStreamPeak(VideoFrame frame) => VideoColorPlan.ResolveStreamPeak(frame);
+
+    /// <inheritdoc cref="VideoColorPlan.DescribeAutomaticToneMapping"/>
+    public static VideoSdrToneMappingOptions DescribeAutomaticToneMapping(VideoFrame frame, VideoHdrOutputMapping output) =>
+        VideoColorPlan.DescribeAutomaticToneMapping(frame, output);
+
     public static VideoHdrOutputMapping ResolveOutput(VideoFrame frame,
         VideoOutputColorSpace target, bool hdrPassthrough, VideoOutputColorVolume? colorVolume) =>
         VideoColorPlan.ResolveOutput(frame, target, hdrPassthrough, colorVolume);
@@ -53,7 +60,8 @@ public static class VideoFramePipeline
         bool hdrPassthrough, VideoOutputColorVolume? colorVolume) =>
         VideoPhotoGainMap.Weight(gainMap, target, hdrPassthrough, colorVolume);
 
-    public static SKImage? CreateGainMapImage(PhotoGainMap gainMap) => VideoPhotoGainMap.CreateImage(gainMap);
+    public static SKImage? CreateGainMapImage(PhotoGainMap gainMap, GRContext? context) =>
+        VideoPhotoGainMap.CreateImage(gainMap, context);
 
     public static bool Render(in VideoRenderRequest request)
         => Render(request, out _);
@@ -66,13 +74,9 @@ public static class VideoFramePipeline
             frame.Format != VideoPixelFormat.ExternalTexture && !VideoPlanarLayout.IsPlanar(frame.Format) &&
             frame.Data != IntPtr.Zero)
         {
-            var info = new SKImageInfo(frame.Width, frame.Height, frame.Format switch
-            {
-                VideoPixelFormat.Rgba64 => SKColorType.Rgba16161616,
-                VideoPixelFormat.RgbaF16 => SKColorType.RgbaF16,
-                _ => SKColorType.Bgra8888,
-            }, frame.HasAlpha ? SKAlphaType.Unpremul : SKAlphaType.Opaque);
-            using SKImage? packed = SKImage.FromPixels(info, frame.Data, frame.Stride);
+            SKImageInfo info = VideoPackedFormatProbe.FrameImageInfo(frame, request.GrContext,
+                frame.HasAlpha ? SKAlphaType.Unpremul : SKAlphaType.Opaque);
+            using SKImage? packed = VideoPackedFormatProbe.CreateRaster(info, frame.Data, frame.Stride, request.GrContext);
             if (packed is null)
             {
                 failure = "the packed frame could not be sampled";
@@ -905,27 +909,33 @@ public static class VideoFramePipeline
 
         if (request.PackedImage is { } image)
         {
+            // 16-bit RGBA read as 8-bit RGBA twice as wide holds each sample as a byte pair.
+            bool bytePairs = request.Frame.Format == VideoPixelFormat.Rgba64 &&
+                image.ColorType == SKColorType.Rgba8888 && image.Width == request.Frame.Width * 2;
+            int texelsPerPixel = bytePairs ? 2 : 1;
             if (request.ImageCache is not null && request.SceneBounds is { } packedBounds &&
                 request.Frame.ExternalTextureRect.IsWhole)
             {
                 SKRectI padded = PaddedSourceBounds(request, packedBounds);
-                if (padded == SKRectI.Create(image.Width, image.Height))
+                if (padded == SKRectI.Create(image.Width / texelsPerPixel, image.Height))
                     return VideoPlaneSampler.CreatePacked(image, sampling, VideoTextureRect.Whole,
-                        request.Frame.ExternalTextureColorModel);
+                        request.Frame.ExternalTextureColorModel, bytePairs: bytePairs);
 
-                using SKImage? region = image.Subset(padded);
+                using SKImage? region = image.Subset(request.GrContext, new SKRectI(padded.Left * texelsPerPixel, padded.Top,
+                    padded.Right * texelsPerPixel, padded.Bottom));
                 if (region is null)
                     return null;
 
                 return VideoPlaneSampler.CreatePacked(region, sampling, VideoTextureRect.Whole,
-                    request.Frame.ExternalTextureColorModel, new SKPoint(padded.Left, padded.Top));
+                    request.Frame.ExternalTextureColorModel, new SKPoint(padded.Left, padded.Top), bytePairs);
             }
 
             return VideoPlaneSampler.CreatePacked(
                 image,
                 sampling,
                 request.Frame.ExternalTextureRect,
-                request.Frame.ExternalTextureColorModel);
+                request.Frame.ExternalTextureColorModel,
+                bytePairs: bytePairs);
         }
 
         // Chroma is half resolution, so it is always interpolated unless the caller explicitly

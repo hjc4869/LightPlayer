@@ -524,6 +524,9 @@
   <data name="VideoPlayer_Back10" xml:space="preserve"><value>後退 10 秒</value></data>
   <data name="VideoPlayer_Forward10" xml:space="preserve"><value>前進 10 秒</value></data>
   <data name="VideoPlayer_Speed" xml:space="preserve"><value>播放速度</value></data>
+  <data name="VideoPlayer_Stretch" xml:space="preserve"><value>畫面大小</value></data>
+  <data name="VideoPlayer_StretchFit" xml:space="preserve"><value>符合</value></data>
+  <data name="VideoPlayer_StretchFill" xml:space="preserve"><value>填滿</value></data>
   <data name="VideoPlayer_Subtitles" xml:space="preserve"><value>字幕開關</value></data>
   <data name="VideoPlayer_SubtitleTrack" xml:space="preserve"><value>字幕軌道</value></data>
   <data name="VideoPlayer_SubtitleFontSize" xml:space="preserve"><value>字型大小</value></data>
@@ -574,6 +577,7 @@
   <data name="VideoPlayer_ShortcutAudioTrack" xml:space="preserve"><value>下一個音軌</value></data>
   <data name="VideoPlayer_ShortcutSubtitleTrack" xml:space="preserve"><value>下一個字幕軌道</value></data>
   <data name="VideoPlayer_ShortcutSpeed" xml:space="preserve"><value>減速 / 加速</value></data>
+  <data name="VideoPlayer_ShortcutStretch" xml:space="preserve"><value>符合 / 填滿畫面</value></data>
   <data name="VideoPlayer_ShortcutClose" xml:space="preserve"><value>關閉選單並離開全螢幕</value></data>
   <data name="VideoPlayer_ShortcutHelp" xml:space="preserve"><value>顯示此清單</value></data>
   <data name="VideoPlayer_Screenshot" xml:space="preserve"><value>儲存螢幕擷取畫面</value></data>

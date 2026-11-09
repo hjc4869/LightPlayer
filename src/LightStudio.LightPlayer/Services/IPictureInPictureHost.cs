@@ -7,7 +7,8 @@ public enum PictureInPictureKind
 {
     /// <summary>
     /// The host opens a surface of its own and puts a view of ours in it: a small always-on-top
-    /// window on the desktop, a document picture-in-picture window in the browser.
+    /// window on the desktop, a document picture-in-picture window in the browser. On iOS the
+    /// system's window is fed the player's frames instead of a view.
     /// </summary>
     DetachedView,
 
@@ -19,8 +20,9 @@ public enum PictureInPictureKind
 }
 
 /// <param name="DataContext">
-/// View model the detached view binds to. Ignored by <see cref="PictureInPictureKind.HostManaged"/>
-/// hosts, which show the app's own window rather than a view of ours.
+/// View model the detached view binds to, or that the iOS host plays the window's frames through.
+/// Ignored by <see cref="PictureInPictureKind.HostManaged"/> hosts, which show the app's own window
+/// rather than a view of ours.
 /// </param>
 /// <param name="AspectRatio">
 /// Picture width over height, which is what the window is sized to. 0 when the video's shape is not

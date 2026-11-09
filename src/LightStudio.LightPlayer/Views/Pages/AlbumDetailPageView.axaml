@@ -12,7 +12,8 @@
              d:DesignWidth="900"
              d:DesignHeight="640"
              x:Class="LightStudio.LightPlayer.Views.Pages.AlbumDetailPageView"
-             x:DataType="vm:AlbumDetailPageViewModel">
+             x:DataType="vm:AlbumDetailPageViewModel"
+             controls:MediaThumbnail.SizeTarget="{Binding}">
     <UserControl.Styles>
         <!-- Tappable artist name styled as a flat link, matching the now-playing page. -->
         <Style Selector="Button.metaLink">

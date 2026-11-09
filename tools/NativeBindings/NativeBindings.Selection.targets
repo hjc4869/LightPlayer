@@ -21,6 +21,7 @@
     <NativeBindingsNdkDirectory Condition="'$(NativeBindingsNdkDirectory)' == ''">$(ANDROID_NDK_ROOT)</NativeBindingsNdkDirectory>
     <NativeBindingsNdkDirectory Condition="'$(NativeBindingsNdkDirectory)' == ''">$(ANDROID_NDK_HOME)</NativeBindingsNdkDirectory>
     <AndroidNdkDirectory Condition="'$(AndroidNdkDirectory)' == '' and $(NativeBindingsRuntime.StartsWith('android-'))">$(NativeBindingsNdkDirectory)</AndroidNdkDirectory>
+    <NativeBindingsAndroidApiLevel Condition="'$(NativeBindingsAndroidApiLevel)' == '' and $(NativeBindingsRuntime.StartsWith('android-')) and '$(SupportedOSPlatformVersion)' != ''">$(SupportedOSPlatformVersion.Split('.')[0])</NativeBindingsAndroidApiLevel>
   </PropertyGroup>
 
   <!-- Repository policy: providers, profiles, and link modes of the native libraries an application uses. -->

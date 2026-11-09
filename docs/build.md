@@ -330,7 +330,8 @@ The downloadable `LightPlayer-ios-arm64.ipa` is unsigned and must be re-signed w
 signing identity and provisioning profile before installation on a device.
 
 The Make helpers honor `CONFIGURATION` (default: `Release`) and write bundles under
-`artifacts/ios/<configuration>/<runtime-identifier>/lmcios.app`:
+`artifacts/ios/<configuration>/<runtime-identifier>/lmcios.app`. `make iosapp` also packages the
+device bundle as `artifacts/ios/<configuration>/LightPlayer-ios-arm64.ipa`:
 
 ```sh
 make iosapp
@@ -340,8 +341,11 @@ make ios-sim-deploy CONFIGURATION=Debug
 ```
 
 Both deploy targets build, install, and launch the app. Select a physical device using its name
-or identifier from `xcrun devicectl list devices`. Set `IOS_CODESIGN_KEY` and
-`IOS_CODESIGN_PROVISION` to override automatic signing selection for device builds.
+or identifier from `xcrun devicectl list devices`. `make iosapp` signs the device bundle and IPA
+only when `IOS_CODESIGN_KEY` is set, and otherwise disables code signing like the release
+pipelines. `make ios-deploy` defaults `IOS_CODESIGN_KEY` to `Apple Development`, which selects a
+development identity and matching provisioning profile automatically. Set `IOS_CODESIGN_KEY` and
+`IOS_CODESIGN_PROVISION` to choose a specific identity and profile.
 Simulator deployment defaults to `IOS_SIMULATOR=booted`; set a simulator name or identifier
 from `xcrun simctl list devices available` to select and boot another simulator. `IOS_SIM_RID`
 defaults to the host architecture and can be set to `iossimulator-arm64` or `iossimulator-x64`.
@@ -351,6 +355,12 @@ library services, Audio Queue PCM playback, Now Playing controls, audio interrup
 and a native share sheet. Documents is available in Files and is offered as a default library
 folder. Files opened through the picker or another app are imported into Documents/Imports;
 selected external library folders retain security-scoped bookmarks.
+
+Vertical bars and reserved regions, such as the iPhone Duo's status bar rail and fold, need the
+iOS 27.1 SDK (Xcode 27.1 with the matching `ios` workload); earlier SDKs build the app without them.
+
+`Info.plist` sets `CADisableMinimumFrameDurationOnPhone` so the Avalonia display link can run at
+ProMotion refresh rates on iPhone; iPad does not need the key.
 
 VideoToolbox hardware decoding is enabled by default for new iOS settings. CoreVideo surfaces
 can be imported directly into Metal, and iOS 16 or later also supports VideoToolbox resizing and
@@ -369,7 +379,8 @@ requires an installed compatible model.
 | Hardware video and advanced color | VideoToolbox, Metal, extended-range output | VideoToolbox, Metal, extended-range output; native resizing requires iOS 16 |
 | Photo search and audio separation | ONNX CPU/Core ML | ONNX CPU/Core ML |
 | Audio devices | CoreAudio endpoint selection and exclusive mode | Audio Queue playback with system-managed output routing |
-| Separate media windows and picture-in-picture | Desktop window hosts | Requires an iOS scene or AVKit presentation implementation |
+| Separate media windows | Desktop window hosts | Requires an iOS scene implementation |
+| Picture-in-picture | Always-on-top desktop window | AVKit system window, also opened by leaving the app during playback |
 | File reveal | Finder integration | Files access and native sharing; no containing-folder reveal implementation |
 | Application updates | Desktop release download | Signed iOS deployment |
 

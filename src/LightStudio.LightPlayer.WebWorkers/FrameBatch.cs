@@ -304,11 +304,13 @@ internal sealed class FrameBatch
         VideoColorPrimaries.Bt470M => AVColorPrimaries.AVCOL_PRI_BT470M,
         VideoColorPrimaries.DisplayP3 => AVColorPrimaries.AVCOL_PRI_SMPTE432,
         VideoColorPrimaries.DciP3 => AVColorPrimaries.AVCOL_PRI_SMPTE431,
+        VideoColorPrimaries.AppleWideGamut => (AVColorPrimaries)WireColorCodes.AppleWideGamutPrimaries,
         _ => AVColorPrimaries.AVCOL_PRI_BT709,
     });
 
     private static int TransferCode(VideoColorTransfer transfer) => (int)(transfer switch
     {
+        VideoColorTransfer.AppleLog => (AVColorTransferCharacteristic)WireColorCodes.AppleLogTransfer,
         VideoColorTransfer.Pq => AVColorTransferCharacteristic.AVCOL_TRC_SMPTE2084,
         VideoColorTransfer.Hlg => AVColorTransferCharacteristic.AVCOL_TRC_ARIB_STD_B67,
         VideoColorTransfer.Linear => AVColorTransferCharacteristic.AVCOL_TRC_LINEAR,

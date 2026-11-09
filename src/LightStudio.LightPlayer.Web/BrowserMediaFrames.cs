@@ -68,12 +68,14 @@ internal static class BrowserMediaFrames
         {
             4 => VideoColorPrimaries.Bt470M, 5 => VideoColorPrimaries.Bt470Bg, 6 or 7 => VideoColorPrimaries.Smpte170M,
             9 => VideoColorPrimaries.Bt2020, 11 => VideoColorPrimaries.DciP3, 12 => VideoColorPrimaries.DisplayP3,
+            WireColorCodes.AppleWideGamutPrimaries => VideoColorPrimaries.AppleWideGamut,
             _ => frame.ColorSpace == VideoColorSpace.Bt2020 ? VideoColorPrimaries.Bt2020 : VideoColorPrimaries.Bt709,
         };
         frame.ColorTransfer = info.Transfer switch
         {
             8 => VideoColorTransfer.Linear, 13 => VideoColorTransfer.Srgb, 16 => VideoColorTransfer.Pq,
-            18 => VideoColorTransfer.Hlg, _ => VideoColorTransfer.Bt709,
+            18 => VideoColorTransfer.Hlg, WireColorCodes.AppleLogTransfer => VideoColorTransfer.AppleLog,
+            _ => VideoColorTransfer.Bt709,
         };
 
         // The worker decoder already applied what these imply to the color fields above.

@@ -91,8 +91,17 @@ internal static partial class WorkerGraph
         if (index < 0)
             throw new InvalidOperationException("The media has no video stream.");
         CodecParameters codec = source.GetCodecParameters(index);
+        int primaries = codec.ColorPrimaries, transfer = codec.ColorTransfer;
+        if (VideoFrameMetadata.TryMapLogTransferFunction(codec.LogTransferFunction, out _, out VideoColorPrimaries logPrimaries))
+        {
+            transfer = WireColorCodes.AppleLogTransfer;
+            primaries = logPrimaries == VideoColorPrimaries.AppleWideGamut
+                ? WireColorCodes.AppleWideGamutPrimaries
+                : (int)AVColorPrimaries.AVCOL_PRI_BT2020;
+        }
+
         return new WireVideoStream(index, codec.CodecName, codec.Extradata, codec.Width, codec.Height, codec.Profile,
-            BitDepth(codec), codec.ColorPrimaries, codec.ColorTransfer, codec.ColorSpace, codec.ColorRange, codec.ChromaLocation,
+            BitDepth(codec), primaries, transfer, codec.ColorSpace, codec.ColorRange, codec.ChromaLocation,
             codec.FieldOrder, codec.PixelAspectRatio, codec.FrameRate, codec.Rotation, codec.MirrorHorizontally,
             codec.DolbyVisionProfile, codec.HdrPeakLuminance, codec.HdrMasteringLuminance?.MinimumNits ?? 0,
             codec.HdrMasteringLuminance?.MaximumNits ?? 0);

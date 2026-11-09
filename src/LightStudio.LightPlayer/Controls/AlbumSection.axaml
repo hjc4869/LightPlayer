@@ -9,7 +9,8 @@
              d:DesignWidth="820"
              d:DesignHeight="320"
              x:Class="LightStudio.LightPlayer.Controls.AlbumSection"
-             x:DataType="models:ArtistAlbumSectionModel">
+             x:DataType="models:ArtistAlbumSectionModel"
+             controls:MediaThumbnail.SizeTarget="{Binding}">
         <!-- Album block: cover + year on the left (hidden when narrow), album title with
             actions on top-right, and the album's track rows below. -->
     <Grid ColumnDefinitions="Auto,*">

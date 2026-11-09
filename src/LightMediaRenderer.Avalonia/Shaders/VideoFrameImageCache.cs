@@ -50,6 +50,8 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
     private PhotoTileCache? gainTiles;
     private int version;
     private SKImageInfo packedInfo;
+    private bool packedHalfFloat;
+    private bool gainMapHalfFloat;
     private GRContext? textureContext;
     private IPlatformGraphicsContext? platformContext;
     private CompositionCustomVisual? disposalTarget;
@@ -101,12 +103,7 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
             if (gainMapTexture is not null)
                 return true;
             SKImage? packed = VideoPlanarLayout.IsPlanar(samples.Format) ? null : gainSurface.GetPackedImage(
-                new SKImageInfo(samples.Width, samples.Height, samples.Format switch
-                {
-                    VideoPixelFormat.Rgba64 => SKColorType.Rgba16161616,
-                    VideoPixelFormat.RgbaF16 => SKColorType.RgbaF16,
-                    _ => SKColorType.Bgra8888,
-                }, SKAlphaType.Unpremul), lease.GrContext);
+                VideoPackedFormatProbe.FrameImageInfo(samples, lease.GrContext, SKAlphaType.Unpremul), lease.GrContext);
             gainMapTexture = VideoFramePipeline.RenderPhotoLinear(request with
             {
                 Frame = samples, ImageCache = gainSurface, PlaneSource = gainSurface, PackedImage = packed,
@@ -146,12 +143,8 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
             else if (gainReady)
             {
                 SKImage? packed = VideoPlanarLayout.IsPlanar(fallback.frame.Format) ? null : fallback.GetPackedImage(
-                    new SKImageInfo(fallback.frame.Width, fallback.frame.Height, fallback.frame.Format switch
-                    {
-                        VideoPixelFormat.Rgba64 => SKColorType.Rgba16161616,
-                        VideoPixelFormat.RgbaF16 => SKColorType.RgbaF16,
-                        _ => SKColorType.Bgra8888,
-                    }, SKAlphaType.Unpremul), lease.GrContext);
+                    VideoPackedFormatProbe.FrameImageInfo(fallback.frame, lease.GrContext, SKAlphaType.Unpremul),
+                    lease.GrContext);
                 if (!VideoFramePipeline.Render(software with { PackedImage = packed }, out string failure))
                     ReportFailure(new InvalidOperationException($"Could not render software photo: {failure}."));
             }
@@ -161,9 +154,12 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
         try
         {
             SKImage? image = GetPackedImage(default, lease.GrContext);
-            if (image is not null && PrepareGainMap(request, lease) &&
-                VideoFramePipeline.Render(request with { PackedImage = image, ImageCache = this, PlaneSource = null }, out _))
+            if (image is not null && PrepareGainMap(request, lease))
             {
+                // The imported picture is read into the tile cache's retained overview and detail
+                // tiles region by region, so a gesture never resamples the whole photo.
+                photoTiles ??= new PhotoTileCache(frame, Invalidate, ReportFailure, tiles: new PhotoSurfaceTileSource(this, frame));
+                RenderPhotoTiles(request, lease);
                 lease.GrContext?.Flush(submit: true);
                 return;
             }
@@ -219,7 +215,7 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
 
     public bool ImagesAreBorrowed => true;
 
-    public bool UseBytePairPlanes => frame.PlaneSource?.UseBytePairPlanes ?? VideoPlaneFormatProbe.UseBytePairPlanes;
+    public bool UseBytePairPlanes => frame.PlaneSource?.UseBytePairPlanes ?? VideoPlaneFormatProbe.UsesBytePairPlanes(textureContext);
 
     public void SetDisposalCompositor(Compositor? compositor)
     {
@@ -338,7 +334,15 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
             return gainMapTexture;
         if (frame.GainMap?.Samples?.PhotoSurface is not null)
             return gainSurface?.GetPackedImage(default, textureContext);
-        return gainMapRaster ??= frame.GainMap is { } gainMap ? VideoFramePipeline.CreateGainMapImage(gainMap) : null;
+        bool halfFloat = frame.GainMap?.BitsPerComponent == 16 && VideoPackedFormatProbe.UsesHalfFloat(textureContext);
+        if (gainMapRaster is not null && gainMapHalfFloat != halfFloat)
+        {
+            gainMapRaster.Dispose();
+            gainMapRaster = null;
+        }
+        gainMapHalfFloat = halfFloat;
+        return gainMapRaster ??= frame.GainMap is { } gainMap
+            ? VideoFramePipeline.CreateGainMapImage(gainMap, textureContext) : null;
     }
 
     public SKImage? CreatePlane(int index, SKImageInfo info) => CreatePlane(index, info, context: null);
@@ -453,13 +457,15 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
 
         EnsureTextureContext(context);
 
-        if (packedRaster is null || !packedInfo.Equals(info))
+        bool halfFloat = VideoPackedFormatProbe.ConvertsToHalfFloat(info.ColorType, context);
+        if (!packedInfo.Equals(info) || packedHalfFloat != halfFloat)
         {
             packedTexture?.Dispose();
             packedTexture = null;
             packedRaster?.Dispose();
-            packedRaster = SKImage.FromPixels(info, frame.Data, frame.Stride);
+            packedRaster = null;
             packedInfo = info;
+            packedHalfFloat = halfFloat;
         }
 
         if (!promote)
@@ -467,18 +473,28 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
             packedTexture?.Dispose();
             packedTexture = null;
         }
+        else if (packedTexture is not null && context is not null && !OperatingSystem.IsBrowser())
+            return packedTexture;
+
+        packedRaster ??= halfFloat
+            ? VideoPackedFormatProbe.CreateHalfFloatRaster(info, frame.Data, frame.Stride)
+            : SKImage.FromPixels(info, frame.Data, frame.Stride);
 
         if (packedRaster is null || context is null || OperatingSystem.IsBrowser() || !promote)
             return packedRaster;
-
-        if (packedTexture is not null)
-            return packedTexture;
 
         SKImage? promoted = packedRaster.ToTextureImage(context, mipmapped: false, budgeted: false);
         if (promoted is null || ReferenceEquals(promoted, packedRaster))
             return packedRaster;
 
         packedTexture = promoted;
+
+        // A half-float copy only feeds the upload; the frame's own pixels can recreate it.
+        if (halfFloat)
+        {
+            packedRaster.Dispose();
+            packedRaster = null;
+        }
         return promoted;
     }
 

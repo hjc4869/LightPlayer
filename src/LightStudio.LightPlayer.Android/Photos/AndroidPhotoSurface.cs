@@ -1,50 +1,76 @@
 #nullable enable
 using System;
-using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Android.Graphics;
-using Android.Hardware;
 using Android.Runtime;
 using LightMediaRenderer.Contracts;
 using LightStudio.Logging;
+using LightStudio.NativeBindings;
+using LightStudio.NativeBindings.Types;
+using AndroidBitmapInfo = LightStudio.NativeBindings.Types.AndroidBitmapInfo;
 using SkiaSharp;
+using static LightStudio.LightPlayer.Android.Video.AndroidVideoInterop;
 
 namespace LightStudio.LightPlayer.Android.Photos;
 
+/// <summary>
+/// A hardware bitmap's buffer, held natively for the photo's lifetime and wrapped as an image of
+/// the renderer's context on each import.
+/// </summary>
+[Include("android/bitmap.h", Access = BindingFlags.Public)]
 internal sealed unsafe partial class AndroidPhotoSurface : IPhotoSurface
 {
     private static int maximumDimension = 16384;
     private readonly AndroidPhotoStorage owner;
-    private readonly Bitmap bitmap;
+    private readonly AHardwareBuffer* buffer;
     private readonly uint format;
     private int disposed;
 
     public AndroidPhotoSurface(AndroidPhotoStorage owner, Bitmap bitmap)
     {
         this.owner = owner;
-        this.bitmap = bitmap;
-        using HardwareBuffer buffer = bitmap.HardwareBuffer ?? throw new NotSupportedException("The photo has no hardware buffer.");
-        BufferDescription description;
-        try
+        AHardwareBuffer* native = null;
+        if (AndroidBitmap_getHardwareBuffer((JNINativeInterface**)JNIEnv.Handle, (void*)bitmap.Handle, &native) != ANDROID_BITMAP_RESULT_SUCCESS ||
+            native == null)
+            throw new NotSupportedException("The photo has no hardware buffer.");
+        AHardwareBuffer_Desc description;
+        AHardwareBuffer_describe(native, &description);
+        if (description.format is not (AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM or AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM or
+            AHARDWAREBUFFER_FORMAT_R16G16B16A16_FLOAT or AHARDWAREBUFFER_FORMAT_R10G10B10A2_UNORM or AHARDWAREBUFFER_FORMAT_R8_UNORM))
         {
-            IntPtr native = AHardwareBuffer_fromHardwareBuffer(JNIEnv.Handle, buffer.Handle);
-            if (native == IntPtr.Zero)
-                throw new NotSupportedException("The photo hardware buffer is unavailable.");
-            AHardwareBuffer_describe(native, out description);
+            AHardwareBuffer_release(native);
+            throw new NotSupportedException($"Unsupported photo hardware format {description.format}.");
         }
-        finally { buffer.Close(); }
-        if (description.Format is not (1 or 2 or 0x16 or 0x2b or 0x38))
-            throw new NotSupportedException($"Unsupported photo hardware format {description.Format}.");
-        format = description.Format;
-        SizeInBytes = checked((long)description.Stride * description.Height * (format == 0x16 ? 8 : format == 0x38 ? 1 : 4));
+        buffer = native;
+        format = description.format;
+        Width = (int)description.width;
+        Height = (int)description.height;
+        SizeInBytes = checked((long)description.stride * description.height *
+            (format == AHARDWAREBUFFER_FORMAT_R16G16B16A16_FLOAT ? 8 : format == AHARDWAREBUFFER_FORMAT_R8_UNORM ? 1 : 4));
         owner.AddRef();
     }
 
     public static int MaximumDimension => Volatile.Read(ref maximumDimension);
+    public int Width { get; }
+    public int Height { get; }
     public long SizeInBytes { get; }
     public Task WhenReleased => owner.WhenReleased;
-    public int BitDepth => format == 0x16 ? 16 : format == 0x2b ? 10 : 8;
+    public int BitDepth => format == AHARDWAREBUFFER_FORMAT_R16G16B16A16_FLOAT ? 16 : format == AHARDWAREBUFFER_FORMAT_R10G10B10A2_UNORM ? 10 : 8;
+
+    /// <summary>Reads a bitmap's geometry and storage flags.</summary>
+    public static AndroidBitmapInfo ReadInfo(Bitmap bitmap)
+    {
+        AndroidBitmapInfo info;
+        if (AndroidBitmap_getInfo((JNINativeInterface**)JNIEnv.Handle, (void*)bitmap.Handle, &info) != ANDROID_BITMAP_RESULT_SUCCESS)
+            throw new InvalidOperationException("The platform did not describe the photo bitmap.");
+        return info;
+    }
+
+    public static bool IsHardware(in AndroidBitmapInfo info) => (info.flags & unchecked((uint)ANDROID_BITMAP_FLAGS_IS_HARDWARE)) != 0;
+
+    public static bool IsOpaque(in AndroidBitmapInfo info) => (info.flags & ANDROID_BITMAP_FLAGS_ALPHA_MASK) == ANDROID_BITMAP_FLAGS_ALPHA_OPAQUE;
 
     public SKImage? TryImport(GRContext context, Func<IDisposable>? makeCurrent)
     {
@@ -52,56 +78,42 @@ internal sealed unsafe partial class AndroidPhotoSurface : IPhotoSurface
         if (context.IsAbandoned || makeCurrent is null)
             return null;
         Volatile.Write(ref maximumDimension, Math.Min(MaximumDimension, context.MaxTextureSize));
-        if (bitmap.Width > context.MaxTextureSize || bitmap.Height > context.MaxTextureSize)
+        if (Width > context.MaxTextureSize || Height > context.MaxTextureSize)
             return null;
-        IntPtr display = eglGetCurrentDisplay();
-        IntPtr graphics = eglGetCurrentContext();
-        if (display == IntPtr.Zero || graphics == IntPtr.Zero)
-            return null;
-        var getBuffer = (delegate* unmanaged[Cdecl]<IntPtr, IntPtr>)eglGetProcAddress("eglGetNativeClientBufferANDROID");
-        var createImage = (delegate* unmanaged[Cdecl]<IntPtr, IntPtr, uint, IntPtr, int*, IntPtr>)eglGetProcAddress("eglCreateImageKHR");
-        var targetImage = (delegate* unmanaged[Cdecl]<uint, IntPtr, void>)eglGetProcAddress("glEGLImageTargetTexture2DOES");
-        IntPtr destroyImage = eglGetProcAddress("eglDestroyImageKHR");
-        if (getBuffer == null || createImage == null || targetImage == null || destroyImage == IntPtr.Zero)
+        void* display = eglGetCurrentDisplay();
+        void* graphics = eglGetCurrentContext();
+        if (display == null || graphics == null)
             return null;
 
-        using HardwareBuffer buffer = bitmap.HardwareBuffer!;
-        IntPtr image;
-        try
-        {
-            IntPtr native = AHardwareBuffer_fromHardwareBuffer(JNIEnv.Handle, buffer.Handle);
-            int* attributes = stackalloc int[] { 0x30d2, 1, 0x3038 };
-            image = createImage(display, IntPtr.Zero, 0x3140, getBuffer(native), attributes);
-        }
-        finally { buffer.Close(); }
-        if (image == IntPtr.Zero)
+        void* image = CreateImage(display, buffer);
+        if (image == null)
             return null;
         uint texture = 0;
         owner.AddRef();
-        var import = new Imported(owner, context, makeCurrent, display, graphics, image, destroyImage);
+        var import = new Imported(owner, context, makeCurrent, display, graphics, image);
         try
         {
             glGenTextures(1, &texture);
             import.Texture = texture;
-            glBindTexture(0x0de1, texture);
-            glTexParameteri(0x0de1, 0x2801, 0x2601);
-            glTexParameteri(0x0de1, 0x2800, 0x2601);
-            glTexParameteri(0x0de1, 0x2802, 0x812f);
-            glTexParameteri(0x0de1, 0x2803, 0x812f);
-            targetImage(0x0de1, image);
+            glBindTexture(GL_TEXTURE_2D, texture);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
             uint error = glGetError();
-            if (texture == 0 || error != 0)
+            if (texture == 0 || error != GL_NO_ERROR)
                 throw new InvalidOperationException($"Could not import the photo texture: GL error 0x{error:X}.");
             (uint internalFormat, SKColorType colorType) = format switch
             {
-                2 => (0x8051u, SKColorType.Rgb888x),
-                0x16 => (0x881au, SKColorType.RgbaF16),
-                0x2b => (0x8059u, SKColorType.Rgba1010102),
-                0x38 => (0x8229u, SKColorType.Gray8),
-                _ => (0x8058u, SKColorType.Rgba8888),
+                AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM => ((uint)GL_RGB8, SKColorType.Rgb888x),
+                AHARDWAREBUFFER_FORMAT_R16G16B16A16_FLOAT => ((uint)GL_RGBA16F, SKColorType.RgbaF16),
+                AHARDWAREBUFFER_FORMAT_R10G10B10A2_UNORM => ((uint)GL_RGB10_A2, SKColorType.Rgba1010102),
+                AHARDWAREBUFFER_FORMAT_R8_UNORM => ((uint)GL_R8, SKColorType.Gray8),
+                _ => ((uint)GL_RGBA8, SKColorType.Rgba8888),
             };
-            using var backend = new GRBackendTexture(bitmap.Width, bitmap.Height, false,
-                new GRGlTextureInfo(0x0de1, texture, internalFormat));
+            using var backend = new GRBackendTexture(Width, Height, false,
+                new GRGlTextureInfo((uint)GL_TEXTURE_2D, texture, internalFormat));
             SKImage? result = SKImage.FromTexture(context, backend, GRSurfaceOrigin.TopLeft, colorType,
                 SKAlphaType.Opaque, null, static state => ((Imported)state).Dispose(), import);
             if (result is null)
@@ -117,12 +129,14 @@ internal sealed unsafe partial class AndroidPhotoSurface : IPhotoSurface
 
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref disposed, 1) == 0)
-            owner.Release();
+        if (Interlocked.Exchange(ref disposed, 1) != 0)
+            return;
+        AHardwareBuffer_release(buffer);
+        owner.Release();
     }
 
     private sealed class Imported(AndroidPhotoStorage owner, GRContext context, Func<IDisposable> makeCurrent,
-        IntPtr display, IntPtr graphics, IntPtr image, IntPtr destroyImage) : IDisposable
+        void* display, void* graphics, void* image) : IDisposable
     {
         private int disposed;
         public uint Texture;
@@ -147,29 +161,9 @@ internal sealed unsafe partial class AndroidPhotoSurface : IPhotoSurface
             }
             finally
             {
-                try { ((delegate* unmanaged[Cdecl]<IntPtr, IntPtr, int>)destroyImage)(display, image); }
+                try { eglDestroyImageKHR(display, image); }
                 finally { owner.Release(); }
             }
         }
     }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct BufferDescription
-    {
-        public uint Width, Height, Layers, Format;
-        public ulong Usage;
-        public uint Stride, Reserved;
-        public ulong ReservedLong;
-    }
-
-    [LibraryImport("android")] private static partial IntPtr AHardwareBuffer_fromHardwareBuffer(IntPtr environment, IntPtr buffer);
-    [LibraryImport("android")] private static partial void AHardwareBuffer_describe(IntPtr buffer, out BufferDescription description);
-    [LibraryImport("EGL")] private static partial IntPtr eglGetCurrentDisplay();
-    [LibraryImport("EGL")] private static partial IntPtr eglGetCurrentContext();
-    [LibraryImport("EGL", StringMarshalling = StringMarshalling.Utf8)] private static partial IntPtr eglGetProcAddress(string name);
-    [LibraryImport("GLESv2")] private static partial void glGenTextures(int count, uint* texture);
-    [LibraryImport("GLESv2")] private static partial void glDeleteTextures(int count, uint* texture);
-    [LibraryImport("GLESv2")] private static partial void glBindTexture(uint target, uint texture);
-    [LibraryImport("GLESv2")] private static partial void glTexParameteri(uint target, uint parameter, int value);
-    [LibraryImport("GLESv2")] private static partial uint glGetError();
 }

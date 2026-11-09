@@ -149,6 +149,7 @@ sealed class Program
             HardwareDecoderProfiles.Register(new Direct3D11HardwareDecoderProfile());
         }
 #elif LINUX
+        NativeHeap.Configure();
         PulseAudioPlaybackBackend.Register();
         PlatformServices.SupportsAudioOutputSettings = true;
         VaapiSurfaceImporter.Register();
@@ -185,10 +186,16 @@ sealed class Program
         SystemMediaControlsFactory.Register(() => new MprisSystemMediaControls("Light Media Center", suffix));
         var screenSaver = new ScreenSaverInhibitor("Light Media Center", "Playing video");
         PlatformServices.KeepScreenOnRequested = screenSaver.SetKeepScreenOn;
+        PlatformServices.FileRevealService =
+            new LinuxFileRevealService(useDesktopPortal: !string.IsNullOrEmpty(flatpakId));
 #elif MACOS
         SystemMediaControlsFactory.Register(() => new AppleSystemMediaControls());
         PlatformServices.KeepScreenOnRequested = DisplaySleepAssertion.SetKeepScreenOn;
         PlatformServices.ApplyToolbarTitleBar = ToolbarTitleBar.Apply;
+        if (OperatingSystem.IsMacOSVersionAtLeast(26))
+        {
+            PlatformServices.NativeGlass = new AppleGlassEffect();
+        }
         PlatformServices.FileRevealService = new MacFileRevealService();
         PlatformServices.SupportsSystemAccentTheme = true;
         NativeContextMenu.Install(new AppleNativeContextMenu());
@@ -222,6 +229,9 @@ sealed class Program
         var deviceSettings = new JsonAppSettingsStore();
         Strings.LocalizedStrings.ApplyLanguage(deviceSettings.InterfaceLanguage);
         RemoteLibraryManager? remoteLibraries = null;
+#if MACOS
+        MacMediaLibraryProvider? nativeLibrary = null;
+#endif
         RemoteApiServerController? remoteApi = null;
         App.InitializeDesktopServices = targets =>
         {
@@ -234,6 +244,14 @@ sealed class Program
             }
 
             App.SingleInstance = singleInstance;
+#if MACOS
+            deviceSettings.InitializeNativeLibrary();
+            var files = PlatformServices.MultimediaPlatformIOFactory?.Invoke() ?? new DesktopMultimediaPlatformIO();
+            var multimediaPlatform = new SystemLibraryPlatformIO(files, new MacPhotoLibraryReader());
+            PlatformServices.MultimediaPlatformIOFactory = () => multimediaPlatform;
+            nativeLibrary = new MacMediaLibraryProvider(multimediaPlatform);
+            PlatformServices.NativeMediaLibrary = nativeLibrary;
+#endif
             AppLog.ConfigureClient(AppPaths.DataDirectory);
             InitializeSqlite();
             ConfigureUpdateAsset(usesPackagedStorage);
@@ -275,6 +293,9 @@ sealed class Program
         {
             remoteApi?.Dispose();
             remoteLibraries?.Dispose();
+#if MACOS
+            nativeLibrary?.Dispose();
+#endif
             App.SingleInstance?.Dispose();
             AppLog.Information("Desktop.Startup", "Desktop client stopped.");
             AppLog.Shutdown();
@@ -403,7 +424,7 @@ sealed class Program
             })
             .With(new SkiaOptions
             {
-                MaxGpuResourceSizeBytes = 512 * 1024 * 1024
+                MaxGpuResourceSizeBytes = 256 * 1024 * 1024
             })
             .WithInterFont()
             .LogToTrace();

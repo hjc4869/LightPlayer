@@ -105,7 +105,8 @@ internal sealed class ExportCatalog
         var identity = soName ?? Path.GetFileName(library.Path);
         if (library.Identity is { Length: > 0 } expected && expected != identity)
             throw new InvalidOperationException($"ELF SONAME '{identity}' disagrees with the declared runtime identity '{expected}': {library.Path}");
-        Add(functions, identity, identity);
+        // Shared libraries selected for direct linkage (Android NDK stubs) resolve through the import token.
+        Add(functions, identity, target.Backend == LinkBackend.Direct ? target.ImportToken : identity);
     }
 
     private async Task AddMachOAsync(LibraryAsset library, NativeTarget target)

@@ -100,7 +100,6 @@
     <PackageReference Condition="'$(IsWindowsTarget)' != 'true'" Include="LightStudio.Onnx" />
     <PackageReference Condition="'$(IsLinuxTarget)' == 'true'" Include="LightStudio.WebGPU" />
     <PackageReference Include="Microsoft.ML.Tokenizers" />
-    <PackageReference Include="MathNet.Numerics" />
     <PackageReference Include="LightStudio.AvaloniaStatic" />
   </ItemGroup>
 
@@ -135,10 +134,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="9" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\LightStudio.Logging\LightStudio.Logging.csproj" />
     <ProjectReference Include="..\LightStudio.LocalServices\LightStudio.LocalServices.csproj" />
     <ProjectReference Include="..\LightStudio.Lyrics.Jint\LightStudio.Lyrics.Jint.csproj" />
@@ -150,4 +145,26 @@
   <PropertyGroup>
     <NativeBindingsEnabled>true</NativeBindingsEnabled>
   </PropertyGroup>
+
+  <!--
+    AppKit draws an executable linked against an older SDK in its compatibility design, which the prebuilt
+    apphost is. Recording the installed SDK in it gives builds that run on the apphost the design of
+    NativeAOT executables, which link against that SDK, including the system glass of sidebars.
+  -->
+  <Target Name="RecordMacOSSdkInAppHost"
+          AfterTargets="_CreateAppHost"
+          Condition="'$(IsMacOSTarget)' == 'true' AND $([MSBuild]::IsOSPlatform('OSX')) AND '$(AppHostIntermediatePath)' != '' AND Exists('$(AppHostIntermediatePath)')"
+          Inputs="$(AppHostIntermediatePath)"
+          Outputs="$(IntermediateOutputPath)apphost.sdk-recorded">
+    <Exec Command="xcrun --sdk macosx --show-sdk-version" ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_MacOSSdkVersion" />
+    </Exec>
+    <Exec Command="xcrun vtool -show-build &quot;$(AppHostIntermediatePath)&quot; | awk '/minos/ { print $2; exit }'"
+          ConsoleToMSBuild="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_AppHostMinimumMacOS" />
+    </Exec>
+    <Exec Command="xcrun vtool -set-build-version macos $(_AppHostMinimumMacOS) $(_MacOSSdkVersion) -replace -output &quot;$(AppHostIntermediatePath)&quot; &quot;$(AppHostIntermediatePath)&quot; &amp;&amp; codesign -f -s - &quot;$(AppHostIntermediatePath)&quot;"
+          StandardOutputImportance="low" />
+    <Touch Files="$(IntermediateOutputPath)apphost.sdk-recorded" AlwaysCreate="true" />
+  </Target>
 </Project>

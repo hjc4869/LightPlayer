@@ -42,10 +42,10 @@
                                 <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                     <TextBlock Text="{Binding ExtensionSettings_LyricSourcesHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                                Classes="settingName"
-                                               FontSize="14" />
+                                               FontSize="{DynamicResource AppSettingNameFontSize}" />
                                     <TextBlock Text="{Binding ExtensionSettings_LyricSourcesDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                                                Classes="settingDescription"
-                                               FontSize="12"
+                                               FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                                TextWrapping="Wrap" />
                                 </StackPanel>
                                 <Button Classes="icon"
@@ -75,7 +75,7 @@
                                             <TextBlock Text="{Binding Name}"
                                                        Classes="settingName"
                                                        Grid.Column="0"
-                                                       FontSize="14"
+                                                       FontSize="{DynamicResource AppSettingNameFontSize}"
                                                        VerticalAlignment="Center" />
                                             <Button Classes="icon"
                                                     Grid.Column="1"

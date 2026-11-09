@@ -52,7 +52,7 @@
                                                     <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                                         <TextBlock Text="{Binding Name}"
                                                                    Classes="settingName"
-                                                                   FontSize="14" />
+                                                                   FontSize="{DynamicResource AppSettingNameFontSize}" />
                                                         <ItemsControl ItemsSource="{Binding Information}">
                                                             <ItemsControl.ItemTemplate>
                                                                 <DataTemplate x:DataType="lyrics:LyricSourceInfoItem">
@@ -60,7 +60,7 @@
                                                                         <TextBlock Text="{Binding Text}"
                                                                                    Classes="settingDescription"
                                                                                    IsVisible="{Binding !IsLink}"
-                                                                                   FontSize="12"
+                                                                                   FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                                                                    TextWrapping="Wrap" />
                                                                         <Button Classes="link"
                                                                                 IsVisible="{Binding IsLink}"

@@ -51,6 +51,17 @@ public partial class LibraryTile : UserControl
         drag.Arm(e, this);
     }
 
+    protected override void OnPointerEntered(PointerEventArgs e)
+    {
+        base.OnPointerEntered(e);
+
+        // The hover actions are built the first time the pointer reaches an actionable tile.
+        if (!ActionsHost.IsActive && DataContext is LibraryTileModel { EnableTileActions: true })
+        {
+            ActionsHost.IsActive = true;
+        }
+    }
+
     private void OnContextRequested(object? sender, ContextRequestedEventArgs e)
     {
         if (DataContext is LibraryTileModel { EnableTileActions: false, Track: null })
@@ -138,15 +149,24 @@ public partial class LibraryTile : UserControl
         artHolder.RequestArt(grid?.RealizationWindowSize ?? 1, ArtPixelSize(grid), FastImage.GetCachePool(this));
     }
 
-    // Library grids scale the tile through a Viewbox so that it fills the grid's uniform cell.
+    // Library grids scale the tile through a Viewbox so that it fills the grid's uniform cell; tile
+    // rows give their Viewbox an explicit size instead.
     private int ArtPixelSize(UniformTileGrid? grid)
     {
         var scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
-        if (grid is { ItemSize: { Width: > 0, Height: > 0 } cell } &&
-            this.FindAncestorOfType<Viewbox>() is { } viewbox &&
-            ReferenceEquals(viewbox.FindAncestorOfType<UniformTileGrid>(), grid))
+        if (this.FindAncestorOfType<Viewbox>() is { } viewbox)
         {
-            scale *= Math.Max(1, Math.Min(cell.Width / Width, cell.Height / Height));
+            var (width, height) = grid is { ItemSize: { Width: > 0, Height: > 0 } cell } &&
+                ReferenceEquals(viewbox.FindAncestorOfType<UniformTileGrid>(), grid)
+                ? (cell.Width, cell.Height)
+                : (viewbox.Width, viewbox.Height);
+            var viewboxScale = Math.Min(
+                double.IsNaN(width) ? double.PositiveInfinity : width / Width,
+                double.IsNaN(height) ? double.PositiveInfinity : height / Height);
+            if (double.IsFinite(viewboxScale))
+            {
+                scale *= Math.Max(1, viewboxScale);
+            }
         }
 
         return (int)Math.Ceiling(ArtHost.Width * scale);

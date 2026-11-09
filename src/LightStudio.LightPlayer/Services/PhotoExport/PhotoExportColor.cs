@@ -80,6 +80,7 @@ internal static class PhotoExportColor
                 VideoColorPrimaries.Smpte170M => [0.630, 0.340, 0.310, 0.595, 0.155, 0.070],
                 VideoColorPrimaries.Bt470Bg => [0.640, 0.330, 0.290, 0.600, 0.150, 0.060],
                 VideoColorPrimaries.Bt470M => [0.670, 0.330, 0.210, 0.710, 0.140, 0.080],
+                VideoColorPrimaries.AppleWideGamut => [0.725, 0.301, 0.221, 0.814, 0.068, -0.076],
                 _ => Chromaticities[(int)PhotoExportPrimaries.Bt709],
             }));
         if (frame.GainMap is { } gainMap)

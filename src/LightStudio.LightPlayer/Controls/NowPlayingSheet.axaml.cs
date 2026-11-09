@@ -326,11 +326,14 @@ public partial class NowPlayingSheet : UserControl
 
         // The compact row clears out early and the full page arrives late, so the two never fight
         // for the same pixels midway through the pull.
-        var compactOpacity = Math.Clamp(1d - (progress * 2.2d), 0d, 1d);
+        var surfaceOpacity = NowPlayingSheetViewModel.GetSurfaceOpacity(progress);
+        var compactOpacity = 1d - surfaceOpacity;
         var fullOpacity = Math.Clamp((progress - 0.25d) / 0.75d, 0d, 1d);
 
-        CompactContent.Opacity = compactOpacity;
-        CompactContent.IsHitTestVisible = progress < 0.02d;
+        // The compact row fades with its glass capsule, which the full page leaves out.
+        CompactGlass.Opacity = compactOpacity;
+        CardSurface.Opacity = surfaceOpacity;
+        CompactGlass.IsHitTestVisible = progress < 0.02d;
         ExpandedHeader.Opacity = fullOpacity;
         ExpandedHeader.IsHitTestVisible = progress > 0.98d;
         FullContent.Opacity = fullOpacity;

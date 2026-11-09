@@ -4,8 +4,11 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace NativeBindings.Parser;
 
-/// <summary>A header requested by an <c>[Include]</c> attribute, optionally narrowed to named macros.</summary>
-internal sealed record HeaderRequest(string Header, IReadOnlyList<string>? Macros)
+/// <summary>
+/// A header requested by an <c>[Include]</c> attribute, optionally narrowed to named macros and preceded by the
+/// headers it only compiles after.
+/// </summary>
+internal sealed record HeaderRequest(string Header, IReadOnlyList<string> Prerequisites, IReadOnlyList<string>? Macros)
 {
     public string Key => Macros is null ? Header : Header + "?" + string.Join(' ', Macros);
 }
@@ -28,9 +31,18 @@ internal static class RequestCollector
                 var header = arguments.FirstOrDefault() is { NameEquals: null, NameColon: null } first ? Literal(first.Expression) : null;
                 if (header is null)
                     throw new NotSupportedException($"{Location(attribute)}: Include requires a string literal header path.");
-                if (header.Length == 0 || header.StartsWith('/') || header.Split('/').Any(part => part is "" or "." or "..") ||
-                    header.Any(character => character is '\\' or '"' or '<' or '>' or '\r' or '\n' || char.IsControl(character)))
-                    throw new ArgumentException($"{Location(attribute)}: Invalid include path '{header}'. Use a relative path with '/' separators.");
+                ValidatePath(header, attribute);
+
+                IReadOnlyList<string> prerequisites = [];
+                if (arguments.FirstOrDefault(argument => argument.NameEquals?.Name.Identifier.ValueText == "Prerequisites") is { } preceding)
+                {
+                    var paths = Elements(preceding.Expression)?.Select(Literal).ToArray();
+                    if (paths is null || paths.Length == 0 || paths.Any(path => path is null))
+                        throw new NotSupportedException($"{Location(attribute)}: Include.Prerequisites requires a non-empty array of literal header paths.");
+                    foreach (var path in paths)
+                        ValidatePath(path!, attribute);
+                    prerequisites = paths.Select(path => path!).Distinct(StringComparer.Ordinal).ToArray();
+                }
 
                 IReadOnlyList<string>? macros = null;
                 if (arguments.FirstOrDefault(argument => argument.NameEquals?.Name.Identifier.ValueText == "Macros") is { } named)
@@ -40,11 +52,24 @@ internal static class RequestCollector
                         throw new NotSupportedException($"{Location(attribute)}: Include.Macros requires a non-empty array of literal C identifiers.");
                     macros = names.Select(name => name!).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
                 }
-                var request = new HeaderRequest(header, macros);
-                requests.TryAdd(request.Key, request);
+                var request = new HeaderRequest(header, prerequisites, macros);
+                if (requests.TryGetValue(request.Key, out var existing))
+                {
+                    if (!existing.Prerequisites.SequenceEqual(prerequisites, StringComparer.Ordinal))
+                        throw new InvalidOperationException($"{Location(attribute)}: Include requests of {header} disagree on their prerequisites.");
+                    continue;
+                }
+                requests.Add(request.Key, request);
             }
         }
         return requests.Values.ToArray();
+    }
+
+    private static void ValidatePath(string header, AttributeSyntax attribute)
+    {
+        if (header.Length == 0 || header.StartsWith('/') || header.Split('/').Any(part => part is "" or "." or "..") ||
+            header.Any(character => character is '\\' or '"' or '<' or '>' or '\r' or '\n' || char.IsControl(character)))
+            throw new ArgumentException($"{Location(attribute)}: Invalid include path '{header}'. Use a relative path with '/' separators.");
     }
 
     private static string? Literal(ExpressionSyntax? expression) =>

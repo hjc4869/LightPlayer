@@ -42,11 +42,8 @@
         <Style Selector="controls|VideoTile.compact Panel#TileDetails">
             <Setter Property="IsVisible" Value="False" />
         </Style>
-        <Style Selector="Panel#CompactBadge">
-            <Setter Property="IsVisible" Value="False" />
-        </Style>
-        <Style Selector="controls|VideoTile.compact Panel#CompactBadge">
-            <Setter Property="IsVisible" Value="True" />
+        <Style Selector="controls|VideoTile.compact controls|LazyPart#CompactBadgeHost">
+            <Setter Property="IsActive" Value="True" />
         </Style>
         <Style Selector="Border.videoTile:pointerover">
             <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
@@ -70,19 +67,23 @@
                                     IsVisible="{Binding Preview, Converter={x:Static ObjectConverters.IsNotNull}}" />
 
                 <!-- Folder tiles: up to a 3x3 grid of the previews found beneath the folder. -->
-                <ItemsControl IsVisible="{Binding HasCollage}"
-                              ItemsSource="{Binding CollageImages}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <UniformGrid Columns="{Binding CollageColumns}" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="media:IImage">
-                            <lmr:FastImage Source="{Binding}" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <controls:LazyPart IsActive="{Binding HasCollage}">
+                    <Template>
+                        <ItemsControl x:DataType="models:VideoTileModel"
+                                      ItemsSource="{Binding CollageImages}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="{Binding CollageColumns}" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="media:IImage">
+                                    <lmr:FastImage Source="{Binding}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Template>
+                </controls:LazyPart>
 
                 <Grid IsVisible="{Binding ShowPlaceholder}"
                       RowDefinitions="*,Auto,*"
@@ -102,19 +103,23 @@
                         IsHitTestVisible="False"
                         Background="{DynamicResource AppArtOverlayBrush}" />
 
-                <Panel x:Name="CompactBadge" IsHitTestVisible="False">
-                    <Border IsVisible="{Binding Video, Converter={x:Static ObjectConverters.IsNotNull}}"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Bottom"
-                            Margin="4"
-                            Padding="4"
-                            CornerRadius="4"
-                            Background="{DynamicResource AppPageBackgroundBrush}">
-                        <Viewbox Width="12" Height="12">
-                            <Path Data="{StaticResource IconPlay}" Fill="{DynamicResource AppPrimaryTextBrush}" />
-                        </Viewbox>
-                    </Border>
-                </Panel>
+                <!-- The compact grid's play badge, built only in that layout. -->
+                <controls:LazyPart x:Name="CompactBadgeHost" IsHitTestVisible="False">
+                    <Template>
+                        <Border x:DataType="models:VideoTileModel"
+                                IsVisible="{Binding Video, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Margin="4"
+                                Padding="4"
+                                CornerRadius="4"
+                                Background="{DynamicResource AppPageBackgroundBrush}">
+                            <Viewbox Width="12" Height="12">
+                                <Path Data="{StaticResource IconPlay}" Fill="{DynamicResource AppPrimaryTextBrush}" />
+                            </Viewbox>
+                        </Border>
+                    </Template>
+                </controls:LazyPart>
 
                 <Panel x:Name="TileDetails">
                 <!-- Tells a folder from a video at a glance, including the folder tiles whose
@@ -131,53 +136,61 @@
                         <Viewbox Width="16" Height="16" Stretch="Uniform">
                             <Path x:Name="TypeGlyph" Fill="White" />
                         </Viewbox>
-                        <Viewbox Width="16"
-                                 Height="16"
-                                 Stretch="Uniform"
-                                 IsVisible="{Binding IsWatched}">
-                            <Path Data="{StaticResource IconCheck}"
-                                  Fill="White" />
-                        </Viewbox>
+                        <controls:LazyPart IsActive="{Binding IsWatched}">
+                            <Template>
+                                <Viewbox Width="16" Height="16" Stretch="Uniform">
+                                    <Path Data="{StaticResource IconCheck}" Fill="White" />
+                                </Viewbox>
+                            </Template>
+                        </controls:LazyPart>
                     </StackPanel>
                 </Border>
 
                 <!-- Video actions, opposite the type badge. Scrimmed because they sit over arbitrary
-                     preview frames; resume precedes the more general favorite action. -->
+                     preview frames; resume precedes the more general favorite action. Each button
+                     exists only for the items that offer its action. -->
                 <StackPanel HorizontalAlignment="Right"
                             VerticalAlignment="Top"
                             Margin="6"
                             Orientation="Horizontal"
                             Spacing="4">
-                    <Button Padding="5"
-                            CornerRadius="6"
-                            BorderThickness="0"
-                            Background="#99000000"
-                            IsVisible="{Binding CanResume}"
-                            Command="{Binding ResumeCommand}"
-                            ToolTip.Tip="{Binding Video_ResumePlayback, Source={x:Static strings:LocalizedStrings.Instance}}">
-                        <Viewbox Width="16" Height="16" Stretch="Uniform">
-                            <Path Data="{StaticResource IconResume}" Fill="White" />
-                        </Viewbox>
-                    </Button>
-                    <Button Padding="5"
-                            CornerRadius="6"
-                            BorderThickness="0"
-                            Background="#99000000"
-                            IsVisible="{Binding CanFavorite}"
-                            Command="{Binding ToggleFavoriteCommand}"
-                            ToolTip.Tip="{Binding FavoriteToolTip}">
-                        <Viewbox Width="16" Height="16" Stretch="Uniform">
-                            <Path Data="{Binding FavoriteIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
-                                  Fill="White" />
-                        </Viewbox>
-                    </Button>
+                    <controls:LazyPart IsActive="{Binding CanResume}">
+                        <Template>
+                            <Button x:DataType="models:VideoTileModel"
+                                    Padding="5"
+                                    CornerRadius="6"
+                                    BorderThickness="0"
+                                    Background="#99000000"
+                                    Command="{Binding ResumeCommand}"
+                                    ToolTip.Tip="{Binding Video_ResumePlayback, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                <Viewbox Width="16" Height="16" Stretch="Uniform">
+                                    <Path Data="{StaticResource IconResume}" Fill="White" />
+                                </Viewbox>
+                            </Button>
+                        </Template>
+                    </controls:LazyPart>
+                    <controls:LazyPart IsActive="{Binding CanFavorite}">
+                        <Template>
+                            <Button x:DataType="models:VideoTileModel"
+                                    Padding="5"
+                                    CornerRadius="6"
+                                    BorderThickness="0"
+                                    Background="#99000000"
+                                    Command="{Binding ToggleFavoriteCommand}"
+                                    ToolTip.Tip="{Binding FavoriteToolTip}">
+                                <Viewbox Width="16" Height="16" Stretch="Uniform">
+                                    <Path Data="{Binding FavoriteIconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
+                                          Fill="White" />
+                                </Viewbox>
+                            </Button>
+                        </Template>
+                    </controls:LazyPart>
                 </StackPanel>
 
-                <!-- Background set in code-behind: the same page-background fade the album banner uses,
-                     so the caption stays readable over preview frames. -->
-                <Border x:Name="FadeOverlay"
-                        VerticalAlignment="Bottom"
+                <!-- The theme's page-background fade keeps the caption readable over preview frames. -->
+                <Border VerticalAlignment="Bottom"
                         Height="86"
+                        Background="{DynamicResource AppTileFadeBrush}"
                         IsVisible="{Binding ShowPlaceholder, Converter={x:Static BoolConverters.Not}}"
                         IsHitTestVisible="False" />
 
@@ -200,15 +213,18 @@
                                Foreground="{DynamicResource AppSecondaryTextBrush}" />
                 </StackPanel>
 
-                <ProgressBar VerticalAlignment="Bottom"
-                             Height="4"
-                             Minimum="0"
-                             Maximum="1"
-                             Value="{Binding PlaybackProgressRatio}"
-                             IsVisible="{Binding HasPlaybackProgress}"
-                             IsHitTestVisible="False"
-                             Background="Transparent"
-                             Foreground="{DynamicResource AppAccentBrush}" />
+                <controls:LazyPart IsActive="{Binding HasPlaybackProgress}" VerticalAlignment="Bottom">
+                    <Template>
+                        <ProgressBar x:DataType="models:VideoTileModel"
+                                     Height="4"
+                                     Minimum="0"
+                                     Maximum="1"
+                                     Value="{Binding PlaybackProgressRatio}"
+                                     IsHitTestVisible="False"
+                                     Background="Transparent"
+                                     Foreground="{DynamicResource AppAccentBrush}" />
+                    </Template>
+                </controls:LazyPart>
                 </Panel>
             </Panel>
         </Border>

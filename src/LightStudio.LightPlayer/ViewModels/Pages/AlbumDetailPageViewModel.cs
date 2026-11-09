@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LightStudio.LightPlayer.Models;
@@ -21,13 +20,20 @@ namespace LightStudio.LightPlayer.ViewModels.Pages;
 /// count, total duration) plus the ordered track list and album-level playback
 /// actions.
 /// </summary>
-public sealed partial class AlbumDetailPageViewModel : SelectionPageViewModelBase, INowPlayingHighlightTarget, IInlineDetailPage, IDisposable
+public sealed partial class AlbumDetailPageViewModel : SelectionPageViewModelBase, INowPlayingHighlightTarget, IInlineDetailPage, IDisposable,
+    IArtworkSizeTarget
 {
+    /// <summary>Side of the wide layout's cover in DIPs; the view reports the banner's larger size.</summary>
+    private const double CoverDisplaySize = 200;
+
     private readonly LibraryItemReference identifier;
     private readonly LibraryCommands commands;
     private readonly AlbumArtService albumArt;
     private readonly IUnifiedLibraryQueryService libraryQuery;
     private MediaItemKey? nowPlaying;
+    private MediaLibraryAlbum? loadedAlbum;
+    private int coverVersion;
+    private int coverPixelSize;
 
     // Raw artist name used to open the artist detail page; empty for albums with
     // no attributable artist, which disables the artist link.
@@ -207,7 +213,8 @@ public sealed partial class AlbumDetailPageViewModel : SelectionPageViewModelBas
             MetaLine = BuildMetaLine(album, rows.Count, total);
             NotifyCommands();
 
-            _ = LoadCoverAsync(album);
+            loadedAlbum = album;
+            _ = LoadCoverAsync(album, ++coverVersion);
         }
         catch (Exception ex)
         {
@@ -224,16 +231,46 @@ public sealed partial class AlbumDetailPageViewModel : SelectionPageViewModelBas
         }
     }
 
-    private async Task LoadCoverAsync(MediaLibraryAlbum album)
+    public void SetArtworkDisplaySize(int pixelSize)
     {
-        Bitmap? bitmap = await albumArt.GetHighQualityTrackArtAsync(
-            new MediaReference(identifier.SourceId, album.FirstFileInAlbum ?? string.Empty)).ConfigureAwait(false);
-        if (bitmap is null)
+        if (pixelSize <= coverPixelSize)
         {
             return;
         }
 
-        AlbumArtService.ApplyOnUiThread(bitmap, art => CoverImage = art, CancellationToken.None);
+        coverPixelSize = pixelSize;
+        if (loadedAlbum is { } album)
+        {
+            _ = LoadCoverAsync(album, ++coverVersion);
+        }
+    }
+
+    private async Task LoadCoverAsync(MediaLibraryAlbum album, int version)
+    {
+        // The first load fixes the size the view has not reported yet, so a later report can grow it.
+        if (coverPixelSize == 0)
+        {
+            coverPixelSize = AlbumArtService.DisplayPixels(CoverDisplaySize);
+        }
+
+        var image = await albumArt.GetHighQualityTrackArtAsync(
+            new MediaReference(identifier.SourceId, album.FirstFileInAlbum ?? string.Empty), coverPixelSize).ConfigureAwait(false);
+        if (image is null)
+        {
+            return;
+        }
+
+        AlbumArtService.ApplyOnUiThread(image, art =>
+        {
+            if (version == coverVersion)
+            {
+                CoverImage = art;
+            }
+            else
+            {
+                art.Dispose();
+            }
+        }, CancellationToken.None);
     }
 
     partial void OnCoverImageChanged(IImage? oldValue, IImage? newValue) =>

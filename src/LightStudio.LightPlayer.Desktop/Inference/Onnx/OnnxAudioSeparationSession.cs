@@ -13,7 +13,7 @@ internal interface IMdxSeparationModel : IDisposable
     MdxProfile Profile { get; }
     ConvTdfNet Transform { get; }
     void AddReference();
-    ValueTask<float[]> ExecuteAsync(float[] spectrum, CancellationToken cancellationToken);
+    ValueTask ExecuteAsync(float[] spectrum, float[] prediction, CancellationToken cancellationToken);
 }
 
 internal sealed class OnnxAudioSeparationSession : IAudioSeparationSession
@@ -21,14 +21,18 @@ internal sealed class OnnxAudioSeparationSession : IAudioSeparationSession
     private readonly IMdxSeparationModel model;
     private readonly bool residual;
     private readonly ConvTdfNet transform;
+    private readonly ConvTdfNet.Worker worker;
     private readonly float[] input;
+    private readonly float[][] window;
+    private readonly float[] prediction;
+    private readonly float[] output;
     private int inputFrames;
     private long inputBase;
     private long totalFrames;
     private long nextStart;
     private bool ended;
     private bool disposed;
-    private float[] output = [];
+    private int outputLength;
     private int outputCursor;
 
     internal OnnxAudioSeparationSession(IMdxSeparationModel model, bool residual)
@@ -36,14 +40,18 @@ internal sealed class OnnxAudioSeparationSession : IAudioSeparationSession
         this.model = model;
         this.residual = residual;
         transform = model.Transform;
+        worker = transform.CreateWorker();
         input = new float[transform.ChunkSize * 4];
+        window = [new float[transform.ChunkSize], new float[transform.ChunkSize]];
+        prediction = new float[4 * transform.Frequencies * transform.Frames];
+        output = new float[transform.OutputFrames * 2];
         model.AddReference();
     }
 
     public int SampleRate => 44100;
     public int OutputBlockFrames => transform.OutputFrames;
     public string ActiveDeviceId => model.ActiveDeviceId;
-    public bool IsFinished => ended && nextStart >= totalFrames && outputCursor >= output.Length;
+    public bool IsFinished => ended && nextStart >= totalFrames && outputCursor >= outputLength;
 
     public void Append(ReadOnlySpan<float> samples)
     {
@@ -67,7 +75,7 @@ internal sealed class OnnxAudioSeparationSession : IAudioSeparationSession
         cancellationToken.ThrowIfCancellationRequested();
         if (destination.Length < 2)
             return 0;
-        if (outputCursor >= output.Length && !ProcessNextAsync(cancellationToken).GetAwaiter().GetResult())
+        if (outputCursor >= outputLength && !ProcessNextAsync(cancellationToken).GetAwaiter().GetResult())
             return 0;
         return CopyOutput(destination);
     }
@@ -78,14 +86,14 @@ internal sealed class OnnxAudioSeparationSession : IAudioSeparationSession
         cancellationToken.ThrowIfCancellationRequested();
         if (destination.Length < 2)
             return 0;
-        if (outputCursor >= output.Length && !await ProcessNextAsync(cancellationToken).ConfigureAwait(false))
+        if (outputCursor >= outputLength && !await ProcessNextAsync(cancellationToken).ConfigureAwait(false))
             return 0;
         return CopyOutput(destination.Span);
     }
 
     private int CopyOutput(Span<float> destination)
     {
-        var samples = Math.Min(destination.Length / 2 * 2, output.Length - outputCursor);
+        var samples = Math.Min(destination.Length / 2 * 2, outputLength - outputCursor);
         output.AsSpan(outputCursor, samples).CopyTo(destination);
         outputCursor += samples;
         return samples / 2;
@@ -99,7 +107,7 @@ internal sealed class OnnxAudioSeparationSession : IAudioSeparationSession
         totalFrames = 0;
         nextStart = 0;
         ended = false;
-        output = [];
+        outputLength = 0;
         outputCursor = 0;
     }
 
@@ -107,22 +115,20 @@ internal sealed class OnnxAudioSeparationSession : IAudioSeparationSession
     {
         if (ended && nextStart >= totalFrames || !ended && totalFrames < nextStart + transform.OutputFrames + transform.Trim)
             return false;
-        var window = new[] { new float[transform.ChunkSize], new float[transform.ChunkSize] };
         for (var index = 0; index < transform.ChunkSize; index++)
         {
             var relative = nextStart - transform.Trim + index - inputBase;
-            if (relative < 0 || relative >= inputFrames)
-                continue;
-            window[0][index] = input[relative * 2];
-            window[1][index] = input[relative * 2 + 1];
+            var available = relative >= 0 && relative < inputFrames;
+            window[0][index] = available ? input[relative * 2] : 0;
+            window[1][index] = available ? input[relative * 2 + 1] : 0;
         }
-        var spectrum = transform.Stft(window, cancellationToken);
-        var prediction = await model.ExecuteAsync(spectrum, cancellationToken).ConfigureAwait(false);
+        var spectrum = worker.Stft(window, cancellationToken);
+        await model.ExecuteAsync(spectrum, prediction, cancellationToken).ConfigureAwait(false);
         if (prediction.Any(value => !float.IsFinite(value)))
             throw new InvalidDataException("The separation model returned non-finite samples.");
-        var separated = transform.Istft(prediction, cancellationToken);
+        var separated = worker.Istft(prediction, cancellationToken);
         var frames = (int)Math.Min(transform.OutputFrames, totalFrames - nextStart);
-        output = new float[frames * 2];
+        outputLength = frames * 2;
         outputCursor = 0;
         for (var index = 0; index < frames; index++)
             for (var channel = 0; channel < 2; channel++)
@@ -143,6 +149,7 @@ internal sealed class OnnxAudioSeparationSession : IAudioSeparationSession
         if (disposed)
             return;
         disposed = true;
+        worker.Dispose();
         model.Dispose();
     }
 }

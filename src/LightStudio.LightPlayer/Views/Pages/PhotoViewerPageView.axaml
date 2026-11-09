@@ -131,6 +131,13 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="AutomationProperties.Name" Value="{Binding (ToolTip.Tip), RelativeSource={RelativeSource Self}}" />
         </Style>
+        <!-- Touch metrics give plain buttons a filled capsule; the toolbar's buttons stay clear on its glass. -->
+        <Style Selector=":is(TopLevel).appleTouch StackPanel#ToolbarButtons > :is(Button)">
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
         <Style Selector="StackPanel#ToolbarButtons > :is(Button):pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#28FFFFFF" />
         </Style>
@@ -211,7 +218,7 @@
             <Setter Property="Margin" Value="4,0" />
             <Setter Property="Background" Value="#30FFFFFF" />
         </Style>
-        <Style Selector="Border#Toolbar.compact :is(Control).zoomDetail">
+        <Style Selector="Border#Toolbar.compact :is(Control).zoomDetail, Border#Toolbar.fullScreenHidden Border#FullScreenSeparator">
             <Setter Property="IsVisible" Value="False" />
         </Style>
         <Style Selector="Border#Toolbar.small StackPanel#ToolbarButtons > :is(Button)">
@@ -295,7 +302,7 @@
     -->
     <Grid x:Name="Stage" Background="Transparent">
         <!-- GetBackPreviewMargin keeps this inset linked to ShellView's content reservations. -->
-        <ContentControl x:Name="BackPreview" IsHitTestVisible="False" />
+        <ContentControl x:Name="BackPreview" IsHitTestVisible="False" IsVisible="False" />
         <Border x:Name="DismissBackdrop" Background="#FF101010" />
         <Grid.ContextFlyout>
             <MenuFlyout>
@@ -355,6 +362,7 @@
                          Source="{Binding Image}"
                          PreviewSource="{Binding Preview.Image}"
                          PreviewNaturalSize="{Binding NaturalSize}"
+                         IsPreviewInteractive="{Binding ShowsPreview}"
                          PreviousPreviewSource="{Binding PreviousPreview.Image}"
                          NextPreviewSource="{Binding NextPreview.Image}"
                          PreviousNaturalSize="{Binding PreviousNaturalSize}"
@@ -365,12 +373,12 @@
                          ToneMapping="{Binding DisplayedToneMapping}"
                          DisplayPanelBitDepth="{Binding DisplayPanelBitDepth}" />
 
-        <ProgressBar IsIndeterminate="{Binding IsLoading}"
+        <ProgressBar IsIndeterminate="{Binding ShowsLoadingIndicator}"
                      Width="120"
                      Height="4"
                      VerticalAlignment="Center"
                      HorizontalAlignment="Center"
-                     IsVisible="{Binding IsLoading}" />
+                     IsVisible="{Binding ShowsLoadingIndicator}" />
 
         <StackPanel VerticalAlignment="Center"
                     HorizontalAlignment="Center"
@@ -388,7 +396,8 @@
         </StackPanel>
 
         <!-- The same step the sideways swipe makes, for pointers that have nothing to swipe with. -->
-        <lmr:BackdropBorder Classes="photoStep"
+        <lmr:BackdropBorder x:Name="PreviousStep"
+                                 Classes="photoStep"
                                  HorizontalAlignment="Left"
                                  IsVisible="{Binding ShowPreviousButton}">
             <Button x:Name="PreviousButton"
@@ -403,7 +412,8 @@
             </Button>
         </lmr:BackdropBorder>
 
-        <lmr:BackdropBorder Classes="photoStep"
+        <lmr:BackdropBorder x:Name="NextStep"
+                                 Classes="photoStep"
                                  HorizontalAlignment="Right"
                                  IsVisible="{Binding ShowNextButton}">
             <Button x:Name="NextButton"
@@ -423,7 +433,6 @@
                 Classes.apple="{DynamicResource AppIsAppleChrome}"
                 VerticalAlignment="Top"
                 HorizontalAlignment="Stretch"
-                Padding="{Binding $self.(controls:ShellChrome.WindowControlsInset)}"
                 IsVisible="{Binding AreControlsVisible}">
             <Panel>
                 <lmr:BackdropBorder x:Name="TitleBackdrop"
@@ -520,13 +529,13 @@
                     <Border Classes="toolbarSeparator" />
                     <Button Command="{Binding RotateCommand}"
                             CommandParameter="270"
-                            IsEnabled="{Binding HasImage}"
+                            IsEnabled="{Binding IsPictureReady}"
                             ToolTip.Tip="{Binding Photo_Rotate270, Source={x:Static strings:LocalizedStrings.Instance}}">
                         <Path Data="{StaticResource IconRotateLeft}" />
                     </Button>
                     <Button Command="{Binding RotateCommand}"
                             CommandParameter="90"
-                            IsEnabled="{Binding HasImage}"
+                            IsEnabled="{Binding IsPictureReady}"
                             ToolTip.Tip="{Binding Photo_Rotate90, Source={x:Static strings:LocalizedStrings.Instance}}">
                         <Path Data="{StaticResource IconRotateRight}" />
                     </Button>
@@ -638,7 +647,7 @@
                     </Button>
                     <Button x:Name="ZoomModeButton"
                             Click="OnZoomModeClicked"
-                            IsEnabled="{Binding HasImage}">
+                            IsEnabled="{Binding IsPictureReady}">
                         <Viewbox Width="20" Height="20">
                             <Path Width="24" Height="16" />
                         </Viewbox>
@@ -664,7 +673,7 @@
                             Maximum="6"
                             SmallChange="0.125"
                             LargeChange="0.5"
-                            IsEnabled="{Binding HasImage}"
+                            IsEnabled="{Binding IsPictureReady}"
                             VerticalAlignment="Center"
                             AutomationProperties.Name="{Binding Photo_Zoom, Source={x:Static strings:LocalizedStrings.Instance}}"
                             ToolTip.Tip="{Binding #ZoomPercentageText.Text}">
@@ -690,8 +699,9 @@
                             ToolTip.Tip="{Binding Photo_ZoomIn, Source={x:Static strings:LocalizedStrings.Instance}}">
                         <Path Data="{StaticResource IconZoomIn}" />
                     </Button>
-                    <Border Classes="toolbarSeparator zoomDetail" />
-                    <Button Command="{Binding ToggleFullScreenCommand}"
+                    <Border x:Name="FullScreenSeparator" Classes="toolbarSeparator zoomDetail" />
+                    <Button x:Name="FullScreenButton"
+                            Command="{Binding ToggleFullScreenCommand}"
                             ToolTip.Tip="{Binding VideoPlayer_FullScreen, Source={x:Static strings:LocalizedStrings.Instance}}">
                         <Grid Width="20" Height="20">
                             <Path Data="{StaticResource IconFullScreen}" IsVisible="{Binding !IsFullScreen}" />

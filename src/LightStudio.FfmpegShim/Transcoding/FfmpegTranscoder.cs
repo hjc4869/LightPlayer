@@ -79,6 +79,7 @@ public sealed unsafe partial class FfmpegTranscoder : IDisposable
     private readonly int sourceRotation;
     private readonly bool sourceMirrorHorizontally;
     private readonly double sourceHdrPeakLuminance;
+    private readonly string sourceLogTransferFunction;
     private readonly LightMediaRenderer.Contracts.VideoLuminance? sourceHdrMasteringLuminance;
     private AVBufferRef* hardwareDevice;
     private AVCodecContext* decoder;
@@ -111,6 +112,7 @@ public sealed unsafe partial class FfmpegTranscoder : IDisposable
         sourceRotation = source.Rotation;
         sourceMirrorHorizontally = source.MirrorHorizontally;
         sourceHdrPeakLuminance = source.HdrPeakLuminance;
+        sourceLogTransferFunction = source.LogTransferFunction;
         sourceHdrMasteringLuminance = source.HdrMasteringLuminance;
         OutputParameters = source;
 
@@ -1542,6 +1544,7 @@ public sealed unsafe partial class FfmpegTranscoder : IDisposable
             {
                 HdrPeakLuminance = sourceHdrPeakLuminance,
                 HdrMasteringLuminance = sourceHdrMasteringLuminance,
+                LogTransferFunction = sourceLogTransferFunction,
                 // The chain scales the picture but never turns it, so the source's display matrix
                 // still applies and would otherwise be lost with the container it came from.
                 Rotation = sourceRotation,

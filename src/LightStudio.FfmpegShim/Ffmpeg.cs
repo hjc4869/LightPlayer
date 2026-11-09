@@ -27,6 +27,7 @@ namespace LightStudio.FfmpegShim;
 [Include("libavutil/motion_vector.h", Access = BindingFlags.Public)]
 [Include("libavutil/opt.h", Access = BindingFlags.Public)]
 [Include("libavutil/pixdesc.h", Access = BindingFlags.Public)]
+[Include("libavutil/tx.h", Access = BindingFlags.Public)]
 [Include("libswresample/swresample.h", Access = BindingFlags.Public)]
 [Include("libswscale/swscale.h", Access = BindingFlags.Public)]
 public static partial class Ffmpeg;

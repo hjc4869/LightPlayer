@@ -45,7 +45,8 @@ public static unsafe class VideoFrameSnapshots
     /// <summary>
     /// Converts the frame to RGB at its stored resolution, turned upright. Standard and HDR10 pictures
     /// keep the signal, transfer and primaries they were coded in; Dolby Vision is reconstructed into
-    /// PQ on BT.2020 primaries. Nothing is tone mapped, scaled or adapted to a display.
+    /// PQ on BT.2020 primaries, and Apple Log is shown as the HLG picture the renderer derives from it,
+    /// encoded the same way. Nothing is tone mapped, scaled or adapted to a display.
     /// </summary>
     /// <remarks>Runs on the calling thread, downloading a graphics-memory frame first.</remarks>
     public static VideoFrameSnapshot Decode(VideoFrame frame, CancellationToken cancellationToken = default)
@@ -153,7 +154,9 @@ public static unsafe class VideoFrameSnapshots
     private static VideoFrameSnapshot Convert(VideoFrame frame, CancellationToken cancellationToken)
     {
         bool dolbyVision = frame.DolbyVision.IsApplicable;
-        int depth = dolbyVision ? 16 : frame.Format switch
+        bool appleLog = !dolbyVision && frame.ColorTransfer == VideoColorTransfer.AppleLog;
+        bool pq = dolbyVision || appleLog;
+        int depth = pq ? 16 : frame.Format switch
         {
             VideoPixelFormat.Bgra32 => 8,
             VideoPixelFormat.Rgba64 => 16,
@@ -165,8 +168,8 @@ public static unsafe class VideoFrameSnapshots
         int width = frame.Width, height = frame.Height;
         var snapshot = new VideoFrameSnapshot(turned ? height : width, turned ? width : height, depth)
         {
-            Primaries = dolbyVision ? VideoColorPrimaries.Bt2020 : frame.ColorPrimaries,
-            Transfer = dolbyVision ? VideoColorTransfer.Pq : frame.ColorTransfer,
+            Primaries = pq ? VideoColorPrimaries.Bt2020 : frame.ColorPrimaries,
+            Transfer = pq ? VideoColorTransfer.Pq : frame.ColorTransfer,
             PixelAspectRatio = turned ? 1 / aspect : aspect,
             Timestamp = double.IsFinite(frame.Pts) && frame.Pts > 0 ? TimeSpan.FromSeconds(Math.Min(frame.Pts, 1e9)) : TimeSpan.Zero,
             Source = VideoFrameSnapshotSource.Decoded,
@@ -174,6 +177,9 @@ public static unsafe class VideoFrameSnapshots
         try
         {
             var color = new VideoCpuColorPipeline(frame, sceneLight: true);
+            float[] gamut = appleLog
+                ? Array.ConvertAll(VideoColorGamut.Matrix(frame.ColorPrimaries, VideoColorPrimaries.Bt2020), value => (float)value)
+                : [];
             VideoFrame? enhancement = dolbyVision && frame.DolbyVision.EnhancementLayerResidual ? frame.EnhancementLayer : null;
             bool mirror = frame.MirrorHorizontally;
             bool wide = snapshot.BytesPerSample == 2;
@@ -208,6 +214,17 @@ public static unsafe class VideoFrameSnapshots
                                 r[x] = VideoToneCurve.NitsToPq(r[x]);
                                 g[x] = VideoToneCurve.NitsToPq(g[x]);
                                 b[x] = VideoToneCurve.NitsToPq(b[x]);
+                            }
+                        }
+                        else if (appleLog)
+                        {
+                            color.Decode(r, g, b);
+                            for (int x = 0; x < width; x++)
+                            {
+                                float red = r[x], green = g[x], blue = b[x];
+                                r[x] = VideoToneCurve.NitsToPq(gamut[0] * red + gamut[1] * green + gamut[2] * blue);
+                                g[x] = VideoToneCurve.NitsToPq(gamut[3] * red + gamut[4] * green + gamut[5] * blue);
+                                b[x] = VideoToneCurve.NitsToPq(gamut[6] * red + gamut[7] * green + gamut[8] * blue);
                             }
                         }
                         else

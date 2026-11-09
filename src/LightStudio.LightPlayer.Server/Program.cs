@@ -7,6 +7,7 @@ using LightStudio.NativeBindings;
 using LightStudio.FfmpegShim.Decoding;
 using LightStudio.FfmpegShim.Transcoding;
 using LightStudio.LightPlayer.Services;
+using LightStudio.LocalServices;
 using LightStudio.Logging;
 using LightStudio.MediaLibraryCore.IO;
 using LightStudio.RemoteApi;
@@ -23,6 +24,7 @@ internal static partial class Program
 {
     private static async Task<int> Main(string[] args)
     {
+        NativeHeap.Configure();
         switch (args.Length > 0 ? args[0] : string.Empty)
         {
             case "hash-password":

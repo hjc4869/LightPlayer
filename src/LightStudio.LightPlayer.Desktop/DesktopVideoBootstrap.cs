@@ -49,7 +49,7 @@ public static class DesktopVideoBootstrap
             {
                 RenderingMode = [X11RenderingMode.Egl, X11RenderingMode.Glx, X11RenderingMode.Software],
             })
-            .With(new SkiaOptions { MaxGpuResourceSizeBytes = 512 * 1024 * 1024 })
+            .With(new SkiaOptions { MaxGpuResourceSizeBytes = 256 * 1024 * 1024 })
             .WithInterFont()
             .LogToTrace();
 
@@ -97,44 +97,35 @@ public static class DesktopVideoBootstrap
         ArgumentNullException.ThrowIfNull(app);
         bool forceClientSideDecorations = ReadBooleanEnvironmentVariable("LIGHTPLAYER_WAYLAND_FORCE_CSD");
         bool enablePerceptualHdr = ReadBooleanEnvironmentVariable("LIGHTPLAYER_WAYLAND_PERCEPTUAL_HDR");
-        bool enableSdrWcg = ReadBooleanEnvironmentVariable("LIGHTPLAYER_WAYLAND_SDR_WCG");
 
 #if LMR_AVALONIA_FORK
-        WaylandColorMode colorMode = !enableHdrPassthrough
-            ? WaylandColorMode.Standard
-            : enableSdrWcg ? WaylandColorMode.WideColorGamut : WaylandColorMode.ExtendedLinear;
         // Only reached where the compositor reports no image description of its own; KWin and
         // Mutter both show an untagged surface through a pure 2.2 power law.
         VideoSurfaceTransfers.StandardRange = VideoSurfaceTransfer.Gamma22;
+        WaylandColorPresentationMode[] preferences = !enableHdrPassthrough
+            ? []
+            : enablePerceptualHdr
+                ? [
+                    WaylandColorPresentationMode.LinearRelative, WaylandColorPresentationMode.LinearPerceptual,
+                    WaylandColorPresentationMode.PqPerceptual, WaylandColorPresentationMode.WideColorGamut,
+                    WaylandColorPresentationMode.Sdr
+                ]
+                : [
+                    WaylandColorPresentationMode.LinearRelative, WaylandColorPresentationMode.WideColorGamut,
+                    WaylandColorPresentationMode.Sdr
+                ];
         var options = new WaylandPlatformOptions
         {
 #pragma warning disable AVALONIA_WAYLAND_FORCE_CSD
             ForceDrawnDecorations = forceClientSideDecorations,
 #pragma warning restore AVALONIA_WAYLAND_FORCE_CSD
-            ColorMode = colorMode,
+            ColorPresentationPreferences = preferences,
         };
-        if (colorMode == WaylandColorMode.ExtendedLinear)
-        {
-            options.HdrPresentationPreferences = enablePerceptualHdr
-                ? [
-                    WaylandHdrPresentationMode.LinearRelative, WaylandHdrPresentationMode.PqRelative,
-                    WaylandHdrPresentationMode.LinearPerceptual, WaylandHdrPresentationMode.PqPerceptual,
-                    WaylandHdrPresentationMode.Sdr
-                ]
-                : [
-                    WaylandHdrPresentationMode.LinearRelative, WaylandHdrPresentationMode.PqRelative,
-                    WaylandHdrPresentationMode.Sdr
-                ];
-        }
         app.With(options).UseWayland();
-        VideoOutputDiagnostics.RecordRequest(colorMode == WaylandColorMode.ExtendedLinear
-            ? "Wayland extended linear, relative preferred"
-            : $"Wayland {colorMode}");
-        if (colorMode == WaylandColorMode.WideColorGamut)
-        {
-            AppLog.Information("Desktop.Startup", "Enabling Wayland SDR wide color gamut output (LIGHTPLAYER_WAYLAND_SDR_WCG).");
-        }
-        if (enablePerceptualHdr && colorMode == WaylandColorMode.ExtendedLinear)
+        VideoOutputDiagnostics.RecordRequest(preferences.Length == 0
+            ? "Wayland standard color"
+            : $"Wayland {string.Join(", ", preferences)}");
+        if (enablePerceptualHdr && enableHdrPassthrough)
         {
             AppLog.Information("Desktop.Startup", "Enabling Wayland perceptual HDR presentation modes (LIGHTPLAYER_WAYLAND_PERCEPTUAL_HDR).");
         }
@@ -150,10 +141,6 @@ public static class DesktopVideoBootstrap
         if (enablePerceptualHdr)
         {
             AppLog.Warning("Desktop.Startup", "LIGHTPLAYER_WAYLAND_PERCEPTUAL_HDR requires the Avalonia fork.");
-        }
-        if (enableSdrWcg)
-        {
-            AppLog.Warning("Desktop.Startup", "LIGHTPLAYER_WAYLAND_SDR_WCG requires the Avalonia fork.");
         }
         app.UseWayland();
         VideoOutputDiagnostics.RecordRequest("Wayland standard color");

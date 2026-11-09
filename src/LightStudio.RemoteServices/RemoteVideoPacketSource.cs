@@ -42,8 +42,15 @@ namespace LightStudio.RemoteServices;
 public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisposable
 {
     private const int QueueCapacity = 128;
-    private const double HistoryDurationSeconds = 30;
-    private const long MaximumHistoryBytes = 200L * 1024 * 1024;
+
+    /// <summary>
+    /// Rented bytes the queue holds before arrivals wait: the window the socket transport grants as
+    /// credit, so HTTP transport holds no more ahead of the demuxer than the socket does.
+    /// </summary>
+    private const long QueueByteCapacity = PacketStreamProtocol.DefaultCreditBytes;
+
+    /// <summary>Buffers kept per size class; what a drain returns beyond that is left to the GC.</summary>
+    private const int PooledBuffersPerSize = 8;
 
     /// <summary>How long the producer waits before retrying a full packet queue.</summary>
     private static readonly TimeSpan QueueRetryDelay = TimeSpan.FromMilliseconds(20);
@@ -65,6 +72,12 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
     private readonly RemoteTranscodeRequest? transcode;
     private Dictionary<int, RemoteStreamTrack> tracksById;
     private readonly Queue<WirePacket> queue = new(QueueCapacity);
+
+    /// <summary>Packet buffers of this source alone, so nothing it held outlives it in a shared pool.</summary>
+    private readonly ArrayPool<byte> packetPool =
+        ArrayPool<byte>.Create(PacketStreamProtocol.MaximumMessageSize, PooledBuffersPerSize);
+
+    private readonly long maximumHistoryBytes = PacketHistoryBudget.ResolveMaximumBytes();
     private readonly Queue<WirePacket> history = new();
     private readonly Queue<WirePacket> replay = new();
     private readonly CancellationTokenSource lifetime = new();
@@ -99,6 +112,9 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
     private int releasedCredit;
     private int reconnectCount;
     private double position;
+
+    /// <summary>Rented size of everything in <see cref="queue"/>. Guarded by <see cref="queueSync"/>.</summary>
+    private long queueBytes;
     private long historyBytes;
     private double historyStartSeconds = MediaTime.NoTimestamp;
     private double playbackPositionSeconds = MediaTime.NoTimestamp;
@@ -332,7 +348,7 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
         }
         catch
         {
-            ArrayPool<byte>.Shared.Return(wire.Buffer);
+            packetPool.Return(wire.Buffer);
             throw;
         }
 
@@ -362,6 +378,11 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
             }
 
             releaseCredit = queue.TryDequeue(out wire);
+            if (releaseCredit)
+            {
+                queueBytes -= wire.Buffer.Length;
+            }
+
             return releaseCredit;
         }
     }
@@ -391,7 +412,7 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
 
     private void TrimHistoryLocked()
     {
-        while (historyBytes > MaximumHistoryBytes && history.TryDequeue(out WirePacket wire))
+        while (historyBytes > maximumHistoryBytes && history.TryDequeue(out WirePacket wire))
         {
             DiscardHistory(wire);
         }
@@ -406,7 +427,7 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
             return;
         }
 
-        double cutoff = playbackPositionSeconds - HistoryDurationSeconds;
+        double cutoff = playbackPositionSeconds - PacketHistoryBudget.DurationSeconds;
         double oldest = MediaTime.NoTimestamp;
         foreach (WirePacket wire in history)
         {
@@ -471,7 +492,7 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
             historyBytes -= wire.Buffer.LongLength;
         }
 
-        ArrayPool<byte>.Shared.Return(wire.Buffer);
+        packetPool.Return(wire.Buffer);
     }
 
     public bool Seek(double positionSeconds)
@@ -576,6 +597,7 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
                 buffered.Add(wire);
             }
 
+            queueBytes = 0;
             int resume = FindResumeIndex(buffered, target);
             moved = resume >= 0;
             reclaimed = 0;
@@ -585,6 +607,7 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
                 if (!moved || i >= resume)
                 {
                     queue.Enqueue(buffered[i]);
+                    queueBytes += buffered[i].Buffer.Length;
                     continue;
                 }
 
@@ -700,7 +723,9 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
                     if (run is null)
                         throw new InvalidDataException("The server sent packets without an output manifest.");
                     var (pts, dts, duration) = PacketStreamProtocol.ReadPacketHeader(reader.LastPayload);
-                    packets.Add(new SubtitlePacket(pts, dts, duration, reader.LastPayload[PacketStreamProtocol.PacketHeaderSize..].ToArray()));
+                    var bitstream = new byte[reader.PendingBitstreamLength];
+                    await reader.ReadBitstreamAsync(bitstream, cancellationToken).ConfigureAwait(false);
+                    packets.Add(new SubtitlePacket(pts, dts, duration, bitstream));
                     break;
 
                 case PacketStreamRecordType.EndOfStream:
@@ -860,20 +885,15 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
                             var (pts, dts, duration) = PacketStreamProtocol.ReadPacketHeader(reader.LastPayload);
                             if (resuming && WasAlreadyReceived(reader.LastTrackId, pts, dts))
                             {
+                                // The reader skips the bitstream still on the wire.
                                 pendingSideData.Clear();
                                 break;
                             }
 
+                            WirePacket wire = await ReceivePacketAsync(reader, pts, dts, duration, pendingSideData, cancellationToken)
+                                .ConfigureAwait(false);
                             received = true;
                             endedTracks.Remove(reader.LastTrackId);
-                            WirePacket wire = Decode(
-                                reader.LastTrackId,
-                                reader.LastFlags,
-                                pts,
-                                dts,
-                                duration,
-                                reader.LastPayload,
-                                pendingSideData);
                             int packetCost = PacketStreamProtocol.PacketCost(wire.Length);
                             bool added = await EnqueueAsync(
                                 wire,
@@ -890,7 +910,7 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
                                 cancellationToken).ConfigureAwait(false);
                             if (!added)
                             {
-                                ArrayPool<byte>.Shared.Return(wire.Buffer);
+                                packetPool.Return(wire.Buffer);
                                 return;
                             }
 
@@ -958,6 +978,11 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
                     $"HTTP run={runId} interrupted; retry={attempts}; bufferedSeconds={BufferedSeconds:F3}; " +
                     $"playbackSeconds={PlaybackAnchor():F3}; endedTracks=[{string.Join(",", endedTracks)}].",
                     exception);
+
+                if (exception is OutOfMemoryException)
+                {
+                    DropHistory();
+                }
 
                 try
                 {
@@ -1075,6 +1100,10 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
             {
                 // The transport went. Everything needed to rebuild it is still here.
                 lastFailure = exception;
+                if (exception is OutOfMemoryException)
+                {
+                    DropHistory();
+                }
             }
 
             if (cancellationToken.IsCancellationRequested || disposed || runEnded)
@@ -1237,7 +1266,7 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
                         cancellationToken).ConfigureAwait(false);
                     if (!added)
                     {
-                        ArrayPool<byte>.Shared.Return(wire.Buffer);
+                        packetPool.Return(wire.Buffer);
                     }
 
                     break;
@@ -1351,9 +1380,10 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
                     return false;
                 }
 
-                if (queue.Count < QueueCapacity)
+                if (queue.Count < QueueCapacity && queueBytes < QueueByteCapacity)
                 {
                     queue.Enqueue(wire);
+                    queueBytes += wire.Buffer.Length;
                     accepted();
                     SignalArrivalLocked();
                     return true;
@@ -1564,7 +1594,36 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
         throw new IOException("The server closed the packet socket before naming the media.");
     }
 
-    private static WirePacket Decode(
+    /// <summary>
+    /// Takes a packet's bitstream off the wire straight into the buffer that keeps it, with the HDR10+
+    /// metadata captured for it behind, so no staging copy of a packet is ever held.
+    /// </summary>
+    private async Task<WirePacket> ReceivePacketAsync(
+        HttpPacketStreamReader reader,
+        long pts,
+        long dts,
+        long duration,
+        PendingPacketSideData pendingSideData,
+        CancellationToken cancellationToken)
+    {
+        int trackId = reader.LastTrackId;
+        bool isKeyFrame = (reader.LastFlags & PacketStreamProtocol.KeyFrameFlag) != 0;
+        int bitstreamLength = reader.PendingBitstreamLength;
+        byte[] buffer = packetPool.Rent(Math.Max(1, bitstreamLength + pendingSideData.Length));
+        try
+        {
+            int metadataLength = pendingSideData.TakeInto(trackId, pts, dts, buffer.AsSpan(bitstreamLength));
+            await reader.ReadBitstreamAsync(buffer.AsMemory(0, bitstreamLength), cancellationToken).ConfigureAwait(false);
+            return new WirePacket(trackId, pts, dts, duration, isKeyFrame, buffer, bitstreamLength, metadataLength);
+        }
+        catch
+        {
+            packetPool.Return(buffer);
+            throw;
+        }
+    }
+
+    private WirePacket Decode(
         int trackId,
         byte flags,
         long pts,
@@ -1576,7 +1635,7 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
         ReadOnlySpan<byte> bitstream = payload[PacketStreamProtocol.PacketHeaderSize..];
         ReadOnlySpan<byte> hdr10PlusMetadata = pendingSideData.Take(trackId, pts, dts);
 
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Max(1, bitstream.Length + hdr10PlusMetadata.Length));
+        byte[] buffer = packetPool.Rent(Math.Max(1, bitstream.Length + hdr10PlusMetadata.Length));
         bitstream.CopyTo(buffer);
         hdr10PlusMetadata.CopyTo(buffer.AsSpan(bitstream.Length));
         return new WirePacket(
@@ -1613,21 +1672,36 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
         {
             while (queue.TryDequeue(out WirePacket wire))
             {
-                ArrayPool<byte>.Shared.Return(wire.Buffer);
+                packetPool.Return(wire.Buffer);
             }
 
             while (history.TryDequeue(out WirePacket wire))
             {
-                ArrayPool<byte>.Shared.Return(wire.Buffer);
+                packetPool.Return(wire.Buffer);
             }
 
             while (replay.TryDequeue(out WirePacket wire))
             {
-                ArrayPool<byte>.Shared.Return(wire.Buffer);
+                packetPool.Return(wire.Buffer);
             }
 
+            queueBytes = 0;
             historyBytes = 0;
             Volatile.Write(ref historyStartSeconds, MediaTime.NoTimestamp);
+        }
+    }
+
+    /// <summary>
+    /// Lets go of what has already played, which costs nothing but a rewind served locally. The
+    /// buffers go to the GC rather than back to the pool, since the point is to give memory back.
+    /// </summary>
+    private void DropHistory()
+    {
+        lock (queueSync)
+        {
+            history.Clear();
+            historyBytes = 0;
+            UpdateHistoryStartLocked();
         }
     }
 
@@ -1786,6 +1860,9 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
         private long dts;
         private int length;
 
+        /// <summary>Bytes captured, whether or not they turn out to describe the next packet.</summary>
+        public int Length => length;
+
         public void Capture(int packetTrackId, ReadOnlySpan<byte> payload)
         {
             var timestamps = PacketStreamProtocol.ReadPacketSideDataHeader(payload);
@@ -1818,6 +1895,13 @@ public sealed class RemoteVideoPacketSource : IRelayablePacketSource, IAsyncDisp
             ReadOnlySpan<byte> result = buffer.AsSpan(0, length);
             Clear();
             return result;
+        }
+
+        public int TakeInto(int packetTrackId, long packetPts, long packetDts, Span<byte> destination)
+        {
+            ReadOnlySpan<byte> metadata = Take(packetTrackId, packetPts, packetDts);
+            metadata.CopyTo(destination);
+            return metadata.Length;
         }
 
         public void Clear() => length = 0;

@@ -26,14 +26,14 @@ public partial class QueuePane : UserControl
     private bool scrollToCurrentQueued;
 
     // Fixed queue row height, matching the Border.queueItem styles (compact in the Apple layout's
-    // docked pane). Used to scroll the current track to the top by computing its offset directly,
-    // without realizing the rows above it.
+    // docked pane, except with touch chrome). Used to scroll the current track to the top by
+    // computing its offset directly, without realizing the rows above it.
     private double RowHeight => IsCompact ? 40d : 48d;
 
     // Matches the Panel.playingSlot styles.
     private double PlayingSlotWidth => IsCompact ? 7d : 10d;
 
-    private bool IsCompact =>
+    private bool IsCompact => !PlatformServices.UsesTouchChrome &&
         PaneBorder.Classes.Contains("apple") && !PaneBorder.Classes.Contains("floating") && !IsFullPage;
 
     /// <summary>

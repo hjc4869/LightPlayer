@@ -3,10 +3,10 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
 
     <Flatpak Condition="'$(Flatpak)' == ''">false</Flatpak>
-    <LightStudioFfmpegVersion Condition="'$(LightStudioFfmpegVersion)' == ''">9.0.2</LightStudioFfmpegVersion>
-    <AvaloniaVersion>12.1.4</AvaloniaVersion>
-    <AvaloniaForkVersion>12.1.5-custom.21</AvaloniaForkVersion>
-    <AvaloniaForkSha256>314146a7d6e71bc065962d77760d659eedce5c5b3499d4481cd9d1a0ba9ca988</AvaloniaForkSha256>
+    <LightStudioFfmpegVersion Condition="'$(LightStudioFfmpegVersion)' == ''">9.0.2.2</LightStudioFfmpegVersion>
+    <AvaloniaVersion>12.1.5</AvaloniaVersion>
+    <AvaloniaForkVersion>12.1.6-custom.27</AvaloniaForkVersion>
+    <AvaloniaForkSha256>fd2acd62eb86a10122374baae0556b068daed87e125bfa08cd47f5b8f328897f</AvaloniaForkSha256>
     <AvaloniaPlatformVersion Condition="'$(UseAvaloniaFork)' == 'true'">$(AvaloniaForkVersion)</AvaloniaPlatformVersion>
     <AvaloniaPlatformVersion Condition="'$(UseAvaloniaFork)' != 'true'">$(AvaloniaVersion)</AvaloniaPlatformVersion>
   </PropertyGroup>
@@ -61,11 +61,10 @@
 
   <!-- Inferencing -->
   <ItemGroup>
-    <PackageVersion Include="LightStudio.Onnx" Version="1.30.0" />
+    <PackageVersion Include="LightStudio.Onnx" Version="1.30.0.1" />
     <PackageVersion Include="LightStudio.WebGPU" Version="156.0.0.0" />
     <PackageVersion Include="Microsoft.Windows.AI.MachineLearning" Version="2.3.42" />
     <PackageVersion Include="Microsoft.ML.Tokenizers" Version="2.0.0" />
-    <PackageVersion Include="MathNet.Numerics" Version="5.0.0" />
   </ItemGroup>
 
   <!-- Microsoft.Extensions.* -->
@@ -104,9 +103,9 @@
     <GitHubNuGetAsset Include="LightStudio.WebGPU.156.0.0.nupkg"
                      Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/webgpu-v156.0.0/LightStudio.WebGPU.156.0.0.nupkg"
                      Sha256="f210ff8f7ece16efb0a8d99d52f152c659901347439cafa53ec2f698d2b8d663" />
-    <GitHubNuGetAsset Include="LightStudio.Onnx.1.30.0.nupkg"
-                     Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/onnx-v1.30.0/LightStudio.Onnx.1.30.0.nupkg"
-                     Sha256="0e073a808f30b21266c9e89985c64ec0105fef79fa1bea82a77f9fe24494a51c" />
+    <GitHubNuGetAsset Include="LightStudio.Onnx.1.30.0.1.nupkg"
+                     Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/onnx-v1.30.0.1/LightStudio.Onnx.1.30.0.1.nupkg"
+                     Sha256="5a9c90ed313e1d97bc63172fe5c91d8c3cac53d549c749758a618fb89e5ac2e5" />
     <GitHubNuGetAsset Include="LightStudio.GeoNames.1.0.0.nupkg"
                      Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/geonames-v1.0.0/LightStudio.GeoNames.1.0.0.nupkg"
                      Sha256="c65a579d85be8c77d07f08fa582ea7f90c324abb0062b5d9d64bd7472e7c7f03" />
@@ -115,7 +114,7 @@
                      Sha256="7bcd692380ce09a3340d6c40b98c253a9af73b9090472ef546a8276d66037968" />
     <GitHubNuGetAsset Include="LightStudio.Ffmpeg.$(LightStudioFfmpegVersion).nupkg"
                      Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/ffmpeg-v$(LightStudioFfmpegVersion)/LightStudio.Ffmpeg.$(LightStudioFfmpegVersion).nupkg"
-                     Sha256="d1b35cd478bf32fc13c90a873333e0ddea036927a4516c8478b6350ae64014d7" />
+                     Sha256="d01aa095cf6647ca97d0a179407d4b85ff940f9caec925d898b798c9e5432c72" />
     <GitHubNuGetAsset Include="LightStudio.Photos.1.0.0.nupkg"
                      Url="https://github.com/hjc4869/LightPlayer-Packages/releases/download/photos-v1.0.0/LightStudio.Photos.1.0.0.nupkg"
                      Sha256="3136ce572ed7f48c231e5a3b2a23993db6d340bd336d29ddcaa5c1974b6f489a" />

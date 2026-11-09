@@ -16,6 +16,7 @@ internal sealed class OnnxEmbeddingEncoder : IEmbeddingInferenceSession
     private readonly int sequenceLength;
 
     public int EmbeddingDimensions { get; }
+    public int ImageSize => Math.Max(preprocessing.Width, preprocessing.Height);
     public string ModelName => preprocessing.ModelName;
     public string ActiveDeviceId { get; }
 
@@ -96,9 +97,16 @@ internal sealed class OnnxEmbeddingEncoder : IEmbeddingInferenceSession
             if (session.InputMetadata.ContainsKey("attention_mask"))
                 inputs["attention_mask"] = OrtValue.CreateTensorValueFromMemory(
                     Enumerable.Range(0, sequenceLength).Select(index => index < tokens.Length ? 1L : 0L).ToArray(), [1, sequenceLength]);
-            inputs["pixel_values"] = session.InputMetadata["pixel_values"].ElementType == typeof(Float16)
-                ? OrtValue.CreateTensorValueFromMemory(pixels.Select(value => (Float16)value).ToArray(), [imageCount, 3, preprocessing.Height, preprocessing.Width])
-                : OrtValue.CreateTensorValueFromMemory(pixels, [imageCount, 3, preprocessing.Height, preprocessing.Width]);
+            long[] imageShape = [imageCount, 3, preprocessing.Height, preprocessing.Width];
+            if (session.InputMetadata["pixel_values"].ElementType == typeof(Float16))
+            {
+                var halves = new Float16[pixels.Length];
+                for (var index = 0; index < pixels.Length; index++)
+                    halves[index] = (Float16)pixels[index];
+                inputs["pixel_values"] = OrtValue.CreateTensorValueFromMemory(halves, imageShape);
+            }
+            else
+                inputs["pixel_values"] = OrtValue.CreateTensorValueFromMemory(pixels, imageShape);
             using var results = session.Run(options, inputs, [output]);
             var result = results[0];
             var embedding = result.GetTensorTypeAndShape().ElementDataType == Microsoft.ML.OnnxRuntime.Tensors.TensorElementType.Float16

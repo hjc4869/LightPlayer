@@ -36,7 +36,15 @@ internal sealed unsafe class HeaderParser : IDisposable
 
     public XElement Parse(IReadOnlyList<HeaderRequest> requests)
     {
-        Probe(requests.Select(request => request.Header).Distinct(StringComparer.Ordinal).ToArray());
+        // Prerequisites precede the headers that depend on them, in the probe as in each request's own unit.
+        var headers = new List<string>();
+        foreach (var request in requests)
+        {
+            foreach (var header in request.Prerequisites.Append(request.Header))
+                if (!headers.Contains(header, StringComparer.Ordinal))
+                    headers.Add(header);
+        }
+        Probe(headers.ToArray(), requests.Where(request => request.Macros is null).Select(request => request.Header).ToHashSet(StringComparer.Ordinal));
         types = new TypeModel(target, LongBits, cursor => ownership.Owns(DeclarationFile(cursor)));
         var document = new XElement("bindings");
         foreach (var request in requests)
@@ -47,7 +55,8 @@ internal sealed unsafe class HeaderParser : IDisposable
 
     public void Dispose() => LibClang.clang_disposeIndex(index);
 
-    private void Probe(string[] headers)
+    // Only declaration requests claim their headers; a macro request leaves its header to the platform.
+    private void Probe(string[] headers, HashSet<string> owning)
     {
         var source = new StringBuilder();
         foreach (var header in headers)
@@ -120,7 +129,8 @@ internal sealed unsafe class HeaderParser : IDisposable
             for (var header = 0; header < headers.Length; header++)
             {
                 resolvedHeaders[headers[header]] = mainIncludes[header].File;
-                ownership.AddRequest(headers[header], mainIncludes[header].File, mainIncludes[header].System, target.LibraryIncludeRoots);
+                if (owning.Contains(headers[header]))
+                    ownership.AddRequest(headers[header], mainIncludes[header].File, mainIncludes[header].System, target.LibraryIncludeRoots);
             }
             ownership.AddQuotedIncludes(quotedIncludes);
             foreach (var file in LibClang.Inclusions(unit))
@@ -139,11 +149,11 @@ internal sealed unsafe class HeaderParser : IDisposable
             node.Add(new XAttribute("macros", string.Join(' ', request.Macros)));
 
         string[] candidates;
+        var reachable = Reachable(resolvedHeaders[request.Header]);
         if (request.Macros is not null)
             candidates = request.Macros.ToArray();
         else
         {
-            var reachable = Reachable(resolvedHeaders[request.Header]);
             var owned = macros.Where(macro => reachable.Contains(macro.File) && ownership.Owns(macro.File)).ToArray();
             foreach (var name in owned.Where(macro => macro.FunctionLike).Select(macro => macro.Name).Distinct(StringComparer.Ordinal))
                 Exclude(node, name, "macro", "function-like macro");
@@ -151,7 +161,9 @@ internal sealed unsafe class HeaderParser : IDisposable
                 .Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray();
         }
 
-        var source = new StringBuilder("#include <").Append(request.Header).Append(">\n");
+        var source = new StringBuilder();
+        foreach (var header in request.Prerequisites.Append(request.Header))
+            source.Append("#include <").Append(header).Append(">\n");
         foreach (var macro in candidates)
             source.Append("#ifdef ").Append(macro).Append('\n').Append("static __auto_type ").Append(MacroPrefix).Append(macro)
                 .Append(" = ").Append(macro).Append(";\n#endif\n");
@@ -168,9 +180,11 @@ internal sealed unsafe class HeaderParser : IDisposable
             var constants = new HashSet<string>(StringComparer.Ordinal);
             if (request.Macros is null)
             {
-                foreach (var cursor in children.Where(cursor => cursor.Kind == CursorKind.TypedefDecl && Owns(cursor)))
+                // Declarations of a prerequisite belong to its own request, not to the headers that need it.
+                bool Requested(ClangCursor cursor) => Owns(cursor) && reachable.Contains(DeclarationFile(cursor));
+                foreach (var cursor in children.Where(cursor => cursor.Kind == CursorKind.TypedefDecl && Requested(cursor)))
                     types.RegisterTypedef(cursor);
-                foreach (var cursor in children.Where(Owns))
+                foreach (var cursor in children.Where(Requested))
                 {
                     switch (cursor.Kind)
                     {
@@ -301,7 +315,12 @@ internal sealed unsafe class HeaderParser : IDisposable
             Exclude(node, LibClang.Spelling(cursor), "enum", exception.Message);
             return;
         }
-        foreach (var item in LibClang.Children(cursor).Where(item => item.Kind == CursorKind.EnumConstantDecl))
+        var items = LibClang.Children(cursor).Where(item => item.Kind == CursorKind.EnumConstantDecl).ToArray();
+        // C types the enumerators of an enum without a name or typedef as int when they fit; a named enum's
+        // constants keep its underlying type, which is also the type of the generated enum.
+        if (!IsNamed(cursor) && items.All(item => LibClang.clang_getEnumConstantDeclValue(item) is >= int.MinValue and <= int.MaxValue))
+            underlying = "int";
+        foreach (var item in items)
         {
             var name = LibClang.Spelling(item);
             if (constants.Add(name))

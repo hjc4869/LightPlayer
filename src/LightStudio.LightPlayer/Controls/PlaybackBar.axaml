@@ -54,6 +54,7 @@
                                          Height="60"
                                          CornerRadius="6"
                                          Source="{Binding AlbumImage}"
+                                         SizeTarget="{Binding}"
                                          PlaceholderKind="Album" />
             </Button>
 
@@ -95,6 +96,7 @@
 
             <!-- Remaining time -->
             <TextBlock Grid.Column="2"
+                       IsVisible="{Binding ShowRemainingTime, RelativeSource={RelativeSource AncestorType=controls:PlaybackBar}}"
                        Text="{Binding RemainingText}"
                        VerticalAlignment="Center"
                        MinWidth="52"

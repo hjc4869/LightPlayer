@@ -31,7 +31,7 @@ internal sealed class VideoCpuColorPipeline
         this.frame = frame;
         this.sceneLight = sceneLight;
         bool dovi = frame.DolbyVision.IsApplicable;
-        hdr = dovi || frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
+        hdr = dovi || frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog;
         VideoColorPrimaries primaries = dovi ? VideoColorPrimaries.Bt2020 : frame.ColorPrimaries;
         (gamut, luma) = VideoColorGamut.ToBt709Single(primaries);
         convertGamut = VideoColorGamut.NeedsConversion(primaries);
@@ -44,7 +44,7 @@ internal sealed class VideoCpuColorPipeline
         float peak = dovi && frame.DolbyVision.EffectivePeakLuminance > 0 ? (float)frame.DolbyVision.EffectivePeakLuminance :
             !dovi && frame.Hdr10Plus is { IsPresent: true, EffectivePeakLuminance: > 0 }
                 ? frame.Hdr10Plus.EffectivePeakLuminance : (float)frame.HdrPeakLuminance;
-        sourcePeak = frame.ColorTransfer == VideoColorTransfer.Hlg && !dovi ? 1000 :
+        sourcePeak = frame.ColorTransfer is (VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog) && !dovi ? 1000 :
             float.IsFinite(peak) && peak > 0 ? Math.Clamp(peak, 100, 10000) : 1000;
         options ??= new VideoSdrToneMappingOptions
         {
@@ -267,9 +267,16 @@ internal sealed class VideoCpuColorPipeline
             {
                 r = PqToNits(r); g = PqToNits(g); b = PqToNits(b);
             }
-            else if (frame.ColorTransfer == VideoColorTransfer.Hlg)
+            else if (frame.ColorTransfer is VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog)
             {
-                r = HlgToScene(r); g = HlgToScene(g); b = HlgToScene(b);
+                if (frame.ColorTransfer == VideoColorTransfer.Hlg)
+                {
+                    r = HlgToScene(r); g = HlgToScene(g); b = HlgToScene(b);
+                }
+                else
+                {
+                    r = AppleLogToHlgScene(r); g = AppleLogToHlgScene(g); b = AppleLogToHlgScene(b);
+                }
                 T luminance = T.Max((T)luma[0] * r + (T)luma[1] * g + (T)luma[2] * b, 1e-6f);
                 T scale = T.Pow(luminance, 0.2f) * (T)sourcePeak;
                 r = r * scale; g = g * scale; b = b * scale;
@@ -442,6 +449,15 @@ internal sealed class VideoCpuColorPipeline
     private static T HlgToScene<T>(T signal) where T : struct, IColorMath<T> =>
         T.SelectGreater(signal, 0.5f, (T.Exp((signal - (T)0.55991073f) / (T)0.17883277f) + (T)0.28466892f) / (T)12,
             signal * signal / (T)3);
+
+    private static T AppleLogToHlgScene<T>(T signal) where T : struct, IColorMath<T>
+    {
+        T logSegment = T.Exp((signal - (T)0.69336945f) * (T)8.10653041f) - (T)0.00964052f;
+        T rootSegment = T.Pow(T.Max(signal, 0) / (T)47.28711236f, 0.5f) + (T)(-0.05641088f);
+        T scene = T.Max(T.SelectGreater(signal, 0.20855532f, logSegment, rootSegment), 0) * (T)0.26496256f;
+        T over = T.Max(scene - (T)0.5f, 0);
+        return T.Min(scene, 0.5f) + over / ((T)1 + over * (T)1.62680319f);
+    }
 
     private static T PhotoToLinear<T>(T signal, PhotoColorProfile profile) where T : struct, IColorMath<T>
     {

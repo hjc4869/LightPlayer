@@ -339,7 +339,11 @@ public class MasterDetailView : Decorator
         masterDetailSeparator.IsVisible = !IsCompact;
         if (currentDetailBorder is not null)
         {
-            currentDetailBorder.Padding = ComputeDetailPadding(Detail);
+            // The master keeps drawing where its scrollers run under the shell's bars, so a compact detail's
+            // background reaches past its top and bottom edges, as far as the host's clip lets its own scrollers.
+            double bleed = IsCompact ? Bounds.Height : 0;
+            currentDetailBorder.Margin = new Thickness(0, -bleed, 0, -bleed);
+            currentDetailBorder.Padding = ComputeDetailPadding(Detail) + new Thickness(0, bleed, 0, bleed);
             // Compact details cover the master, so use the opaque page brush instead of a Mica layer.
             currentDetailBorder.Bind(Border.BackgroundProperty,
                 this.GetResourceObservable(IsCompact ? "AppPageBackgroundBrush" : "AppContentLayerBrush"));

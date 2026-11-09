@@ -322,6 +322,10 @@ internal sealed class VideoKeyboardShortcutHandler : IDisposable
             case Key.I:
                 model.AreStatisticsVisible = !model.AreStatisticsVisible;
                 break;
+            case Key.Z:
+                model.CycleStretch();
+                playerView?.ShowToast(model.SelectedStretchOption.DisplayName);
+                break;
             default:
                 return false;
         }

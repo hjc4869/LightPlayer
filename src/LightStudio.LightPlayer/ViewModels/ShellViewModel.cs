@@ -121,6 +121,9 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     // The session currently on the video sheet, followed so the address tracks the video it plays.
     private VideoPlayerPageViewModel? videoSession;
 
+    // Whether the platform was last told that a photo or video covers the shell.
+    private bool isPresentingMedia;
+
     // A detail restored from a reloaded location lands once the page's items arrive, after the
     // restore itself has finished; the entry it belongs to already exists, so the first sync it
     // triggers updates that entry instead of adding one.
@@ -153,6 +156,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     private bool isAppleChromeEnabled;
     private double viewportWidth;
+    private double viewportHeight;
 
     // The page shown by the settings window while one is open.
     private SettingsPageViewModel? settingsWindowPage;
@@ -170,9 +174,13 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     [NotifyPropertyChangedFor(nameof(ShowPlaybackBar))]
     private bool isNarrow;
 
-    // True while the narrow layout shows its top search field in place of the page title.
+    // True while the narrow layout's top bar, or the Apple layout's title band, shows its search
+    // field in place of the page title.
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowNarrowBackButton))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarTitle))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchField))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarBand))]
     private bool isSearchActive;
 
     [ObservableProperty]
@@ -185,16 +193,36 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     [NotifyPropertyChangedFor(nameof(BottomNavSafeAreaMargin))]
     [NotifyPropertyChangedFor(nameof(BottomNavItemPadding))]
     [NotifyPropertyChangedFor(nameof(BottomNavItemMargin))]
+    [NotifyPropertyChangedFor(nameof(MediaSafeAreaInsets))]
+    [NotifyPropertyChangedFor(nameof(VideoSheetMargin))]
     private Thickness deviceSafeAreaPadding;
 
-    // The system window controls over the top-left corner where the platform measures them (iPadOS).
+    // The regions the platform reserves around the shell: window controls (iPadOS), the band for
+    // vertical bars, occlusions, and divisions (iOS).
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DeviceWindowControls))]
     [NotifyPropertyChangedFor(nameof(WindowControlsInset))]
     [NotifyPropertyChangedFor(nameof(NavWindowControlsHeight))]
     [NotifyPropertyChangedFor(nameof(NarrowTopBarMargin))]
-    private Thickness deviceWindowControls;
+    [NotifyPropertyChangedFor(nameof(UsesVerticalToolbar))]
+    [NotifyPropertyChangedFor(nameof(UsesVerticalTabBar))]
+    [NotifyPropertyChangedFor(nameof(ShowBottomChromeFade))]
+    [NotifyPropertyChangedFor(nameof(ShowHorizontalToolbarControls))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarTitle))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchField))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchBox))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchButton))]
+    [NotifyPropertyChangedFor(nameof(OmitsToolbarBand))]
+    [NotifyPropertyChangedFor(nameof(OmitsToolbarTitle))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarBand))]
+    private DeviceRegions deviceRegions = DeviceRegions.Empty;
 
-    public Thickness SafeAreaPadding => VideoSheet.IsFullScreen ? default : DeviceSafeAreaPadding;
+    /// <summary>The system window controls over the top-left corner where the platform measures them (iPadOS).</summary>
+    public Thickness DeviceWindowControls => DeviceRegions.WindowControls;
+
+    // Touch heads keep the shell inside the safe area; their pictures cover the window on their own.
+    public Thickness SafeAreaPadding =>
+        VideoSheet.IsFullScreen && !PlatformServices.UsesTouchChrome ? default : DeviceSafeAreaPadding;
 
     public Thickness SafeAreaBackgroundMargin => new(
         -SafeAreaPadding.Left, -SafeAreaPadding.Top, 0, -SafeAreaPadding.Bottom);
@@ -206,13 +234,34 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     public Thickness QueueSafeAreaContentMargin => new(0, 0, SafeAreaPadding.Right, 0);
 
+    /// <summary>
+    /// The safe area insets the photo and video views keep their controls within while their picture
+    /// covers the window, which it does on touch heads.
+    /// </summary>
+    public Thickness MediaSafeAreaInsets => PlatformServices.UsesTouchChrome ? DeviceSafeAreaPadding : default;
+
+    /// <summary>The margin that lets the video sheet cover the bands beside the safe area on touch heads.</summary>
+    public Thickness VideoSheetMargin => PlatformServices.UsesTouchChrome ? SafeAreaOutsetMargin : default;
+
+    /// <summary>
+    /// Whether the status bar stands down with the controls of the photo or video covering the window,
+    /// on touch heads.
+    /// </summary>
+    public bool IsSystemBarHidden =>
+        PlatformServices.UsesTouchChrome && !IsChromeVisible &&
+        (VideoSheet.IsShellChromeHidden
+            ? VideoSheet.Content is { AreControlsVisible: false }
+            : (backPresentation?.To ?? CurrentPage) is PhotoViewerPageViewModel { AreControlsVisible: false });
+
     public Thickness BottomNavSafeAreaPadding => new(
         DeviceSafeAreaPadding.Left, 0, DeviceSafeAreaPadding.Right, DeviceSafeAreaPadding.Bottom);
 
     public Thickness BottomNavSafeAreaMargin => new(
         -DeviceSafeAreaPadding.Left, 0, -DeviceSafeAreaPadding.Right, -DeviceSafeAreaPadding.Bottom);
 
-    private double BottomNavItemBottomSpacing => OperatingSystem.IsIOS()
+    // A docked bar on iOS shares its bottom spacing with the home indicator's band; the floating bar
+    // of the Apple chrome keeps clear of the band instead.
+    private double BottomNavItemBottomSpacing => OperatingSystem.IsIOS() && !isAppleChromeEnabled
         ? Math.Max(0, 6 - DeviceSafeAreaPadding.Bottom)
         : 6;
 
@@ -707,21 +756,44 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     // Keep these widths linked to PhotoViewerPageView.GetBackPreviewMargin.
     /// <summary>Compact navigation-rail width for the wide layout; collapses to 0 in the narrow layout.</summary>
-    public double NavRailCompactWidth => IsNarrow || !IsChromeVisible ? 0d : 56d;
+    public double NavRailCompactWidth => IsNarrow || !IsChromeVisible ? 0d : NavRailWidth;
+
+    /// <summary>
+    /// Width of the collapsed navigation rail. The touch sidebar's rail centers its 48-DIP entry capsules
+    /// and the sidebar button over them.
+    /// </summary>
+    public double NavRailWidth => IsAppleLayout && PlatformServices.UsesTouchChrome ? AppleTouchRailWidth : 56d;
+
+    public const double AppleTouchRailWidth = 72d;
+
+    /// <summary>Whether the Apple layout's sidebar collapses to a rail of its entries rather than away entirely.</summary>
+    public bool HasSidebarRail =>
+        IsAppleLayout && Navigation.DisplayMode is SplitViewDisplayMode.CompactOverlay or SplitViewDisplayMode.CompactInline;
 
     /// <summary>Width of the expanded navigation pane, collapsed while another surface owns it.</summary>
-    public double NavPaneOpenWidth => IsChromeVisible ? (IsAppleLayout ? AppleSidebarWidth : 320d) : 0d;
+    public double NavPaneOpenWidth => IsChromeVisible ? (IsAppleLayout ? SidebarWidth : 320d) : 0d;
 
     public const double AppleSidebarWidth = 220d;
 
+    /// <summary>
+    /// The Apple layout's sidebar width. Touch chrome follows the iPadOS sidebar column, which takes
+    /// up to 320 DIPs and narrows with the shell.
+    /// </summary>
+    public double SidebarWidth => PlatformServices.UsesTouchChrome
+        ? Math.Clamp(Math.Round(viewportWidth * 0.3), 260d, 320d)
+        : AppleSidebarWidth;
+
     // The Apple layout's docked queue matches its sidebar.
-    private double QueuePinnedWidth => IsAppleLayout ? AppleSidebarWidth : QueuePaneViewModel.DefaultWidth;
+    private double QueuePinnedWidth => IsAppleLayout ? SidebarWidth : QueuePaneViewModel.DefaultWidth;
 
     // Clears the native macOS window controls over the shell's top-left corner.
     private const double WindowControlsWidth = 80d;
 
-    // Keep linked to the AppleTopBar height in ShellView.axaml.
-    private const double AppleToolbarHeight = 52d;
+    /// <summary>
+    /// Height of the Apple layout's toolbar. Touch chrome leaves room for 48-DIP glass buttons, as
+    /// UIKit bars do.
+    /// </summary>
+    public static double AppleToolbarHeight => PlatformServices.UsesTouchChrome ? 60d : 52d;
 
     /// <summary>
     /// Whether the wide layout takes its Apple form: a sidebar with a toolbar over the page, and the
@@ -751,8 +823,17 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     /// <summary>The narrow top bar's margin, clear of the window controls.</summary>
     public Thickness NarrowTopBarMargin => new(8 + WindowControlsInset.Left, 0, 8, 0);
 
-    /// <summary>Height the navigation pane leaves clear above its entries for the window controls.</summary>
-    public double NavWindowControlsHeight => ExtendsIntoTitleBar || DeviceWindowControls.Top > 0 ? AppleToolbarHeight : 0;
+    /// <summary>
+    /// Height the navigation pane leaves clear above its entries for the window controls and, on touch
+    /// heads, for the sidebar button: atop a rail below the window controls or the rounded corner, or level
+    /// with the toolbar's row unless that row shares a corner status bar's row above the pane.
+    /// </summary>
+    public double NavWindowControlsHeight =>
+        HasSidebarRail ? DeviceWindowControls.Top + AppleToolbarHeight :
+        ExtendsIntoTitleBar || DeviceWindowControls.Top > 0 ||
+        (IsAppleLayout && PlatformServices.UsesTouchChrome && DeviceRegions.HorizontalBar.Height <= 0)
+            ? AppleToolbarHeight
+            : 0;
 
     /// <summary>
     /// Whether the shell offers the back affordance itself (the narrow top bar or the Apple toolbar),
@@ -763,11 +844,97 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     /// <summary>Whether the Apple layout's toolbar is shown over the page.</summary>
     public bool ShowAppleTopBar => IsAppleLayout && IsChromeVisible;
 
+    /// <summary>
+    /// Whether the Apple layout's toolbar buttons stand in a vertical bar in the band the system
+    /// offers beside the safe area, leaving the page title in the toolbar.
+    /// </summary>
+    public bool UsesVerticalToolbar => ShowAppleTopBar && DeviceRegions.VerticalBarEdge is not null;
+
+    /// <summary>Whether the toolbar shows its buttons and search field in a row.</summary>
+    public bool ShowHorizontalToolbarControls => ShowAppleTopBar && !UsesVerticalToolbar;
+
+    /// <summary>
+    /// Whether the toolbar leaves its band over the page out: beside a sidebar rail, which holds the
+    /// sidebar button, and a vertical bar's band, which holds its buttons, the band would hold only the title.
+    /// </summary>
+    public bool OmitsToolbarBand => HasSidebarRail && DeviceRegions.VerticalBarEdge is not null;
+
+    /// <summary>Whether the toolbar's band shows over the page, as it does for its search field even where it is left out.</summary>
+    public bool ShowToolbarBand => ShowAppleTopBar && (!OmitsToolbarBand || ShowToolbarSearchField);
+
+    /// <summary>
+    /// Whether the toolbar leaves the page title out where it would take room of its own: with the band,
+    /// or beside a corner status bar, whose row takes the buttons and leaves the title a row below. A
+    /// go-up button then offers the title's folder path menu.
+    /// </summary>
+    public bool OmitsToolbarTitle => OmitsToolbarBand ||
+        (IsAppleLayout && PlatformServices.UsesTouchChrome && DeviceRegions is { VerticalBarEdge: null, HorizontalBar.Height: > 0 });
+
+    /// <summary>
+    /// Whether the shell offers the button that shows and hides the sidebar, as iPadOS split views do. It
+    /// tops a rail's column and stays there as the sidebar opens; where the sidebar slides away entirely, it
+    /// stands at the start of the toolbar and at the open sidebar's top-right corner, level with the toolbar's row.
+    /// </summary>
+    public bool ShowSidebarToggle => ShowAppleTopBar && PlatformServices.UsesTouchChrome;
+
+    /// <summary>Whether the toolbar's row starts with the sidebar button, for a sidebar that slides away entirely.</summary>
+    public bool ShowToolbarSidebarToggle => ShowSidebarToggle && !HasSidebarRail;
+
+    /// <summary>
+    /// Whether the toolbar is too narrow for its search field and offers a search button instead, as
+    /// the shell view reports for touch chrome.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarTitle))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchField))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchBox))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchButton))]
+    [NotifyPropertyChangedFor(nameof(ShowToolbarBand))]
+    private bool isToolbarSearchCollapsed;
+
+    // Search opens in the title band beside a vertical toolbar or a toolbar without room for the field.
+    private bool OpensSearchInTitleBand => UsesVerticalToolbar || IsToolbarSearchCollapsed;
+
+    /// <summary>Whether the toolbar shows the page title, which the title band's search field replaces.</summary>
+    public bool ShowToolbarTitle => !OmitsToolbarTitle && (!OpensSearchInTitleBand || !IsSearchActive);
+
+    /// <summary>Whether the toolbar's title band shows the search field.</summary>
+    public bool ShowToolbarSearchField => ShowAppleTopBar && OpensSearchInTitleBand && IsSearchActive;
+
+    /// <summary>Whether the toolbar's row of buttons ends with the search field.</summary>
+    public bool ShowToolbarSearchBox => ShowHorizontalToolbarControls && !IsToolbarSearchCollapsed;
+
+    /// <summary>Whether the toolbar's row of buttons ends with a search button.</summary>
+    public bool ShowToolbarSearchButton => ShowHorizontalToolbarControls && IsToolbarSearchCollapsed;
+
     /// <summary>Whether the playback bar is docked below the shell.</summary>
     public bool ShowDockedPlaybackBar => ShowPlaybackBar && !IsAppleLayout;
 
     /// <summary>Whether the playback bar floats over the bottom of the page.</summary>
     public bool ShowFloatingPlaybackBar => ShowPlaybackBar && IsAppleLayout;
+
+    /// <summary>
+    /// Whether the narrow layout's tab bar and now-playing card float over the page, as iOS bars do,
+    /// rather than standing below it.
+    /// </summary>
+    public bool ShowFloatingNarrowChrome => IsNarrowChromeVisible && isAppleChromeEnabled && PlatformServices.UsesTouchChrome;
+
+    /// <summary>
+    /// Whether the narrow layout's floating tab bar stands in the band the system offers vertical bars
+    /// beside the safe area, such as the iPhone Duo's status bar rail, instead of below the page.
+    /// </summary>
+    public bool UsesVerticalTabBar =>
+        IsNarrow && isAppleChromeEnabled && PlatformServices.UsesTouchChrome && DeviceRegions.VerticalBarEdge is not null;
+
+    /// <summary>
+    /// Whether the page fades out toward the bottom edge, under the chrome floating there. Beside a vertical
+    /// tab bar only the compact now-playing card floats there.
+    /// </summary>
+    public bool ShowBottomChromeFade => ShowFloatingPlaybackBar ||
+        (ShowFloatingNarrowChrome && (!UsesVerticalTabBar || NowPlayingSheet.IsAvailable));
+
+    /// <summary>Whether the page is laid out above the compact now-playing card rather than running under it.</summary>
+    public bool ReservesNowPlayingSheetSpace => NowPlayingSheet.IsAvailable && !ShowFloatingNarrowChrome;
 
     /// <summary>
     /// Whether the shell's navigation chrome is visible. A photo owns the page surface outright,
@@ -915,7 +1082,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     public bool IsLayoutFolders => SelectedLayout == LibraryLayoutMode.Folders;
 
-    public bool CanChooseVideoPresentation => IsNarrow && activeBrowsePage is MediaPageViewModel;
+    public bool CanChooseVideoPresentation => activeBrowsePage is MediaPageViewModel media && (IsNarrow || media.UsesNarrowLayout);
 
     public bool IsVideoNarrowGrid => activeBrowsePage is MediaPageViewModel { NarrowPresentation: LibraryItemPresentation.Grid };
 
@@ -1508,6 +1675,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
                     : videoPreviewService?.GetPreviewAsync(media, token) ?? Task.FromResult<IImage?>(null),
                 Close = NavigateBack,
                 SetFullScreen = SetHostFullScreen,
+                RequestPreferredOrientation = RequestPreferredOrientation,
                 TryOpenInNewWindow = PlatformServices.TryOpenInNewWindow,
                 ShowProperties = dialogService is null ? null : ShowProperties,
                 RevealInFileManager = RevealInFileManager,
@@ -2094,12 +2262,13 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         }
     }
 
-    /// <summary>Reveals the narrow layout's top search field.</summary>
+    /// <summary>Reveals the search field of the narrow top bar or of the Apple layout's title band.</summary>
     public void OpenSearch() => IsSearchActive = true;
 
     /// <summary>
-    /// Hides the narrow layout's top search field, returning to the page title. Returns true when a
-    /// field was open, so a back gesture can consume itself closing search before navigating.
+    /// Hides the search field of the narrow top bar or of the Apple layout's title band, returning
+    /// to the page title. Returns true when a field was open, so a back gesture can consume
+    /// itself closing search before navigating.
     /// </summary>
     public bool CloseSearch()
     {
@@ -2200,16 +2369,20 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         OnPropertyChanged(nameof(ShowPlaybackBar));
         OnPropertyChanged(nameof(ShowDockedPlaybackBar));
         OnPropertyChanged(nameof(ShowFloatingPlaybackBar));
+        OnPropertyChanged(nameof(ShowFloatingNarrowChrome));
+        OnPropertyChanged(nameof(ShowBottomChromeFade));
+        OnPropertyChanged(nameof(ReservesNowPlayingSheetSpace));
     }
 
     private void NotifyChromeVisibilityChanged()
     {
         OnPropertyChanged(nameof(IsChromeVisible));
+        OnPropertyChanged(nameof(IsSystemBarHidden));
         OnPropertyChanged(nameof(NavRailCompactWidth));
         OnPropertyChanged(nameof(NavPaneOpenWidth));
         OnPropertyChanged(nameof(IsNavPaneVisible));
         OnPropertyChanged(nameof(IsNarrowChromeVisible));
-        OnPropertyChanged(nameof(ShowAppleTopBar));
+        NotifyAppleToolbarChanged();
         OnPropertyChanged(nameof(ShowNavEntries));
         UpdateNowPlayingPresentation();
     }
@@ -2221,6 +2394,20 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
             isAppleChromeEnabled = !isAppleChromeEnabled;
             OnShellLayoutChanged();
         }
+    }
+
+    private void NotifyAppleToolbarChanged()
+    {
+        OnPropertyChanged(nameof(ShowAppleTopBar));
+        OnPropertyChanged(nameof(UsesVerticalToolbar));
+        OnPropertyChanged(nameof(ShowHorizontalToolbarControls));
+        OnPropertyChanged(nameof(ShowSidebarToggle));
+        OnPropertyChanged(nameof(ShowToolbarSidebarToggle));
+        OnPropertyChanged(nameof(ShowToolbarTitle));
+        OnPropertyChanged(nameof(ShowToolbarSearchField));
+        OnPropertyChanged(nameof(ShowToolbarSearchBox));
+        OnPropertyChanged(nameof(ShowToolbarSearchButton));
+        OnPropertyChanged(nameof(ShowToolbarBand));
     }
 
     // The Apple layout follows both the Apple UI style preference and the narrow breakpoint.
@@ -2235,9 +2422,20 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         OnPropertyChanged(nameof(NavWindowControlsHeight));
         OnPropertyChanged(nameof(HasShellBackButton));
         OnPropertyChanged(nameof(NavPaneOpenWidth));
-        OnPropertyChanged(nameof(ShowAppleTopBar));
+        OnPropertyChanged(nameof(NavRailWidth));
+        OnPropertyChanged(nameof(NavRailCompactWidth));
+        OnPropertyChanged(nameof(HasSidebarRail));
+        OnPropertyChanged(nameof(OmitsToolbarBand));
+        OnPropertyChanged(nameof(OmitsToolbarTitle));
+        NotifyAppleToolbarChanged();
         OnPropertyChanged(nameof(ShowDockedPlaybackBar));
         OnPropertyChanged(nameof(ShowFloatingPlaybackBar));
+        OnPropertyChanged(nameof(ShowFloatingNarrowChrome));
+        OnPropertyChanged(nameof(UsesVerticalTabBar));
+        OnPropertyChanged(nameof(ShowBottomChromeFade));
+        OnPropertyChanged(nameof(ReservesNowPlayingSheetSpace));
+        OnPropertyChanged(nameof(BottomNavItemPadding));
+        OnPropertyChanged(nameof(BottomNavItemMargin));
         Queue.PinnedWidth = QueuePinnedWidth;
         UpdateNavigationMode();
         if (CurrentPage is not null)
@@ -2255,10 +2453,40 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         OnPropertyChanged(nameof(ShowNavEntries));
     }
 
-    // The Apple layout keeps its sidebar expanded; every other layout collapses it to the rail,
-    // docking it inline only on very wide shells.
     private void UpdateNavigationMode()
     {
+        var previous = Navigation.DisplayMode;
+        ApplyNavigationMode();
+        if (Navigation.DisplayMode != previous)
+        {
+            OnPropertyChanged(nameof(HasSidebarRail));
+            OnPropertyChanged(nameof(ShowToolbarSidebarToggle));
+            OnPropertyChanged(nameof(NavWindowControlsHeight));
+            OnPropertyChanged(nameof(OmitsToolbarBand));
+            OnPropertyChanged(nameof(OmitsToolbarTitle));
+            OnPropertyChanged(nameof(ShowToolbarBand));
+            OnPropertyChanged(nameof(ShowToolbarTitle));
+        }
+    }
+
+    // The Apple layout keeps its sidebar expanded; every other layout collapses it to the rail,
+    // docking it inline only on very wide shells.
+    private void ApplyNavigationMode()
+    {
+        // Touch heads slide the sidebar over the page, closed to begin with: from a rail of its entries
+        // while the shell is wider than tall, and from the edge in portrait, as an iPadOS split view does.
+        if (IsAppleLayout && PlatformServices.UsesTouchChrome)
+        {
+            var mode = viewportHeight > viewportWidth ? SplitViewDisplayMode.Overlay : SplitViewDisplayMode.CompactOverlay;
+            if (Navigation.DisplayMode != mode)
+            {
+                Navigation.DisplayMode = mode;
+                Navigation.IsExpanded = false;
+            }
+
+            return;
+        }
+
         if (IsSidebarPinned)
         {
             Navigation.DisplayMode = SplitViewDisplayMode.Inline;
@@ -2304,6 +2532,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
                 OnPropertyChanged(nameof(SafeAreaBackgroundMargin));
                 OnPropertyChanged(nameof(SafeAreaContentMargin));
                 OnPropertyChanged(nameof(SafeAreaOutsetMargin));
+                OnPropertyChanged(nameof(VideoSheetMargin));
                 OnPropertyChanged(nameof(QueueSafeAreaContentMargin));
                 OnPropertyChanged(nameof(WindowControlsInset));
                 OnPropertyChanged(nameof(NarrowTopBarMargin));
@@ -2321,6 +2550,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
                 OnPropertyChanged(nameof(WindowPageTitle));
                 NotifyBackAffordanceChanged();
                 SyncHistory(HistorySync.StateChanged);
+                UpdateMediaPresentation();
                 break;
 
             case nameof(VideoSheetViewModel.IsExpanded):
@@ -2334,13 +2564,29 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
                 // card put back by a history entry is already what that entry addresses, so it
                 // rewrites the entry instead of adding one.
                 SyncHistory(isRestoringVideoSheet ? HistorySync.Rearranged : HistorySync.StateChanged);
+                UpdateMediaPresentation();
                 break;
 
             case nameof(VideoSheetViewModel.Content):
                 SubscribeVideoSession(VideoSheet.Content);
                 UpdateNowPlayingPresentation();
+                UpdateMediaPresentation();
                 break;
         }
+    }
+
+    // Tells the platform whether a photo or the maximized video covers the shell, which lets a small
+    // display turn with the device instead of keeping the shell's pages upright.
+    private void UpdateMediaPresentation()
+    {
+        var presenting = CurrentPage is PhotoViewerPageViewModel || VideoSheet is { IsExpanded: true, IsVisible: true };
+        if (presenting == isPresentingMedia)
+        {
+            return;
+        }
+
+        isPresentingMedia = presenting;
+        PlatformServices.MediaPresentationChanged?.Invoke(presenting);
     }
 
     // Follows the session on the sheet so the address names the video actually playing, including
@@ -2367,6 +2613,10 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         if (e.PropertyName == nameof(INavigationParameterSource.NavigationParameter) && IsVideoSheetAddressed)
         {
             SyncHistory(HistorySync.Replaced);
+        }
+        else if (e.PropertyName == nameof(VideoPlayerPageViewModel.AreControlsVisible))
+        {
+            OnPropertyChanged(nameof(IsSystemBarHidden));
         }
     }
 
@@ -2398,6 +2648,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         OnPropertyChanged(nameof(ShowNarrowBackButton));
         GoBackCommand.NotifyCanExecuteChanged();
         NotifyChromeVisibilityChanged();
+        UpdateMediaPresentation();
     }
 
     private void OnCurrentPageTitleChanged(object? sender, PropertyChangedEventArgs e)
@@ -2405,6 +2656,10 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         if (e.PropertyName == nameof(PageViewModelBase.Title))
         {
             OnPropertyChanged(nameof(WindowPageTitle));
+        }
+        else if (e.PropertyName == nameof(PhotoViewerPageViewModel.AreControlsVisible))
+        {
+            OnPropertyChanged(nameof(IsSystemBarHidden));
         }
     }
 
@@ -2460,6 +2715,12 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     /// layout's docked playback bar plus queue side panel and the narrow layout's bottom sheet,
     /// carrying the user's current surface across the switch.
     /// </summary>
+    public void SetViewportSize(Size size)
+    {
+        viewportHeight = size.Height;
+        SetViewportWidth(size.Width);
+    }
+
     public void SetViewportWidth(double width)
     {
         if (width <= 0)
@@ -2468,6 +2729,13 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         }
 
         viewportWidth = width;
+        if (PlatformServices.UsesTouchChrome)
+        {
+            OnPropertyChanged(nameof(SidebarWidth));
+            OnPropertyChanged(nameof(NavPaneOpenWidth));
+            Queue.PinnedWidth = QueuePinnedWidth;
+        }
+
         UpdateNavigationMode();
         Queue.IsOverlayMode = width < QueueOverlayWidthThreshold;
 
@@ -3050,7 +3318,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         // Collapse the overlay navigation pane so it stops covering the search results.
         Navigation.CollapseOverlay();
 
-        // Collapse the narrow layout's search field once a query is committed.
+        // Collapse the top bar's search field once a query is committed.
         IsSearchActive = false;
 
         // Re-search in place when already on the search page: the shell mediates,
@@ -3070,7 +3338,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         // Collapse the overlay navigation pane so it stops covering the destination page.
         Navigation.CollapseOverlay();
 
-        // Collapse the narrow layout's search field once a suggestion is chosen.
+        // Collapse the top bar's search field once a suggestion is chosen.
         IsSearchActive = false;
 
         switch (result.Kind)
@@ -3830,8 +4098,18 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     private void SetActiveBrowsePage(ILibraryBrowsePageViewModel? browse)
     {
+        if (activeBrowsePage is MediaPageViewModel previousMedia)
+        {
+            previousMedia.PropertyChanged -= OnActiveMediaPagePropertyChanged;
+        }
+
         activeBrowsePage = browse;
         activeBrowseKind = browse?.Kind;
+
+        if (browse is MediaPageViewModel activeMedia)
+        {
+            activeMedia.PropertyChanged += OnActiveMediaPagePropertyChanged;
+        }
 
         if (browse is not null)
         {
@@ -3986,6 +4264,14 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     partial void OnSelectedSortChanged(LibrarySortOption value) => PersistViewSettings();
 
     partial void OnSortAscendingChanged(bool value) => PersistViewSettings();
+
+    private void OnActiveMediaPagePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MediaPageViewModel.UsesNarrowLayout))
+        {
+            OnPropertyChanged(nameof(CanChooseVideoPresentation));
+        }
+    }
 
     private void SetVideoNarrowPresentation(LibraryItemPresentation presentation)
     {

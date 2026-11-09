@@ -13,11 +13,10 @@ namespace LightStudio.LightPlayer.Models;
 /// cover art, title, release year, the album's ordered track rows, and
 /// album-level playback, queue, and playlist actions.
 /// </summary>
-public sealed partial class ArtistAlbumSectionModel : ObservableObject
+public sealed partial class ArtistAlbumSectionModel : ObservableObject, IArtworkSizeTarget
 {
     private readonly object artGate = new();
     private CancellationTokenSource? artRequest;
-    private bool artLoaded;
 
     [ObservableProperty]
     private IImage? coverImage;
@@ -56,24 +55,32 @@ public sealed partial class ArtistAlbumSectionModel : ObservableObject
 
     public IRelayCommand AddToPlaylistCommand { get; }
 
-    /// <summary>Loads this section's cover art. Invoked once when the section is shown.</summary>
+    /// <summary>Loads this section's cover art. Invoked when the section's view reports its size.</summary>
     public Func<ArtistAlbumSectionModel, CancellationToken, Task>? ArtLoader { get; set; }
 
-    /// <summary>Triggers a one-time cover load for this section, if a loader is set.</summary>
-    public void RequestArt()
+    /// <summary>Device pixels covered by the shorter side of the cover where it is displayed.</summary>
+    public int ArtPixelSize { get; private set; }
+
+    /// <summary>
+    /// Loads the cover for the first view showing this section and reloads it when a view needs
+    /// more pixels than the loaded cover has, if a loader is set.
+    /// </summary>
+    public void SetArtworkDisplaySize(int pixelSize)
     {
         CancellationTokenSource request;
         lock (artGate)
         {
-            if (artLoaded || artRequest is not null || ArtLoader is null)
+            if (ArtLoader is null || pixelSize <= ArtPixelSize)
             {
                 return;
             }
 
+            ArtPixelSize = pixelSize;
+            artRequest?.Cancel();
             artRequest = request = new CancellationTokenSource();
         }
 
-        // Never run the loader inline: RequestArt is raised from the UI thread after the page loads.
+        // Never run the loader inline: the size is reported from the UI thread during layout.
         _ = Task.Run(() => RunArtLoaderAsync(request));
     }
 
@@ -115,7 +122,6 @@ public sealed partial class ArtistAlbumSectionModel : ObservableObject
             {
                 if (ReferenceEquals(artRequest, request))
                 {
-                    artLoaded = true;
                     artRequest = null;
                 }
 

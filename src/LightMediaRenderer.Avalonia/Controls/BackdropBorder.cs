@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Animation;
@@ -22,7 +23,9 @@ namespace LightMediaRenderer.Avalonia.Controls;
 
 public sealed class BackdropBorder : Decorator
 {
+    private const int SamplePadding = 64;
     private static readonly ConditionalWeakTable<TopLevel, HashSet<BackdropBorder>> backdropsByRoot = new();
+    private static readonly ConditionalWeakTable<TopLevel, BackdropRepaint> repaints = new();
     private readonly ForegroundState foregroundState = new();
     private readonly ConditionalWeakTable<Control, Dictionary<Color, IBrush>> foregrounds = new();
     private TopLevel? backdropRoot;
@@ -94,19 +97,12 @@ public sealed class BackdropBorder : Decorator
         AvaloniaProperty.Register<BackdropBorder, double>(nameof(GlassFrost),
             coerce: static (_, value) => double.IsFinite(value) ? Math.Clamp(value, 0, 1) : 0);
 
-    public static readonly StyledProperty<Thickness> LightSpillProperty =
-        AvaloniaProperty.Register<BackdropBorder, Thickness>(nameof(LightSpill),
-            coerce: static (_, value) => new Thickness(
-                CoerceSpill(value.Left), CoerceSpill(value.Top), CoerceSpill(value.Right), CoerceSpill(value.Bottom)));
-
     static BackdropBorder()
     {
         AffectsRender<BackdropBorder>(CornerRadiusProperty, BorderBrushProperty, BoxShadowProperty, BackdropStyleProperty,
             IsForegroundBoostEnabledProperty, FallbackColorProperty, TintColorProperty, GlassTintStrengthProperty,
-            GlassFrostProperty, LightSpillProperty);
+            GlassFrostProperty);
     }
-
-    private static double CoerceSpill(double value) => double.IsFinite(value) ? Math.Clamp(value, 0, 256) : 0;
 
     public CornerRadius CornerRadius
     {
@@ -175,16 +171,6 @@ public sealed class BackdropBorder : Decorator
         set => SetValue(GlassFrostProperty, value);
     }
 
-    /// <summary>
-    /// How far beyond each edge, in DIPs, the blur material gathers the colors of nearby content and lets
-    /// them spill inward from that edge. Applies to <see cref="BackdropStyle.Blur"/>.
-    /// </summary>
-    public Thickness LightSpill
-    {
-        get => GetValue(LightSpillProperty);
-        set => SetValue(LightSpillProperty, value);
-    }
-
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
@@ -231,15 +217,97 @@ public sealed class BackdropBorder : Decorator
 
     private void OnBackdropRootScalingChanged(object? sender, EventArgs args) => InvalidateVisual();
 
-    private static void InvalidateBackdrops(TopLevel root)
+    // Stale backdrops to repaint in one frame, with every backdrop a redraw of their bounds reaches. The compositor
+    // redraws one rectangle covering every invalidated bounds, and a backdrop drawn with a clip that misses part of
+    // it asks for a repaint, so stale backdrops whose rectangle together would reach more wait for a later frame.
+    private static HashSet<BackdropBorder> GetRepaintSet(TopLevel root, BackdropBorder[] stale,
+        out HashSet<BackdropBorder> postponed)
     {
-        if (!backdropsByRoot.TryGetValue(root, out HashSet<BackdropBorder>? backdrops))
-            return;
+        HashSet<BackdropBorder> repainted = [];
+        postponed = [];
+        if (stale.Length == 0 || !backdropsByRoot.TryGetValue(root, out HashSet<BackdropBorder>? backdrops))
+            return repainted;
+
+        Dictionary<BackdropBorder, Rect> candidates = [];
         foreach (BackdropBorder backdrop in backdrops)
         {
-            if (backdrop.IsEffectivelyVisible)
-                backdrop.InvalidateVisual();
+            if (backdrop.IsEffectivelyVisible && backdrop.BackdropStyle != BackdropStyle.Off &&
+                backdrop.GetRedrawBounds(root) is { } bounds)
+                candidates[backdrop] = bounds;
         }
+
+        Rect region = default;
+        foreach (BackdropBorder backdrop in stale)
+        {
+            if (repainted.Contains(backdrop) || !candidates.TryGetValue(backdrop, out Rect bounds))
+                continue;
+            HashSet<BackdropBorder> group = Reach(candidates, [backdrop], bounds, out Rect groupRegion);
+            if (repainted.Count == 0)
+            {
+                repainted = group;
+                region = groupRegion;
+                continue;
+            }
+
+            HashSet<BackdropBorder> separate = [.. repainted, .. group];
+            HashSet<BackdropBorder> merged = Reach(candidates, [.. repainted, backdrop], region.Union(bounds),
+                out Rect mergedRegion);
+            if (merged.Count == separate.Count)
+            {
+                repainted = merged;
+                region = mergedRegion;
+            }
+            else
+                postponed.Add(backdrop);
+        }
+
+        return repainted;
+    }
+
+    private static HashSet<BackdropBorder> Reach(Dictionary<BackdropBorder, Rect> candidates,
+        HashSet<BackdropBorder> repainted, Rect region, out Rect reached)
+    {
+        bool grown = true;
+        while (grown)
+        {
+            grown = false;
+            // Covers the compositor's antialiasing margin and pixel rounding.
+            Rect reach = region.Inflate(2);
+            foreach ((BackdropBorder backdrop, Rect bounds) in candidates)
+            {
+                if (repainted.Contains(backdrop) || !bounds.Intersects(reach))
+                    continue;
+                repainted.Add(backdrop);
+                region = region.Union(bounds);
+                grown = true;
+            }
+        }
+
+        reached = region;
+        return repainted;
+    }
+
+    // What a redraw of this backdrop dirties in root coordinates: the padded material and shadows, cut by the
+    // clips of the backdrop and its ancestors as the compositor cuts them.
+    private Rect? GetRedrawBounds(TopLevel root)
+    {
+        var local = new Rect(Bounds.Size);
+        if (this.TransformToVisual(root) is not { } transform)
+            return null;
+
+        Rect bounds = local.Inflate(SamplePadding).Union(BoxShadow.TransformBounds(local)).TransformToAABB(transform);
+        for (Visual? visual = this; visual is not null; visual = visual.GetVisualParent())
+        {
+            Rect? clip = visual.Clip?.Bounds;
+            if (visual.ClipToBounds)
+                clip = clip?.Intersect(new Rect(visual.Bounds.Size)) ?? new Rect(visual.Bounds.Size);
+            if (clip is { } rectangle && visual.TransformToVisual(root) is { } clipTransform)
+                bounds = bounds.Intersect(rectangle.TransformToAABB(clipTransform));
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+                return null;
+        }
+
+        return bounds;
     }
 
     private void OnGlassPointerPressed(object? sender, PointerPressedEventArgs args)
@@ -338,15 +406,18 @@ public sealed class BackdropBorder : Decorator
             var shape = new RoundedRect(new Rect(Bounds.Size), CornerRadius);
             BoxShadows shadows = BoxShadow;
             RoundedClip[] roundedClips = root is null ? [] : GetRoundedClips(root.RenderScaling);
+            BackdropRepaint? repaint = root is null ? null : repaints.GetValue(root, static root => new BackdropRepaint(root));
             context.Custom(new BackdropDrawOperation(new Rect(Bounds.Size), CornerRadius,
-                BackdropStyle, IsForegroundBoostEnabled, FallbackColor, TintColor, GlassTintStrength, GlassFrost, LightSpill,
+                BackdropStyle, IsForegroundBoostEnabled, FallbackColor, TintColor, GlassTintStrength, GlassFrost,
                 shadows.Count == 0, foregroundState, root is null ? default : root.ClientSize * root.RenderScaling,
                 roundedClips,
-                root is null ? null : () =>
+                repaint is null ? null : () =>
                 {
                     if (IsEffectivelyVisible)
-                        InvalidateBackdrops(root);
+                        repaint.Repaint(this);
                 },
+                repaint is null ? null : () => repaint.Defer(this),
+                repaint is null ? null : () => repaint.Resolve(this),
                 root is null ? null : () =>
                 {
                     if (IsEffectivelyVisible && TopLevel.GetTopLevel(this) == root &&
@@ -398,6 +469,106 @@ public sealed class BackdropBorder : Decorator
 
     private readonly record struct RoundedClip(SKRect Outline, SKPoint TopLeft, SKPoint TopRight,
         SKPoint BottomRight, SKPoint BottomLeft);
+
+    // Repaints stale backdrops of a top level. Repaints of material outside a clip, whose blur reaches changed
+    // content inside it, wait until partial redraws pause, so scrolling next to a backdrop does not repaint it
+    // every few frames.
+    private sealed class BackdropRepaint
+    {
+        private static readonly long QuietTicks = Stopwatch.Frequency * 150 / 1000;
+        private static readonly long LongestTicks = Stopwatch.Frequency;
+        private readonly TopLevel root;
+        private readonly DispatcherTimer timer = new(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(50) };
+        // Each deferred backdrop with the time of its first request.
+        private readonly Dictionary<BackdropBorder, long> deferred = [];
+        private long lastRequest;
+        private bool scheduled;
+
+        public BackdropRepaint(TopLevel root)
+        {
+            this.root = root;
+            timer.Tick += OnTick;
+        }
+
+        // Called on the render thread.
+        public void Defer(BackdropBorder backdrop)
+        {
+            bool start;
+            lock (deferred)
+            {
+                lastRequest = Stopwatch.GetTimestamp();
+                deferred.TryAdd(backdrop, lastRequest);
+                start = !scheduled;
+                scheduled = true;
+            }
+            if (start)
+                Dispatcher.UIThread.Post(Start, DispatcherPriority.Render);
+        }
+
+        // Called on the render thread after a draw that covered the backdrop's whole material.
+        public void Resolve(BackdropBorder backdrop)
+        {
+            lock (deferred)
+                deferred.Remove(backdrop);
+        }
+
+        public void Repaint(BackdropBorder backdrop) => Repaint([backdrop]);
+
+        private void Start()
+        {
+            bool start;
+            lock (deferred)
+                start = scheduled;
+            if (start && !timer.IsEnabled)
+                timer.Start();
+        }
+
+        private void OnTick(object? sender, EventArgs args)
+        {
+            List<KeyValuePair<BackdropBorder, long>> entries;
+            lock (deferred)
+            {
+                long now = Stopwatch.GetTimestamp();
+                long oldest = now;
+                foreach (long requested in deferred.Values)
+                    oldest = Math.Min(oldest, requested);
+                if (deferred.Count > 0 && now - lastRequest < QuietTicks && now - oldest < LongestTicks)
+                    return;
+                entries = [.. deferred];
+            }
+
+            // The oldest requests go first, so backdrops postponed by a conflicting repaint are not starved.
+            entries.Sort(static (left, right) => left.Value.CompareTo(right.Value));
+            var stale = new BackdropBorder[entries.Count];
+            for (int i = 0; i < stale.Length; i++)
+                stale[i] = entries[i].Key;
+            Repaint(stale);
+        }
+
+        private void Repaint(BackdropBorder[] stale)
+        {
+            HashSet<BackdropBorder> repainted = GetRepaintSet(root, stale, out HashSet<BackdropBorder> postponed);
+            foreach (BackdropBorder backdrop in repainted)
+                backdrop.InvalidateVisual();
+
+            bool idle;
+            lock (deferred)
+            {
+                foreach (BackdropBorder backdrop in stale)
+                {
+                    if (!postponed.Contains(backdrop))
+                        deferred.Remove(backdrop);
+                }
+                foreach (BackdropBorder backdrop in repainted)
+                    deferred.Remove(backdrop);
+                idle = deferred.Count == 0;
+                if (idle)
+                    scheduled = false;
+            }
+            if (idle)
+                timer.Stop();
+        }
+    }
 
     private sealed class ForegroundState
     {
@@ -489,17 +660,16 @@ public sealed class BackdropBorder : Decorator
         Color tintColor,
         double glassTintStrength,
         double glassFrost,
-        Thickness lightSpill,
         bool hasGlassShadow,
         ForegroundState foregroundState,
         Size surfacePixelSize,
         RoundedClip[] roundedClips,
         Action? requestFullRepaint,
+        Action? deferRepaint,
+        Action? resolveRepaint,
         Action? requestClipRefresh) : ICustomDrawOperation
     {
-        private const int SamplePadding = 64;
         private static readonly Lazy<SKRuntimeEffect?> GlassEffect = new(CreateGlassEffect);
-        private static readonly Lazy<SKRuntimeEffect?> SpillEffect = new(CreateSpillEffect);
         private static readonly Lazy<SKRuntimeEffect?> OpacityEffect = new(CreateOpacityEffect);
         private static readonly Lazy<SKRuntimeEffect?> ForegroundEffect = new(CreateForegroundEffect);
         private GRContext? foregroundContext;
@@ -513,7 +683,7 @@ public sealed class BackdropBorder : Decorator
         private bool repaintQueued;
         private volatile bool disposed;
 
-        public Rect Bounds => bounds.Inflate(lightSpill).Inflate(SamplePadding);
+        public Rect Bounds => bounds.Inflate(SamplePadding);
 
         public bool HitTest(Point point) => bounds.Contains(point);
 
@@ -596,22 +766,16 @@ public sealed class BackdropBorder : Decorator
             float sigma = resolved == BackdropStyle.LiquidGlass ? 5 : 12;
             SKRect deviceBounds = transform.MapRect(rounded.Rect);
             float padding = SamplePadding * Math.Max(scaleX, scaleY);
-            // Spill only feeds the blur material, which gathers content from beyond its edges.
-            bool hasSpill = resolved == BackdropStyle.Blur && lightSpill != default;
-            var spill = hasSpill
-                ? new SKRect((float)lightSpill.Left * scaleX, (float)lightSpill.Top * scaleY,
-                    (float)lightSpill.Right * scaleX, (float)lightSpill.Bottom * scaleY)
-                : SKRect.Empty;
             var capture = new SKRectI(
-                Math.Max(0, (int)MathF.Floor(deviceBounds.Left - padding - spill.Left)),
-                Math.Max(0, (int)MathF.Floor(deviceBounds.Top - padding - spill.Top)),
-                (int)MathF.Ceiling(deviceBounds.Right + padding + spill.Right),
-                (int)MathF.Ceiling(deviceBounds.Bottom + padding + spill.Bottom));
+                Math.Max(0, (int)MathF.Floor(deviceBounds.Left - padding)),
+                Math.Max(0, (int)MathF.Floor(deviceBounds.Top - padding)),
+                (int)MathF.Ceiling(deviceBounds.Right + padding),
+                (int)MathF.Ceiling(deviceBounds.Bottom + padding));
             if (capture.Width <= 0 || capture.Height <= 0)
                 return false;
 
             SKRectI? interior = GetRoundedClipInterior(capture, deviceBounds);
-            bool hasRectangularClip = TryGetRectangularClip(canvas, deviceBounds, padding, spill, interior, out SKRectI clip);
+            bool hasRectangularClip = TryGetRectangularClip(canvas, deviceBounds, padding, interior, out SKRectI clip);
             SKRectI surfaceBounds = surfacePixelSize.Width > 0 && surfacePixelSize.Height > 0
                 ? new SKRectI(0, 0, (int)Math.Ceiling(surfacePixelSize.Width), (int)Math.Ceiling(surfacePixelSize.Height))
                 : SKRectI.Ceiling(SKRect.Union(deviceBounds, capture));
@@ -689,14 +853,26 @@ public sealed class BackdropBorder : Decorator
                 }
             }
 
-            bool complete = cleanBackdrop is not null && cleanBounds == deviceBounds && hasRectangularClip && coversBackdrop &&
-                            cleanCapture.Left <= reachableCapture.Left && cleanCapture.Top <= reachableCapture.Top &&
-                            cleanCapture.Right >= reachableCapture.Right && cleanCapture.Bottom >= reachableCapture.Bottom;
-            if (complete)
+            bool cached = cleanBackdrop is not null && cleanBounds == deviceBounds && hasRectangularClip &&
+                          cleanCapture.Left <= reachableCapture.Left && cleanCapture.Top <= reachableCapture.Top &&
+                          cleanCapture.Right >= reachableCapture.Right && cleanCapture.Bottom >= reachableCapture.Bottom;
+            // A clip within the sampling padding, allowing for the compositor's dirty margin, only ages the material's
+            // edge. One that cuts through the material would leave a seam between the pixels it redraws and retains.
+            SKRect core = SKRect.Inflate(reachableBounds, -2, -2);
+            bool cutsMaterial = core.Width > 0 && core.Height > 0 && core.IntersectsWith(clip);
+            if (cached && coversBackdrop)
+            {
                 repaintQueued = false;
+                resolveRepaint?.Invoke();
+            }
+            else if (cached && !cutsMaterial && deferRepaint is not null)
+            {
+                // Only the material's edge can be stale, where its blur reaches changed content inside the clip.
+                deferRepaint();
+            }
             else if (!repaintQueued && (hasRectangularClip ? requestFullRepaint : requestClipRefresh) is { } request)
             {
-                // A full repaint supplies clean pixels outside a partial clip. Repainting cannot make a
+                // A padded repaint supplies clean pixels outside a partial clip. Repainting cannot make a
                 // non-rectangular clip rectangular, so that case only refreshes stale rounded clip geometry.
                 repaintQueued = true;
                 Dispatcher.UIThread.Post(() =>
@@ -708,6 +884,16 @@ public sealed class BackdropBorder : Decorator
 
             if (cleanBackdrop is null || cleanBounds != deviceBounds)
                 return false;
+
+            // Clips that reach only the sampling padding cannot show any of the material, so skip blurring it.
+            // The glass shadow reaches 1.5 sigma of offset plus three sigma of blur past the material.
+            float shadowReach = resolved == BackdropStyle.LiquidGlass && hasGlassShadow
+                ? GlassShadowSigma(rounded.Rect) * 4.5f
+                : 0;
+            SKRect output = SKRect.Inflate(deviceBounds, shadowReach * scaleX + 1, shadowReach * scaleY + 1);
+            if (!canvas.DeviceClipBounds.IntersectsWith(SKRectI.Ceiling(output)))
+                return true;
+
             capture = cleanCapture;
             SKImage backdrop = cleanBackdrop;
 
@@ -777,9 +963,6 @@ public sealed class BackdropBorder : Decorator
                     filtered.Canvas.DrawRect(new SKRect(0, 0, backdrop.Width, backdrop.Height), tintPaint);
                 using SKImage blurred = filtered.Snapshot();
 
-                if (hasSpill && DrawSpill(lease, backdrop, blurred, capture, transform, rounded.Rect, paint))
-                    return true;
-
                 canvas.SetMatrix(SKMatrix.Identity);
                 // Clamped so the material also covers edges that the capture leaves out.
                 using SKShader materialShader = blurred.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
@@ -796,7 +979,7 @@ public sealed class BackdropBorder : Decorator
             }
         }
 
-        private static bool TryGetRectangularClip(SKCanvas canvas, SKRect deviceBounds, float padding, SKRect spill,
+        private static bool TryGetRectangularClip(SKCanvas canvas, SKRect deviceBounds, float padding,
             SKRectI? interior, out SKRectI clip)
         {
             clip = canvas.DeviceClipBounds;
@@ -817,10 +1000,10 @@ public sealed class BackdropBorder : Decorator
                 {
                     // Limit sampling padding to a known-clean rectangle inside rounded ancestor and dirty clips.
                     var sampleBounds = new SKRect(
-                        deviceBounds.Left - (padding + spill.Left) * extent,
-                        deviceBounds.Top - (padding + spill.Top) * extent,
-                        deviceBounds.Right + (padding + spill.Right) * extent,
-                        deviceBounds.Bottom + (padding + spill.Bottom) * extent);
+                        deviceBounds.Left - padding * extent,
+                        deviceBounds.Top - padding * extent,
+                        deviceBounds.Right + padding * extent,
+                        deviceBounds.Bottom + padding * extent);
                     if (interior is { } limit)
                         sampleBounds = extent == 1 ? limit : SKRect.Intersect(sampleBounds, limit);
                     if (sampleBounds.Width <= 0 || sampleBounds.Height <= 0)
@@ -894,59 +1077,6 @@ public sealed class BackdropBorder : Decorator
                 return (-1, -1);
             SKRect material = SKRect.Intersect(rectangle, deviceBounds);
             return (material.Width * material.Height, (float)rectangle.Width * rectangle.Height);
-        }
-
-        private bool DrawSpill(ISkiaSharpApiLease lease, SKImage backdrop, SKImage material, SKRectI capture,
-            SKMatrix transform, SKRect rectangle, SKPaint paint)
-        {
-            if (SpillEffect.Value is not { } effect)
-                return false;
-
-            float scaleX = MathF.Sqrt(transform.ScaleX * transform.ScaleX + transform.SkewY * transform.SkewY);
-            float scaleY = MathF.Sqrt(transform.ScaleY * transform.ScaleY + transform.SkewX * transform.SkewX);
-            double reach = Math.Max(Math.Max(lightSpill.Left, lightSpill.Right), Math.Max(lightSpill.Top, lightSpill.Bottom));
-            // Diffuse the gathered content well beyond the material blur so it arrives as color rather than detail.
-            float sigma = (float)Math.Clamp(reach * 0.25, 8, 48);
-            var info = new SKImageInfo(backdrop.Width, backdrop.Height, backdrop.ColorType,
-                backdrop.AlphaType, backdrop.ColorSpace);
-            using SKSurface? diffused = lease.GrContext is { } graphics
-                ? SKSurface.Create(graphics, true, info)
-                : SKSurface.Create(info);
-            if (diffused is null)
-                return false;
-
-            using SKImageFilter blur = SKImageFilter.CreateBlur(sigma * scaleX, sigma * scaleY, SKShaderTileMode.Clamp);
-            diffused.Canvas.Clear(SKColors.Transparent);
-            using (var filterPaint = new SKPaint { ImageFilter = blur })
-                diffused.Canvas.DrawImage(backdrop, 0, 0, SKSamplingOptions.Default, filterPaint);
-            using SKImage light = diffused.Snapshot();
-            using SKShader materialInput = material.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
-                new SKSamplingOptions(SKFilterMode.Linear));
-            using SKShader lightInput = light.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
-                new SKSamplingOptions(SKFilterMode.Linear));
-            var uniforms = new SKRuntimeEffectUniforms(effect)
-            {
-                ["size"] = new[] { rectangle.Width, rectangle.Height },
-                ["spill"] = new[]
-                {
-                    (float)lightSpill.Left, (float)lightSpill.Top, (float)lightSpill.Right, (float)lightSpill.Bottom,
-                },
-                ["transformX"] = new[] { transform.ScaleX, transform.SkewX, transform.TransX - capture.Left },
-                ["transformY"] = new[] { transform.SkewY, transform.ScaleY, transform.TransY - capture.Top },
-            };
-            var children = new SKRuntimeEffectChildren(effect)
-            {
-                ["material"] = materialInput,
-                ["light"] = lightInput,
-            };
-            using SKShader? shader = effect.ToShader(uniforms, children);
-            if (shader is null)
-                return false;
-
-            paint.Shader = shader;
-            lease.SkCanvas.DrawRect(rectangle, paint);
-            paint.Shader = null;
-            return true;
         }
 
         private bool DrawGlass(ISkiaSharpApiLease lease, SKImage backdrop, SKImageFilter blur,
@@ -1027,7 +1157,7 @@ public sealed class BackdropBorder : Decorator
 
             if (hasGlassShadow)
             {
-                float shadowSigma = Math.Clamp((Math.Min(rectangle.Width, rectangle.Height) - 48) * 0.04f, 1.5f, 5);
+                float shadowSigma = GlassShadowSigma(rectangle);
                 using SKImageFilter shadow = SKImageFilter.CreateDropShadowOnly(0, shadowSigma * 1.5f,
                     shadowSigma, shadowSigma, ToSkColor(Color.FromArgb(18, 0, 0, 0), lease.CurrentOpacity));
                 int saved = lease.SkCanvas.Save();
@@ -1048,6 +1178,9 @@ public sealed class BackdropBorder : Decorator
             paint.Shader = null;
             return true;
         }
+
+        private static float GlassShadowSigma(SKRect rectangle) =>
+            Math.Clamp((Math.Min(rectangle.Width, rectangle.Height) - 48) * 0.04f, 1.5f, 5);
 
         public bool DrawForeground(ISkiaSharpApiLease lease, Color color, Rect foregroundBounds)
         {
@@ -1110,63 +1243,6 @@ public sealed class BackdropBorder : Decorator
                 """, out string errors);
             if (effect is null)
                 AppLog.Error("Appearance.Backdrop", $"Could not compile the backdrop opacity blender: {errors}");
-            return effect;
-        }
-
-        private static SKRuntimeEffect? CreateSpillEffect()
-        {
-            SKRuntimeEffect? effect = SKRuntimeEffect.CreateShader("""
-                uniform shader material;
-                uniform shader light;
-                uniform float2 size;
-                uniform float4 spill;
-                uniform float3 transformX;
-                uniform float3 transformY;
-
-                float2 toCapture(float2 position) {
-                    float3 local = float3(position, 1.0);
-                    return float2(dot(transformX, local), dot(transformY, local));
-                }
-
-                float falloff(float depth, float reach) {
-                    return reach > 0.0 ? exp(-depth / (reach * 0.4)) : 0.0;
-                }
-
-                // Content just past an edge lands next to it, while content further out reaches deeper
-                // into the material, the way a soft reflection is stretched across a pane of glass.
-                half4 gather(float2 position, float depth, float reach, float2 outward) {
-                    float travel = reach * 0.15 + min(depth * 0.6, reach * 0.85);
-                    return light.eval(toCapture(position + outward * (depth + travel)));
-                }
-
-                half4 main(float2 position) {
-                    half4 color = material.eval(toCapture(position));
-                    float4 depth = float4(position.x, position.y, size.x - position.x, size.y - position.y);
-                    float4 weight = float4(falloff(depth.x, spill.x), falloff(depth.y, spill.y),
-                        falloff(depth.z, spill.z), falloff(depth.w, spill.w));
-                    float total = weight.x + weight.y + weight.z + weight.w;
-                    if (total <= 0.0001) {
-                        return color;
-                    }
-
-                    half4 gathered = half4(0.0);
-                    if (weight.x > 0.0) {
-                        gathered += gather(position, depth.x, spill.x, float2(-1.0, 0.0)) * weight.x;
-                    }
-                    if (weight.y > 0.0) {
-                        gathered += gather(position, depth.y, spill.y, float2(0.0, -1.0)) * weight.y;
-                    }
-                    if (weight.z > 0.0) {
-                        gathered += gather(position, depth.z, spill.z, float2(1.0, 0.0)) * weight.z;
-                    }
-                    if (weight.w > 0.0) {
-                        gathered += gather(position, depth.w, spill.w, float2(0.0, 1.0)) * weight.w;
-                    }
-                    return mix(color, gathered / total, min(total, 1.0) * 0.45);
-                }
-                """, out string errors);
-            if (effect is null)
-                AppLog.Error("Appearance.Backdrop", $"Could not compile the backdrop spill shader: {errors}");
             return effect;
         }
 

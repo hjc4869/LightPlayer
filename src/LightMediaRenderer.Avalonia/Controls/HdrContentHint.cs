@@ -9,6 +9,7 @@ using Avalonia.Platform;
 using Avalonia.VisualTree;
 using LightMediaRenderer.Contracts;
 using LightMediaRenderer.Avalonia.Rendering;
+using LightMediaRenderer.Shaders;
 using LightStudio.FfmpegShim.Media;
 
 namespace LightMediaRenderer.Avalonia.Controls;
@@ -41,7 +42,7 @@ internal sealed class HdrContentHint
 
     public static bool IsHdr(VideoFrame frame) =>
         frame.GainMap is not null || frame.DolbyVision.IsPresent ||
-        frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
+        frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog;
 
     public static Metadata Describe(VideoFrame frame, VideoSdrToneMappingOptions? toneMapping = null) =>
         DescribeSource(frame) with { ToneMapping = toneMapping };
@@ -63,21 +64,21 @@ internal sealed class HdrContentHint
         if (frame.DolbyVision.IsPresent)
         {
             DolbyVisionMetadata dolbyVision = frame.DolbyVision;
-            peak = Positive(dolbyVision.EffectivePeakLuminance);
+            peak = Positive(VideoFramePipeline.ResolveStreamPeak(frame));
             if (dolbyVision.SourceMaximumPq > dolbyVision.SourceMinimumPq &&
                 dolbyVision.SourceMinimumPq >= 0 && dolbyVision.SourceMaximumPq <= 1)
                 mastering = new VideoLuminance(PqToNits(dolbyVision.SourceMinimumPq),
                     PqToNits(dolbyVision.SourceMaximumPq));
             peak ??= mastering?.MaximumNits;
         }
-        else if (frame.ColorTransfer == VideoColorTransfer.Hlg)
+        else if (frame.ColorTransfer is VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog)
         {
             peak = 1000;
         }
         else
         {
-            peak = frame.Hdr10Plus.IsPresent ? Positive(frame.Hdr10Plus.EffectivePeakLuminance) : null;
-            peak ??= Positive(frame.HdrPeakLuminance) ?? mastering?.MaximumNits;
+            // The stream's peak rather than the scene's, so dynamic metadata does not redescribe the surface every frame.
+            peak = Positive(VideoFramePipeline.ResolveStreamPeak(frame)) ?? mastering?.MaximumNits;
         }
         return new Metadata(peak is { } maximum ? Math.Max(1, maximum / white) : null,
             white, mastering);
@@ -254,24 +255,28 @@ internal sealed class HdrContentHint
         public PlatformHdrContentMetadata? GetOutputMetadata(PlatformSurfaceColorVolume? colorVolume)
         {
             VideoOutputColorVolume? volume = AvaloniaVideoOutput.ToRendererColorVolume(colorVolume);
+            double white = VideoOutputColorSpaceExtensions.HdrReferenceWhiteNits;
             double headroom = 1;
-            if (volume?.ReferenceWhiteScale is > 0 and var scale && double.IsFinite(scale))
+            if (volume is { ToneMapping: VideoToneMappingMode.Client or VideoToneMappingMode.Platform } display &&
+                display.ReferenceWhiteScale is > 0 and var scale && double.IsFinite(scale))
             {
-                if (volume?.ToneMapping == VideoToneMappingMode.Client)
-                    headroom = VideoOutputColorSpace.ScRgbLinear.ResolveDisplayToneTarget(true, volume).Headroom;
-                else if (volume?.ToneMapping == VideoToneMappingMode.Platform)
+                VideoOutputColorVolume target = display;
+                if (display.ToneMapping == VideoToneMappingMode.Client)
                 {
-                    foreach (Metadata source in sources)
-                    {
-                        double peak = (source.HeadroomRatio ?? 1000 / VideoOutputColorSpaceExtensions.HdrReferenceWhiteNits) *
-                            VideoOutputColorSpaceExtensions.HdrReferenceWhiteNits;
-                        VideoHdrOutputMapping output = VideoOutputColorSpace.ScRgbLinear.ResolveHdrOutput(
-                            peak, true, source.ToneMapping, componentGain: 1, colorVolume: volume);
-                        headroom = Math.Max(headroom, output.ToneMapPeakNits / output.LinearNitsPerUnit);
-                    }
+                    // An EDR backlight only rises for content described above the current range, so
+                    // the sources are resolved against the potential headroom rather than the current one.
+                    headroom = VideoOutputColorSpace.ScRgbLinear.ResolveDisplayToneTarget(true, display).Headroom;
+                    if (display.MaximumHeadroomRatio is > 1 and var potential && double.IsFinite(potential))
+                        target = display with { HeadroomRatio = Math.Max(potential, display.HeadroomRatio ?? 1) };
+                }
+                foreach (Metadata source in sources)
+                {
+                    double peak = (source.HeadroomRatio ?? 1000 / white) * white;
+                    VideoHdrOutputMapping output = VideoOutputColorSpace.ScRgbLinear.ResolveHdrOutput(
+                        peak, true, source.ToneMapping, componentGain: 1, colorVolume: target);
+                    headroom = Math.Max(headroom, output.ToneMapPeakNits / output.LinearNitsPerUnit);
                 }
             }
-            double white = VideoOutputColorSpaceExtensions.HdrReferenceWhiteNits;
             return new PlatformHdrContentMetadata(headroom, white, new PlatformLuminanceRange(0, headroom * white));
         }
     }

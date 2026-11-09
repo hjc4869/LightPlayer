@@ -27,6 +27,7 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
 {
     private RemoteLibraryManager? remoteLibraries;
     private IosStorage? storage;
+    private IosMediaLibraryProvider? nativeLibrary;
 
     protected override AppBuilder CustomizeAppBuilder(AppBuilder builder)
     {
@@ -49,7 +50,12 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
             VideoToolboxVideoScaler.Register();
 
         var deviceSettings = new JsonAppSettingsStore();
+        deviceSettings.InitializeNativeLibrary();
         LocalizedStrings.ApplyLanguage(deviceSettings.InterfaceLanguage);
+        var multimediaPlatform = new SystemLibraryPlatformIO(new DesktopMultimediaPlatformIO(), new IosMediaLibraryReader());
+        PlatformServices.MultimediaPlatformIOFactory = () => multimediaPlatform;
+        nativeLibrary = new IosMediaLibraryProvider(multimediaPlatform);
+        PlatformServices.NativeMediaLibrary = nativeLibrary;
         storage = new IosStorage(deviceSettings);
         PlatformServices.LibraryFolderAccess = storage;
         PlatformServices.MediaFilePicker = storage.PickMediaAsync;
@@ -69,7 +75,13 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
         PlatformServices.RemoteLibraryManager = remoteLibraries;
         _ = remoteLibraries.ConnectEnabledAsync();
         PlatformServices.KeepScreenOnRequested = keepOn => UIApplication.SharedApplication.IdleTimerDisabled = keepOn;
-        PlatformServices.ObserveWindowControls = IosWindowControls.Observe;
+        PlatformServices.PreferredOrientationRequested = IosOrientation.Request;
+        PlatformServices.CanTurnDisplay = () => IosOrientation.CanTurn;
+        PlatformServices.MediaPresentationChanged = IosOrientation.SetMediaPresentation;
+        IosOrientation.Observe();
+        PlatformServices.ObserveDeviceRegions = IosDeviceRegions.Observe;
+        PlatformServices.PictureInPicture = new IosPictureInPictureHost();
+        PlatformServices.UsesTouchChrome = true;
 
 #if LMR_AVALONIA_FORK
         PlatformServices.SupportsAdvancedColorOutput = true;
@@ -85,15 +97,24 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
 #endif
 
         return base.CustomizeAppBuilder(builder)
-            .AfterSetup(_ => MenuBackdrop.Install(MenuBackdropMode.Default))
-            .With(new SkiaOptions { MaxGpuResourceSizeBytes = 512 * 1024 * 1024 })
+            .AfterSetup(_ =>
+            {
+                MenuBackdrop.Install(MenuBackdropMode.Default);
+                NativeContextMenu.Install(new IosNativeContextMenu());
+            })
+            .With(new SkiaOptions { MaxGpuResourceSizeBytes = 256 * 1024 * 1024 })
             .WithInterFont();
     }
+
+    [Export("application:supportedInterfaceOrientationsForWindow:")]
+    public UIInterfaceOrientationMask GetSupportedInterfaceOrientations(UIApplication application, UIWindow? forWindow) =>
+        IosOrientation.SupportedOrientations;
 
     [Export("applicationWillTerminate:")]
     public void WillTerminate(UIApplication application)
     {
         remoteLibraries?.Dispose();
+        nativeLibrary?.Dispose();
         storage?.Dispose();
         AppLog.Shutdown();
     }

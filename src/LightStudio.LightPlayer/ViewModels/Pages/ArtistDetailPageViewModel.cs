@@ -7,6 +7,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LightMediaRenderer.Avalonia.Controls;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Services;
 using LightStudio.MediaLibraryCore.Database;
@@ -194,11 +195,6 @@ public sealed partial class ArtistDetailPageViewModel : SelectionPageViewModelBa
             var total = files.Items.Aggregate(TimeSpan.Zero, (sum, file) => sum + file.Value.Duration);
             MetaLine = BuildMetaLine(sections.Count, total);
             NotifyCommands();
-
-            foreach (var section in sections)
-            {
-                section.RequestArt();
-            }
         }
         catch (Exception ex)
         {
@@ -287,37 +283,37 @@ public sealed partial class ArtistDetailPageViewModel : SelectionPageViewModelBa
         CancellationToken cancellationToken)
     {
         // The first album's artwork also backs the header, so its backdrop comes from the same read of the picture.
-        Bitmap? bitmap;
+        FastImageSource? cover;
         Bitmap? backdrop = null;
         if (ReferenceEquals(AlbumSections.FirstOrDefault(), section))
         {
             var artwork = await albumArt.GetHighQualityTrackArtWithBackdropAsync(
-                media, HeaderBackdropWidth, HeaderBackdropBlurSigma, cancellationToken).ConfigureAwait(false);
-            bitmap = artwork?.Cover;
+                media, section.ArtPixelSize, HeaderBackdropWidth, HeaderBackdropBlurSigma, cancellationToken).ConfigureAwait(false);
+            cover = artwork?.Cover;
             backdrop = artwork?.Backdrop;
         }
         else
         {
-            bitmap = await albumArt.GetHighQualityTrackArtAsync(media, cancellationToken).ConfigureAwait(false);
+            cover = await albumArt.GetHighQualityTrackArtAsync(media, section.ArtPixelSize, cancellationToken).ConfigureAwait(false);
         }
 
         if (backdrop is null)
         {
-            if (bitmap is not null)
+            if (cover is not null)
             {
-                AlbumArtService.ApplyOnUiThread(bitmap, art => section.CoverImage = art, cancellationToken);
+                AlbumArtService.ApplyOnUiThread(cover, art => section.CoverImage = art, cancellationToken);
             }
 
             return;
         }
 
-        if (bitmap is null)
+        if (cover is null)
         {
             AlbumArtService.ApplyOnUiThread(backdrop, ApplyHeaderBackground, cancellationToken);
             return;
         }
 
-        AlbumArtService.ApplyOnUiThread([bitmap, backdrop], images =>
+        AlbumArtService.ApplyOnUiThread([cover, backdrop], images =>
         {
             section.CoverImage = images[0];
             ApplyHeaderBackground((Bitmap)images[1]);

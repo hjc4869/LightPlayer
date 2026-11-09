@@ -161,6 +161,12 @@ public static unsafe partial class Hdr10PlusMetadataReader
         float maximumComponent = Math.Max(
             first.SceneMaximumLuminance[0],
             Math.Max(first.SceneMaximumLuminance[1], first.SceneMaximumLuminance[2]));
+
+        // As in libplacebo, scene light needs both a scene average and MaxSCL; without them the
+        // stream's static HDR10 metadata describes it.
+        if (first.SceneAverageLuminance <= 0 || maximumComponent <= 0)
+            return true;
+
         float maximumLuminance =
             (0.2627f * first.SceneMaximumLuminance[0]) +
             (0.6780f * first.SceneMaximumLuminance[1]) +
@@ -182,7 +188,9 @@ public static unsafe partial class Hdr10PlusMetadataReader
             maximumLuminance = profileMaximum;
         }
 
-        destination.EffectivePeakLuminance = maximumLuminance;
+        // libplacebo's tone-mapping range likewise covers the largest MaxSCL channel: saturated light
+        // carries channels above its luminance, and MaxCLL is a channel maximum too.
+        destination.EffectivePeakLuminance = Math.Max(maximumLuminance, maximumComponent);
         destination.SceneAverageLuminance = averageLuminance;
         return true;
     }

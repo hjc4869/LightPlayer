@@ -23,13 +23,13 @@
   <ItemGroup>
     <PackageReference Include="LightStudio.Onnx" />
     <PackageReference Include="Microsoft.ML.Tokenizers" />
-    <PackageReference Include="MathNet.Numerics" />
     <LinkerArgument Include="-framework" />
     <LinkerArgument Include="CoreML" />
   </ItemGroup>
 
   <ItemGroup>
     <Compile Include="..\LightStudio.LightPlayer.Desktop\Inference\Onnx\**\*.cs" Link="Inference\Onnx\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\LightStudio.LightPlayer.Desktop\Apple\ObjectiveCInterop.cs" Link="Playback\ObjectiveCInterop.cs" />
     <Compile Include="..\LightStudio.LightPlayer.Desktop\Apple\PlaybackThread.cs" Link="Playback\PlaybackThread.cs" />
     <Compile Include="..\LightStudio.LightPlayer.Desktop\Apple\VideoToolboxSurfaceImporter.cs" Link="Playback\VideoToolboxSurfaceImporter.cs" />
     <Compile Include="..\LightStudio.LightPlayer.Desktop\Apple\VideoToolboxVideoScaler.cs" Link="Playback\VideoToolboxVideoScaler.cs" />
@@ -74,4 +74,12 @@
   <PropertyGroup>
     <NativeBindingsEnabled>true</NativeBindingsEnabled>
   </PropertyGroup>
+
+  <!-- Vertical bars and reserved regions (iPhone Duo) need the iOS 27.1 SDK bindings. -->
+  <Target Name="DefineIosReservedRegions" BeforeTargets="CoreCompile"
+          Condition="$([MSBuild]::VersionGreaterThanOrEquals('$(TargetPlatformVersion)', '27.1'))">
+    <PropertyGroup>
+      <DefineConstants>$(DefineConstants);IOS_RESERVED_REGIONS</DefineConstants>
+    </PropertyGroup>
+  </Target>
 </Project>

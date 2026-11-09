@@ -19,11 +19,11 @@
                             <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Header}"
                                            Classes="settingName"
-                                           FontSize="14"
+                                           FontSize="{DynamicResource AppSettingNameFontSize}"
                                            TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding Description}"
                                            Classes="settingDescription"
-                                           FontSize="12"
+                                           FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                            IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                            TextWrapping="Wrap" />
                             </StackPanel>
@@ -54,10 +54,10 @@
                             <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding StorageSettings_LimitHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                            Classes="settingName"
-                                           FontSize="14" />
+                                           FontSize="{DynamicResource AppSettingNameFontSize}" />
                                 <TextBlock Text="{Binding StorageSettings_LimitDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                                            Classes="settingDescription"
-                                           FontSize="12"
+                                           FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                            TextWrapping="Wrap" />
                             </StackPanel>
                             <controls:NumberEntry Width="150"

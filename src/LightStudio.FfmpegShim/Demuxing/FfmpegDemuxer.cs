@@ -32,6 +32,7 @@ public sealed unsafe partial class FfmpegDemuxer : IPacketSource, IAdaptiveVideo
     private double startTime;
     private double timelineOffset;
     private double firstPacketTimelinePosition = double.NaN;
+    private Dictionary<int, string> logTransferFunctions = new();
     private readonly long id;
     private bool disposed;
 
@@ -376,6 +377,8 @@ public sealed unsafe partial class FfmpegDemuxer : IPacketSource, IAdaptiveVideo
 
         CanSeek = (format->ctx_flags & AVFMTCTX_UNSEEKABLE) == 0 &&
             (format->pb == null || format->pb->seekable != 0);
+        if (source is not null && nestedIo is null)
+            logTransferFunctions = QuickTimeLogTransfer.Read(source, format);
 
         Info = new MediaInfo(
             url,
@@ -727,6 +730,7 @@ public sealed unsafe partial class FfmpegDemuxer : IPacketSource, IAdaptiveVideo
             SampleAspectRatioNum = sampleAspectRatio.num,
             SampleAspectRatioDen = sampleAspectRatio.den,
             AlphaMode = alphaMode != null && Marshal.PtrToStringUTF8((IntPtr)alphaMode->value) == "1",
+            LogTransferFunction = logTransferFunctions.GetValueOrDefault(streamIndex),
         };
     }
 
@@ -744,6 +748,9 @@ public sealed unsafe partial class FfmpegDemuxer : IPacketSource, IAdaptiveVideo
     }
 
     internal AVFormatContext* FormatContext => format;
+
+    /// <summary>Log curves named by the container, keyed by stream index.</summary>
+    internal IReadOnlyDictionary<int, string> LogTransferFunctions => logTransferFunctions;
 
     public PacketReadStatus Read(MediaPacket packet)
     {

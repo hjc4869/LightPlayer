@@ -28,7 +28,6 @@
     <PackageReference Condition="'$(UseWindowsInference)' != 'true'" Include="LightStudio.Onnx" />
     <PackageReference Condition="('$(RuntimeIdentifier)' != '' and $(RuntimeIdentifier.StartsWith('linux'))) or ('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Linux')))" Include="LightStudio.WebGPU" />
     <PackageReference Include="Microsoft.ML.Tokenizers" />
-    <PackageReference Include="MathNet.Numerics" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" />

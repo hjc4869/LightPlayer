@@ -49,48 +49,57 @@
                                          PlaceholderKind="{Binding ThumbnailKind}"
                                          ToolTip.Tip="{Binding Title}" />
                 <!-- Artist album-art collage: 1x1, 2x2, or 3x3 based on how many covers are available. -->
-                <Border IsVisible="{Binding HasCollage}"
-                        CornerRadius="4"
-                        ClipToBounds="True"
-                        Background="{DynamicResource AppThumbnailPlaceholderBrush}"
-                        ToolTip.Tip="{Binding Title}">
-                    <ItemsControl ItemsSource="{Binding CollageImages}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <UniformGrid Columns="{Binding CollageColumns}" />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="media:IImage">
-                                <lmr:FastImage Source="{Binding}" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Border>
-                <Border x:Name="ArtOverlay"
-                        Classes="tileArtOverlay"
-                        Height="{Binding Path=Bounds.Width, RelativeSource={RelativeSource Self}}"
-                        CornerRadius="4"
-                        Background="{DynamicResource AppArtOverlayBrush}">
-                    <StackPanel Orientation="Horizontal"
-                                Spacing="5"
-                                VerticalAlignment="Bottom"
-                                HorizontalAlignment="Center"
-                                Margin="0,0,0,3">
-                        <Button Classes="miniIcon"
-                                Command="{Binding PlayCommand}"
-                                ToolTip.Tip="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}">
-                            <Viewbox Width="11" Height="11">
-                                <Path Data="{StaticResource IconPlay}"
-                                      Fill="{DynamicResource AppPrimaryTextBrush}" />
-                            </Viewbox>
-                        </Button>
-                        <controls:AddToQueueButton Classes="miniIcon"
-                                IconSize="11"
-                                Command="{Binding AddToQueueCommand}"
-                                ToolTip.Tip="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" />
-                    </StackPanel>
-                </Border>
+                <controls:LazyPart IsActive="{Binding HasCollage}">
+                    <Template>
+                        <Border x:DataType="models:LibraryTileModel"
+                                CornerRadius="4"
+                                ClipToBounds="True"
+                                Background="{DynamicResource AppThumbnailPlaceholderBrush}"
+                                ToolTip.Tip="{Binding Title}">
+                            <ItemsControl ItemsSource="{Binding CollageImages}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="{Binding CollageColumns}" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="media:IImage">
+                                        <lmr:FastImage Source="{Binding}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </Template>
+                </controls:LazyPart>
+                <!-- Hover actions, built the first time the pointer enters an actionable tile. -->
+                <controls:LazyPart x:Name="ActionsHost">
+                    <Template>
+                        <Border x:DataType="models:LibraryTileModel"
+                                Classes="tileArtOverlay"
+                                Height="{Binding Path=Bounds.Width, RelativeSource={RelativeSource Self}}"
+                                CornerRadius="4"
+                                Background="{DynamicResource AppArtOverlayBrush}">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="5"
+                                        VerticalAlignment="Bottom"
+                                        HorizontalAlignment="Center"
+                                        Margin="0,0,0,3">
+                                <Button Classes="miniIcon"
+                                        Command="{Binding PlayCommand}"
+                                        ToolTip.Tip="{Binding Common_Play, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                    <Viewbox Width="11" Height="11">
+                                        <Path Data="{StaticResource IconPlay}"
+                                              Fill="{DynamicResource AppPrimaryTextBrush}" />
+                                    </Viewbox>
+                                </Button>
+                                <controls:AddToQueueButton Classes="miniIcon"
+                                        IconSize="11"
+                                        Command="{Binding AddToQueueCommand}"
+                                        ToolTip.Tip="{Binding Common_AddToQueue, Source={x:Static strings:LocalizedStrings.Instance}}" />
+                            </StackPanel>
+                        </Border>
+                    </Template>
+                </controls:LazyPart>
             </Panel>
             <controls:FixedLineTextBlock Text="{Binding Title}"
                        FontSize="11"

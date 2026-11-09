@@ -57,7 +57,7 @@ internal static class VideoPhotoColor
         .AddStage(Stage);
 
     public static string AlphaStage(bool hasAlpha) => hasAlpha
-        ? "float photoAlpha(float2 coord) { return float(image.eval(coord).a); }"
+        ? "float photoAlpha(float2 coord) { return sampleAlpha(coord); }"
         : "float photoAlpha(float2 coord) { return 1.0; }";
 
     public static string Main(bool gainMap, bool output) => $$"""

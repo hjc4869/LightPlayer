@@ -14,9 +14,7 @@ namespace LightStudio.FfmpegShim.Demuxing;
 /// </summary>
 public sealed partial class PacketHistorySource : IBufferedPacketSource
 {
-    private const double HistoryDurationSeconds = 30;
-    private const long MaximumHistoryBytes = 200L * 1024 * 1024;
-
+    private readonly long maximumHistoryBytes = PacketHistoryBudget.ResolveMaximumBytes();
     private readonly IPacketSource source;
     private readonly MediaPacketPool packetPool = new();
     private readonly Queue<RetainedPacket> history = new();
@@ -176,13 +174,13 @@ public sealed partial class PacketHistorySource : IBufferedPacketSource
 
     private void TrimHistoryLocked()
     {
-        while (retainedBytes > MaximumHistoryBytes && history.TryDequeue(out RetainedPacket retained))
+        while (retainedBytes > maximumHistoryBytes && history.TryDequeue(out RetainedPacket retained))
             Discard(retained);
 
         if (history.Count == 0 || !MediaTime.IsValid(playbackPositionSeconds))
             return;
 
-        double cutoff = playbackPositionSeconds - HistoryDurationSeconds;
+        double cutoff = playbackPositionSeconds - PacketHistoryBudget.DurationSeconds;
         int resume = FindResumeIndex(history.ToList(), cutoff);
         for (var index = 0; index < resume; index++)
             Discard(history.Dequeue());

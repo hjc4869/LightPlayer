@@ -23,6 +23,10 @@ public sealed partial class PageAddressBarModel(
     [ObservableProperty]
     private bool isVisible;
 
+    /// <summary>Whether the page browses folder by folder, including at the library root, where it cannot go up.</summary>
+    [ObservableProperty]
+    private bool isBrowsingFolders;
+
     [ObservableProperty]
     private bool canGoUp;
 

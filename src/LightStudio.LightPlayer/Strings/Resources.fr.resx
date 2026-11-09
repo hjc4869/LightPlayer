@@ -1647,6 +1647,15 @@
   <data name="VideoPlayer_Speed" xml:space="preserve">
     <value>Vitesse de lecture</value>
   </data>
+  <data name="VideoPlayer_Stretch" xml:space="preserve">
+    <value>Taille de l'image</value>
+  </data>
+  <data name="VideoPlayer_StretchFit" xml:space="preserve">
+    <value>Ajuster</value>
+  </data>
+  <data name="VideoPlayer_StretchFill" xml:space="preserve">
+    <value>Remplir</value>
+  </data>
   <data name="VideoPlayer_Subtitles" xml:space="preserve">
     <value>Activer ou désactiver les sous-titres</value>
   </data>
@@ -1796,6 +1805,9 @@
   </data>
   <data name="VideoPlayer_ShortcutSpeed" xml:space="preserve">
     <value>Plus lent / plus rapide</value>
+  </data>
+  <data name="VideoPlayer_ShortcutStretch" xml:space="preserve">
+    <value>Ajuster / remplir l'image</value>
   </data>
   <data name="VideoPlayer_ShortcutClose" xml:space="preserve">
     <value>Fermer les menus, quitter le plein écran</value>

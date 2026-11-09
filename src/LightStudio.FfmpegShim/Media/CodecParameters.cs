@@ -100,6 +100,12 @@ public sealed partial record CodecParameters
     public VideoLuminance? HdrMasteringLuminance { get; init; }
 
     /// <summary>
+    /// The log curve the container's sample description names, such as
+    /// <c>com.apple.rec2020.apple-log</c>, or null when it names none. FFmpeg does not read it.
+    /// </summary>
+    public string LogTransferFunction { get; init; }
+
+    /// <summary>
     /// FFmpeg's Dolby Vision decoder configuration record, retained verbatim because it is coded
     /// packet side data rather than a field of <c>AVCodecParameters</c>.
     /// </summary>

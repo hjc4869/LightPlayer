@@ -114,6 +114,41 @@ public static unsafe partial class VideoFrameMetadata
     };
 
     /// <summary>
+    /// Applies the log curve a QuickTime sample description names. Apple Log footage leaves the
+    /// ordinary transfer unspecified, so a recognized identifier replaces the frame's transfer and
+    /// primaries; an unrecognized one leaves the frame as tagged.
+    /// </summary>
+    public static void ApplyLogTransferFunction(VideoFrame frame, string identifier)
+    {
+        if (!TryMapLogTransferFunction(identifier, out VideoColorTransfer transfer, out VideoColorPrimaries primaries))
+            return;
+        frame.ColorTransfer = transfer;
+        frame.ColorPrimaries = primaries;
+    }
+
+    /// <summary>The transfer and primaries a QuickTime log curve identifier stands for.</summary>
+    public static bool TryMapLogTransferFunction(
+        string identifier,
+        out VideoColorTransfer transfer,
+        out VideoColorPrimaries primaries)
+    {
+        transfer = VideoColorTransfer.AppleLog;
+        switch (identifier)
+        {
+            case "com.apple.rec2020.apple-log":
+                primaries = VideoColorPrimaries.Bt2020;
+                return true;
+            case "com.apple.apple-wide-gamut.apple-log":
+                primaries = VideoColorPrimaries.AppleWideGamut;
+                return true;
+            default:
+                transfer = VideoColorTransfer.Bt709;
+                primaries = VideoColorPrimaries.Bt709;
+                return false;
+        }
+    }
+
+    /// <summary>
     /// Reads the standardized color description carried by an ICC <c>cicp</c> tag. JPEG and PNG
     /// decoders expose the profile as frame side data but do not copy these values to the ordinary
     /// FFmpeg color fields.

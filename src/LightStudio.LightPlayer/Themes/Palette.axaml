@@ -11,6 +11,10 @@
     <x:Boolean x:Key="AppIsAppleCsd">False</x:Boolean>
     <FontFamily x:Key="AppMacControlFontFamily">.AppleSystemUIFont</FontFamily>
     <x:Double x:Key="AppMacControlLetterSpacing">0</x:Double>
+    <x:Double x:Key="AppSettingNameFontSize">14</x:Double>
+    <x:Double x:Key="AppSettingDescriptionFontSize">12</x:Double>
+    <Thickness x:Key="AppSettingRowPadding">16,12</Thickness>
+    <x:Double x:Key="AppSettingRowMinHeight">0</x:Double>
 
     <ResourceDictionary.ThemeDictionaries>
         <!-- Light variant -->
@@ -21,8 +25,6 @@
             <Color x:Key="AppQueueBackdropTintColor">#B0F6F5F1</Color>
             <Color x:Key="AppPanelBackdropColor">#FFFFFF</Color>
             <Color x:Key="AppPanelBackdropTintColor">#B0FFFFFF</Color>
-            <Thickness x:Key="AppNavLightSpill">0,0,120,0</Thickness>
-            <Thickness x:Key="AppQueueLightSpill">120,0,0,0</Thickness>
             <SolidColorBrush x:Key="AppBackdropHoverBrush" Color="#14000000" />
             <SolidColorBrush x:Key="AppBackdropPressedBrush" Color="#24000000" />
             <SolidColorBrush x:Key="AppBackdropSelectionBrush" Color="#303C6E57" />
@@ -69,9 +71,6 @@
             <Color x:Key="AppQueueBackdropTintColor">#B016191A</Color>
             <Color x:Key="AppPanelBackdropColor">#1E2123</Color>
             <Color x:Key="AppPanelBackdropTintColor">#B01E2123</Color>
-            <!-- Bright page content stands out against the dark material, so it spills a shorter way in. -->
-            <Thickness x:Key="AppNavLightSpill">0,0,60,0</Thickness>
-            <Thickness x:Key="AppQueueLightSpill">60,0,0,0</Thickness>
             <SolidColorBrush x:Key="AppBackdropHoverBrush" Color="#18FFFFFF" />
             <SolidColorBrush x:Key="AppBackdropPressedBrush" Color="#28FFFFFF" />
             <SolidColorBrush x:Key="AppBackdropSelectionBrush" Color="#507FC6A6" />

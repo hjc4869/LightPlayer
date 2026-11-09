@@ -112,7 +112,7 @@ internal sealed class VideoToolboxSurfaceImporter : IVideoSurfaceImporter
         finally
         {
             if (!succeeded)
-                imported.Destroy(context);
+                imported.Release();
             GC.KeepAlive(cache);
         }
     }
@@ -162,12 +162,14 @@ internal sealed class VideoToolboxSurfaceImporter : IVideoSurfaceImporter
         }
     }
 
-    private sealed class ImportedSurface(VideoFrame frame) : IVideoSurfaceTextures
+    private sealed unsafe class ImportedSurface(VideoFrame frame) : IVideoSurfaceTextures
     {
         private VideoFrame? owner = frame.AddRef();
 
         public IntPtr[] Textures { get; } = new IntPtr[frame.PlaneCount];
         public (int Width, int Height)[] Sizes { get; } = new (int, int)[frame.PlaneCount];
+
+        // Reads are fenced in Destroy, on the queue Skia submits to.
         public bool RequiresReadFence => false;
 
         public (int Width, int Height) PlaneSize(int index) => Sizes[index];
@@ -202,7 +204,21 @@ internal sealed class VideoToolboxSurfaceImporter : IVideoSurfaceImporter
             }
         }
 
+        /// <summary>
+        /// Keeps the textures and the frame until the GPU has finished the draws already submitted.
+        /// Skia lets go of a wrapped texture once its image is disposed, and the pixel buffer then
+        /// returns to VideoToolbox, which would decode a later picture into it before those draws sample it.
+        /// </summary>
         public void Destroy(IPlatformGraphicsContext context)
+        {
+            if (context is not IMetalDevice { CommandQueue: not 0 } device || context.IsLost ||
+                !ReleaseAfterSubmittedWork(device.CommandQueue))
+                Release();
+        }
+
+        public void Abandon(IPlatformGraphicsContext context) => Release();
+
+        public void Release()
         {
             for (int plane = 0; plane < Textures.Length; plane++)
             {
@@ -214,7 +230,56 @@ internal sealed class VideoToolboxSurfaceImporter : IVideoSurfaceImporter
             Interlocked.Exchange(ref owner, null)?.Release();
         }
 
-        public void Abandon(IPlatformGraphicsContext context) => Destroy(context);
+        /// <summary>
+        /// Commits an empty command buffer after Skia's, which completes only once every command
+        /// buffer committed before it on the queue has.
+        /// </summary>
+        private bool ReleaseAfterSubmittedWork(IntPtr queue)
+        {
+            IntPtr pool = ObjC.PushAutoreleasePool();
+            try
+            {
+                IntPtr marker = ObjC.Send(queue, ObjC.Sel("commandBuffer"));
+                if (marker == IntPtr.Zero)
+                    return false;
+
+                GCHandle handle = GCHandle.Alloc(this);
+                IntPtr block = ObjC.CreateContextBlock(
+                    (IntPtr)(delegate* unmanaged[Cdecl]<IntPtr, IntPtr, void>)&OnSubmittedWorkCompleted,
+                    GCHandle.ToIntPtr(handle));
+                try
+                {
+                    ObjC.Send(marker, ObjC.Sel("addCompletedHandler:"), block);
+                }
+                finally
+                {
+                    ObjC.FreeContextBlock(block);
+                }
+
+                ObjC.Send(marker, ObjC.Sel("commit"));
+                return true;
+            }
+            finally
+            {
+                ObjC.PopAutoreleasePool(pool);
+            }
+        }
+
+        [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+        private static void OnSubmittedWorkCompleted(IntPtr block, IntPtr commandBuffer)
+        {
+            GCHandle handle = GCHandle.FromIntPtr(ObjC.GetBlockContext(block));
+            var surface = (ImportedSurface)handle.Target!;
+            handle.Free();
+            try
+            {
+                surface.Release();
+            }
+            catch (Exception exception)
+            {
+                AppLog.Error("Video.Surface", "Could not release a CoreVideo surface after its GPU reads.", exception);
+            }
+        }
     }
 
     private sealed class ImageReference : IDisposable

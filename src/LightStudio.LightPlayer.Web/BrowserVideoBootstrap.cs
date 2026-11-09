@@ -39,7 +39,7 @@ public static class BrowserVideoBootstrap
             .WithInterFont()
             .With(new SkiaOptions
             {
-                MaxGpuResourceSizeBytes = 512 * 1024 * 1024,
+                MaxGpuResourceSizeBytes = 256 * 1024 * 1024,
             });
 
     /// <summary>Whether remote video packets are streamed over a WebSocket rather than read with HTTP requests.</summary>

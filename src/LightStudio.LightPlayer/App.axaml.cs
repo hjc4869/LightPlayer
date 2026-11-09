@@ -68,7 +68,18 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        if (PlatformServices.UsesTouchChrome)
+        {
+            Styles.Add(new Themes.AppleTouchControls());
+        }
+
+        // Styles follow a window's active state through this class, so one listener per window
+        // stands in for a subscription from every styled control.
+        WindowBase.IsActiveProperty.Changed.AddClassHandler<WindowBase>(static (window, _) => UpdateInactiveClass(window));
+        Control.LoadedEvent.AddClassHandler<WindowBase>(static (window, _) => UpdateInactiveClass(window));
     }
+
+    private static void UpdateInactiveClass(WindowBase window) => window.Classes.Set("inactive", !window.IsActive);
 
     public override void OnFrameworkInitializationCompleted()
     {

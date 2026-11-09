@@ -48,6 +48,7 @@ public partial class LanguagePreferenceViewModel : ViewModelBase
             new LanguageOption("es-ES", "Español"),
             new LanguageOption("fr-FR", "Français"),
             new LanguageOption("ja-JP", "日本語"),
+            new LanguageOption("pt-BR", "Português"),
             new LanguageOption("zh-CN", "中文 (中国)"),
             new LanguageOption("zh-TW", "中文 (台灣)"),
         ];

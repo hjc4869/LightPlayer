@@ -61,7 +61,7 @@ internal sealed class AAudioSettings : AudioDeviceCallback, IAudioOutputSettings
             var selectedDeviceId = DeviceId;
             if (string.Equals(selectedDeviceId, IAudioOutputSettings.DefaultDeviceId, StringComparison.Ordinal))
             {
-                return AAudioNative.Unspecified;
+                return AAudioNative.AAUDIO_UNSPECIFIED;
             }
 
             return GetOutputDevices()
@@ -69,7 +69,7 @@ internal sealed class AAudioSettings : AudioDeviceCallback, IAudioOutputSettings
                     FormatDeviceId(device),
                     selectedDeviceId,
                     StringComparison.Ordinal))
-                ?.Id ?? AAudioNative.Unspecified;
+                ?.Id ?? AAudioNative.AAUDIO_UNSPECIFIED;
         }
     }
 

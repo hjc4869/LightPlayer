@@ -391,7 +391,7 @@ internal static class Program
             .WithInterFont()
             .With(new SkiaOptions
             {
-                MaxGpuResourceSizeBytes = 512 * 1024 * 1024
+                MaxGpuResourceSizeBytes = 256 * 1024 * 1024
             })
             .With(new FontManagerOptions
             {

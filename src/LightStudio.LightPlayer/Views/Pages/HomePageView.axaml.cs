@@ -322,8 +322,16 @@ public partial class HomePageView : UserControl
 
     private void ApplySpotlightLayout()
     {
-        ViewModel?.SetSpotlightNarrow(Bounds.Width < SpotlightBreakpoint);
+        var narrow = Bounds.Width < SpotlightBreakpoint;
+        ViewModel?.SetSpotlightNarrow(narrow);
         ApplyCardHeight(SpotlightHost.Bounds.Width);
+
+        // The narrow card fills its whole area with the cover, so the cover is sized to the card.
+        if (narrow && Bounds.Width > 0 && SpotlightHost.Bounds is { Width: > 0 } card &&
+            TopLevel.GetTopLevel(this) is { } topLevel)
+        {
+            ViewModel?.SetArtworkDisplaySize((int)Math.Ceiling(Math.Max(card.Width, card.Height) * topLevel.RenderScaling));
+        }
     }
 
     private void OnAlbumPicksSizeChanged(object? sender, SizeChangedEventArgs e)

@@ -1,40 +1,47 @@
 using System;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Android.Content;
-using Android.Graphics;
-using Android.OS;
 using Android.Runtime;
-using Android.Views;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.Decoding;
 using LightStudio.FfmpegShim.Media;
 using LightStudio.Logging;
+using LightStudio.NativeBindings.Types;
+using static LightStudio.LightPlayer.Android.Video.AndroidVideoInterop;
 
 namespace LightStudio.LightPlayer.Android.Video;
 
 /// <summary>
-/// A <see cref="SurfaceTexture"/> the MediaCodec decoder draws into, and the external texture the
-/// renderer samples the result from.
+/// An image reader the MediaCodec decoder draws into, and the external texture the renderer samples
+/// the result from.
 /// </summary>
 /// <remarks>
 /// <para>
 /// MediaCodec's memory output is 4:2:0 8-bit whatever the stream held, so an HDR10 source read back
-/// that way loses three quarters of its steps and bands. Drawing into a surface keeps the codec's
+/// that way loses three quarters of its steps and bands. Drawing into a window keeps the codec's
 /// own buffers, which are 10-bit. A regular external sampler lets the driver collapse those buffers
 /// to 8-bit RGB, so deep sources are first copied as raw YUV into an F16 texture and converted by the
 /// same color pipeline as software-decoded planes.
 /// </para>
 /// <para>
-/// A surface texture holds one picture at a time. The decoder therefore keeps the pictures ahead of
-/// the clock as tokens and only hands one over when it is drawn, which is what <see cref="Acquire"/>
-/// does, on the render thread where the graphics context is bound.
+/// The reader queues the pictures the codec renders and hands them over as hardware buffers, which
+/// <see cref="Acquire"/> wraps as images of the renderer's own context, on the render thread where
+/// that context is bound. The decoder keeps the pictures ahead of the clock as tokens and only hands
+/// one over when it is drawn. Nothing on this path goes through the Java runtime: the reader, its
+/// window, its listener, and the buffers are native objects. The codec is configured with a surface
+/// object, which the platform makes from the window.
 /// </para>
 /// </remarks>
-internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
+internal sealed unsafe class MediaCodecOutputSurface : IVideoDecoderOutputSurface
 {
     // Long enough for a buffer already handed to the queue to come back around, short enough that
     // missing it costs one compositor frame rather than a visible stall.
     private const int FrameWaitMilliseconds = 8;
+
+    // One picture is held while it is shown; the margin lets the reader skip to the newest one.
+    private const int MaxImages = 3;
 
     private static int nextGeneration;
 
@@ -43,21 +50,22 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
     private readonly int height;
     private readonly int bitDepth;
     private readonly bool preserveYuv;
-    private readonly SurfaceTexture surfaceTexture;
-    private readonly Surface surface;
-    private readonly FrameListener listener;
-    private readonly HandlerThread callbacks;
     private readonly AutoResetEvent frameAvailable = new(false);
-    private readonly float[] transform = new float[16];
     private readonly object sync = new();
+    private readonly GCHandle self;
 
-    private IntPtr surfaceReference;
+    private AImageReader* reader;
     private IntPtr nativeWindow;
+    private IntPtr surfaceReference;
+    private AImage* picture;
+    private void* image;
+    private void* display;
+    private VideoTextureRect rect = VideoTextureRect.Whole;
     private uint sourceTexture;
-    private AndroidVideoInterop.ExternalYuvCopy yuvCopy;
+    private ExternalYuvCopy yuvCopy;
     private bool attached;
     private bool unusable;
-    private bool warnedAboutRotation;
+    private bool warnedAboutPicture;
     private bool warnedAboutCopy;
     private volatile bool disposed;
 
@@ -69,20 +77,43 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
         this.bitDepth = Math.Max(bitDepth, 8);
         preserveYuv = bitDepth > 8;
 
-        // Detached, so the texture it streams into can be made later on the thread that owns the
-        // graphics context rather than on the decode thread that opens this.
-        surfaceTexture = new SurfaceTexture(singleBufferMode: false);
-        if (width > 0 && height > 0)
-            surfaceTexture.SetDefaultBufferSize(width, height);
+        AImageReader* created = null;
+        media_status_t status = AImageReader_newWithUsage(
+            width,
+            height,
+            (int)AIMAGE_FORMAT_PRIVATE,
+            AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE,
+            MaxImages,
+            &created);
+        if (status != media_status_t.AMEDIA_OK || created == null)
+            throw new InvalidOperationException($"The platform would not open an image reader: {status}.");
 
-        callbacks = new HandlerThread("lightplayer-video-surface");
-        callbacks.Start();
-        listener = new FrameListener(this);
-        surfaceTexture.SetOnFrameAvailableListener(listener, new Handler(callbacks.Looper!));
+        reader = created;
+        self = GCHandle.Alloc(this);
+        try
+        {
+            var listener = new AImageReader_ImageListener
+            {
+                context = (void*)GCHandle.ToIntPtr(self),
+                onImageAvailable = &OnImageAvailable,
+            };
+            ThrowIfFailed(AImageReader_setImageListener(reader, &listener), "listen to the image reader");
+            ANativeWindow* window = null;
+            ThrowIfFailed(AImageReader_getWindow(reader, &window), "read the image reader's window");
+            nativeWindow = (IntPtr)window;
 
-        surface = new Surface(surfaceTexture);
-        surfaceReference = JNIEnv.NewGlobalRef(surface.Handle);
-        nativeWindow = AndroidVideoInterop.NativeWindowFromSurface(JNIEnv.Handle, surface.Handle);
+            // The codec is configured through the Java API, which takes the window as a surface object.
+            void* surface = ANativeWindow_toSurface((JNINativeInterface**)JNIEnv.Handle, window);
+            if (surface == null)
+                throw new InvalidOperationException("The platform would not wrap the image reader's window.");
+            surfaceReference = JNIEnv.NewGlobalRef((IntPtr)surface);
+            JNIEnv.DeleteLocalRef((IntPtr)surface);
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
 
         TextureGeneration = Interlocked.Increment(ref nextGeneration);
         VideoFrameCapabilities.SetExternalTextureGeneration(TextureGeneration);
@@ -96,9 +127,7 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
 
     public int TextureGeneration { get; }
 
-    public uint TextureTarget => preserveYuv
-        ? AndroidVideoInterop.GlTexture2D
-        : AndroidVideoInterop.GlTextureExternalOes;
+    public uint TextureTarget => preserveYuv ? (uint)GL_TEXTURE_2D : (uint)GL_TEXTURE_EXTERNAL_OES;
 
     public VideoExternalTextureFormat TextureFormat => preserveYuv
         ? VideoExternalTextureFormat.Rgba16Float
@@ -119,7 +148,7 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
         int height,
         int bitDepth)
     {
-        if (!AndroidVideoInterop.SupportsBufferRendering(context))
+        if (!SupportsBufferRendering(context))
         {
             AppLog.Information(
                 "Android.Video",
@@ -138,7 +167,7 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
         }
     }
 
-    public bool Acquire(IntPtr picture, out VideoTextureRect rect)
+    public bool Acquire(IntPtr token, out VideoTextureRect rect)
     {
         rect = VideoTextureRect.Whole;
         if (disposed)
@@ -150,7 +179,7 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
                 return false;
 
             frameAvailable.Reset();
-            if (!AndroidVideoInterop.RenderBuffer(context, picture))
+            if (!RenderBuffer(context, token))
                 return false;
 
             // The buffer travels through the window's queue, so it is not necessarily there yet.
@@ -158,19 +187,25 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
             // what the wait is for.
             frameAvailable.WaitOne(FrameWaitMilliseconds);
 
-            try
+            AImage* latest = null;
+            media_status_t status = AImageReader_acquireLatestImage(reader, &latest);
+            if (status == media_status_t.AMEDIA_OK && latest != null)
             {
-                surfaceTexture.UpdateTexImage();
-                surfaceTexture.GetTransformMatrix(transform);
+                if (!Show(latest))
+                    return false;
             }
-            catch (Exception exception)
+            else if (picture == null || status != media_status_t.AMEDIA_IMGREADER_NO_BUFFER_AVAILABLE)
             {
-                AppLog.Warning("Android.Video", "Updating the decoder's surface texture failed.", exception);
+                if (!warnedAboutPicture)
+                {
+                    warnedAboutPicture = true;
+                    AppLog.Warning("Android.Video", $"The decoder's picture did not reach the image reader: {status}.");
+                }
                 return false;
             }
 
             if (preserveYuv &&
-                !AndroidVideoInterop.CopyExternalYuv(
+                !CopyExternalYuv(
                     sourceTexture,
                     yuvCopy,
                     width,
@@ -185,51 +220,127 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
                 return false;
             }
 
-            rect = ReadTransform();
+            rect = this.rect;
             return true;
         }
     }
 
-    /// <summary>
-    /// The part of the texture the picture occupies, out of the column-major matrix the surface
-    /// texture describes its buffer with.
-    /// </summary>
-    private VideoTextureRect ReadTransform()
+    /// <summary>Points the external texture at one picture and retires the one before it.</summary>
+    private bool Show(AImage* latest)
     {
-        if (!warnedAboutRotation && VideoTextureRect.IsRotated(transform))
+        AHardwareBuffer* buffer = null;
+        AImageCropRect crop;
+        if (AImage_getHardwareBuffer(latest, &buffer) != media_status_t.AMEDIA_OK || buffer == null ||
+            AImage_getCropRect(latest, &crop) != media_status_t.AMEDIA_OK)
         {
-            warnedAboutRotation = true;
-            AppLog.Warning(
-                "Android.Video",
-                "The decoder's surface texture is rotated, which the renderer cannot express.");
+            AImage_delete(latest);
+            Warn("The image reader handed over a picture without a hardware buffer.");
+            return false;
         }
 
-        return VideoTextureRect.FromWindowTransform(transform);
+        AHardwareBuffer_Desc description;
+        AHardwareBuffer_describe(buffer, &description);
+        void* created = CreateImage(display, buffer);
+        if (created == null)
+        {
+            AImage_delete(latest);
+            Warn("The picture's hardware buffer could not be wrapped as an image.");
+            return false;
+        }
+
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, sourceTexture);
+        glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, created);
+        uint error = glGetError();
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
+        if (error != GL_NO_ERROR)
+        {
+            eglDestroyImageKHR(display, created);
+            AImage_delete(latest);
+            Warn($"The picture could not be bound to the external texture: GL error 0x{error:X}.");
+            return false;
+        }
+
+        Retire();
+        picture = latest;
+        image = created;
+        rect = ReadRect(description, crop);
+        return true;
     }
 
-    /// <summary>Makes the texture and joins the surface to it, on the thread that owns the context.</summary>
+    /// <summary>
+    /// Returns the shown picture's buffer to the queue once the GPU has finished with it, as the
+    /// draws that sample it were only issued and have not necessarily run.
+    /// </summary>
+    private void Retire()
+    {
+        if (image != null)
+        {
+            eglDestroyImageKHR(display, image);
+            image = null;
+        }
+
+        if (picture == null)
+            return;
+
+        int fence = CreateReleaseFence(display);
+        if (fence >= 0)
+            AImage_deleteAsync(picture, fence);
+        else
+        {
+            glFinish();
+            AImage_delete(picture);
+        }
+        picture = null;
+    }
+
+    /// <summary>
+    /// The part of the buffer the picture occupies, as the renderer reads the texture from the top
+    /// down. Where the crop leaves a margin, the edges move in by a texel, or half of one for RGBA,
+    /// so that filtering stays inside the picture, which is what the platform's own window
+    /// transform does.
+    /// </summary>
+    private static VideoTextureRect ReadRect(in AHardwareBuffer_Desc description, in AImageCropRect crop)
+    {
+        float bufferWidth = description.width;
+        float bufferHeight = description.height;
+        float cropWidth = crop.right - crop.left;
+        float cropHeight = crop.bottom - crop.top;
+        if (bufferWidth <= 0 || bufferHeight <= 0 || cropWidth <= 0 || cropHeight <= 0)
+            return VideoTextureRect.Whole;
+
+        float inset = description.format == (uint)AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM ? 0.5f : 1f;
+        float scaleX = 1, scaleY = 1, offsetX = 0, offsetY = 0;
+        if (cropWidth < bufferWidth)
+        {
+            offsetX = (crop.left + inset) / bufferWidth;
+            scaleX = (cropWidth - 2 * inset) / bufferWidth;
+        }
+        if (cropHeight < bufferHeight)
+        {
+            offsetY = (crop.top + inset) / bufferHeight;
+            scaleY = (cropHeight - 2 * inset) / bufferHeight;
+        }
+        return new VideoTextureRect(scaleX, scaleY, offsetX, offsetY);
+    }
+
+    /// <summary>Makes the texture on the thread that owns the context.</summary>
     private bool EnsureAttached()
     {
         if (attached)
             return !unusable;
 
         OrphanedTextures.Drain();
-        sourceTexture = AndroidVideoInterop.CreateExternalTexture();
-        if (sourceTexture == 0)
+        display = eglGetCurrentDisplay();
+        if (display == null)
         {
-            AppLog.Warning("Android.Video", "The graphics backend would not make an external texture.");
+            AppLog.Warning("Android.Video", "The graphics context has no display to wrap pictures for.");
             return false;
         }
 
-        try
+        sourceTexture = CreateExternalTexture();
+        if (sourceTexture == 0)
         {
-            surfaceTexture.AttachToGLContext((int)sourceTexture);
-        }
-        catch (Exception exception)
-        {
-            AppLog.Warning("Android.Video", "Could not attach the decoder's surface texture.", exception);
-            AndroidVideoInterop.DeleteTexture(sourceTexture);
-            sourceTexture = 0;
+            AppLog.Warning("Android.Video", "The graphics backend would not make an external texture.");
             return false;
         }
 
@@ -237,7 +348,7 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
         if (!preserveYuv)
             return true;
 
-        if (AndroidVideoInterop.TryCreateExternalYuvCopy(width, height, out yuvCopy, out string declined))
+        if (TryCreateExternalYuvCopy(width, height, out yuvCopy, out string declined))
         {
             AppLog.Information(
                 "Android.Video",
@@ -255,7 +366,7 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
         if (disposed)
             return;
 
-        // Held for the whole teardown: a draw in flight must not find the surface released between
+        // Held for the whole teardown: a draw in flight must not find the reader deleted between
         // the check that says it is alive and the call that reads it.
         lock (sync)
         {
@@ -264,16 +375,28 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
 
             disposed = true;
 
-            surfaceTexture.SetOnFrameAvailableListener(null, null);
-            surface.Release();
-            surfaceTexture.Release();
-
-            if (nativeWindow != IntPtr.Zero)
+            if (reader != null)
             {
-                AndroidVideoInterop.NativeWindowRelease(nativeWindow);
-                nativeWindow = IntPtr.Zero;
+                AImageReader_setImageListener(reader, null);
+                if (image != null)
+                {
+                    eglDestroyImageKHR(display, image);
+                    image = null;
+                }
+
+                if (picture != null)
+                {
+                    AImage_delete(picture);
+                    picture = null;
+                }
+
+                // Deleting the reader stops its callback thread before returning, so the handle
+                // outlives every callback; the window belongs to the reader.
+                AImageReader_delete(reader);
+                reader = null;
             }
 
+            nativeWindow = IntPtr.Zero;
             if (surfaceReference != IntPtr.Zero)
             {
                 JNIEnv.DeleteGlobalRef(surfaceReference);
@@ -294,22 +417,36 @@ internal sealed class MediaCodecOutputSurface : IVideoDecoderOutputSurface
                 sourceTexture = 0;
             }
 
-            callbacks.QuitSafely();
-            surface.Dispose();
-            surfaceTexture.Dispose();
-            listener.Dispose();
-            callbacks.Dispose();
+            if (self.IsAllocated)
+                self.Free();
             frameAvailable.Dispose();
         }
     }
 
-    private sealed class FrameListener(MediaCodecOutputSurface owner)
-        : Java.Lang.Object, SurfaceTexture.IOnFrameAvailableListener
+    private void Warn(string message)
     {
-        public void OnFrameAvailable(SurfaceTexture surfaceTexture)
+        if (warnedAboutPicture)
+            return;
+        warnedAboutPicture = true;
+        AppLog.Warning("Android.Video", message);
+    }
+
+    private static void ThrowIfFailed(media_status_t status, string operation)
+    {
+        if (status != media_status_t.AMEDIA_OK)
+            throw new InvalidOperationException($"The platform could not {operation}: {status}.");
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static void OnImageAvailable(void* context, AImageReader* reader)
+    {
+        try
         {
-            if (!owner.disposed)
+            if (GCHandle.FromIntPtr((nint)context).Target is MediaCodecOutputSurface owner && !owner.disposed)
                 owner.frameAvailable.Set();
+        }
+        catch (ObjectDisposedException)
+        {
         }
     }
 }

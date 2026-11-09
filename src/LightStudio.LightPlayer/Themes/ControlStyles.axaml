@@ -6,6 +6,13 @@
         <Setter Property="Placement" Value="BottomEdgeAlignedLeft" />
     </Style>
 
+    <!-- Draws nothing around the narrow layout's chrome; touch heads turn it into a glass capsule. -->
+    <Style Selector="lmr|BackdropBorder.narrowGlass">
+        <Setter Property="BackdropStyle" Value="Off" />
+        <Setter Property="FallbackColor" Value="Transparent" />
+        <Setter Property="TintColor" Value="Transparent" />
+    </Style>
+
     <!-- Every liquid glass material follows the frosting preference. -->
     <Style Selector="lmr|BackdropBorder">
         <Setter Property="GlassFrost" Value="{Binding Frost, Source={x:Static services:LiquidGlassAppearance.Instance}}" />

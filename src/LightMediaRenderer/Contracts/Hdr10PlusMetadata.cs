@@ -57,7 +57,10 @@ public sealed class Hdr10PlusMetadata
 
 	public float TargetedSystemDisplayMaximumLuminance { get; set; }
 
-	/// <summary>Brightest MaxSCL value in the first window, including the ST 2094-40 fallback.</summary>
+	/// <summary>
+	/// Scene peak from the first window: its luminance estimate, raised to the largest MaxSCL channel
+	/// (including the ST 2094-40 fallback), or zero when the record carries no scene average.
+	/// </summary>
 	public float EffectivePeakLuminance { get; set; }
 
 	public float SceneAverageLuminance { get; set; }

@@ -41,8 +41,11 @@ public partial class PhotoViewerPageView : UserControl
 
     private const double SwipeAnimationMs = 220d;
 
-    /// <summary>Fraction of the viewport a downward drag has to cross for the page to close.</summary>
-    private const double DismissFraction = 0.18d;
+    /// <summary>
+    /// Fraction of the viewport a downward drag has to cross for the page to close, which is also
+    /// where the page beneath starts to show through. It has fully shown at twice this.
+    /// </summary>
+    private const double DismissFraction = 0.25d;
 
     /// <summary>A downward throw this fast closes the page however short it was.</summary>
     private const double DismissFlickPxPerSecond = 900d;
@@ -52,7 +55,11 @@ public partial class PhotoViewerPageView : UserControl
 
     private const double DismissAnimationMs = 200d;
 
+    /// <summary>How long the viewer is left settled before the page a downward drag reveals is built.</summary>
+    private static readonly TimeSpan BackPreviewDelay = TimeSpan.FromMilliseconds(150);
+
     private readonly DispatcherTimer toggleControlsTimer = new();
+    private readonly DispatcherTimer backPreviewTimer = new() { Interval = BackPreviewDelay };
     private readonly Stopwatch dragClock = Stopwatch.StartNew();
     private readonly Glide swipeGlide;
     private readonly Glide dismissGlide;
@@ -73,6 +80,10 @@ public partial class PhotoViewerPageView : UserControl
     private int pendingStep;
     private bool updatingZoom;
     private bool animateSliderZoom = true;
+    private bool preparingBackPreview;
+
+    // The width the toolbar and preview strip can take between the bands beside them.
+    private double controlsWidth;
 
     /// <summary>Where the finger had carried the picture when it let go, which the glide undoes.</summary>
     private Vector dismissRelease;
@@ -90,7 +101,8 @@ public partial class PhotoViewerPageView : UserControl
 
         BackPreview.LayoutUpdated += (_, _) =>
         {
-            if (BackPreview.Content is PageViewModelBase page &&
+            if (BackPreview.IsVisible &&
+                BackPreview.Content is PageViewModelBase page &&
                 this.FindAncestorOfType<ShellView>() is { DataContext: ShellViewModel shell } shellView &&
                 ReferenceEquals(shell.CurrentPage, ViewModel))
             {
@@ -108,6 +120,8 @@ public partial class PhotoViewerPageView : UserControl
             pendingControlsToggles = 0;
         };
         AddHandler(DoubleTappedEvent, OnPhotoDoubleTapped, RoutingStrategies.Bubble, handledEventsToo: true);
+        backPreviewTimer.Tick += (_, _) => PrepareBackPreview();
+        ApplyChromeInsets();
 
         HdrButton.PropertyChanged += (_, args) =>
         {
@@ -172,7 +186,7 @@ public partial class PhotoViewerPageView : UserControl
         touchpadSwipe = new TouchpadSwipe(Photo,
             () => dragPointerId is null && ViewModel is not null &&
                 !Photo.CanPan && !Photo.IsGestureActive && !PreviewStrip.IsInteracting,
-            OnTouchpadSwipe, FinishDrag, BeginSwipe);
+            OnTouchpadSwipe, FinishDrag, BeginSwipe, OnTouchpadDismiss);
         PreviewStrip.SelectionStarted += () =>
         {
             ResetTouchpadSwipe();
@@ -198,6 +212,7 @@ public partial class PhotoViewerPageView : UserControl
         {
             UpdatePreviewViewport();
             FocusShortcutSurface();
+            backPreviewTimer.Start();
             if (OperatingSystem.IsBrowser() && TopLevel.GetTopLevel(this)?.Screens is { } screens)
             {
                 try
@@ -222,6 +237,8 @@ public partial class PhotoViewerPageView : UserControl
             gliding = false;
             pendingStep = 0;
             Photo.SwipeOffset = 0;
+            backPreviewTimer.Stop();
+            BackPreview.Content = null;
             ApplyDismiss(default);
             dragPointerId = null;
             dragKind = DragKind.None;
@@ -400,10 +417,88 @@ public partial class PhotoViewerPageView : UserControl
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
         base.OnSizeChanged(e);
+        ApplyChromeInsets();
         UpdatePreviewViewport();
         UpdateSaveAsWidth();
         UpdateToolbarLayout();
         UpdateToneMappingPopupSize();
+        UpdateFullScreenButton();
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == ShellChrome.SafeAreaInsetsProperty || change.Property == ShellChrome.WindowControlsInsetProperty ||
+            change.Property == ShellChrome.DeviceRegionsProperty)
+        {
+            ApplyChromeInsets();
+            UpdateToolbarLayout();
+        }
+    }
+
+    // The picture covers the window; the controls keep clear of the window controls and, on touch
+    // heads, of the system bands around it. Beside a corner status bar the title takes the status bar's
+    // row, and the controls below the status bar stand in the band it leaves free for vertical bars.
+    private void ApplyChromeInsets()
+    {
+        var safe = ShellChrome.GetSafeAreaInsets(this);
+        var controls = ShellChrome.GetWindowControlsInset(this);
+        var regions = ShellChrome.GetDeviceRegions(this);
+        double width = Bounds.Width;
+        if (regions.HorizontalBar is { Height: > 0 } row)
+        {
+            var outer = TitleBar.Margin;
+            var inner = TitleContent.Margin;
+            TitleBar.Padding = new Thickness(
+                Math.Max(0, row.Left - outer.Left - inner.Left),
+                Math.Max(0, row.Top - outer.Top - inner.Top),
+                Math.Max(0, width - row.Right - outer.Right - inner.Right),
+                0);
+        }
+        else
+        {
+            TitleBar.Padding = new Thickness(controls.Left + safe.Left, controls.Top + safe.Top, safe.Right, 0);
+        }
+
+        double left = safe.Left;
+        double right = safe.Right;
+        double previousLeft = 12 + safe.Left;
+        double nextRight = 12 + safe.Right;
+        if (regions.VerticalBarEdge is { } edge && regions.VerticalBar is { Width: > 0 } band)
+        {
+            double height = Bounds.Height;
+            bool besideBottom = band.Top <= height - (72 + safe.Bottom + PreviewStrip.Height) &&
+                band.Bottom >= height - (16 + safe.Bottom);
+            bool besideSteps = band.Top <= (height - NextStep.Height) / 2 && band.Bottom >= (height + NextStep.Height) / 2;
+            if (edge == DeviceBarEdge.Left)
+            {
+                left = besideBottom ? Math.Min(left, band.Left) : left;
+                previousLeft = besideSteps ? band.Left + ((band.Width - PreviousStep.Width) / 2) : previousLeft;
+            }
+            else
+            {
+                right = besideBottom ? Math.Min(right, Math.Max(0, width - band.Right)) : right;
+                nextRight = besideSteps ? width - band.Right + ((band.Width - NextStep.Width) / 2) : nextRight;
+            }
+        }
+
+        // The toolbar and the preview strip center on the picture, which covers the window.
+        double side = Math.Max(left, right);
+        controlsWidth = Math.Max(0, width - (2 * side));
+        Toolbar.Margin = new Thickness(8 + side, 0, 8 + side, 16 + safe.Bottom);
+        PreviewStrip.Margin = new Thickness(8 + side, 0, 8 + side, 72 + safe.Bottom);
+        PreviousStep.Margin = new Thickness(Math.Max(0, previousLeft), 0, 12, 0);
+        NextStep.Margin = new Thickness(12, 0, Math.Max(0, nextRight), 0);
+        SaveAsBackdrop.Margin = new Thickness(0, safe.Top, safe.Right, safe.Bottom);
+    }
+
+    // Touch heads turn the display to fit the picture instead of covering the window, so the button
+    // only shows while turning would help, or to turn back. The separator before it goes with it.
+    private void UpdateFullScreenButton()
+    {
+        if (MediaOrientation.TurnsDisplay && ViewModel is { } model)
+            FullScreenButton.IsVisible = model.IsFullScreen || MediaOrientation.OffersTurning(Bounds.Size, model.PictureAspectRatio);
+        Toolbar.Classes.Set("fullScreenHidden", !FullScreenButton.IsVisible);
     }
 
     private void UpdatePreviewViewport()
@@ -415,9 +510,9 @@ public partial class PhotoViewerPageView : UserControl
     private void UpdateToolbarLayout()
     {
         int extraButtons = (HdrButton.IsVisible || HdrToggle.IsVisible ? 1 : 0) + (RawModeButton.IsVisible ? 1 : 0);
-        Toolbar.Classes.Set("compact", Bounds.Width < 600 + (RawModeButton.IsVisible ? 36 : 0));
-        Toolbar.Classes.Set("small", Bounds.Width < 372 + extraButtons * 36);
-        Toolbar.Classes.Set("tight", Bounds.Width < 318 + extraButtons * 30);
+        Toolbar.Classes.Set("compact", controlsWidth < 600 + (RawModeButton.IsVisible ? 36 : 0));
+        Toolbar.Classes.Set("small", controlsWidth < 372 + extraButtons * 36);
+        Toolbar.Classes.Set("tight", controlsWidth < 318 + extraButtons * 30);
     }
 
     private void OnMoreClicked(object? sender, RoutedEventArgs e)
@@ -439,8 +534,8 @@ public partial class PhotoViewerPageView : UserControl
         ZoomSlider.Minimum = Math.Log2(Photo.MinimumZoom);
         ZoomSlider.Value = Math.Log2(Photo.TargetZoom);
         ZoomPercentageText.Text = $"{Photo.ZoomPercentage:0}%";
-        ZoomOutButton.IsEnabled = Photo.Source is not null && Photo.TargetZoom > Photo.MinimumZoom;
-        ZoomInButton.IsEnabled = Photo.Source is not null && Photo.TargetZoom < PhotoViewport.MaximumZoom;
+        ZoomOutButton.IsEnabled = Photo.CanZoom && Photo.TargetZoom > Photo.MinimumZoom;
+        ZoomInButton.IsEnabled = Photo.CanZoom && Photo.TargetZoom < PhotoViewport.MaximumZoom;
         updatingZoom = false;
     }
 
@@ -594,11 +689,6 @@ public partial class PhotoViewerPageView : UserControl
             else if (dy > 0 && e.Pointer.Type == PointerType.Touch)
             {
                 dragKind = DragKind.Dismiss;
-                if (this.FindAncestorOfType<ShellView>() is { DataContext: ShellViewModel shell } shellView)
-                {
-                    BackPreview.Margin = GetBackPreviewMargin(shellView, shell);
-                    BackPreview.Content = shell.PreviewPhotoBack(model);
-                }
             }
             else
             {
@@ -650,18 +740,20 @@ public partial class PhotoViewerPageView : UserControl
         bool showsPlaybackBar = !shell.VideoSheet.IsActive && shell.PlaybackBar.HasItem;
         bool expandedInline = shell.Navigation.IsExpanded &&
             shell.Navigation.DisplayMode is SplitViewDisplayMode.CompactInline or SplitViewDisplayMode.Inline;
+        // On touch heads the stage covers the window, so the chrome is measured from its edges.
+        Thickness safe = shell.MediaSafeAreaInsets;
         if (shell.IsAppleLayout)
         {
             Thickness chrome = shellView.MeasureAppleChromeInsets(showsPlaybackBar);
-            return new Thickness(expandedInline ? ShellViewModel.AppleSidebarWidth : 56d, chrome.Top,
-                shell.Queue.LayoutWidth, chrome.Bottom);
+            double sidebar = expandedInline ? shell.SidebarWidth : shell.HasSidebarRail ? shell.NavRailWidth : 0;
+            return new Thickness(safe.Left + sidebar, chrome.Top, safe.Right + shell.Queue.LayoutWidth, chrome.Bottom);
         }
 
         // Keep the rail widths linked to ShellViewModel.NavRailCompactWidth/NavPaneOpenWidth,
         // and the bar measurements linked to the content reservations in ShellView.axaml.
-        double left = shell.IsNarrow ? 0 : expandedInline ? 320d : 56d;
-        double top = shell.IsNarrow ? shellView.FindControl<Grid>("NarrowTopBar")!.Height : 0;
-        double bottom = 0;
+        double left = safe.Left + (shell.IsNarrow ? 0 : expandedInline ? 320d : 56d);
+        double top = safe.Top + (shell.IsNarrow ? shellView.FindControl<Grid>("NarrowTopBar")!.Height : 0);
+        double bottom = safe.Bottom;
         var available = new Size(Stage.Bounds.Width, double.PositiveInfinity);
         if (shell.IsNarrow && shellView.FindControl<Border>("BottomNavBar") is { Child: { } navigation } bottomNav)
         {
@@ -680,7 +772,7 @@ public partial class PhotoViewerPageView : UserControl
             }
         }
 
-        return new Thickness(left, top, shell.Queue.LayoutWidth, bottom);
+        return new Thickness(left, top, safe.Right + shell.Queue.LayoutWidth, bottom);
     }
 
     private void BeginSwipe()
@@ -706,6 +798,12 @@ public partial class PhotoViewerPageView : UserControl
         }
     }
 
+    private void OnTouchpadDismiss(Vector travel)
+    {
+        dragKind = DragKind.Dismiss;
+        ApplyDismiss(travel);
+    }
+
     private void ResetTouchpadSwipe()
     {
         touchpadSwipe.Reset();
@@ -715,23 +813,70 @@ public partial class PhotoViewerPageView : UserControl
         Photo.SwipeOffset = 0;
         if (dragPointerId is null)
         {
+            if (dragKind == DragKind.Dismiss)
+            {
+                dismissGlide.Stop();
+                ApplyDismiss(default);
+            }
             dragKind = DragKind.None;
             ViewModel?.EndSwipe();
         }
     }
 
-    /// <summary>Moves and shrinks the picture as the drag pushing the page away carries it.</summary>
+    /// <summary>
+    /// Builds the page a downward drag reveals once the viewer has settled and nothing is moving. It
+    /// is laid out and drawn once under the opaque backdrop and then hidden again, so uncovering it
+    /// during a drag only has to show it. A drag that starts before then keeps the backdrop dark
+    /// rather than stalling to build it.
+    /// </summary>
+    private void PrepareBackPreview()
+    {
+        backPreviewTimer.Stop();
+        if (BackPreview.Content is not null || ViewModel is not { } model ||
+            this.FindAncestorOfType<ShellView>() is not { DataContext: ShellViewModel shell } shellView)
+        {
+            return;
+        }
+
+        if (model.IsTransitioning || dragPointerId is not null || dragKind != DragKind.None ||
+            dismissTravel != default || touchpadSwipe.IsTracking || gliding || Photo.IsGestureActive ||
+            PreviewStrip.IsInteracting)
+        {
+            backPreviewTimer.Start();
+            return;
+        }
+
+        if (shell.PreviewPhotoBack(model) is not { } page)
+            return;
+
+        BackPreview.Margin = GetBackPreviewMargin(shellView, shell);
+        BackPreview.Content = page;
+        preparingBackPreview = true;
+        BackPreview.IsVisible = true;
+
+        // Runs after the layout and render passes this has just queued.
+        Dispatcher.UIThread.Post(() =>
+        {
+            preparingBackPreview = false;
+            ApplyDismiss(dismissTravel);
+        }, DispatcherPriority.Background);
+    }
+
+    /// <summary>
+    /// Moves and shrinks the picture as the drag pushing the page away carries it, and once it is
+    /// far enough uncovers the page beneath.
+    /// </summary>
     private void ApplyDismiss(Vector travel)
     {
         dismissTravel = travel;
 
         double height = Math.Max(1d, Stage.Bounds.Height);
         double progress = Math.Clamp(travel.Y / height, 0d, 1d);
+        double reveal = BackPreview.Content is null ? 0 : Math.Clamp(progress / DismissFraction - 1, 0d, 1d);
         Photo.DismissOffset = travel;
         Photo.DismissScale = 1d - (DismissShrink * progress);
-        DismissBackdrop.Opacity = BackPreview.Content is null ? 1 : 1 - Math.Clamp(progress / (DismissFraction * 2), 0, 1);
-        if (travel == default)
-            BackPreview.Content = null;
+        BackPreview.IsVisible = reveal > 0 || preparingBackPreview;
+        DismissBackdrop.Opacity = 1 - reveal;
     }
 
     /// <summary>Hands the drag to whichever of the two gestures it turned out to be.</summary>
@@ -899,6 +1044,10 @@ public partial class PhotoViewerPageView : UserControl
         }
 
         subscribed = ViewModel;
+        BackPreview.Content = null;
+        backPreviewTimer.Stop();
+        if (VisualRoot is not null)
+            backPreviewTimer.Start();
         Photo.Opacity = subscribed?.IsTransitioning == true ? 0 : 1;
         SetTransitionChrome(subscribed?.IsTransitioning == true ? 0 : 1);
         if (subscribed is not null)
@@ -910,6 +1059,7 @@ public partial class PhotoViewerPageView : UserControl
         SetSaveAsOpen(subscribed?.SaveAs.IsOpen == true, animate: false);
         HdrFlyout.Hide();
         UpdateHdrControls();
+        UpdateFullScreenButton();
     }
 
     private void OnActionRequested(PhotoViewerAction action)

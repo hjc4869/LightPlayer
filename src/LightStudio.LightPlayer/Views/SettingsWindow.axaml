@@ -52,22 +52,19 @@
                     </Panel>
                 </Panel>
 
-                <!-- Drawn after the page so the sidebar material gathers the colors of the page beside it. -->
+                <!-- The sidebar sits on the system glass where the platform offers it, as the shell's does. -->
                 <Panel Grid.Column="0" Width="{x:Static shell:ShellViewModel.AppleSidebarWidth}">
                     <Border Background="{DynamicResource AppNavSurfaceBrush}" />
-                    <lmr:BackdropBorder IsHitTestVisible="False"
-                                        BackdropStyle="Blur"
-                                        LightSpill="{DynamicResource AppNavLightSpill}"
-                                        FallbackColor="{DynamicResource AppNavBackdropColor}"
-                                        TintColor="{DynamicResource AppNavBackdropTintColor}" />
-                    <DockPanel Classes="navPane apple expanded" ClipToBounds="True">
-                        <!-- Clears the window controls and drags the window, as the shell's sidebar does. -->
-                        <Border DockPanel.Dock="Top"
-                                Height="52"
-                                Background="Transparent"
-                                chrome:WindowDecorationProperties.ElementRole="TitleBar" />
-                        <pages:SettingsSidebarView />
-                    </DockPanel>
+                    <controls:NativeGlassPanel IsGlassEnabled="True" Background="{DynamicResource AppShellBackgroundBrush}">
+                        <DockPanel Classes="navPane apple expanded" ClipToBounds="True">
+                            <!-- Clears the window controls and drags the window, as the shell's sidebar does. -->
+                            <Border DockPanel.Dock="Top"
+                                    Height="52"
+                                    Background="Transparent"
+                                    chrome:WindowDecorationProperties.ElementRole="TitleBar" />
+                            <pages:SettingsSidebarView />
+                        </DockPanel>
+                    </controls:NativeGlassPanel>
                 </Panel>
             </Grid>
             <StackPanel x:Name="ClientWindowControls" IsVisible="False"

@@ -14,6 +14,9 @@ internal enum VideoTransferStage
     Pq,
     Hlg,
 
+    /// <summary>Apple Log, shown as the HLG picture its scene light corresponds to.</summary>
+    AppleLog,
+
     /// <summary>The sRGB curve, toe and all.</summary>
     Srgb,
 
@@ -70,6 +73,12 @@ internal sealed class VideoColorPlan
 
     // HDR targets keep libplacebo's partial knee adaptation toward the target range.
     private static readonly VideoSdrToneMappingOptions HdrSplineOptions = new() { KneeAdaptation = 0.4f };
+
+    private static readonly VideoSdrToneMappingOptions AutomaticSdrSpline = new() { Algorithm = VideoSdrToneMappingAlgorithm.Spline };
+    private static readonly VideoSdrToneMappingOptions AutomaticHdrSpline =
+        HdrSplineOptions with { Algorithm = VideoSdrToneMappingAlgorithm.Spline };
+    private static readonly VideoSdrToneMappingOptions AutomaticBt2390 =
+        new() { Algorithm = VideoSdrToneMappingAlgorithm.Bt2390, Bt2390KneeOffset = 0.5f };
 
     private static readonly float[] DolbyVisionLmsToRgb =
     [
@@ -175,7 +184,7 @@ internal sealed class VideoColorPlan
         frame.Hdr10Plus.IsPresent ||
         (frame.ColorTransfer == VideoColorTransfer.Bt709 && VideoSurfaceTransfers.ForBt709() is not null) ||
         frame.ColorTransfer is VideoColorTransfer.Srgb or VideoColorTransfer.Pq or
-            VideoColorTransfer.Hlg or VideoColorTransfer.Linear ||
+            VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog or VideoColorTransfer.Linear ||
         VideoColorGamut.NeedsConversion(frame.ColorPrimaries, target.GetPrimaries());
 
     /// <summary>
@@ -203,7 +212,7 @@ internal sealed class VideoColorPlan
         bool hdr10Plus = !dolbyVision && frame.Hdr10Plus.IsPresent;
         VideoColorTransfer colorTransfer = dolbyVision ? VideoColorTransfer.Pq : frame.ColorTransfer;
         VideoColorPrimaries colorPrimaries = dolbyVision ? VideoColorPrimaries.Bt2020 : frame.ColorPrimaries;
-        bool hdr = colorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
+        bool hdr = colorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog;
         VideoColorPrimaries outputPrimaries = target.GetPrimaries();
         VideoColorGamut.GamutConversion gamut = VideoColorGamut.ToTarget(colorPrimaries, outputPrimaries);
         bool extended = target.IsExtendedRange();
@@ -226,6 +235,7 @@ internal sealed class VideoColorPlan
         {
             VideoColorTransfer.Pq => VideoTransferStage.Pq,
             VideoColorTransfer.Hlg => VideoTransferStage.Hlg,
+            VideoColorTransfer.AppleLog => VideoTransferStage.AppleLog,
             VideoColorTransfer.Linear => VideoTransferStage.Linear,
             VideoColorTransfer.Srgb => VideoTransferStage.Srgb,
 
@@ -240,8 +250,9 @@ internal sealed class VideoColorPlan
         };
 
         float sourcePeak = ResolveSourcePeak(frame, target, hdrPassthrough, colorVolume);
+        bool dynamicPeak = HasDynamicPeak(frame);
         VideoHdrOutputMapping hdrOutput = target.ResolveHdrOutput(
-            sourcePeak,
+            ResolveAdaptationPeak(frame, sourcePeak),
             hdrPassthrough && hdr,
             sdrToneMapping,
             componentGain: gamut.MaximumComponentGain,
@@ -252,7 +263,9 @@ internal sealed class VideoColorPlan
         double linearNitsPerUnit = hdrOutput.LinearNitsPerUnit;
         double toneMapPeak = Math.Max(hdrOutput.ToneMapPeakNits, 1);
         bool sdrToneMap = toneMap && toneMapPeak <= linearNitsPerUnit;
-        if (sdrToneMap && sourcePeak <= toneMapPeak)
+
+        // The stream decides whether output adapts; a dynamic frame within the target still needs no curve.
+        if ((sdrToneMap || dynamicPeak) && sourcePeak <= toneMapPeak)
             toneMap = false;
         VideoSdrToneMappingOptions toneOptions = sdrToneMapping ?? VideoSdrToneMappingOptions.Default;
         bool customToneMap = sdrToneMap || sdrToneMapping is not null;
@@ -311,7 +324,7 @@ internal sealed class VideoColorPlan
                 [frame.Width, frame.Height, layout.BytesPerSample == 2 ? (float)layout.SampleScale : 1, 0];
         }
 
-        if (transfer == VideoTransferStage.Hlg || toneMap)
+        if (transfer is VideoTransferStage.Hlg or VideoTransferStage.AppleLog || toneMap)
         {
             float systemGamma = hdrOutput.RelativeLuminance
                 ? 1.2f
@@ -320,7 +333,7 @@ internal sealed class VideoColorPlan
                 [(float)gamut.Luma.Red, (float)gamut.Luma.Green, (float)gamut.Luma.Blue, systemGamma];
         }
 
-        if (transfer == VideoTransferStage.Hlg)
+        if (transfer is VideoTransferStage.Hlg or VideoTransferStage.AppleLog)
             uniforms[VideoShaderUniforms.TransferParams] = [sourcePeak, 0, 0, 0];
         else if (transfer == VideoTransferStage.Bt1886)
             uniforms[VideoShaderUniforms.TransferParams] = Bt1886Parameters(colorVolume);
@@ -337,15 +350,9 @@ internal sealed class VideoColorPlan
             ];
         }
 
-        // FFmpeg can carry local selectors, but libplacebo's global color mapping likewise uses
-        // processing window zero. The remaining windows stay on the frame for diagnostics.
-        Hdr10PlusProcessingWindow? hdr10PlusWindow = hdr10Plus
-            ? frame.Hdr10Plus.Windows[0]
-            : null;
         bool hdr10PlusToneMap = toneMap &&
-            (!customToneMap || toneOptions.Algorithm == VideoSdrToneMappingAlgorithm.Auto) && hdr10PlusWindow is
-            { ToneMapping: true, AnchorCount: > 0 } &&
-            frame.Hdr10Plus.TargetedSystemDisplayMaximumLuminance > 0;
+            (!customToneMap || toneOptions.Algorithm == VideoSdrToneMappingAlgorithm.Auto) &&
+            hdr10Plus && HasAuthoredCurve(frame.Hdr10Plus);
         bool sceneAdaptiveToneMap = toneMap && !hdr10PlusToneMap && (customToneMap
             ? toneOptions.Algorithm is VideoSdrToneMappingAlgorithm.Auto or VideoSdrToneMappingAlgorithm.Spline
             : dolbyVision || hdr10Plus);
@@ -505,9 +512,10 @@ internal sealed class VideoColorPlan
         VideoSdrToneMappingOptions? sdrToneMapping = null)
     {
         bool dolbyVision = frame.DolbyVision.IsApplicable;
-        bool hdr = dolbyVision || frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
+        bool hdr = dolbyVision ||
+            frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog;
         return target.ResolveHdrOutput(
-            ResolveSourcePeak(frame, target, hdrPassthrough, colorVolume),
+            ResolveAdaptationPeak(frame, ResolveSourcePeak(frame, target, hdrPassthrough, colorVolume)),
             hdrPassthrough && hdr,
             sdrToneMapping,
             componentGain: VideoColorGamut.MaximumComponentGain(
@@ -588,7 +596,7 @@ internal sealed class VideoColorPlan
     private static float ResolveSourcePeak(VideoFrame frame, VideoOutputColorSpace target,
         bool hdrPassthrough, VideoOutputColorVolume? colorVolume)
     {
-        if (!frame.DolbyVision.IsApplicable && frame.ColorTransfer == VideoColorTransfer.Hlg &&
+        if (!frame.DolbyVision.IsApplicable && frame.ColorTransfer is (VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog) &&
             (!target.UsesAbsoluteLuminance(hdrPassthrough, colorVolume) ||
              !VideoOutputColorSpaceExtensions.HasHdrHeadroom(colorVolume)))
             return 1000;
@@ -601,6 +609,61 @@ internal sealed class VideoColorPlan
                     ? measured : frame.HdrPeakLuminance;
         return (float)VideoOutputColorSpaceExtensions.EffectiveHdrSourcePeak(peak);
     }
+
+    /// <summary>
+    /// The highest light the stream declares, in cd/m^2, raised by the frame's dynamic metadata
+    /// where that exceeds it, or zero when the stream declares none.
+    /// </summary>
+    public static double ResolveStreamPeak(VideoFrame frame)
+    {
+        double declared = Positive(frame.HdrPeakLuminance);
+        if (frame.DolbyVision.IsApplicable)
+            return Math.Max(declared, Math.Max(VideoToneCurve.PqToNits(frame.DolbyVision.SourceMaximumPq),
+                Positive(frame.DolbyVision.EffectivePeakLuminance)));
+        return frame.Hdr10Plus.IsPresent && declared > 0
+            ? Math.Max(declared, Positive(frame.Hdr10Plus.EffectivePeakLuminance))
+            : declared;
+    }
+
+    /// <summary>
+    /// The options naming the curve automatic tone mapping applies to the frame on an output, with its
+    /// parameters. Auto stands for output that does not adapt and for the authored HDR10+ curve.
+    /// </summary>
+    public static VideoSdrToneMappingOptions DescribeAutomaticToneMapping(VideoFrame frame, VideoHdrOutputMapping output)
+    {
+        bool dolbyVision = frame.DolbyVision.IsApplicable;
+        bool hdr10Plus = !dolbyVision && frame.Hdr10Plus.IsPresent;
+        if (!output.AdaptsToDisplay || hdr10Plus && HasAuthoredCurve(frame.Hdr10Plus))
+            return VideoSdrToneMappingOptions.Default;
+        if (output.ToneMapPeakNits <= output.LinearNitsPerUnit)
+            return AutomaticSdrSpline;
+        return dolbyVision || hdr10Plus ? AutomaticHdrSpline : AutomaticBt2390;
+    }
+
+    // FFmpeg can carry local selectors, but libplacebo's global color mapping likewise uses
+    // processing window zero. The remaining windows stay on the frame for diagnostics.
+    private static bool HasAuthoredCurve(Hdr10PlusMetadata metadata) =>
+        metadata.Windows[0] is { ToneMapping: true, AnchorCount: > 0 } &&
+        metadata.TargetedSystemDisplayMaximumLuminance > 0;
+
+    private static bool HasDynamicPeak(VideoFrame frame) => frame.DolbyVision.IsApplicable
+        ? frame.DolbyVision.EffectivePeakLuminance > 0
+        : frame.ColorTransfer != VideoColorTransfer.Hlg && frame.Hdr10Plus is { IsPresent: true, EffectivePeakLuminance: > 0 };
+
+    /// <summary>
+    /// The peak that decides whether output adapts to the display. Dynamic metadata changes from frame
+    /// to frame, so its stream decides from the light it declares, or from the PQ ceiling when it declares none.
+    /// </summary>
+    private static float ResolveAdaptationPeak(VideoFrame frame, float sourcePeak)
+    {
+        if (!HasDynamicPeak(frame))
+            return sourcePeak;
+        double streamPeak = ResolveStreamPeak(frame);
+        return (float)VideoOutputColorSpaceExtensions.EffectiveHdrSourcePeak(
+            streamPeak > 0 ? Math.Max(streamPeak, sourcePeak) : 10000);
+    }
+
+    private static double Positive(double value) => value > 0 && double.IsFinite(value) ? value : 0;
 
     /// <summary>Adds the stages that turn the decoder's samples into scene light.</summary>
     public void AddSceneStages(VideoShaderBuilder builder, string sampleSource, bool matrixDecode)
@@ -716,6 +779,7 @@ internal sealed class VideoColorPlan
             {
                 VideoTransferStage.Pq => VideoColorStages.TransferPq,
                 VideoTransferStage.Hlg => VideoColorStages.TransferHlg,
+                VideoTransferStage.AppleLog => VideoColorStages.TransferAppleLog,
                 VideoTransferStage.Srgb => VideoColorStages.TransferSrgb,
                 VideoTransferStage.Bt1886 => VideoColorStages.TransferBt1886,
                 VideoTransferStage.Power => VideoColorStages.TransferPower,
@@ -888,7 +952,7 @@ internal sealed class VideoColorPlan
             yield break;
         }
 
-        if (Transfer != VideoTransferStage.Hlg)
+        if (Transfer is not (VideoTransferStage.Hlg or VideoTransferStage.AppleLog))
             yield break;
 
         yield return VideoShaderUniforms.SourceLuma;

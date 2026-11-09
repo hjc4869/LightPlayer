@@ -61,10 +61,15 @@ internal sealed class VideoSurfaceProbeOperation(
 
         // WebCodecs must preserve high-bit HDR samples for the production tone mapper. Establish
         // whether this backend can display their 16-bit containers before a decoder chooses that
-        // route, rather than rejecting its first frame after playback has already started. A lease
-        // without a context would answer for the rasterizer rather than for the backend.
+        // route, rather than rejecting its first frame after playback has already started, and
+        // likewise for 16-bit RGBA photos. A lease without a context would answer for the
+        // rasterizer rather than for the backend.
         if (lease.GrContext is not null)
+        {
             VideoPlaneFormatProbe.Supports(lease.GrContext, VideoPixelFormat.Yuv420p10);
+            VideoPackedFormatProbe.UsesHalfFloat(lease.GrContext);
+            VideoSamplePrecisionProbe.RoundsToHalf(lease.GrContext);
+        }
 
         // Reported from here too, so the color chain can be read off an idle view rather than
         // only once something HDR happens to be playing.

@@ -92,6 +92,12 @@ public sealed record PhotoViewerCallbacks
 
     public Action<bool>? SetFullScreen { get; init; }
 
+    /// <summary>
+    /// Asks the platform to turn the display for a picture of the given width/height ratio while full
+    /// screen, or to release it when the ratio is 0. Null where the display never turns.
+    /// </summary>
+    public Action<double>? RequestPreferredOrientation { get; init; }
+
     public Func<string, bool>? TryOpenInNewWindow { get; init; }
 
     /// <summary>Shows the picture's file properties, or null on heads without a properties dialog.</summary>

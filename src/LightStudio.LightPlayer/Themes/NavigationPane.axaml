@@ -76,4 +76,53 @@
     <Style Selector="DockPanel.navPane.apple.expanded TextBlock.navSection">
         <Setter Property="IsVisible" Value="True" />
     </Style>
+
+    <!-- Touch chrome: iPadOS sidebar rows, 44 DIPs tall with capsule fills, 24-DIP glyphs, and 17-point labels. -->
+    <Style Selector=":is(TopLevel).appleTouch DockPanel.navPane.apple">
+        <Style Selector="^ Button.nav">
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Margin" Value="16,0" />
+            <Setter Property="CornerRadius" Value="22" />
+        </Style>
+        <Style Selector="^ StackPanel.navContent">
+            <Setter Property="Margin" Value="16,0,0,0" />
+        </Style>
+        <Style Selector="^ DockPanel.navContent">
+            <Setter Property="Margin" Value="16,0,16,0" />
+        </Style>
+        <Style Selector="^ Viewbox.navGlyph">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
+        </Style>
+        <Style Selector="^ TextBlock.navLabel">
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="Margin" Value="14,0,0,0" />
+        </Style>
+        <Style Selector="^ Button.nav.selected TextBlock.navLabel">
+            <Setter Property="FontWeight" Value="Normal" />
+        </Style>
+        <Style Selector="^ TextBlock.navSection">
+            <Setter Property="Margin" Value="32,18,16,6" />
+            <Setter Property="FontSize" Value="17" />
+        </Style>
+    </Style>
+    <!-- A rail centers the glyphs in its collapsed width and keeps them in place as the sidebar opens over
+         the page. Its headings show only once the sidebar has fully opened (fullyOpen, set by the shell). -->
+    <Style Selector=":is(TopLevel).appleTouch DockPanel.navPane.apple.rail">
+        <Style Selector="^ Button.nav">
+            <Setter Property="Margin" Value="12,0" />
+        </Style>
+        <Style Selector="^ StackPanel.navContent">
+            <Setter Property="Margin" Value="12,0,0,0" />
+        </Style>
+        <Style Selector="^ DockPanel.navContent">
+            <Setter Property="Margin" Value="12,0,12,0" />
+        </Style>
+        <Style Selector="^ TextBlock.navSection">
+            <Setter Property="Margin" Value="24,18,12,6" />
+        </Style>
+        <Style Selector="^:not(.fullyOpen) TextBlock.navSection">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+    </Style>
 </Styles>

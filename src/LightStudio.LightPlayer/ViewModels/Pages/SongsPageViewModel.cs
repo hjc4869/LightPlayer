@@ -97,8 +97,11 @@ public sealed class SongsPageViewModel : LibraryBrowsePageViewModelBase<TrackRow
 
     protected override void OnHasShellPathMenuChanged(bool value) => UpdateAddressBarVisibility();
 
-    private void UpdateAddressBarVisibility() =>
-        AddressBar.IsVisible = Layout == LibraryLayoutMode.Folders && !IsNarrow && !HasShellPathMenu;
+    private void UpdateAddressBarVisibility()
+    {
+        AddressBar.IsBrowsingFolders = Layout == LibraryLayoutMode.Folders;
+        AddressBar.IsVisible = AddressBar.IsBrowsingFolders && !IsNarrow && !HasShellPathMenu;
+    }
 
     private void GoUp()
     {

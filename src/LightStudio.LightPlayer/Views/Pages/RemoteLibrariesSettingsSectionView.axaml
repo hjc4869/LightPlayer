@@ -43,7 +43,7 @@
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <TextBlock Text="{Binding DisplayName}"
                                                    Classes="settingName"
-                                                   FontSize="14" />
+                                                   FontSize="{DynamicResource AppSettingNameFontSize}" />
                                         <TextBlock Text="{Binding PriorityText}"
                                                    FontSize="11"
                                                    VerticalAlignment="Center"
@@ -51,7 +51,7 @@
                                     </StackPanel>
                                     <TextBlock Text="{Binding Address}"
                                                Classes="settingDescription"
-                                               FontSize="12"
+                                               FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                                TextWrapping="Wrap" />
                                     <TextBlock Text="{Binding StatusText}"
                                                FontSize="12"

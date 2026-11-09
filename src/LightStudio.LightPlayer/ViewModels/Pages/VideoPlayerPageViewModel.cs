@@ -81,6 +81,14 @@ public sealed class SubtitleBrightnessOption(
     public string DisplayName => Localized(resourceKey, fallbackTitle);
 }
 
+/// <summary>One entry of the picture size picker.</summary>
+public sealed class StretchOption(Stretch mode, string resourceKey) : ViewModelBase
+{
+    public Stretch Mode { get; } = mode;
+
+    public string DisplayName => Localized(resourceKey);
+}
+
 /// <summary>One row of the server subtitle browser: a folder to open, or a script to load.</summary>
 public sealed class SubtitleBrowserItemViewModel(
     SubtitleFileEntry entry,
@@ -422,7 +430,8 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
     private MediaChapter? selectedChapter;
 
     [ObservableProperty]
-    private Stretch stretch = Stretch.Uniform;
+    [NotifyPropertyChangedFor(nameof(Stretch))]
+    private StretchOption selectedStretchOption = null!;
 
     [ObservableProperty]
     private VideoScalingQuality scalingQuality;
@@ -641,6 +650,13 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
             close();
         });
 
+        StretchOptions =
+        [
+            new(Stretch.Uniform, nameof(Strings.Resources.VideoPlayer_StretchFit)),
+            new(Stretch.UniformToFill, nameof(Strings.Resources.VideoPlayer_StretchFill)),
+        ];
+        selectedStretchOption = StretchOptions[0];
+
         SpeedOptions = [new(0.5), new(0.75), new(1.0), new(1.25), new(1.5), new(2.0)];
         selectedSpeedOption = SpeedOptions.First(option => Math.Abs(option.Value - Speed) < 0.01);
 
@@ -681,6 +697,11 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
             pictureInPicture.ActiveChanged += OnPictureInPictureHostChanged;
         }
     }
+
+    public IReadOnlyList<StretchOption> StretchOptions { get; }
+
+    /// <summary>How the picture fills the page; chosen for this page and never saved.</summary>
+    public Stretch Stretch => SelectedStretchOption?.Mode ?? Stretch.Uniform;
 
     public IReadOnlyList<SpeedOption> SpeedOptions { get; }
 
@@ -1782,6 +1803,10 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
             volumeBeforeMute = Volume;
         }
     }
+
+    /// <summary>Moves to the next entry of the picture size menu, wrapping at the end.</summary>
+    public void CycleStretch() =>
+        SelectedStretchOption = StretchOptions[(IndexOf(StretchOptions, SelectedStretchOption) + 1) % StretchOptions.Count];
 
     /// <summary>Steps the given number of places along the speed menu, stopping at either end.</summary>
     public void StepSpeed(int delta)

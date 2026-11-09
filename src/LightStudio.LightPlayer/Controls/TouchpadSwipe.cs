@@ -19,6 +19,7 @@ internal sealed class TouchpadSwipe
     private readonly Action<double> moved;
     private readonly Action<bool, TimeSpan> ended;
     private readonly Action? started;
+    private readonly Action<Vector>? movedDown;
     private readonly DispatcherTimer idleTimer = new() { Interval = IdleTimeout };
     private readonly Stopwatch clock = new();
 #if LMR_AVALONIA_FORK
@@ -28,14 +29,19 @@ internal sealed class TouchpadSwipe
     private State state;
     private bool nativeLifecycle;
 
+    /// <param name="movedDown">
+    /// When set, a gesture that starts downwards is followed too, reported as its travel in both
+    /// directions; otherwise only sideways gestures are.
+    /// </param>
     public TouchpadSwipe(Control owner, Func<bool> canStart, Action<double> moved,
-        Action<bool, TimeSpan> ended, Action? started = null)
+        Action<bool, TimeSpan> ended, Action? started = null, Action<Vector>? movedDown = null)
     {
         this.owner = owner;
         this.canStart = canStart;
         this.moved = moved;
         this.ended = ended;
         this.started = started;
+        this.movedDown = movedDown;
         idleTimer.Tick += OnIdle;
         owner.AddHandler(InputElement.PointerWheelChangedEvent, OnWheel, RoutingStrategies.Tunnel);
         owner.AddHandler(InputElement.PointerTouchPadGestureMagnifyEvent, (_, _) => Cancel(),
@@ -44,9 +50,9 @@ internal sealed class TouchpadSwipe
         owner.DetachedFromVisualTree += (_, _) => Reset();
     }
 
-    public bool IsTracking => state is State.Pending or State.Horizontal;
+    public bool IsTracking => state is State.Pending or State.Horizontal or State.Downward;
 
-    public bool IsActive => state == State.Horizontal;
+    public bool IsActive => state is State.Horizontal or State.Downward;
 
     private bool HasInteraction => IsActive || (state == State.Pending && started is not null);
 
@@ -150,7 +156,8 @@ internal sealed class TouchpadSwipe
         travel += e.Delta * DipsPerWheelDelta;
         if (state == State.Pending)
         {
-            if (Math.Abs(travel.Y) > Math.Abs(travel.X))
+            bool vertical = Math.Abs(travel.Y) > Math.Abs(travel.X);
+            if (vertical && (travel.Y < 0 || movedDown is null))
             {
                 if (Math.Abs(travel.Y) >= DirectionThreshold)
                 {
@@ -162,14 +169,17 @@ internal sealed class TouchpadSwipe
             }
 
             e.Handled = true;
-            if (Math.Abs(travel.X) < DirectionThreshold)
+            if (Math.Abs(vertical ? travel.Y : travel.X) < DirectionThreshold)
                 return;
 
-            state = State.Horizontal;
+            state = vertical ? State.Downward : State.Horizontal;
         }
 
         e.Handled = true;
-        moved(travel.X);
+        if (state == State.Downward)
+            movedDown!(travel);
+        else
+            moved(travel.X);
 #endif
     }
 
@@ -193,10 +203,33 @@ internal sealed class TouchpadSwipe
         {
             nativeLifecycle = true;
             state = State.Completed;
+#if LMR_AVALONIA_FORK
+            if (TopLevel.GetTopLevel(owner) is { } topLevel)
+                SwallowInertia(topLevel);
+#endif
         }
         if (engaged)
             ended(commit && owner.IsEffectivelyVisible && canStart(), elapsed);
     }
+
+#if LMR_AVALONIA_FORK
+    /// <summary>
+    /// Keeps the momentum of a finished gesture from reaching anything else in the window, such as the
+    /// page left showing when the gesture closed the one it was on, until another scroll begins.
+    /// </summary>
+    private static void SwallowInertia(TopLevel topLevel)
+    {
+        EventHandler<PointerWheelEventArgs>? swallow = null;
+        swallow = (_, e) =>
+        {
+            if (e.IsTouchpad && e.GesturePhase == TouchpadGesturePhase.Inertia)
+                e.Handled = true;
+            else
+                topLevel.RemoveHandler(InputElement.PointerWheelChangedEvent, swallow!);
+        };
+        topLevel.AddHandler(InputElement.PointerWheelChangedEvent, swallow, RoutingStrategies.Tunnel);
+    }
+#endif
 
     private void OnIdle(object? sender, EventArgs e)
     {
@@ -212,6 +245,7 @@ internal sealed class TouchpadSwipe
         None,
         Pending,
         Horizontal,
+        Downward,
         Ignored,
         Completed
     }

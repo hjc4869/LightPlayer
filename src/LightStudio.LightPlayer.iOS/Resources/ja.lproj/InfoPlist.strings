@@ -1,1 +1,3 @@
 "NSLocalNetworkUsageDescription" = "ローカルネットワーク上のメディアライブラリに接続します。";
+"NSAppleMusicUsageDescription" = "デバイスのメディアライブラリにある音楽を再生します。";
+"NSPhotoLibraryUsageDescription" = "デバイスのメディアライブラリにある写真と動画を表示します。";

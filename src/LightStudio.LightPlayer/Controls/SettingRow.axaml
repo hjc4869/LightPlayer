@@ -31,16 +31,17 @@
             </Border>
             <Grid Grid.Row="1"
                   ColumnDefinitions="*,Auto"
-                  Margin="16,12"
+                  Margin="{DynamicResource AppSettingRowPadding}"
+                  MinHeight="{DynamicResource AppSettingRowMinHeight}"
                   IsVisible="{Binding #Root.IsHeaderVisible}"
                   VerticalAlignment="Center">
                 <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                     <TextBlock Text="{Binding #Root.Header}"
                                Classes="settingName"
-                               FontSize="14" />
+                               FontSize="{DynamicResource AppSettingNameFontSize}" />
                     <TextBlock Text="{Binding #Root.Description}"
                                Classes="settingDescription"
-                               FontSize="12"
+                               FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                IsVisible="{Binding #Root.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                TextWrapping="Wrap" />
                     <ContentControl Content="{Binding #Root.DescriptionContent}"

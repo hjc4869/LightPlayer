@@ -42,6 +42,7 @@ public sealed partial class NowPlayingSheetViewModel : ObservableObject, IDispos
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BottomNavOpacity))]
     [NotifyPropertyChangedFor(nameof(IsBottomNavInteractive))]
+    [NotifyPropertyChangedFor(nameof(SurfaceOpacity))]
     private double progress;
 
     [ObservableProperty]
@@ -103,6 +104,14 @@ public sealed partial class NowPlayingSheetViewModel : ObservableObject, IDispos
 
     /// <summary>The bottom navigation only takes taps while the sheet is (essentially) compact.</summary>
     public bool IsBottomNavInteractive => Progress < 0.02d;
+
+    /// <summary>
+    /// Opacity of the sheet's surface on touch chrome, where it takes over from the compact card's glass
+    /// capsule as the capsule fades. The bands beside the safe area take the same opacity.
+    /// </summary>
+    public double SurfaceOpacity => GetSurfaceOpacity(Progress);
+
+    internal static double GetSurfaceOpacity(double progress) => Math.Clamp(progress * 2.2d, 0d, 1d);
 
     /// <summary>
     /// Builds the lyrics / metadata content on first use. Called by the view model when the sheet

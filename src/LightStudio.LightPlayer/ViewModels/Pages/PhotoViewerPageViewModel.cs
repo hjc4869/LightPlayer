@@ -75,11 +75,17 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
     [NotifyPropertyChangedFor(nameof(HasImage))]
     [NotifyPropertyChangedFor(nameof(HasGainMap))]
     [NotifyPropertyChangedFor(nameof(HasAbsoluteLuminance))]
+    [NotifyPropertyChangedFor(nameof(ShowsPreview))]
+    [NotifyPropertyChangedFor(nameof(IsPictureReady))]
+    [NotifyPropertyChangedFor(nameof(ShowsLoadingIndicator))]
     private VideoFrame? image;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasGainMap))]
     [NotifyPropertyChangedFor(nameof(HasAbsoluteLuminance))]
+    [NotifyPropertyChangedFor(nameof(ShowsPreview))]
+    [NotifyPropertyChangedFor(nameof(IsPictureReady))]
+    [NotifyPropertyChangedFor(nameof(ShowsLoadingIndicator))]
     private PhotoPreview? preview;
 
     [ObservableProperty]
@@ -89,6 +95,10 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
     private PhotoPreview? nextPreview;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsPreview))]
+    [NotifyPropertyChangedFor(nameof(IsPictureReady))]
+    [NotifyPropertyChangedFor(nameof(ShowsLoadingIndicator))]
+    [NotifyPropertyChangedFor(nameof(PictureAspectRatio))]
     private Size naturalSize;
 
     [ObservableProperty]
@@ -99,6 +109,7 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(ToggleRawRenderingCommand))]
+    [NotifyPropertyChangedFor(nameof(ShowsLoadingIndicator))]
     private bool isLoading = true;
 
     [ObservableProperty]
@@ -128,6 +139,7 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Description))]
+    [NotifyPropertyChangedFor(nameof(PictureAspectRatio))]
     private int rotation;
 
     /// <summary>
@@ -286,9 +298,40 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         return true;
     }
 
-    partial void OnIsFullScreenChanged(bool value) => callbacks.SetFullScreen?.Invoke(value);
+    partial void OnIsFullScreenChanged(bool value)
+    {
+        callbacks.SetFullScreen?.Invoke(value);
+        UpdatePreferredOrientation();
+    }
+
+    /// <summary>The width/height ratio of the picture as it is seen, or 0 before its size is known.</summary>
+    public double PictureAspectRatio
+    {
+        get
+        {
+            Size size = Image is { } frame ? DisplaySize(frame) : NaturalSize;
+            if (size.Width <= 0 || size.Height <= 0)
+                return 0;
+            return Rotation % 180 == 90 ? size.Height / size.Width : size.Width / size.Height;
+        }
+    }
+
+    // Asks the platform to turn the display to the picture's shape while full screen.
+    private void UpdatePreferredOrientation() =>
+        callbacks.RequestPreferredOrientation?.Invoke(IsFullScreen ? PictureAspectRatio : 0);
 
     public bool HasImage => Image is not null;
+
+    /// <summary>
+    /// Whether a preview laid out at the photo's own size stands in for it, answering zoom, pan, and
+    /// swipes while the full image decodes behind it.
+    /// </summary>
+    public bool ShowsPreview => Image is null && Preview is not null && NaturalSize is { Width: > 0, Height: > 0 };
+
+    /// <summary>Whether the full image or its preview is shown for zoom and rotation to act on.</summary>
+    public bool IsPictureReady => Image is not null || ShowsPreview;
+
+    public bool ShowsLoadingIndicator => IsLoading && !ShowsPreview;
 
     public bool HasGainMap => Image?.GainMap is not null ||
         Image is null && Preview is { IsViewportPreview: true, Image: PhotoFrameImage { Frame.GainMap: not null } };
@@ -418,11 +461,16 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
     internal void SupplyPreview(PhotoPreview value)
     {
         if (!cancellation.IsCancellationRequested && (Preview is null ||
-            value.IsViewportPreview && !Preview.IsViewportPreview))
+            value.IsViewportPreview && !Preview.IsViewportPreview && (IsHighDynamicRange(value) || !IsHighDynamicRange(Preview))))
             Preview = value;
         else
             value.Release();
     }
+
+    // An SDR viewport preview replacing an HDR thumbnail would dim the picture until the photo decodes.
+    private static bool IsHighDynamicRange(PhotoPreview preview) =>
+        preview.Image is PhotoFrameImage { Frame: { } frame } &&
+        (frame.GainMap is not null || frame.ColorTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg);
 
     private void Request(PhotoViewerAction action) => ActionRequested?.Invoke(action);
 
@@ -443,6 +491,8 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
             return;
 
         isSwiping = true;
+        if (ShowsPreview)
+            return;
         load.Cancel();
         load.Dispose();
         load = CancellationTokenSource.CreateLinkedTokenSource(cancellation.Token);
@@ -455,7 +505,7 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
             return;
 
         isSwiping = false;
-        if (Image is null && !isPreviewSelecting)
+        if (Image is null && !isPreviewSelecting && !IsLoading)
             StartLoad();
     }
 
@@ -561,7 +611,12 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         }
     }
 
-    partial void OnRotationChanged(int value) => SaveAs.Rotate(value);
+    partial void OnRotationChanged(int value)
+    {
+        SaveAs.Rotate(value);
+        if (IsFullScreen)
+            UpdatePreferredOrientation();
+    }
 
     private void ToggleSaveAs()
     {
@@ -884,6 +939,9 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         oldValue?.Release();
         SaveAs.Close();
         SaveAsCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(PictureAspectRatio));
+        if (IsFullScreen)
+            UpdatePreferredOrientation();
     }
 
     partial void OnPreviewChanged(PhotoPreview? oldValue, PhotoPreview? newValue) => oldValue?.Release();

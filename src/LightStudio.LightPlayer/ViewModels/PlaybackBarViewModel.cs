@@ -21,8 +21,11 @@ namespace LightStudio.LightPlayer.ViewModels;
 /// binds to. All real playback (decode, output, seek, volume, transport) is
 /// delegated to the controller.
 /// </summary>
-public partial class PlaybackBarViewModel : ObservableObject
+public partial class PlaybackBarViewModel : ObservableObject, IArtworkSizeTarget
 {
+    /// <summary>Side of the bar's artwork in DIPs; the now-playing sheet reports its larger size.</summary>
+    private const double ArtDisplaySize = 60;
+
     private readonly PlaybackController controller;
     private readonly AlbumArtService albumArt;
     private readonly IPlaylistService? playlists;
@@ -31,6 +34,7 @@ public partial class PlaybackBarViewModel : ObservableObject
     private MusicPlaybackItemModel? trackedItem;
     private bool isScrubbing;
     private int artVersion;
+    private int artPixelSize;
 
     [ObservableProperty]
     private IImage? albumImage;
@@ -338,6 +342,17 @@ public partial class PlaybackBarViewModel : ObservableObject
         OnPropertyChanged(nameof(PositionText));
     }
 
+    public void SetArtworkDisplaySize(int pixelSize)
+    {
+        if (pixelSize <= artPixelSize)
+        {
+            return;
+        }
+
+        artPixelSize = pixelSize;
+        RefreshArt();
+    }
+
     private void RefreshArt()
     {
         var version = ++artVersion;
@@ -354,16 +369,22 @@ public partial class PlaybackBarViewModel : ObservableObject
 
     private async Task LoadArtAsync(MusicPlaybackItemModel item, int version)
     {
-        var bitmap = await albumArt.GetHighQualityTrackArtAsync(item.Media).ConfigureAwait(false);
+        // The first load fixes the size the views have not reported yet, so a later report can grow it.
+        if (artPixelSize == 0)
+        {
+            artPixelSize = AlbumArtService.DisplayPixels(ArtDisplaySize);
+        }
+
+        var image = await albumArt.GetHighQualityTrackArtAsync(item.Media, artPixelSize).ConfigureAwait(false);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             if (version != artVersion || !ReferenceEquals(controller.CurrentItem, item))
             {
-                bitmap?.Dispose();
+                image?.Dispose();
                 return;
             }
 
-            AlbumImage = bitmap;
+            AlbumImage = image;
         }, DispatcherPriority.Background);
     }
 

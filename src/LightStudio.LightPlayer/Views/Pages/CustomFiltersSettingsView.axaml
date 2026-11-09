@@ -65,12 +65,12 @@
                                     <TextBlock Grid.Column="0"
                                                Text="{Binding DisplayName}"
                                                Classes="settingName"
-                                               FontSize="14"
+                                               FontSize="{DynamicResource AppSettingNameFontSize}"
                                                TextWrapping="Wrap" />
                                 </Grid>
                                 <TextBlock Text="{Binding Description}"
                                            Classes="settingDescription"
-                                           FontSize="12"
+                                           FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                            TextWrapping="Wrap" />
                                 <TextBlock Text="{Binding Details}"
                                            Classes="settingDescription"

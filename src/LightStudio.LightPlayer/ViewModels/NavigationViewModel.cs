@@ -78,7 +78,7 @@ public partial class NavigationViewModel : ObservableObject
 
     public void CollapseOverlay()
     {
-        if (DisplayMode == SplitViewDisplayMode.CompactOverlay)
+        if (DisplayMode is SplitViewDisplayMode.CompactOverlay or SplitViewDisplayMode.Overlay)
         {
             IsExpanded = false;
         }

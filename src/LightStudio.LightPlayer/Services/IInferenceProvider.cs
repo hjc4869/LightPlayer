@@ -39,6 +39,8 @@ public interface IInferenceProvider
 public interface IEmbeddingInferenceSession : IDisposable
 {
     int EmbeddingDimensions { get; }
+    /// <summary>The longest edge of the model's input image in pixels.</summary>
+    int ImageSize { get; }
     string ModelName { get; }
     string ActiveDeviceId { get; }
     float[] EncodeText(string query, CancellationToken cancellationToken);

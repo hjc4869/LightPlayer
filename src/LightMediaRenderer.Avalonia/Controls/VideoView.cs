@@ -144,7 +144,7 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
     private bool isExtendedRangeOutput;
     private bool isHdrContent;
     private readonly object toneMappingOutputSync = new();
-    private (VideoHdrOutputMapping Output, VideoDisplayToneTarget Display)? reportedToneMappingOutput;
+    private (VideoHdrOutputMapping Output, VideoDisplayToneTarget Display, VideoSdrToneMappingOptions Curve)? reportedToneMappingOutput;
     private VideoSdrToneMappingOptions automaticToneMapping = VideoSdrToneMappingOptions.Default with
     {
         Algorithm = VideoSdrToneMappingAlgorithm.Spline,
@@ -190,6 +190,10 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
         set => SetValue(PlayerProperty, value);
     }
 
+    /// <summary>
+    /// How the picture fills the control: <see cref="Stretch.Uniform"/> shows all of it inside letterbox
+    /// bars, and <see cref="Stretch.UniformToFill"/> covers the control and crops the overflow.
+    /// </summary>
     public Stretch Stretch
     {
         get => GetValue(StretchProperty);
@@ -458,7 +462,8 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
     /// <remarks>
     /// The read happens on the render thread after the production shader and resampler have drawn,
     /// so it includes hardware-surface imports and the negotiated output color path. Letterbox
-    /// bars and subtitles are intentionally excluded.
+    /// bars and subtitles are intentionally excluded, and a picture cropped to fill the control is
+    /// read as far as it shows.
     /// </remarks>
     public Task<VideoRenderCapture> CaptureRenderedFrameAsync(CancellationToken cancellationToken = default)
     {
@@ -613,6 +618,9 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
         if (background is not null)
             context.FillRectangle(background, bounds);
 
+        // Filling crops the picture at the control's edges, which also keeps the pipeline's work to what shows.
+        using DrawingContext.PushedState clip = Stretch == Stretch.UniformToFill ? context.PushClip(bounds) : default;
+
         VideoFrame? frame;
         VideoDeinterlaceHistory? history;
         long sequence;
@@ -710,12 +718,14 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
         if (Subtitles is { } subtitles && bounds.Width > 0 && bounds.Height > 0)
         {
             subtitleRenderer ??= new AssSubtitleRenderer();
+
+            // Authored scripts are placed on the picture itself, while plain text stays on the visible part of it.
             context.Custom(new SubtitleDrawOperation(
                 subtitleRenderer,
                 StyleSubtitles(subtitles),
                 time,
                 bounds,
-                destination,
+                subtitles.IsPlainText ? destination.Intersect(bounds) : destination,
                 storage,
                 SubtitleBrightnessMode,
                 outputLuminance));
@@ -752,20 +762,18 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
         return styledSubtitles;
     }
 
-    private void ReportAutomaticToneMapping(VideoHdrOutputMapping output, VideoDisplayToneTarget display)
+    private void ReportAutomaticToneMapping(VideoHdrOutputMapping output, VideoDisplayToneTarget display,
+        VideoSdrToneMappingOptions curve)
     {
         lock (toneMappingOutputSync)
         {
-            if (reportedToneMappingOutput == (output, display))
+            if (reportedToneMappingOutput == (output, display, curve))
                 return;
-            reportedToneMappingOutput = (output, display);
+            reportedToneMappingOutput = (output, display, curve);
         }
 
-        bool sdr = output.ToneMapPeakNits <= output.LinearNitsPerUnit;
-        var options = VideoSdrToneMappingOptions.Default with
+        var options = curve with
         {
-            Algorithm = !output.AdaptsToDisplay ? VideoSdrToneMappingAlgorithm.Auto : sdr
-                ? VideoSdrToneMappingAlgorithm.Spline : VideoSdrToneMappingAlgorithm.Bt2390,
             TargetHeadroom = output.ToneMapPeakNits / output.LinearNitsPerUnit,
             ReferenceWhiteNits = output.LinearNitsPerUnit,
             Bt2390KneeOffset = 0.5f,
@@ -801,6 +809,9 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
         if (Stretch == Stretch.None)
             return video;
 
+        if (Stretch == Stretch.UniformToFill && !unboundedWidth && !unboundedHeight)
+            return availableSize;
+
         double scale = Math.Min(
             unboundedWidth ? double.PositiveInfinity : availableSize.Width / video.Width,
             unboundedHeight ? double.PositiveInfinity : availableSize.Height / video.Height);
@@ -817,7 +828,8 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
         if (Player is not { } player)
             return;
 
-        if (!PreferHardwareProcessing || !frame.HasSurface || !CanScaleOnDevice(frame))
+        // A cropped picture would be resized whole, to more pixels than the control shows.
+        if (!PreferHardwareProcessing || !frame.HasSurface || !CanScaleOnDevice(frame) || !IsInside(bounds, destination))
         {
             player.RequestVideoOutput(null);
             return;
@@ -853,6 +865,10 @@ public class VideoView : Control, IVideoSink, IVideoDrawFeedback
     private static bool CanPadOnDevice(VideoFrame frame, Rect bounds, Rect destination) =>
         frame.Rotation == 0 &&
         !frame.MirrorHorizontally &&
+        IsInside(bounds, destination);
+
+    /// <summary>Whether the picture lies wholly inside the control, to within half a pixel.</summary>
+    private static bool IsInside(Rect bounds, Rect destination) =>
         destination.X >= bounds.X - 0.5 &&
         destination.Y >= bounds.Y - 0.5 &&
         destination.Right <= bounds.Right + 0.5 &&

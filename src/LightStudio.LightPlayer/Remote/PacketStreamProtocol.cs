@@ -334,6 +334,7 @@ public sealed class HttpPacketStreamReader : IDisposable
     private readonly byte[] header = new byte[HttpPacketStreamProtocol.RecordHeaderSize];
     private byte[] payload = new byte[64 * 1024];
     private int payloadLength;
+    private int pendingBitstreamLength;
     private bool disposed;
 
     private HttpPacketStreamReader(Stream source) => this.source = source;
@@ -368,11 +369,19 @@ public sealed class HttpPacketStreamReader : IDisposable
 
     public int LastTrackId { get; private set; }
 
+    /// <summary>
+    /// The last record's payload. For a packet this is its packet header alone: the bitstream stays
+    /// on the wire for <see cref="ReadBitstreamAsync"/>, so it lands once, in the buffer that keeps it.
+    /// </summary>
     public ReadOnlySpan<byte> LastPayload => payload.AsSpan(0, payloadLength);
+
+    /// <summary>Bytes of the last packet's bitstream not yet taken off the wire.</summary>
+    public int PendingBitstreamLength => pendingBitstreamLength;
 
     public async Task<bool> ReadAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
+        await SkipBitstreamAsync(cancellationToken).ConfigureAwait(false);
         int read = await ReadAtMostAsync(header, cancellationToken).ConfigureAwait(false);
         if (read == 0)
         {
@@ -393,6 +402,17 @@ public sealed class HttpPacketStreamReader : IDisposable
             throw new InvalidDataException($"A packet stream record claims {length} bytes.");
         }
 
+        if (LastType == PacketStreamRecordType.Packet)
+        {
+            if (length < PacketStreamProtocol.PacketHeaderSize)
+            {
+                throw new InvalidDataException($"A packet record claims {length} bytes, less than its header.");
+            }
+
+            pendingBitstreamLength = length - PacketStreamProtocol.PacketHeaderSize;
+            length = PacketStreamProtocol.PacketHeaderSize;
+        }
+
         if (payload.Length < length)
         {
             payload = new byte[Math.Max(length, payload.Length * 2)];
@@ -405,6 +425,36 @@ public sealed class HttpPacketStreamReader : IDisposable
 
         payloadLength = length;
         return true;
+    }
+
+    /// <summary>
+    /// Takes the last packet's bitstream off the wire into <paramref name="destination"/>, which must
+    /// hold <see cref="PendingBitstreamLength"/> bytes. A bitstream left unread is skipped by the next read.
+    /// </summary>
+    public async Task ReadBitstreamAsync(Memory<byte> destination, CancellationToken cancellationToken)
+    {
+        ObjectDisposedException.ThrowIf(disposed, this);
+        int length = pendingBitstreamLength;
+        if (destination.Length < length)
+        {
+            throw new ArgumentException("The destination cannot hold the packet's bitstream.", nameof(destination));
+        }
+
+        pendingBitstreamLength = 0;
+        if (length > 0)
+        {
+            await source.ReadExactlyAsync(destination[..length], cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task SkipBitstreamAsync(CancellationToken cancellationToken)
+    {
+        while (pendingBitstreamLength > 0)
+        {
+            int chunk = Math.Min(pendingBitstreamLength, payload.Length);
+            await source.ReadExactlyAsync(payload.AsMemory(0, chunk), cancellationToken).ConfigureAwait(false);
+            pendingBitstreamLength -= chunk;
+        }
     }
 
     private async Task<int> ReadAtMostAsync(byte[] destination, CancellationToken cancellationToken)

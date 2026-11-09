@@ -60,6 +60,9 @@ public partial class PhotoView : Control
     public static readonly StyledProperty<object?> SourceKeyProperty =
         AvaloniaProperty.Register<PhotoView, object?>(nameof(SourceKey));
 
+    public static readonly StyledProperty<bool> IsPreviewInteractiveProperty =
+        AvaloniaProperty.Register<PhotoView, bool>(nameof(IsPreviewInteractive));
+
     public static readonly StyledProperty<IImage?> PreviousPreviewSourceProperty =
         AvaloniaProperty.Register<PhotoView, IImage?>(nameof(PreviousPreviewSource));
 
@@ -215,6 +218,7 @@ public partial class PhotoView : Control
         PreviousPreviewSourceProperty.Changed.AddClassHandler<PhotoView>((view, args) => view.OnPreviewSourceChanged(args));
         NextPreviewSourceProperty.Changed.AddClassHandler<PhotoView>((view, args) => view.OnPreviewSourceChanged(args));
         PreviewNaturalSizeProperty.Changed.AddClassHandler<PhotoView>((view, args) => view.OnPreviewSizeChanged(args));
+        IsPreviewInteractiveProperty.Changed.AddClassHandler<PhotoView>((view, _) => view.OnPreviewInteractiveChanged());
         PreviousSourceProperty.Changed.AddClassHandler<PhotoView>(
             (view, e) => view.OnNeighborChanged(view.previous, e));
         NextSourceProperty.Changed.AddClassHandler<PhotoView>(
@@ -289,6 +293,16 @@ public partial class PhotoView : Control
     {
         get => GetValue(SourceKeyProperty);
         set => SetValue(SourceKeyProperty, value);
+    }
+
+    /// <summary>
+    /// Whether the preview answers zoom and pan like the picture itself while <see cref="Source"/> is
+    /// still loading. It is laid out at <see cref="PreviewNaturalSize"/>, so the viewport carries over.
+    /// </summary>
+    public bool IsPreviewInteractive
+    {
+        get => GetValue(IsPreviewInteractiveProperty);
+        set => SetValue(IsPreviewInteractiveProperty, value);
     }
 
     public IImage? PreviousPreviewSource
@@ -472,11 +486,14 @@ public partial class PhotoView : Control
 
     public double TargetZoom => zoomTarget ?? zoom;
 
-    public double MinimumZoom => current.Frame is { } frame ? Viewport(frame).MinimumZoom : 1;
+    public double MinimumZoom => PictureViewport?.MinimumZoom ?? 1;
 
     public bool IsFitToWindow => Math.Abs(zoom - 1) < 1e-6;
 
-    public double ZoomPercentage => current.Frame is { } frame ? 100 * zoom / Viewport(frame).ActualSizeZoom : 100;
+    public double ZoomPercentage => PictureViewport is { } viewport ? 100 * zoom / viewport.ActualSizeZoom : 100;
+
+    /// <summary>Whether a picture is shown that zoom and pan act on.</summary>
+    public bool CanZoom => PictureViewport is not null;
 
     public event EventHandler? ViewportChanged;
 
@@ -496,16 +513,16 @@ public partial class PhotoView : Control
     /// Whether the picture is larger than the control and so answers a drag by moving. False leaves
     /// the drag to the page, whose sideways swipe turns to the next picture.
     /// </summary>
-    public bool CanPan => current.Frame is { } frame && Viewport(frame).CanPan(zoom);
+    public bool CanPan => PictureViewport?.CanPan(zoom) == true;
 
     /// <summary>Moves the picture by a viewport-relative amount with the same frame-paced easing as zoom.</summary>
     public void PanBy(Vector delta)
     {
         StopZoomAnimation();
-        if (current.Frame is not { } frame || !CanPan)
+        if (PictureViewport is not { } viewport || !viewport.CanPan(zoom))
             return;
 
-        Vector target = Viewport(frame).Clamp(offset + delta, zoom);
+        Vector target = viewport.Clamp(offset + delta, zoom);
         if (target == offset)
             return;
 
@@ -547,8 +564,8 @@ public partial class PhotoView : Control
     /// <summary>Shows one stored pixel per display pixel.</summary>
     public void ZoomToActualSize()
     {
-        if (current.Frame is { } frame)
-            AnimateZoom(Viewport(frame).ActualSizeZoom, Center);
+        if (PictureViewport is { } viewport)
+            AnimateZoom(viewport.ActualSizeZoom, Center);
     }
 
     /// <summary>Returns to the size the picture opened at, filling the viewport without cropping.</summary>
@@ -715,7 +732,8 @@ public partial class PhotoView : Control
             compositor: ElementComposition.GetElementVisual(this)?.Compositor,
             toneMapping: frame is { GainMap: null, ColorTransfer: VideoColorTransfer.Pq } ? ToneMapping : null,
             toneMappingOutputChanged: ReferenceEquals(frame, current.Frame) &&
-                frame is { GainMap: null, ColorTransfer: VideoColorTransfer.Pq } ? ReportAutomaticToneMapping : null));
+                frame is { GainMap: null, ColorTransfer: VideoColorTransfer.Pq } ? ReportAutomaticToneMapping : null,
+            inMotion: IsInMotion));
         bool hasHdrContent = hdrPassthrough && HdrContentHint.IsHdr(frame);
         if (hasHdrContent)
             contentMetadata = HdrContentHint.Combine(contentMetadata, HdrContentHint.Describe(frame,
@@ -738,7 +756,11 @@ public partial class PhotoView : Control
 
     private double RenderScaling => TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
 
-    private void ReportAutomaticToneMapping(VideoHdrOutputMapping output, VideoDisplayToneTarget display)
+    /// <summary>Whether a sideways swipe or a drag to dismiss, or its glide, is carrying the picture.</summary>
+    private bool IsInMotion => SwipeOffset != 0 || DismissOffset != default || Math.Abs(DismissScale - 1) > 1e-6;
+
+    private void ReportAutomaticToneMapping(VideoHdrOutputMapping output, VideoDisplayToneTarget display,
+        VideoSdrToneMappingOptions curve)
     {
         VideoDisplayToneTarget? previousDisplay;
         lock (displayToneTargetSync)
@@ -755,21 +777,14 @@ public partial class PhotoView : Control
             });
         }
 
-        bool sdr = output.ToneMapPeakNits <= output.LinearNitsPerUnit;
-        var algorithm = !output.AdaptsToDisplay ? VideoSdrToneMappingAlgorithm.Auto : sdr
-            ? VideoSdrToneMappingAlgorithm.Spline : VideoSdrToneMappingAlgorithm.Bt2390;
-        double headroom = output.ToneMapPeakNits / output.LinearNitsPerUnit;
-        var previousOptions = Volatile.Read(ref reportedAutomaticToneMapping);
-        if (previousOptions is not null && previousOptions.Algorithm == algorithm &&
-            previousOptions.TargetHeadroom == headroom && previousOptions.ReferenceWhiteNits == output.LinearNitsPerUnit)
-            return;
-        var options = VideoSdrToneMappingOptions.Default with
+        var options = curve with
         {
-            Algorithm = algorithm,
-            TargetHeadroom = headroom,
+            TargetHeadroom = output.ToneMapPeakNits / output.LinearNitsPerUnit,
             ReferenceWhiteNits = output.LinearNitsPerUnit,
             Bt2390KneeOffset = 0.5f,
         };
+        if (Volatile.Read(ref reportedAutomaticToneMapping) == options)
+            return;
         Interlocked.Exchange(ref reportedAutomaticToneMapping, options);
         Dispatcher.UIThread.Post(() =>
         {
@@ -794,7 +809,7 @@ public partial class PhotoView : Control
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
         base.OnPointerWheelChanged(e);
-        if (current.Frame is null || e.Delta == default)
+        if (PictureViewport is null || e.Delta == default)
             return;
 
         bool touchpad = false;
@@ -818,7 +833,7 @@ public partial class PhotoView : Control
 
     private void OnTouchpadMagnify(object? sender, PointerDeltaEventArgs e)
     {
-        if (current.Frame is null || !double.IsFinite(e.Delta.Y) || e.Delta.Y <= -1)
+        if (PictureViewport is null || !double.IsFinite(e.Delta.Y) || e.Delta.Y <= -1)
             return;
 
         ApplyZoom(zoom * (1 + e.Delta.Y), e.GetPosition(this));
@@ -829,7 +844,7 @@ public partial class PhotoView : Control
     {
         base.OnPointerPressed(e);
 
-        if (current.Frame is null)
+        if (PictureViewport is null)
             return;
 
         StopZoomAnimation();
@@ -898,7 +913,7 @@ public partial class PhotoView : Control
 
         if (!ReferenceEquals(dragPointer, e.Pointer) ||
             dragOrigin is not { } origin ||
-            current.Frame is null)
+            PictureViewport is null)
             return;
 
         SetOffset(dragStartOffset + (e.GetPosition(this) - origin));
@@ -979,7 +994,7 @@ public partial class PhotoView : Control
     /// </summary>
     private void BeginGesture()
     {
-        if (current.Frame is not { } frame)
+        if (PictureViewport is not { } viewport)
             return;
 
         CancelTap();
@@ -988,7 +1003,7 @@ public partial class PhotoView : Control
 
         gestureStartZoom = zoom;
         gestureStartSpan = Math.Max(MinimumContactSpan, Distance(a, b));
-        gestureAnchor = Viewport(frame).Anchor(zoom, offset, Midpoint(a, b));
+        gestureAnchor = viewport.Anchor(zoom, offset, Midpoint(a, b));
         gesturing = true;
 
         // Taken from whoever held them -- the page's own swipe, most likely -- so both contacts are
@@ -1004,14 +1019,14 @@ public partial class PhotoView : Control
     /// </summary>
     private void UpdateGesture()
     {
-        if (current.Frame is not { } frame || contacts.Count < 2)
+        if (PictureViewport is not { } viewport || contacts.Count < 2)
             return;
 
         Point a = contacts[0].Position;
         Point b = contacts[1].Position;
         double span = Math.Max(MinimumContactSpan, Distance(a, b));
 
-        (double target, Vector moved) = Viewport(frame)
+        (double target, Vector moved) = viewport
             .ZoomToAnchor(gestureStartZoom * (span / gestureStartSpan), gestureAnchor, Midpoint(a, b));
 
         zoom = target;
@@ -1117,14 +1132,14 @@ public partial class PhotoView : Control
     {
         if (generation != panInertiaGeneration)
             return;
-        if (current.Frame is not { } frame || topLevel is null || !IsEffectivelyVisible || Opacity <= 0)
+        if (PictureViewport is not { } viewport || topLevel is null || !IsEffectivelyVisible || Opacity <= 0)
         {
             StopPanInertia();
             return;
         }
 
         double decay = Math.Pow(ScrollGestureRecognizer.InertialResistance, panInertiaClock.Elapsed.TotalSeconds);
-        Vector target = Viewport(frame).Clamp(panInertiaOrigin + panInertiaVelocity *
+        Vector target = viewport.Clamp(panInertiaOrigin + panInertiaVelocity *
             ((decay - 1) / Math.Log(ScrollGestureRecognizer.InertialResistance)), zoom);
         Vector speed = new(target.X == offset.X ? 0 : panInertiaVelocity.X * decay,
             target.Y == offset.Y ? 0 : panInertiaVelocity.Y * decay);
@@ -1163,19 +1178,19 @@ public partial class PhotoView : Control
     /// <summary>Alternates between filling the viewport and one image pixel per display pixel.</summary>
     private void ToggleZoom(Point focus)
     {
-        if (current.Frame is not { } frame)
+        if (PictureViewport is not { } viewport)
             return;
 
-        double target = IsFitToWindow ? Viewport(frame).ActualSizeZoom : 1;
+        double target = IsFitToWindow ? viewport.ActualSizeZoom : 1;
         AnimateZoom(target, focus);
     }
 
     private void AnimateZoom(double requested, Point focus)
     {
-        if (current.Frame is not { } frame)
+        if (PictureViewport is not { } viewport)
             return;
 
-        double target = Math.Clamp(requested, Viewport(frame).MinimumZoom, PhotoViewport.MaximumZoom);
+        double target = Math.Clamp(requested, viewport.MinimumZoom, PhotoViewport.MaximumZoom);
         if (zoomTarget is { } pending && Math.Abs(target - pending) < 1e-6)
             return;
 
@@ -1190,7 +1205,7 @@ public partial class PhotoView : Control
             return;
 
         zoomTarget = target;
-        zoomAnchor = Viewport(frame).Anchor(zoom, offset, focus);
+        zoomAnchor = viewport.Anchor(zoom, offset, focus);
         zoomFocus = focus;
         zoomGlide.Start(zoom, target, ZoomAnimationMs);
         ViewportChanged?.Invoke(this, EventArgs.Empty);
@@ -1198,13 +1213,13 @@ public partial class PhotoView : Control
 
     private void ApplyAnimatedZoom(double value)
     {
-        if (current.Frame is not { } frame || !IsEffectivelyVisible)
+        if (PictureViewport is not { } viewport || !IsEffectivelyVisible)
         {
             StopZoomAnimation();
             return;
         }
 
-        (zoom, offset) = Viewport(frame).ZoomToAnchor(value, zoomAnchor, zoomFocus);
+        (zoom, offset) = viewport.ZoomToAnchor(value, zoomAnchor, zoomFocus);
         UpdateCursor();
         InvalidateVisual();
         ViewportChanged?.Invoke(this, EventArgs.Empty);
@@ -1212,13 +1227,13 @@ public partial class PhotoView : Control
 
     private void ApplyAnimatedPan(double progress)
     {
-        if (current.Frame is not { } frame || !IsEffectivelyVisible)
+        if (PictureViewport is not { } viewport || !IsEffectivelyVisible)
         {
             StopZoomAnimation();
             return;
         }
 
-        offset = Viewport(frame).Clamp(panStartOffset + ((panTargetOffset - panStartOffset) * progress), zoom);
+        offset = viewport.Clamp(panStartOffset + ((panTargetOffset - panStartOffset) * progress), zoom);
         UpdateCursor();
         InvalidateVisual();
     }
@@ -1253,10 +1268,10 @@ public partial class PhotoView : Control
     private void ApplyZoom(double requested, Point focus)
     {
         StopZoomAnimation();
-        if (current.Frame is not { } frame)
+        if (PictureViewport is not { } viewport)
             return;
 
-        (double target, Vector moved) = Viewport(frame).ZoomAbout(zoom, offset, requested, focus);
+        (double target, Vector moved) = viewport.ZoomAbout(zoom, offset, requested, focus);
         if (Math.Abs(target - zoom) < 1e-6)
             return;
 
@@ -1270,9 +1285,8 @@ public partial class PhotoView : Control
     private void SetOffset(Vector value)
     {
         StopZoomAnimation();
-        if (current.Frame is { } frame)
+        if (PictureViewport is { } viewport)
         {
-            PhotoViewport viewport = Viewport(frame);
             zoom = Math.Clamp(zoom, viewport.MinimumZoom, PhotoViewport.MaximumZoom);
             offset = viewport.Clamp(value, zoom);
         }
@@ -1285,6 +1299,13 @@ public partial class PhotoView : Control
     }
 
     private PhotoViewport Viewport(VideoFrame frame) => new(NaturalSize(frame, Rotation), Bounds.Size, RenderScaling);
+
+    /// <summary>Geometry zoom and pan act on: the decoded picture, or the interactive preview standing in for it.</summary>
+    private PhotoViewport? PictureViewport =>
+        current.Frame is { } frame ? Viewport(frame)
+        : IsPreviewInteractive && PreviewSource is not null && PreviewNaturalSize is { Width: > 0, Height: > 0 } natural
+            ? new PhotoViewport(Rotation % 180 == 90 ? new Size(natural.Height, natural.Width) : natural, Bounds.Size, RenderScaling)
+            : null;
 
     /// <summary>Size the picture is meant to be seen at, with pixel aspect and rotation applied.</summary>
     private static Size NaturalSize(VideoFrame frame, int rotation)
@@ -1344,6 +1365,12 @@ public partial class PhotoView : Control
         }
     }
 
+    private void OnPreviewInteractiveChanged()
+    {
+        UpdateCursor();
+        ViewportChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     private void OnPreviewSourceChanged(AvaloniaPropertyChangedEventArgs args)
     {
         if (VisualRoot is null)
@@ -1357,6 +1384,7 @@ public partial class PhotoView : Control
     private void AnimatePreviewSize(Rect from, Rect to)
     {
         if (VisualRoot is null || !IsEffectivelyVisible || Opacity <= 0 || TransitionBounds is not null ||
+            gesturing || dragPointer is not null || zoomTarget is not null ||
             from.Width <= 0 || from.Height <= 0 || to.Width <= 0 || to.Height <= 0 || from == to ||
             previewBounds is not null && previewEnd == to)
             return;

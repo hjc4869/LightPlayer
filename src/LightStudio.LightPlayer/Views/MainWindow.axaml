@@ -14,7 +14,7 @@
     Width="1200"
     Height="720"
     MinWidth="360"
-    MinHeight="600">
+    MinHeight="{x:Static services:ShellOrientation.MinimumHeight}">
 
     <!-- Native menu bar. Exported to the platform menu (macOS menu bar, and the global menu on Linux
          desktops that provide one); ignored on platforms without a native menu, where the in-shell

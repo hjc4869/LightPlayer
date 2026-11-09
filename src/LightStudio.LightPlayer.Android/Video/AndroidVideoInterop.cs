@@ -1,49 +1,33 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using Android.Content;
 using LightStudio.Logging;
+using LightStudio.NativeBindings;
+using LightStudio.NativeBindings.Types;
 
 namespace LightStudio.LightPlayer.Android.Video;
 
 /// <summary>
 /// Native Android window and graphics entry points for decoder output.
 /// </summary>
+/// <remarks>
+/// EGL and GLES functions are loaded from the system libraries at run time even where the image
+/// links statically: the renderer's context belongs to that driver while the image also carries
+/// ANGLE's implementation of the GLES entry points, and a device exports only the EGL extensions
+/// it has, whatever the NDK stubs declare.
+/// </remarks>
+[Include("GLES3/gl3.h", Access = BindingFlags.Public, ImportName = "libGLESv2.so")]
+[Include("GLES2/gl2ext.h", Access = BindingFlags.Public, ImportName = "libGLESv2.so", Prerequisites = ["GLES3/gl3.h"])]
+[Include("EGL/egl.h", Access = BindingFlags.Public, ImportName = "libEGL.so")]
+[Include("EGL/eglext.h", Access = BindingFlags.Public, ImportName = "libEGL.so", Prerequisites = ["EGL/egl.h"])]
+[Include("android/hardware_buffer.h", Access = BindingFlags.Public)]
+[Include("android/native_window_jni.h", Access = BindingFlags.Public)]
+[Include("media/NdkImageReader.h", Access = BindingFlags.Public)]
 internal static unsafe partial class AndroidVideoInterop
 {
-    public const uint GlTextureExternalOes = 0x8D65;
-    public const uint GlTexture2D = 0x0DE1;
-
-    private const uint GlExtensions = 0x1F03;
-    private const uint GlTextureMinFilter = 0x2801;
-    private const uint GlTextureMagFilter = 0x2800;
-    private const uint GlTextureWrapS = 0x2802;
-    private const uint GlTextureWrapT = 0x2803;
-    private const uint GlLinear = 0x2601;
-    private const uint GlClampToEdge = 0x812F;
-    private const uint GlRgba = 0x1908;
-    private const uint GlRgba16Float = 0x881A;
-    private const uint GlHalfFloat = 0x140B;
-    private const uint GlFramebuffer = 0x8D40;
-    private const uint GlColorAttachment0 = 0x8CE0;
-    private const uint GlFramebufferComplete = 0x8CD5;
-    private const uint GlVertexShader = 0x8B31;
-    private const uint GlFragmentShader = 0x8B30;
-    private const uint GlCompileStatus = 0x8B81;
-    private const uint GlLinkStatus = 0x8B82;
-    private const uint GlInfoLogLength = 0x8B84;
-    private const uint GlTexture0 = 0x84C0;
-    private const uint GlTriangles = 0x0004;
-    private const uint GlBlend = 0x0BE2;
-    private const uint GlCullFace = 0x0B44;
-    private const uint GlDepthTest = 0x0B71;
-    private const uint GlDither = 0x0BD0;
-    private const uint GlScissorTest = 0x0C11;
-    private const uint GlStencilTest = 0x0B90;
-    private const uint GlRasterizerDiscard = 0x8C89;
-    private const uint GlNoError = 0;
-
     private const string YuvCopyVertexShader = """
         #version 300 es
         precision highp float;
@@ -83,6 +67,7 @@ internal static unsafe partial class AndroidVideoInterop
     private static delegate* unmanaged[Cdecl]<IntPtr, int, int> releaseBuffer;
 #endif
     private static bool javaVmPublished;
+    private static delegate* unmanaged[Cdecl]<void*, void*, int> duplicateNativeFence;
 
 #if FFMPEG_STATIC
     [LibraryImport("__Internal", EntryPoint = "av_jni_set_java_vm")]
@@ -91,122 +76,6 @@ internal static unsafe partial class AndroidVideoInterop
     [LibraryImport("__Internal", EntryPoint = "av_mediacodec_release_buffer")]
     private static partial int ReleaseMediaCodecBuffer(IntPtr buffer, int render);
 #endif
-
-    [LibraryImport("android", EntryPoint = "ANativeWindow_fromSurface")]
-    public static partial IntPtr NativeWindowFromSurface(IntPtr env, IntPtr surface);
-
-    [LibraryImport("android", EntryPoint = "ANativeWindow_release")]
-    public static partial void NativeWindowRelease(IntPtr window);
-
-    [LibraryImport("GLESv2", EntryPoint = "glGenTextures")]
-    private static partial void GlGenTextures(int count, uint* textures);
-
-    [LibraryImport("GLESv2", EntryPoint = "glDeleteTextures")]
-    private static partial void GlDeleteTextures(int count, uint* textures);
-
-    [LibraryImport("GLESv2", EntryPoint = "glBindTexture")]
-    private static partial void GlBindTexture(uint target, uint texture);
-
-    [LibraryImport("GLESv2", EntryPoint = "glTexParameteri")]
-    private static partial void GlTexParameteri(uint target, uint parameter, int value);
-
-    [LibraryImport("GLESv2", EntryPoint = "glGetString")]
-    private static partial IntPtr GlGetString(uint name);
-
-    [LibraryImport("GLESv2", EntryPoint = "glGetError")]
-    private static partial uint GlGetError();
-
-    [LibraryImport("GLESv2", EntryPoint = "glTexImage2D")]
-    private static partial void GlTexImage2D(
-        uint target,
-        int level,
-        int internalFormat,
-        int width,
-        int height,
-        int border,
-        uint format,
-        uint type,
-        void* pixels);
-
-    [LibraryImport("GLESv2", EntryPoint = "glGenFramebuffers")]
-    private static partial void GlGenFramebuffers(int count, uint* framebuffers);
-
-    [LibraryImport("GLESv2", EntryPoint = "glDeleteFramebuffers")]
-    private static partial void GlDeleteFramebuffers(int count, uint* framebuffers);
-
-    [LibraryImport("GLESv2", EntryPoint = "glBindFramebuffer")]
-    private static partial void GlBindFramebuffer(uint target, uint framebuffer);
-
-    [LibraryImport("GLESv2", EntryPoint = "glFramebufferTexture2D")]
-    private static partial void GlFramebufferTexture2D(
-        uint target,
-        uint attachment,
-        uint textureTarget,
-        uint texture,
-        int level);
-
-    [LibraryImport("GLESv2", EntryPoint = "glCheckFramebufferStatus")]
-    private static partial uint GlCheckFramebufferStatus(uint target);
-
-    [LibraryImport("GLESv2", EntryPoint = "glCreateShader")]
-    private static partial uint GlCreateShader(uint type);
-
-    [LibraryImport("GLESv2", EntryPoint = "glShaderSource")]
-    private static partial void GlShaderSource(uint shader, int count, byte** source, int* length);
-
-    [LibraryImport("GLESv2", EntryPoint = "glCompileShader")]
-    private static partial void GlCompileShader(uint shader);
-
-    [LibraryImport("GLESv2", EntryPoint = "glGetShaderiv")]
-    private static partial void GlGetShaderiv(uint shader, uint parameter, int* value);
-
-    [LibraryImport("GLESv2", EntryPoint = "glGetShaderInfoLog")]
-    private static partial void GlGetShaderInfoLog(uint shader, int capacity, int* length, byte* log);
-
-    [LibraryImport("GLESv2", EntryPoint = "glDeleteShader")]
-    private static partial void GlDeleteShader(uint shader);
-
-    [LibraryImport("GLESv2", EntryPoint = "glCreateProgram")]
-    private static partial uint GlCreateProgram();
-
-    [LibraryImport("GLESv2", EntryPoint = "glAttachShader")]
-    private static partial void GlAttachShader(uint program, uint shader);
-
-    [LibraryImport("GLESv2", EntryPoint = "glLinkProgram")]
-    private static partial void GlLinkProgram(uint program);
-
-    [LibraryImport("GLESv2", EntryPoint = "glGetProgramiv")]
-    private static partial void GlGetProgramiv(uint program, uint parameter, int* value);
-
-    [LibraryImport("GLESv2", EntryPoint = "glGetProgramInfoLog")]
-    private static partial void GlGetProgramInfoLog(uint program, int capacity, int* length, byte* log);
-
-    [LibraryImport("GLESv2", EntryPoint = "glDeleteProgram")]
-    private static partial void GlDeleteProgram(uint program);
-
-    [LibraryImport("GLESv2", EntryPoint = "glGetUniformLocation")]
-    private static partial int GlGetUniformLocation(uint program, byte* name);
-
-    [LibraryImport("GLESv2", EntryPoint = "glViewport")]
-    private static partial void GlViewport(int x, int y, int width, int height);
-
-    [LibraryImport("GLESv2", EntryPoint = "glDisable")]
-    private static partial void GlDisable(uint capability);
-
-    [LibraryImport("GLESv2", EntryPoint = "glColorMask")]
-    private static partial void GlColorMask(byte red, byte green, byte blue, byte alpha);
-
-    [LibraryImport("GLESv2", EntryPoint = "glUseProgram")]
-    private static partial void GlUseProgram(uint program);
-
-    [LibraryImport("GLESv2", EntryPoint = "glActiveTexture")]
-    private static partial void GlActiveTexture(uint texture);
-
-    [LibraryImport("GLESv2", EntryPoint = "glUniform1i")]
-    private static partial void GlUniform1i(int location, int value);
-
-    [LibraryImport("GLESv2", EntryPoint = "glDrawArrays")]
-    private static partial void GlDrawArrays(uint mode, int first, int count);
 
     public readonly record struct ExternalYuvCopy(
         uint Texture,
@@ -224,23 +93,56 @@ internal static unsafe partial class AndroidVideoInterop
     public static uint CreateExternalTexture()
     {
         uint texture = 0;
-        GlGenTextures(1, &texture);
+        glGenTextures(1, &texture);
         if (texture == 0)
             return 0;
 
-        GlBindTexture(GlTextureExternalOes, texture);
-        GlTexParameteri(GlTextureExternalOes, GlTextureMinFilter, (int)GlLinear);
-        GlTexParameteri(GlTextureExternalOes, GlTextureMagFilter, (int)GlLinear);
-        GlTexParameteri(GlTextureExternalOes, GlTextureWrapS, (int)GlClampToEdge);
-        GlTexParameteri(GlTextureExternalOes, GlTextureWrapT, (int)GlClampToEdge);
-        GlBindTexture(GlTextureExternalOes, 0);
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, texture);
+        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
         return texture;
     }
 
     public static void DeleteTexture(uint texture)
     {
         if (texture != 0)
-            GlDeleteTextures(1, &texture);
+            glDeleteTextures(1, &texture);
+    }
+
+    /// <summary>Wraps a hardware buffer as an image of the display, or returns null.</summary>
+    public static void* CreateImage(void* display, AHardwareBuffer* buffer)
+    {
+        int* attributes = stackalloc int[] { EGL_IMAGE_PRESERVED_KHR, EGL_TRUE, EGL_NONE };
+        return eglCreateImageKHR(display, null, EGL_NATIVE_BUFFER_ANDROID, eglGetNativeClientBufferANDROID(buffer), attributes);
+    }
+
+    /// <summary>
+    /// A fence the GPU signals once the commands issued so far have run, as a file descriptor a
+    /// buffer queue can wait on before it hands the buffer out again, or -1 when none can be made.
+    /// </summary>
+    public static int CreateReleaseFence(void* display)
+    {
+        delegate* unmanaged[Cdecl]<void*, void*, int> duplicate = duplicateNativeFence;
+        if (duplicate == null)
+        {
+            duplicate = (delegate* unmanaged[Cdecl]<void*, void*, int>)eglGetProcAddress("eglDupNativeFenceFDANDROID");
+            if (duplicate == null)
+                return EGL_NO_NATIVE_FENCE_FD_ANDROID;
+            duplicateNativeFence = duplicate;
+        }
+
+        void* sync = eglCreateSyncKHR(display, EGL_SYNC_NATIVE_FENCE_ANDROID, null);
+        if (sync == null)
+            return EGL_NO_NATIVE_FENCE_FD_ANDROID;
+
+        // The descriptor only exists once the sync has reached the GPU.
+        glFlush();
+        int fence = duplicate(display, sync);
+        eglDestroySyncKHR(display, sync);
+        return fence;
     }
 
     public static bool TryCreateExternalYuvCopy(
@@ -257,7 +159,7 @@ internal static unsafe partial class AndroidVideoInterop
             return false;
         }
 
-        string extensions = Marshal.PtrToStringAnsi(GlGetString(GlExtensions)) ?? string.Empty;
+        string extensions = Marshal.PtrToStringUTF8((IntPtr)glGetString(GL_EXTENSIONS)) ?? string.Empty;
         if (!HasExtension(extensions, "GL_EXT_YUV_target"))
         {
             declined = "GL_EXT_YUV_target is not supported";
@@ -273,25 +175,25 @@ internal static unsafe partial class AndroidVideoInterop
         bool succeeded = false;
         try
         {
-            GlGenTextures(1, &texture);
-            GlBindTexture(GlTexture2D, texture);
-            GlTexParameteri(GlTexture2D, GlTextureMinFilter, (int)GlLinear);
-            GlTexParameteri(GlTexture2D, GlTextureMagFilter, (int)GlLinear);
-            GlTexParameteri(GlTexture2D, GlTextureWrapS, (int)GlClampToEdge);
-            GlTexParameteri(GlTexture2D, GlTextureWrapT, (int)GlClampToEdge);
-            GlTexImage2D(
-                GlTexture2D,
+            glGenTextures(1, &texture);
+            glBindTexture(GL_TEXTURE_2D, texture);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexImage2D(
+                GL_TEXTURE_2D,
                 0,
-                (int)GlRgba16Float,
+                GL_RGBA16F,
                 width,
                 height,
                 0,
-                GlRgba,
-                GlHalfFloat,
+                GL_RGBA,
+                GL_HALF_FLOAT,
                 null);
 
-            uint error = GlGetError();
-            if (texture == 0 || error != GlNoError)
+            uint error = glGetError();
+            if (texture == 0 || error != GL_NO_ERROR)
             {
                 declined = texture == 0
                     ? "OpenGL would not allocate the F16 texture"
@@ -299,21 +201,21 @@ internal static unsafe partial class AndroidVideoInterop
                 return false;
             }
 
-            GlGenFramebuffers(1, &framebuffer);
-            GlBindFramebuffer(GlFramebuffer, framebuffer);
-            GlFramebufferTexture2D(
-                GlFramebuffer,
-                GlColorAttachment0,
-                GlTexture2D,
+            glGenFramebuffers(1, &framebuffer);
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+            glFramebufferTexture2D(
+                GL_FRAMEBUFFER,
+                GL_COLOR_ATTACHMENT0,
+                GL_TEXTURE_2D,
                 texture,
                 0);
-            uint status = GlCheckFramebufferStatus(GlFramebuffer);
-            error = GlGetError();
-            if (framebuffer == 0 || status != GlFramebufferComplete || error != GlNoError)
+            uint status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+            error = glGetError();
+            if (framebuffer == 0 || status != GL_FRAMEBUFFER_COMPLETE || error != GL_NO_ERROR)
             {
                 declined = framebuffer == 0
                     ? "OpenGL would not allocate the F16 framebuffer"
-                    : status != GlFramebufferComplete
+                    : status != GL_FRAMEBUFFER_COMPLETE
                         ? $"the F16 framebuffer is incomplete (0x{status:X})"
                         : $"configuring the F16 framebuffer returned GL error 0x{error:X}";
                 return false;
@@ -328,10 +230,10 @@ internal static unsafe partial class AndroidVideoInterop
             if (!succeeded)
             {
                 if (framebuffer != 0)
-                    GlDeleteFramebuffers(1, &framebuffer);
+                    glDeleteFramebuffers(1, &framebuffer);
                 if (texture != 0)
-                    GlDeleteTextures(1, &texture);
-                GlDeleteProgram(program);
+                    glDeleteTextures(1, &texture);
+                glDeleteProgram(program);
             }
         }
     }
@@ -350,25 +252,25 @@ internal static unsafe partial class AndroidVideoInterop
         }
 
         ClearGlErrors();
-        GlBindFramebuffer(GlFramebuffer, copy.Framebuffer);
-        GlViewport(0, 0, width, height);
-        GlDisable(GlBlend);
-        GlDisable(GlCullFace);
-        GlDisable(GlDepthTest);
-        GlDisable(GlDither);
-        GlDisable(GlScissorTest);
-        GlDisable(GlStencilTest);
-        GlDisable(GlRasterizerDiscard);
-        GlColorMask(1, 1, 1, 1);
-        GlUseProgram(copy.Program);
-        GlActiveTexture(GlTexture0);
-        GlBindTexture(GlTextureExternalOes, sourceTexture);
-        GlUniform1i(copy.SamplerLocation, 0);
-        GlDrawArrays(GlTriangles, 0, 3);
+        glBindFramebuffer(GL_FRAMEBUFFER, copy.Framebuffer);
+        glViewport(0, 0, width, height);
+        glDisable(GL_BLEND);
+        glDisable(GL_CULL_FACE);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_DITHER);
+        glDisable(GL_SCISSOR_TEST);
+        glDisable(GL_STENCIL_TEST);
+        glDisable(GL_RASTERIZER_DISCARD);
+        glColorMask(1, 1, 1, 1);
+        glUseProgram(copy.Program);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_EXTERNAL_OES, sourceTexture);
+        glUniform1i(copy.SamplerLocation, 0);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
-        uint error = GlGetError();
-        declined = error == GlNoError ? string.Empty : $"the YUV copy returned GL error 0x{error:X}";
-        return error == GlNoError;
+        uint error = glGetError();
+        declined = error == GL_NO_ERROR ? string.Empty : $"the YUV copy returned GL error 0x{error:X}";
+        return error == GL_NO_ERROR;
     }
 
     public static void DeleteExternalYuvCopy(ExternalYuvCopy copy)
@@ -376,11 +278,11 @@ internal static unsafe partial class AndroidVideoInterop
         uint framebuffer = copy.Framebuffer;
         uint texture = copy.Texture;
         if (framebuffer != 0)
-            GlDeleteFramebuffers(1, &framebuffer);
+            glDeleteFramebuffers(1, &framebuffer);
         if (texture != 0)
-            GlDeleteTextures(1, &texture);
+            glDeleteTextures(1, &texture);
         if (copy.Program != 0)
-            GlDeleteProgram(copy.Program);
+            glDeleteProgram(copy.Program);
     }
 
     private static bool TryCreateYuvCopyProgram(
@@ -390,28 +292,28 @@ internal static unsafe partial class AndroidVideoInterop
     {
         program = 0;
         samplerLocation = -1;
-        if (!TryCompileShader(GlVertexShader, YuvCopyVertexShader, out uint vertex, out declined))
+        if (!TryCompileShader(GL_VERTEX_SHADER, YuvCopyVertexShader, out uint vertex, out declined))
             return false;
 
-        if (!TryCompileShader(GlFragmentShader, YuvCopyFragmentShader, out uint fragment, out declined))
+        if (!TryCompileShader(GL_FRAGMENT_SHADER, YuvCopyFragmentShader, out uint fragment, out declined))
         {
-            GlDeleteShader(vertex);
+            glDeleteShader(vertex);
             return false;
         }
 
-        program = GlCreateProgram();
+        program = glCreateProgram();
         if (program != 0)
         {
-            GlAttachShader(program, vertex);
-            GlAttachShader(program, fragment);
-            GlLinkProgram(program);
+            glAttachShader(program, vertex);
+            glAttachShader(program, fragment);
+            glLinkProgram(program);
         }
-        GlDeleteShader(vertex);
-        GlDeleteShader(fragment);
+        glDeleteShader(vertex);
+        glDeleteShader(fragment);
 
         int linked = 0;
         if (program != 0)
-            GlGetProgramiv(program, GlLinkStatus, &linked);
+            glGetProgramiv(program, GL_LINK_STATUS, &linked);
         if (linked == 0)
         {
             declined = program == 0
@@ -419,13 +321,13 @@ internal static unsafe partial class AndroidVideoInterop
                 : $"the YUV copy program did not link: {ReadProgramLog(program)}";
             if (program != 0)
             {
-                GlDeleteProgram(program);
+                glDeleteProgram(program);
                 program = 0;
             }
             return false;
         }
 
-        samplerLocation = GetUniformLocation(program, "sourceTexture");
+        samplerLocation = glGetUniformLocation(program, "sourceTexture");
         if (samplerLocation >= 0)
         {
             declined = string.Empty;
@@ -433,7 +335,7 @@ internal static unsafe partial class AndroidVideoInterop
         }
 
         declined = "the YUV copy program omitted its source sampler";
-        GlDeleteProgram(program);
+        glDeleteProgram(program);
         program = 0;
         return false;
     }
@@ -444,7 +346,7 @@ internal static unsafe partial class AndroidVideoInterop
         out uint shader,
         out string declined)
     {
-        shader = GlCreateShader(type);
+        shader = glCreateShader(type);
         if (shader == 0)
         {
             declined = "OpenGL would not create a YUV copy shader";
@@ -456,8 +358,8 @@ internal static unsafe partial class AndroidVideoInterop
         {
             byte* sourcePointer = (byte*)allocation;
             int length = Encoding.UTF8.GetByteCount(source);
-            GlShaderSource(shader, 1, &sourcePointer, &length);
-            GlCompileShader(shader);
+            glShaderSource(shader, 1, &sourcePointer, &length);
+            glCompileShader(shader);
         }
         finally
         {
@@ -465,7 +367,7 @@ internal static unsafe partial class AndroidVideoInterop
         }
 
         int compiled = 0;
-        GlGetShaderiv(shader, GlCompileStatus, &compiled);
+        glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
         if (compiled != 0)
         {
             declined = string.Empty;
@@ -473,28 +375,15 @@ internal static unsafe partial class AndroidVideoInterop
         }
 
         declined = $"a YUV copy shader did not compile: {ReadShaderLog(shader)}";
-        GlDeleteShader(shader);
+        glDeleteShader(shader);
         shader = 0;
         return false;
-    }
-
-    private static int GetUniformLocation(uint program, string name)
-    {
-        IntPtr allocation = Marshal.StringToCoTaskMemUTF8(name);
-        try
-        {
-            return GlGetUniformLocation(program, (byte*)allocation);
-        }
-        finally
-        {
-            Marshal.FreeCoTaskMem(allocation);
-        }
     }
 
     private static string ReadShaderLog(uint shader)
     {
         int length = 0;
-        GlGetShaderiv(shader, GlInfoLogLength, &length);
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         if (length <= 1)
             return "no compiler log";
 
@@ -502,7 +391,7 @@ internal static unsafe partial class AndroidVideoInterop
         fixed (byte* buffer = bytes)
         {
             int written = 0;
-            GlGetShaderInfoLog(shader, bytes.Length, &written, buffer);
+            glGetShaderInfoLog(shader, bytes.Length, &written, buffer);
             return Encoding.UTF8.GetString(bytes, 0, Math.Clamp(written, 0, bytes.Length)).TrimEnd('\0');
         }
     }
@@ -510,7 +399,7 @@ internal static unsafe partial class AndroidVideoInterop
     private static string ReadProgramLog(uint program)
     {
         int length = 0;
-        GlGetProgramiv(program, GlInfoLogLength, &length);
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
         if (length <= 1)
             return "no linker log";
 
@@ -518,7 +407,7 @@ internal static unsafe partial class AndroidVideoInterop
         fixed (byte* buffer = bytes)
         {
             int written = 0;
-            GlGetProgramInfoLog(program, bytes.Length, &written, buffer);
+            glGetProgramInfoLog(program, bytes.Length, &written, buffer);
             return Encoding.UTF8.GetString(bytes, 0, Math.Clamp(written, 0, bytes.Length)).TrimEnd('\0');
         }
     }
@@ -542,7 +431,7 @@ internal static unsafe partial class AndroidVideoInterop
 
     private static void ClearGlErrors()
     {
-        while (GlGetError() != GlNoError)
+        while (glGetError() != GL_NO_ERROR)
         {
         }
     }

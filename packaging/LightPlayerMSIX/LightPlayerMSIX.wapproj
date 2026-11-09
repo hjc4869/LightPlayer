@@ -60,11 +60,6 @@
     </AppxManifest>
   </ItemGroup>
   <Import Project="$(WapProjPath)\Microsoft.DesktopBridge.targets" />
-  <!--
-    The native FFmpeg DLLs are acquired by the desktop head itself (see build/Ffmpeg.targets and
-    <BundleFfmpeg> in LightStudio.LightPlayer.Desktop.csproj), so they arrive in this package as
-    part of the entry point project's regular packaging outputs.
-  -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" PrivateAssets="all" />
   </ItemGroup>

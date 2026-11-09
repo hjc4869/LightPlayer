@@ -4,7 +4,7 @@
 #   make flatpak                    Build the app and produce a Flatpak bundle (Linux).
 #   make flatpak-install            Build the Flatpak and install it (user installation).
 #   make osxapp                     Build the macOS Apple Silicon .app bundle and ZIP archive.
-#   make iosapp                     Build the signed iOS device .app bundle.
+#   make iosapp                     Build the iOS device .app bundle and IPA.
 #   make ios-deploy                 Build, install, and launch on IOS_DEVICE.
 #   make ios-sim                    Build the iOS simulator .app bundle.
 #   make ios-sim-deploy             Build, install, and launch on IOS_SIMULATOR.
@@ -38,7 +38,8 @@
 #   IOS_DEVICE           device identifier or name for ios-deploy (required)
 #   IOS_SIMULATOR        simulator identifier or name (default: booted)
 #   IOS_SIM_RID          simulator runtime identifier (default: host architecture)
-#   IOS_CODESIGN_KEY     optional Apple signing identity for device builds
+#   IOS_CODESIGN_KEY     Apple signing identity for device builds (iosapp is unsigned when
+#                        unset; ios-deploy defaults to Apple Development)
 #   IOS_CODESIGN_PROVISION optional provisioning profile for device builds
 
 APP_ID                          := im.hjc.LightPlayer
@@ -116,6 +117,7 @@ IOS_CODESIGN_KEY        ?=
 IOS_CODESIGN_PROVISION  ?=
 IOS_OUTPUT              := artifacts/ios/$(CONFIGURATION)
 IOS_APP                 := $(IOS_OUTPUT)/ios-arm64/lmcios.app
+IOS_IPA                 := $(IOS_OUTPUT)/LightPlayer-ios-arm64.ipa
 IOS_SIM_APP             := $(IOS_OUTPUT)/$(IOS_SIM_RID)/lmcios.app
 
 # Build-only .NET SDK provided by the Flatpak SDK extension. These versions must
@@ -292,13 +294,16 @@ iosapp:
 	@test "$$(uname -s)" = "Darwin" || { echo "error: 'make iosapp' requires macOS." >&2; exit 1; }
 	dotnet build "$(IOS_PROJECT)" -c "$(CONFIGURATION)" -r ios-arm64 -p:Platform=ARM64 \
 		-o "$(IOS_OUTPUT)/ios-arm64" \
-		$(if $(IOS_CODESIGN_KEY),-p:CodesignKey="$(IOS_CODESIGN_KEY)") \
+		-p:BuildIpa=true -p:IpaPackagePath="$(CURDIR)/$(IOS_IPA)" \
+		$(if $(IOS_CODESIGN_KEY),-p:CodesignKey="$(IOS_CODESIGN_KEY)",-p:EnableCodeSigning=false -p:CodesignRequireProvisioningProfile=false) \
 		$(if $(IOS_CODESIGN_PROVISION),-p:CodesignProvision="$(IOS_CODESIGN_PROVISION)")
 	@echo "==> Wrote $(IOS_APP)"
+	@echo "==> Wrote $(IOS_IPA)"
 
+# Devices only install signed bundles, so fall back to automatic development identity selection.
 ios-deploy:
 	@test -n "$(strip $(IOS_DEVICE))" || { echo "error: set IOS_DEVICE to a device identifier or name from 'xcrun devicectl list devices'." >&2; exit 1; }
-	$(MAKE) iosapp
+	$(MAKE) iosapp IOS_CODESIGN_KEY="$(or $(IOS_CODESIGN_KEY),Apple Development)"
 	xcrun devicectl device install app --device "$(IOS_DEVICE)" "$(IOS_APP)"
 	xcrun devicectl device process launch --device "$(IOS_DEVICE)" --terminate-existing "$(APP_ID)"
 

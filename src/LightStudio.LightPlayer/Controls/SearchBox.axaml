@@ -106,7 +106,7 @@
             </Style>
         </Style>
         <!-- A window that is not key drops the focus ring and the selection emphasis. -->
-        <Style Selector=":is(Window)[IsActive=False] controls|SearchBox.glass">
+        <Style Selector=":is(Window).inactive controls|SearchBox.glass">
             <Style Selector="^ Border#MacFocusRing">
                 <Setter Property="IsVisible" Value="False" />
             </Style>

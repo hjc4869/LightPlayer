@@ -62,6 +62,13 @@ public partial class VideoSheet : UserControl
     public static readonly StyledProperty<double> BottomInsetProperty =
         AvaloniaProperty.Register<VideoSheet, double>(nameof(BottomInset), defaultValue: 0d);
 
+    /// <summary>
+    /// The safe area insets within the sheet. The corner card keeps inside them, while the maximized
+    /// card covers them and leaves its controls to keep clear.
+    /// </summary>
+    public static readonly StyledProperty<Thickness> SafeAreaInsetsProperty =
+        AvaloniaProperty.Register<VideoSheet, Thickness>(nameof(SafeAreaInsets));
+
     private readonly SheetGesture sheet;
     private readonly DispatcherTimer hideControlsTimer = new() { Interval = ControlsIdleTimeout };
 
@@ -114,6 +121,13 @@ public partial class VideoSheet : UserControl
         set => SetValue(BottomInsetProperty, value);
     }
 
+    /// <inheritdoc cref="SafeAreaInsetsProperty" />
+    public Thickness SafeAreaInsets
+    {
+        get => GetValue(SafeAreaInsetsProperty);
+        set => SetValue(SafeAreaInsetsProperty, value);
+    }
+
     private VideoSheetViewModel? ViewModel => DataContext as VideoSheetViewModel;
 
     protected override Size MeasureOverride(Size availableSize)
@@ -133,6 +147,11 @@ public partial class VideoSheet : UserControl
         // resize (or a rotation) has to re-place it at the same logical position.
         if (change.Property == BoundsProperty || change.Property == BottomInsetProperty)
         {
+            sheet.Refresh();
+        }
+        else if (change.Property == SafeAreaInsetsProperty)
+        {
+            ShellChrome.SetSafeAreaInsets(PlayerHost, SafeAreaInsets);
             sheet.Refresh();
         }
     }
@@ -515,11 +534,11 @@ public partial class VideoSheet : UserControl
 
     // Distance the card's top edge travels between the corner and the whole shell.
     private double SheetTravel =>
-        Math.Max(0d, Bounds.Height - CornerCardSize().Height - CardMargin - BottomInset);
+        Math.Max(0d, Bounds.Height - CornerCardSize().Height - CardMargin - BottomInset - SafeAreaInsets.Bottom);
 
     // Distance from the corner to clear of the bottom edge, i.e. how far the card is thrown.
     private double DismissTravel =>
-        Math.Max(1d, CornerCardSize().Height + CardMargin + BottomInset);
+        Math.Max(1d, CornerCardSize().Height + CardMargin + BottomInset + SafeAreaInsets.Bottom);
 
     /// <summary>
     /// The corner card's size: as wide as it is allowed to be, cut to the picture's own shape so
@@ -528,7 +547,7 @@ public partial class VideoSheet : UserControl
     private Size CornerCardSize() => CornerCardSize(ViewModel?.MinimizedWidth ?? VideoSheetViewModel.DefaultMinimizedWidth);
 
     private Size CornerCardSize(double preferredWidth) => CalculateCornerCardSize(
-        Bounds.Size,
+        Bounds.Size.Deflate(SafeAreaInsets),
         BottomInset,
         preferredWidth,
         ViewModel?.Content?.PictureAspectRatio ?? DefaultAspectRatio);
@@ -584,13 +603,15 @@ public partial class VideoSheet : UserControl
         var expand = Math.Max(0d, progress);
         var thrown = Math.Max(0d, -progress);
 
+        // The corner card keeps inside the safe area; the whole shell includes the bands around it.
+        var safe = SafeAreaInsets;
         Card.Width = corner.Width + ((full.Width - corner.Width) * expand);
         Card.Height = corner.Height + ((full.Height - corner.Height) * expand);
         Card.Margin = new Thickness(
             0,
             0,
-            CardMargin * (1d - expand),
-            ((CardMargin + BottomInset) * (1d - expand)) - (thrown * DismissTravel));
+            (CardMargin + safe.Right) * (1d - expand),
+            ((CardMargin + BottomInset + safe.Bottom) * (1d - expand)) - (thrown * DismissTravel));
         Card.Opacity = 1d - thrown;
 
         // Square off the corners as the card takes over the whole viewport; a rounded edge would

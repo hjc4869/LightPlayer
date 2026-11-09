@@ -84,6 +84,9 @@ public enum VideoColorPrimaries
 
     /// <summary>DCI-P3 chromaticities on the theatrical DCI white point, SMPTE ST 431-2.</summary>
     DciP3,
+
+    /// <summary>Apple Wide Gamut on D65, the primaries Apple Log 2 is recorded in.</summary>
+    AppleWideGamut,
 }
 
 /// <summary>Transfer function used to encode the RGB signal.</summary>
@@ -94,6 +97,9 @@ public enum VideoColorTransfer
     Linear,
     Pq,
     Hlg,
+
+    /// <summary>Apple Log, a scene-referred camera curve shared by Apple Log and Apple Log 2.</summary>
+    AppleLog,
 }
 
 /// <summary>Whether a planar frame's samples use the full range or the studio subset.</summary>

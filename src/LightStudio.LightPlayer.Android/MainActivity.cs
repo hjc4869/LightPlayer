@@ -79,6 +79,10 @@ public class MainActivity : AvaloniaMainActivity
     private Services.AndroidPictureInPictureHost? pictureInPicture;
     private Services.AndroidBackNavigation? backNavigation;
 
+    // Kept with the shell rather than the activity, so a recreated activity holds the display the same way.
+    private static bool presentingMedia;
+    private static double preferredAspectRatio;
+
     internal static MainActivity? Current { get; private set; }
 
     public MainActivity()
@@ -101,12 +105,21 @@ public class MainActivity : AvaloniaMainActivity
 
         PlatformServices.FullScreenRequested = SetFullScreen;
         PlatformServices.PreferredOrientationRequested = SetPreferredOrientation;
+        PlatformServices.MediaPresentationChanged = SetMediaPresentation;
         PlatformServices.KeepScreenOnRequested = SetKeepScreenOn;
         pictureInPicture = new Services.AndroidPictureInPictureHost(this);
         PlatformServices.PictureInPicture = pictureInPicture;
 
         RequestRuntimePermissions();
         HandlePairingIntent(Intent);
+        ApplyRequestedOrientation();
+    }
+
+    // A foldable's other display, or a window moved to another display, may need the shell held differently.
+    public override void OnConfigurationChanged(global::Android.Content.Res.Configuration newConfig)
+    {
+        base.OnConfigurationChanged(newConfig);
+        ApplyRequestedOrientation();
     }
 
     protected override void OnNewIntent(Intent? intent)
@@ -181,12 +194,43 @@ public class MainActivity : AvaloniaMainActivity
     /// </summary>
     private void SetPreferredOrientation(double aspectRatio)
     {
-        RequestedOrientation = aspectRatio switch
+        preferredAspectRatio = aspectRatio;
+        ApplyRequestedOrientation();
+    }
+
+    private void SetMediaPresentation(bool value)
+    {
+        presentingMedia = value;
+        ApplyRequestedOrientation();
+    }
+
+    // Photos and videos follow the device or the picture's shape; the shell's own pages stay portrait
+    // on a display with an edge too short for them, and follow the device elsewhere.
+    private void ApplyRequestedOrientation()
+    {
+        var orientation = presentingMedia
+            ? preferredAspectRatio switch
+            {
+                <= 0 => ScreenOrientation.Unspecified,
+                > 1 => ScreenOrientation.SensorLandscape,
+                _ => ScreenOrientation.SensorPortrait,
+            }
+            : HoldsShellUpright() ? ScreenOrientation.UserPortrait : ScreenOrientation.Unspecified;
+        if (RequestedOrientation != orientation)
         {
-            <= 0 => ScreenOrientation.Unspecified,
-            > 1 => ScreenOrientation.SensorLandscape,
-            _ => ScreenOrientation.SensorPortrait,
-        };
+            RequestedOrientation = orientation;
+        }
+    }
+
+    private bool HoldsShellUpright()
+    {
+        if (WindowManager?.MaximumWindowMetrics is not { } metrics || metrics.Density <= 0)
+        {
+            return false;
+        }
+
+        var bounds = metrics.Bounds;
+        return ShellOrientation.HoldsUpright(bounds.Width() / metrics.Density, bounds.Height() / metrics.Density);
     }
 
     protected override void OnStart()

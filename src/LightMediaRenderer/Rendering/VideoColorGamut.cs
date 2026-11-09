@@ -80,6 +80,10 @@ internal static class VideoColorGamut
             new(0.680, 0.320, 0.265, 0.690, 0.150, 0.060, D65X, D65Y),
         VideoColorPrimaries.DciP3 =>
             new(0.680, 0.320, 0.265, 0.690, 0.150, 0.060, 0.314, 0.351),
+
+        // From the Apple Log 2 white paper; the blue primary lies outside the spectrum locus.
+        VideoColorPrimaries.AppleWideGamut =>
+            new(0.725, 0.301, 0.221, 0.814, 0.068, -0.076, D65X, D65Y),
         _ =>
             new(0.640, 0.330, 0.300, 0.600, 0.150, 0.060, D65X, D65Y),
     };

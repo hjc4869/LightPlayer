@@ -40,6 +40,9 @@ internal sealed class PhotoPageTransition : ConnectedPageTransition
     private FastImage? tileImage;
     private bool fadeOnly;
 
+    /// <summary>How much of the page beneath the viewer's dark backdrop still hid when a drag down let go.</summary>
+    private double releasedBackdrop;
+
     private PhotoPageTransition(Panel host, PhotoViewerPageViewModel photo, IScrollPositionPageViewModel browser,
         IPageTransition fallback, bool entering, GeometryState origin, PhotoPreview? preview, Control sourceImage,
         UserControl? browserView = null)
@@ -131,8 +134,16 @@ internal sealed class PhotoPageTransition : ConnectedPageTransition
         }
         viewer = FindPhoto(Entering ? To : From, photo);
         viewer?.SetTransitionChrome(0);
-        if (dismissing)
-            SetOutgoingOpacity(0);
+        // The real page takes over from the preview a drag down uncovered, and carries on being
+        // uncovered from as far as the drag got, whichever of the two pages is drawn on top.
+        if (dismissing && viewer is not null)
+        {
+            if (viewer.FindControl<Control>("BackPreview") is { } backPreview)
+                Hide(backPreview);
+            releasedBackdrop = viewer.FindControl<Control>("DismissBackdrop")?.Opacity ?? 0;
+            if (To is not null)
+                To.Opacity = 1 - releasedBackdrop;
+        }
         browserHeader = FindBrowser(Entering ? From : To, browser)?.FindControl<Control>("SearchHeader");
         if (browserHeader is not null)
             browserHeader.Opacity = Entering || dismissing ? 1 : 0;
@@ -216,7 +227,7 @@ internal sealed class PhotoPageTransition : ConnectedPageTransition
         if (photo.Image is { } frame)
         {
             if (Entering && (OperatingSystem.IsWindows() || OperatingSystem.IsAndroid()) &&
-                (frame.PhotoTiles is not null || frame.GainMap?.Samples?.PhotoTiles is not null))
+                (frame.PhotoTiles is not null || frame.PhotoSurface is not null || frame.GainMap?.Samples?.PhotoTiles is not null))
                 return;
             image.Source = frame;
         }
@@ -252,8 +263,8 @@ internal sealed class PhotoPageTransition : ConnectedPageTransition
         double incomingChrome = Math.Clamp((progress - 0.65) / 0.35, 0, 1);
         double outgoingChrome = Math.Clamp(1 - progress * 3, 0, 1);
         viewer?.SetTransitionChrome(0);
-        if (dismissing)
-            SetOutgoingOpacity(0);
+        if (dismissing && To is not null)
+            To.Opacity = 1 - (releasedBackdrop * (1 - progress));
         if (browserHeader is not null)
             browserHeader.Opacity = Entering ? outgoingChrome : dismissing ? 1 : incomingChrome;
         if (fadeOnly)

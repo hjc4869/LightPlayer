@@ -82,7 +82,7 @@
                 <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                     <TextBlock Text="{Binding ThemeSettings_AppleStyleHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                Classes="settingName"
-                               FontSize="14"
+                               FontSize="{DynamicResource AppSettingNameFontSize}"
                                TextWrapping="Wrap" />
                 </StackPanel>
                 <ToggleSwitch Grid.Column="1"
@@ -100,10 +100,10 @@
                 <StackPanel Spacing="2">
                     <TextBlock Text="{Binding ThemeSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
                                Classes="settingName"
-                               FontSize="14" />
+                               FontSize="{DynamicResource AppSettingNameFontSize}" />
                     <TextBlock Text="{Binding ThemeSettings_ModeSectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
                                Classes="settingDescription"
-                               FontSize="12"
+                               FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                TextWrapping="Wrap" />
                 </StackPanel>
 
@@ -134,7 +134,7 @@
                                                        Classes="settingName" />
                                             <TextBlock Text="{Binding Description}"
                                                        Classes="settingDescription"
-                                                       FontSize="12"
+                                                       FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                                        TextWrapping="Wrap" />
                                         </StackPanel>
                                         <StackPanel Grid.Column="1"
@@ -185,10 +185,10 @@
                 <StackPanel Spacing="2">
                     <TextBlock Text="{Binding ThemeColor_SectionTitle, Source={x:Static strings:LocalizedStrings.Instance}}"
                                Classes="settingName"
-                               FontSize="14" />
+                               FontSize="{DynamicResource AppSettingNameFontSize}" />
                     <TextBlock Text="{Binding ThemeColor_SectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
                                Classes="settingDescription"
-                               FontSize="12"
+                               FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                TextWrapping="Wrap" />
                 </StackPanel>
 
@@ -411,10 +411,10 @@
                         <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                             <TextBlock Text="{Binding ThemeColor_MicaHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                        Classes="settingName"
-                                       FontSize="14" />
+                                       FontSize="{DynamicResource AppSettingNameFontSize}" />
                             <TextBlock Text="{Binding ThemeColor_MicaDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                                        Classes="settingDescription"
-                                       FontSize="12"
+                                       FontSize="{DynamicResource AppSettingDescriptionFontSize}"
                                        TextWrapping="Wrap" />
                         </StackPanel>
                         <ToggleSwitch Grid.Column="1"

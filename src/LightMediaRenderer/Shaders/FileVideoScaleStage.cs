@@ -54,7 +54,8 @@ public sealed class FileVideoScaleStage : IVideoScaleStage, IDisposable
     public int PassCount => passes.Length;
 
     public bool Supports(in VideoScaleStageContext context) =>
-        context.Transfer is not (VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.Linear);
+        context.Transfer is not (VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog or
+            VideoColorTransfer.Linear);
 
     public bool ShouldRun(in VideoScaleStageContext context) =>
         Supports(context) &&

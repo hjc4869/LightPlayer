@@ -87,6 +87,7 @@
                                      HorizontalAlignment="Left"
                                      CornerRadius="8"
                                      Source="{Binding AlbumImage}"
+                                     SizeTarget="{Binding}"
                                      PlaceholderKind="Album" />
             <SelectableTextBlock Text="{Binding TrackTitle}"
                                  FontSize="24"

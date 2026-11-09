@@ -11,13 +11,19 @@ namespace LightStudio.Inference;
 
 internal sealed class OnnxAudioSeparationModel : IMdxSeparationModel
 {
+    // The runtime session owns the device's inference buffers, so it closes when runs stop and the next run reopens it.
+    private static readonly TimeSpan IdleTimeout = TimeSpan.FromSeconds(30);
+
     private readonly Func<string, SessionOptions> createOptions;
     private readonly object sync = new();
     private readonly string inputName;
     private readonly string outputName;
-    private InferenceSession session;
+    private readonly Timer idleTimer;
+    private InferenceSession? session;
+    private long lastRun = Environment.TickCount64;
     private int references = 1;
     private string activeDeviceId;
+    private bool disposed;
 
     internal OnnxAudioSeparationModel(string path, string deviceId,
         Func<string, SessionOptions> createOptions, CancellationToken cancellationToken)
@@ -70,6 +76,7 @@ internal sealed class OnnxAudioSeparationModel : IMdxSeparationModel
             session.Dispose();
             throw;
         }
+        idleTimer = new Timer(_ => ReleaseIdleSession(), null, IdleTimeout, Timeout.InfiniteTimeSpan);
     }
 
     internal string Path { get; }
@@ -80,31 +87,53 @@ internal sealed class OnnxAudioSeparationModel : IMdxSeparationModel
 
     public void AddReference() => Interlocked.Increment(ref references);
 
-    public ValueTask<float[]> ExecuteAsync(float[] spectrum, CancellationToken cancellationToken) =>
-        ValueTask.FromResult(Execute(spectrum, cancellationToken));
+    public ValueTask ExecuteAsync(float[] spectrum, float[] prediction, CancellationToken cancellationToken)
+    {
+        Execute(spectrum, prediction, cancellationToken);
+        return ValueTask.CompletedTask;
+    }
 
-    internal float[] Execute(float[] spectrum, CancellationToken cancellationToken)
+    internal void Execute(float[] spectrum, float[] prediction, CancellationToken cancellationToken)
     {
         lock (sync)
         {
             cancellationToken.ThrowIfCancellationRequested();
             try
             {
-                return Run(spectrum, cancellationToken);
+                session ??= Open(ActiveDeviceId);
+                Run(session, spectrum, prediction, cancellationToken);
             }
             catch (OnnxRuntimeException exception) when (ActiveDeviceId != "cpu" && !cancellationToken.IsCancellationRequested)
             {
                 AppLog.Warning("AudioSeparation", "Device inference failed; retrying on CPU.", exception);
                 var replacement = Open("cpu");
-                session.Dispose();
+                session?.Dispose();
                 session = replacement;
                 Volatile.Write(ref activeDeviceId, "cpu");
-                return Run(spectrum, cancellationToken);
+                Run(session, spectrum, prediction, cancellationToken);
+            }
+            finally
+            {
+                lastRun = Environment.TickCount64;
+                idleTimer.Change(IdleTimeout, Timeout.InfiniteTimeSpan);
             }
         }
     }
 
-    private float[] Run(float[] spectrum, CancellationToken cancellationToken)
+    private void ReleaseIdleSession()
+    {
+        lock (sync)
+        {
+            // A run that finished while this callback waited for the lock has already rescheduled the timer.
+            if (disposed || session is null || Environment.TickCount64 - lastRun < (long)IdleTimeout.TotalMilliseconds)
+                return;
+            session.Dispose();
+            session = null;
+        }
+        AppLog.Information("AudioSeparation", "Closed the idle separation runtime session.");
+    }
+
+    private void Run(InferenceSession session, float[] spectrum, float[] prediction, CancellationToken cancellationToken)
     {
         using var options = new RunOptions();
         using var registration = cancellationToken.Register(() => options.Terminate = true);
@@ -115,7 +144,7 @@ internal sealed class OnnxAudioSeparationModel : IMdxSeparationModel
             cancellationToken.ThrowIfCancellationRequested();
             if (!results[0].GetTensorTypeAndShape().Shape.AsSpan().SequenceEqual([1, 4, Transform.Frequencies, Transform.Frames]))
                 throw new InvalidDataException("The separation model returned an unexpected spectrogram shape.");
-            return results[0].GetTensorDataAsSpan<float>().ToArray();
+            results[0].GetTensorDataAsSpan<float>().CopyTo(prediction);
         }
         catch (OnnxRuntimeException) when (cancellationToken.IsCancellationRequested)
         {
@@ -133,7 +162,14 @@ internal sealed class OnnxAudioSeparationModel : IMdxSeparationModel
 
     public void Dispose()
     {
-        if (Interlocked.Decrement(ref references) == 0)
-            session.Dispose();
+        if (Interlocked.Decrement(ref references) != 0)
+            return;
+        lock (sync)
+        {
+            disposed = true;
+            session?.Dispose();
+            session = null;
+        }
+        idleTimer.Dispose();
     }
 }

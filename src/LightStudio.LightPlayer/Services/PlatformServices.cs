@@ -138,12 +138,26 @@ public static class PlatformServices
     public static Action<IntPtr, bool>? ApplyToolbarTitleBar { get; set; }
 
     /// <summary>
-    /// Observes the window controls the system draws over the top-left corner of a top level, inside
-    /// its safe area: Left is the width they take from a row along the top, Top the height they take
-    /// from a column along the left. Reports the current value at once and then every change until
-    /// disposed. Registered by the iOS head for iPadOS windows.
+    /// The system glass material behind the Apple layout's sidebars and queue. Registered by the macOS
+    /// desktop head where AppKit offers it; elsewhere those panels keep their plain surfaces.
     /// </summary>
-    public static Func<Avalonia.Controls.TopLevel, Action<Avalonia.Thickness>, IDisposable?>? ObserveWindowControls { get; set; }
+    public static INativeGlass? NativeGlass { get; set; }
+
+    /// <summary>Whether <see cref="NativeGlass"/> is available, for markup.</summary>
+    public static bool SupportsNativeGlass => NativeGlass is not null;
+
+    /// <summary>
+    /// Observes the regions the system reserves around the content of a top level: window controls,
+    /// the band offered to vertical bars, occlusions, and divisions. Reports the current value at once
+    /// and then every change until disposed. Registered by the iOS head.
+    /// </summary>
+    public static Func<Avalonia.Controls.TopLevel, Action<DeviceRegions>, IDisposable?>? ObserveDeviceRegions { get; set; }
+
+    /// <summary>
+    /// Whether the Apple UI style takes touch metrics: iOS sizes for controls, rows, and bars. Set by
+    /// the iOS head.
+    /// </summary>
+    public static bool UsesTouchChrome { get; set; }
 
     /// <summary>
     /// Whether the OS publishes a system accent, offering the Windows or macOS color theme
@@ -338,6 +352,19 @@ public static class PlatformServices
     /// display (Android); left null elsewhere.
     /// </summary>
     public static Action<double>? PreferredOrientationRequested { get; set; }
+
+    /// <summary>
+    /// Whether the OS lets the app turn the display right now; windowed environments such as iPadOS
+    /// refuse it. Left null where <see cref="PreferredOrientationRequested"/> always works.
+    /// </summary>
+    public static Func<bool>? CanTurnDisplay { get; set; }
+
+    /// <summary>
+    /// Reports whether a photo or video covers the shell. Hosts keep the shell's own pages upright on
+    /// small displays (<see cref="ShellOrientation"/>), while a photo or video turns with the device
+    /// and through <see cref="PreferredOrientationRequested"/>. Left null where the OS does not turn the display.
+    /// </summary>
+    public static Action<bool>? MediaPresentationChanged { get; set; }
 
     /// <summary>
     /// Holds the display awake while video is playing, and releases it again. Every head that has a

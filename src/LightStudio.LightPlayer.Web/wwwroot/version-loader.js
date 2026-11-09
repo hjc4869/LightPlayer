@@ -44,6 +44,14 @@ const messages = {
         update: '更新', skip: 'このバージョンをスキップ', disable: '更新の確認を無効にする', cancel: 'キャンセル', close: '閉じる',
         restart: '最新バージョンで再起動',
     },
+    pt: {
+        checking: 'Verificando atualizações...', available: 'Atualização disponível',
+        availableMessage: 'A versão {version} está disponível.', latest: 'Você está usando a versão mais recente.',
+        failed: 'Não foi possível verificar se há atualizações. Verifique sua conexão e tente novamente.',
+        startupFailed: 'Não foi possível carregar o Light Media Center. Verifique sua conexão e reinicie com a versão mais recente.',
+        update: 'Atualizar', skip: 'Ignorar esta versão', disable: 'Desativar verificação de atualizações', cancel: 'Cancelar', close: 'Fechar',
+        restart: 'Reiniciar com a versão mais recente',
+    },
     'zh-Hans': {
         checking: '正在检查更新...', available: '有可用更新',
         availableMessage: '版本 {version} 现已可用。', latest: '您正在使用最新版本。',

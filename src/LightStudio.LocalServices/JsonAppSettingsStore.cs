@@ -69,6 +69,26 @@ public sealed class JsonAppSettingsStore : IAppSettingsStore
 
     public event EventHandler? NativeLibraryChanged;
 
+    /// <summary>
+    /// Stores the default system library choices on a platform's first launch with a system library.
+    /// Installations set up before then keep scanning folders, with the system library off.
+    /// </summary>
+    public void InitializeNativeLibrary()
+    {
+        if (settings.NativeLibrary is not null)
+            return;
+        settings.NativeLibrary = settings.InitialSetupCompleted
+            ? new NativeLibrarySettings
+            {
+                UseSystemMusicLibrary = false,
+                ScanMusicFolders = true,
+                UseSystemMediaLibrary = false,
+                ScanMediaFolders = true,
+            }
+            : new NativeLibrarySettings();
+        Save();
+    }
+
     public AppThemePreference ThemePreference
     {
         get => Enum.TryParse<AppThemePreference>(settings.ThemePreference, ignoreCase: true, out var preference)

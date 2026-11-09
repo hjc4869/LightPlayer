@@ -566,8 +566,12 @@ async function takeVideo(record, frame) {
     try {
         const width = frame.visibleRect?.width ?? frame.codedWidth;
         const height = frame.visibleRect?.height ?? frame.codedHeight;
-        const primaries = ({ bt709: 1, bt470bg: 5, smpte170m: 6, bt2020: 9, smpte432: 12 })[frame.colorSpace.primaries] ?? record.video.primaries;
-        const transfer = ({ bt709: 1, smpte170m: 6, linear: 8, "iec61966-2-1": 13, pq: 16, hlg: 18 })[frame.colorSpace.transfer] ?? record.video.transfer;
+        // Codes from 0x10000 name log encodings the bitstream's own color description cannot express.
+        const logEncoded = record.video.transfer >= 0x10000;
+        const primaries = logEncoded ? record.video.primaries :
+            ({ bt709: 1, bt470bg: 5, smpte170m: 6, bt2020: 9, smpte432: 12 })[frame.colorSpace.primaries] ?? record.video.primaries;
+        const transfer = logEncoded ? record.video.transfer :
+            ({ bt709: 1, smpte170m: 6, linear: 8, "iec61966-2-1": 13, pq: 16, hlg: 18 })[frame.colorSpace.transfer] ?? record.video.transfer;
         const matrix = ({ rgb: 0, bt709: 1, bt470bg: 5, smpte170m: 6, "bt2020-ncl": 9 })[frame.colorSpace.matrix] ?? record.video.matrix;
         const range = frame.colorSpace.fullRange == null ? record.video.range : frame.colorSpace.fullRange ? 2 : 1;
         const planar = frame.format?.startsWith("I4") || frame.format === "NV12";
@@ -575,7 +579,7 @@ async function takeVideo(record, frame) {
         const requiredBits = Math.max(record.video.bits, frameBits);
         if (requiredBits > 8 && (!planar || frameBits < requiredBits))
             throw new DOMException("WebCodecs did not expose high-bit-depth pixels in a readable planar layout.", "NotSupportedError");
-        const hdr = [16, 18].includes(record.video.transfer) || [16, 18].includes(transfer);
+        const hdr = logEncoded || [16, 18].includes(record.video.transfer) || [16, 18].includes(transfer);
         const preserveColorEncoding = hdr || [5, 6, 9, 12].includes(record.video.primaries);
         if (hdr && !planar && frame.format !== "BGRA")
             throw new DOMException("WebCodecs did not expose HDR pixels in a layout the tone mapper can read.", "NotSupportedError");

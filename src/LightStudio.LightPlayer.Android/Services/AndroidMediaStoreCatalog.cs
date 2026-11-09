@@ -11,6 +11,7 @@ using Android.Content.PM;
 using Android.Database;
 using Android.OS;
 using Android.Provider;
+using LightStudio.LightPlayer.Services;
 using LightStudio.Logging;
 using LightStudio.MediaLibraryCore.Database;
 using LightStudio.MediaLibraryCore.Database.Entities;
@@ -18,11 +19,7 @@ using AndroidUri = Android.Net.Uri;
 
 namespace LightStudio.LightPlayer.Android.Services;
 
-internal sealed record MediaStoreSnapshot<T>(string Id, T[] Items);
-
-internal sealed record MediaStoreTrack(DbMediaFile File, string Folder, string Root);
-
-internal sealed class AndroidMediaStoreCatalog
+internal sealed class AndroidMediaStoreCatalog : ISystemLibraryCatalog
 {
     private static readonly string[] CommonProjection =
     [
@@ -30,20 +27,20 @@ internal sealed class AndroidMediaStoreCatalog
     ];
 
     private readonly Context context;
-    private readonly CatalogCache<MediaStoreTrack> music;
-    private readonly CatalogCache<IndexedMediaFile> media;
+    private readonly SystemLibraryCatalogCache<SystemLibraryTrack> music;
+    private readonly SystemLibraryCatalogCache<IndexedMediaFile> media;
 
     public AndroidMediaStoreCatalog(Context context)
     {
         this.context = context.ApplicationContext ?? context;
-        music = new CatalogCache<MediaStoreTrack>(ReadMusic);
-        media = new CatalogCache<IndexedMediaFile>(ReadMedia);
+        music = new SystemLibraryCatalogCache<SystemLibraryTrack>(ReadMusic);
+        media = new SystemLibraryCatalogCache<IndexedMediaFile>(ReadMedia);
     }
 
-    public Task<MediaStoreSnapshot<MediaStoreTrack>> GetMusicAsync(CancellationToken cancellationToken = default) =>
+    public Task<SystemLibrarySnapshot<SystemLibraryTrack>> GetMusicAsync(CancellationToken cancellationToken = default) =>
         music.GetAsync(cancellationToken);
 
-    public Task<MediaStoreSnapshot<IndexedMediaFile>> GetMediaAsync(CancellationToken cancellationToken = default) =>
+    public Task<SystemLibrarySnapshot<IndexedMediaFile>> GetMediaAsync(CancellationToken cancellationToken = default) =>
         media.GetAsync(cancellationToken);
 
     public void Invalidate()
@@ -89,14 +86,14 @@ internal sealed class AndroidMediaStoreCatalog
 
     private bool HasPermission(string permission) => context.CheckSelfPermission(permission) == Permission.Granted;
 
-    private MediaStoreTrack[] ReadMusic(CancellationToken cancellationToken)
+    private SystemLibraryTrack[] ReadMusic(CancellationToken cancellationToken)
     {
         if (!HasAudioAccess)
         {
             return [];
         }
 
-        var tracks = new List<MediaStoreTrack>();
+        var tracks = new List<SystemLibraryTrack>();
         ReadRows(MediaStore.Audio.Media.ExternalContentUri!,
             [.. CommonProjection, "title", "artist", "album", "album_artist", "album_id", "duration", "year", "track", "composer", "genre"],
             "is_music != 0", row =>
@@ -130,7 +127,7 @@ internal sealed class AndroidMediaStoreCatalog
                     FileLastModifiedDate = Timestamp(row.Number("date_modified")),
                 };
                 var (folder, root) = row.Location();
-                tracks.Add(new MediaStoreTrack(file, folder, root));
+                tracks.Add(new SystemLibraryTrack(file, folder, root));
             }, cancellationToken);
         return tracks.ToArray();
     }
@@ -264,59 +261,6 @@ internal sealed class AndroidMediaStoreCatalog
                 ? folder[..^relative.Length] + topFolder
                 : folder;
             return (folder, root);
-        }
-    }
-
-    private sealed class CatalogCache<T>(Func<CancellationToken, T[]> load)
-    {
-        private readonly object gate = new();
-        private readonly SemaphoreSlim loading = new(1, 1);
-        private MediaStoreSnapshot<T>? snapshot;
-        private long generation;
-
-        public async Task<MediaStoreSnapshot<T>> GetAsync(CancellationToken cancellationToken)
-        {
-            while (true)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                lock (gate)
-                {
-                    if (snapshot is not null)
-                        return snapshot;
-                }
-
-                await loading.WaitAsync(cancellationToken).ConfigureAwait(false);
-                try
-                {
-                    long version;
-                    lock (gate)
-                    {
-                        if (snapshot is not null)
-                            return snapshot;
-                        version = generation;
-                    }
-
-                    var items = await Task.Run(() => load(cancellationToken), cancellationToken).ConfigureAwait(false);
-                    lock (gate)
-                    {
-                        if (version == generation)
-                            return snapshot = new MediaStoreSnapshot<T>(Guid.NewGuid().ToString("N"), items);
-                    }
-                }
-                finally
-                {
-                    loading.Release();
-                }
-            }
-        }
-
-        public void Invalidate()
-        {
-            lock (gate)
-            {
-                generation++;
-                snapshot = null;
-            }
         }
     }
 }

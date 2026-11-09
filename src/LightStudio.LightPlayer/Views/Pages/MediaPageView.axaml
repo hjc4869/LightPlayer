@@ -80,7 +80,7 @@
             <Setter Property="ItemTemplate" Value="{StaticResource MediaRowTemplate}" />
         </Style>
         <Style Selector="ItemsControl.videoItems:not(.compact)">
-            <Setter Property="Margin" Value="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,16,32,32|8,8,8,24'}" />
+            <Setter Property="Margin" Value="{Binding UsesNarrowLayout, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,16,32,32|8,8,8,24'}" />
         </Style>
         <Style Selector="ItemsControl.folderItems.narrow">
             <Setter Property="ItemsSource" Value="{Binding FolderItems}" />
@@ -92,7 +92,7 @@
             <Setter Property="ColumnSpacing" Value="4" />
             <Setter Property="RowSpacing" Value="4" />
             <Setter Property="ItemTemplate" Value="{StaticResource WideMediaTemplate}" />
-            <Setter Property="ContentInset" Value="{Binding IsNarrow, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,16,32,32|8,8,8,24'}" />
+            <Setter Property="ContentInset" Value="{Binding UsesNarrowLayout, Converter={x:Static conv:NarrowInsetConverter.Instance}, ConverterParameter='32,16,32,32|8,8,8,24'}" />
         </Style>
         <Style Selector="controls|GroupedItemsView.mediaGroups.compact">
             <Setter Property="HeaderAlignmentTarget" Value="{x:Null}" />
@@ -162,12 +162,12 @@
                                         Margin="{Binding #AddressBarSlot.Margin}" />
                                 <ItemsControl Grid.Row="1"
                                               Classes="folderItems"
-                                              Classes.narrow="{Binding IsNarrow}"
+                                              Classes.narrow="{Binding UsesNarrowLayout}"
                                               ItemTemplate="{StaticResource MediaRowTemplate}"
                                               Margin="8,8,8,0">
                                     <ItemsControl.IsVisible>
                                         <MultiBinding Converter="{x:Static BoolConverters.And}">
-                                            <Binding Path="IsNarrow" />
+                                            <Binding Path="UsesNarrowLayout" />
                                             <Binding Path="HasFolders" />
                                         </MultiBinding>
                                     </ItemsControl.IsVisible>
@@ -186,7 +186,7 @@
             <controls:GroupedItemsView x:Name="GroupedView" Classes="mediaGroups"
                                        Classes.compact="{Binding UseCompactGrid}"
                                        Classes.list="{Binding UseNarrowList}"
-                                       FoldersAsList="{Binding IsNarrow}"
+                                       FoldersAsList="{Binding UsesNarrowLayout}"
                                        FolderItemTemplate="{StaticResource MediaRowTemplate}"
                                        Model="{Binding Grouping}" IsVisible="{Binding GroupingEnabled}"
                                        LeadingHeight="{Binding #AddressBarSlot.Height}"

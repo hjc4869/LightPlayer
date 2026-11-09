@@ -43,10 +43,12 @@ public sealed class IncludeGenerator : IIncrementalGenerator
                     public string? Class { get; set; }
                     /// <summary><c>BindingFlags.Public</c> or <c>BindingFlags.NonPublic</c> for the generated members.</summary>
                     public global::System.Reflection.BindingFlags Access { get; set; } = global::System.Reflection.BindingFlags.NonPublic;
-                    /// <summary>Overrides the P/Invoke module name of dynamically linked imports.</summary>
+                    /// <summary>Loads the header's functions from this module at run time, also in statically linked builds.</summary>
                     public string? ImportName { get; set; }
                     /// <summary>Selects only these macros, evaluated after including the header, wherever they are defined.</summary>
                     public string[]? Macros { get; set; }
+                    /// <summary>Headers included before this one, for a header that only compiles after them.</summary>
+                    public string[]? Prerequisites { get; set; }
                 }
             }
             """, Encoding.UTF8)));
@@ -156,7 +158,6 @@ public sealed class IncludeGenerator : IIncrementalGenerator
             Error(output, null, $"The native binding manifest targets '{(string?)catalog.Attribute("runtime")}', not NativeBindingsRuntime '{runtime}'. Rebuild the project.");
             return;
         }
-        var linkage = (string?)catalog.Attribute("linkage");
         var headers = catalog.Elements("header").ToDictionary(header => HeaderKey((string)header.Attribute("name")!, (string?)header.Attribute("macros")));
 
         foreach (var target in targets.GroupBy(target => target.DisplayName).Select(group => group.First()))
@@ -195,11 +196,6 @@ public sealed class IncludeGenerator : IIncrementalGenerator
                     if (!headers.TryGetValue(HeaderKey(include.Header, include.Macros), out var header))
                     {
                         Error(output, target.Location, $"Header {include.Header} is absent from the native binding manifest. Rebuild the project; Include arguments must be literals.");
-                        continue;
-                    }
-                    if (include.ImportName is not null && linkage != "dynamic")
-                    {
-                        Error(output, target.Location, $"Include.ImportName applies only to dynamically linked imports; this build uses {linkage} linkage.");
                         continue;
                     }
                     if (include.Macros is not null)

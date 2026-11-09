@@ -57,6 +57,12 @@ public readonly record struct VideoRenderRequest(
     public SKRect? DeviceViewport { get; init; }
 
     /// <summary>
+    /// A gesture or its glide is carrying the picture across the viewport, so a retained overview
+    /// may stand in for detail that would be resampled again a frame later.
+    /// </summary>
+    public bool InMotion { get; init; }
+
+    /// <summary>
     /// How the samples this draw reads are laid out. A packed image of a frame that has its own
     /// planes keeps the frame's depth, so a deep RGB source is still known to be deep.
     /// </summary>

@@ -12,6 +12,7 @@ using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using LightMediaRenderer.Avalonia.Controls;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.Services;
 using LightStudio.LightPlayer.Services.Playback;
@@ -29,7 +30,7 @@ namespace LightStudio.LightPlayer.ViewModels.Pages;
 /// Home page: a spotlight card above the music queue, recently played tracks, videos left part-way through,
 /// newly indexed videos, and random album picks. Empty rows hide themselves.
 /// </summary>
-public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
+public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable, IArtworkSizeTarget
 {
     /// <summary>Queued tracks shown after the current one.</summary>
     private const int UpcomingLimit = 12;
@@ -48,6 +49,12 @@ public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
 
     /// <summary>How long one spotlight item stays up before the next takes its place.</summary>
     private static readonly TimeSpan SpotlightInterval = TimeSpan.FromSeconds(9);
+
+    /// <summary>
+    /// Side of the spotlight cover in DIPs while the layout has room for it; the view reports the
+    /// card width when the cover becomes the card's background instead.
+    /// </summary>
+    private const double SpotlightCoverSize = 146;
 
     /// <summary>
     /// Decode width of the spotlight's backdrop, blurred once when the artwork loads.
@@ -79,6 +86,7 @@ public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
     private int pageVersion;
     private int recentHistoryVersion;
     private int nowPlayingArtVersion;
+    private int spotlightCoverPixelSize;
     private int spotlightIndex;
     private bool spotlightActive;
     private bool isSpotlightNarrow;
@@ -415,6 +423,47 @@ public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
         }
     }
 
+    /// <summary>
+    /// Grows the spotlight cover size to what the cards display and reloads the covers that are
+    /// drawn, keeping the ones already shown until their replacement arrives.
+    /// </summary>
+    public void SetArtworkDisplaySize(int pixelSize)
+    {
+        if (disposed || pixelSize <= spotlightCoverPixelSize)
+        {
+            return;
+        }
+
+        spotlightCoverPixelSize = pixelSize;
+        if (nowPlayingSlide is { } slide && playback.CurrentItem is { } item)
+        {
+            var version = ++nowPlayingArtVersion;
+            _ = AppErrorReporter.GuardAsync(() => LoadNowPlayingArtAsync(item, slide, version));
+        }
+
+        foreach (var slot in spotlightSlots)
+        {
+            if (slot.Request is { } request)
+            {
+                slot.Request = null;
+                request.Cancel();
+                request.Dispose();
+                RequestSpotlightImage(slot);
+            }
+        }
+    }
+
+    // The first load fixes the size the view has not reported yet, so a later report can grow it.
+    private int SpotlightCoverPixelSize()
+    {
+        if (spotlightCoverPixelSize == 0)
+        {
+            spotlightCoverPixelSize = AlbumArtService.DisplayPixels(SpotlightCoverSize);
+        }
+
+        return spotlightCoverPixelSize;
+    }
+
     private void RefreshContent() =>
         HasContent = ShowSpotlight || HasUpcoming || HasRecentlyPlayed || HasContinueWatching ||
             HasRecentlyAdded || HasAlbumPicks;
@@ -503,7 +552,8 @@ public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
 
     private async Task LoadNowPlayingArtAsync(MusicPlaybackItemModel item, SpotlightSlideModel slide, int version)
     {
-        var artwork = await albumArt.GetHighQualityTrackArtWithBackdropAsync(item.Media, BackdropDecodeWidth, BackdropBlurSigma)
+        var artwork = await albumArt.GetHighQualityTrackArtWithBackdropAsync(
+                item.Media, SpotlightCoverPixelSize(), BackdropDecodeWidth, BackdropBlurSigma)
             .ConfigureAwait(false);
         var cover = artwork?.Cover;
         var backdrop = artwork?.Backdrop;
@@ -519,7 +569,7 @@ public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
     private void ApplyNowPlayingArt(
         MusicPlaybackItemModel item,
         SpotlightSlideModel slide,
-        Bitmap? cover,
+        FastImageSource? cover,
         Bitmap? backdrop,
         int version)
     {
@@ -633,7 +683,7 @@ public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
         CancellationToken cancellationToken)
     {
         var image = await albumArt
-            .GetHighQualityTrackArtAsync(media, cancellationToken)
+            .GetLowQualityTrackArtAsync(media, tile.ArtLoadFifoWindowSize, tile.ArtPixelSize, cancellationToken, tile.ArtCachePool)
             .ConfigureAwait(false);
         if (image is not null)
         {
@@ -1203,7 +1253,7 @@ public sealed partial class HomePageViewModel : PageViewModelBase, IDisposable
         CancellationToken cancellationToken)
     {
         var artwork = await albumArt.GetHighQualityTrackArtWithBackdropAsync(
-            art, BackdropDecodeWidth, BackdropBlurSigma, cancellationToken).ConfigureAwait(false);
+            art, SpotlightCoverPixelSize(), BackdropDecodeWidth, BackdropBlurSigma, cancellationToken).ConfigureAwait(false);
         if (artwork is not null && cancellationToken.IsCancellationRequested)
         {
             artwork.Dispose();

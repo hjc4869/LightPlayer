@@ -83,6 +83,7 @@ public abstract class OnnxInferenceProviderBase : IInferenceProvider
         }
 
         public int EmbeddingDimensions => encoder.EmbeddingDimensions;
+        public int ImageSize => encoder.ImageSize;
         public string ModelName => encoder.ModelName;
         public string ActiveDeviceId => encoder.ActiveDeviceId;
         public float[] EncodeText(string query, CancellationToken cancellationToken) => Run(current => current.EncodeText(query, cancellationToken), cancellationToken);

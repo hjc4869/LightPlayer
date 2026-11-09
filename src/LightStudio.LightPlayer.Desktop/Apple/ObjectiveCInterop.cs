@@ -21,7 +21,7 @@ namespace LightStudio.LightPlayer.Desktop.Apple;
 /// call shape; none is a genuine varargs call.
 /// </para>
 /// <para>
-/// Only the 64-bit ABI (<c>osx-arm64</c> / <c>osx-x64</c>) is targeted. <c>CGSize</c> arguments are
+/// Only the 64-bit Apple ABIs (arm64 / x64, on macOS and iOS) are targeted. <c>CGSize</c> arguments are
 /// spelled as two <see cref="double"/> parameters, which is register-layout-identical to passing the
 /// struct by value on both architectures (an ARM64 homogeneous float aggregate / two x86-64 SSE
 /// eightbytes).
@@ -45,8 +45,11 @@ internal static unsafe class ObjC
     private static readonly ConcurrentDictionary<string, IntPtr> Selectors = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<string, IntPtr> Classes = new(StringComparer.Ordinal);
 
+    private static readonly object BlockGate = new();
     private static IntPtr concreteGlobalBlock;
+    private static IntPtr concreteStackBlock;
     private static IntPtr blockDescriptor;
+    private static IntPtr contextBlockDescriptor;
 
     // ---- Objective-C runtime (flat C API) ------------------------------
 
@@ -65,6 +68,12 @@ internal static unsafe class ObjC
     [DllImport(LibObjC)]
     private static extern byte class_addMethod(IntPtr cls, IntPtr name, IntPtr imp, byte* types);
 
+    [DllImport(LibObjC)]
+    private static extern IntPtr objc_autoreleasePoolPush();
+
+    [DllImport(LibObjC)]
+    private static extern void objc_autoreleasePoolPop(IntPtr pool);
+
     // objc_msgSend, one fixed-signature overload per call shape (see the type remarks above).
     [DllImport(LibObjC, EntryPoint = "objc_msgSend")]
     public static extern IntPtr Send(IntPtr receiver, IntPtr selector);
@@ -82,10 +91,21 @@ internal static unsafe class ObjC
     public static extern IntPtr Send(IntPtr receiver, IntPtr selector, byte arg1);
 
     [DllImport(LibObjC, EntryPoint = "objc_msgSend")]
+    public static extern IntPtr Send(IntPtr receiver, IntPtr selector, double arg1, double arg2);
+
+    [DllImport(LibObjC, EntryPoint = "objc_msgSend")]
     public static extern IntPtr Send(IntPtr receiver, IntPtr selector, double arg1, double arg2, IntPtr arg3);
 
     [DllImport(LibObjC, EntryPoint = "objc_msgSend")]
     public static extern IntPtr Send(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2, IntPtr arg3);
+
+    [DllImport(LibObjC, EntryPoint = "objc_msgSend")]
+    public static extern IntPtr Send(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2, IntPtr arg3, IntPtr arg4);
+
+    // CGSize spelled as two doubles (see the type remarks above).
+    [DllImport(LibObjC, EntryPoint = "objc_msgSend")]
+    public static extern IntPtr Send(
+        IntPtr receiver, IntPtr selector, IntPtr arg1, double width, double height, IntPtr arg2, IntPtr arg3, IntPtr arg4);
 
     [DllImport(LibObjC, EntryPoint = "objc_msgSend")]
     public static extern IntPtr Send(IntPtr receiver, IntPtr selector, IntPtr arg1, byte arg2);
@@ -98,6 +118,9 @@ internal static unsafe class ObjC
 
     [DllImport(LibObjC, EntryPoint = "objc_msgSend")]
     public static extern byte SendBool(IntPtr receiver, IntPtr selector);
+
+    [DllImport(LibObjC, EntryPoint = "objc_msgSend")]
+    public static extern byte SendBool(IntPtr receiver, IntPtr selector, IntPtr arg1);
 
     // NSPoint spelled as two doubles (see the type remarks above).
     [DllImport(LibObjC, EntryPoint = "objc_msgSend")]
@@ -195,6 +218,15 @@ internal static unsafe class ObjC
         }
     }
 
+    /// <summary>Reads an <c>NSString</c> as managed text; null for a nil string.</summary>
+    public static string? ReadString(IntPtr value) =>
+        value == IntPtr.Zero ? null : Marshal.PtrToStringUTF8(Send(value, Sel("UTF8String")));
+
+    /// <summary>Starts an autorelease pool for Objective-C calls made on a thread without one.</summary>
+    public static IntPtr PushAutoreleasePool() => objc_autoreleasePoolPush();
+
+    public static void PopAutoreleasePool(IntPtr pool) => objc_autoreleasePoolPop(pool);
+
     /// <summary>Loads a system library / framework by absolute path (used to force class registration).</summary>
     public static IntPtr LoadLibrary(string path) => NativeLibrary.Load(path);
 
@@ -223,20 +255,54 @@ internal static unsafe class ObjC
         return (IntPtr)block;
     }
 
+    /// <summary>
+    /// Wraps a native function pointer in a block that carries <paramref name="context"/>, readable in the
+    /// callback with <see cref="GetBlockContext"/>. The block is laid out as a stack block, so a callee that
+    /// keeps it makes its own copy; the caller frees it with <see cref="FreeContextBlock"/> once the call
+    /// that received it returns.
+    /// </summary>
+    public static IntPtr CreateContextBlock(IntPtr invoke, IntPtr context)
+    {
+        EnsureBlockRuntime();
+
+        var block = (ContextBlockLiteral*)NativeMemory.Alloc((nuint)sizeof(ContextBlockLiteral));
+        block->Isa = concreteStackBlock;
+        block->Flags = 0;
+        block->Reserved = 0;
+        block->Invoke = invoke;
+        block->Descriptor = contextBlockDescriptor;
+        block->Context = context;
+        return (IntPtr)block;
+    }
+
+    public static IntPtr GetBlockContext(IntPtr block) => ((ContextBlockLiteral*)block)->Context;
+
+    public static void FreeContextBlock(IntPtr block) => NativeMemory.Free((void*)block);
+
     private static void EnsureBlockRuntime()
     {
-        if (concreteGlobalBlock != IntPtr.Zero)
+        lock (BlockGate)
         {
-            return;
+            if (concreteGlobalBlock != IntPtr.Zero)
+            {
+                return;
+            }
+
+            // The isa pointers of global and stack blocks are libSystem exports.
+            var system = NativeLibrary.Load(LibSystem);
+            concreteStackBlock = NativeLibrary.GetExport(system, "_NSConcreteStackBlock");
+
+            var descriptor = (BlockDescriptor*)NativeMemory.Alloc((nuint)sizeof(BlockDescriptor));
+            descriptor->Reserved = 0;
+            descriptor->Size = (nuint)sizeof(BlockLiteral);
+            blockDescriptor = (IntPtr)descriptor;
+
+            var contextDescriptor = (BlockDescriptor*)NativeMemory.Alloc((nuint)sizeof(BlockDescriptor));
+            contextDescriptor->Reserved = 0;
+            contextDescriptor->Size = (nuint)sizeof(ContextBlockLiteral);
+            contextBlockDescriptor = (IntPtr)contextDescriptor;
+            concreteGlobalBlock = NativeLibrary.GetExport(system, "_NSConcreteGlobalBlock");
         }
-
-        // &_NSConcreteGlobalBlock is the isa every global block must point at (libSystem re-exports it).
-        concreteGlobalBlock = NativeLibrary.GetExport(NativeLibrary.Load(LibSystem), "_NSConcreteGlobalBlock");
-
-        var descriptor = (BlockDescriptor*)NativeMemory.Alloc((nuint)sizeof(BlockDescriptor));
-        descriptor->Reserved = 0;
-        descriptor->Size = (nuint)sizeof(BlockLiteral);
-        blockDescriptor = (IntPtr)descriptor;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -247,6 +313,17 @@ internal static unsafe class ObjC
         public int Reserved;
         public IntPtr Invoke;
         public IntPtr Descriptor;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ContextBlockLiteral
+    {
+        public IntPtr Isa;
+        public int Flags;
+        public int Reserved;
+        public IntPtr Invoke;
+        public IntPtr Descriptor;
+        public IntPtr Context;
     }
 
     [StructLayout(LayoutKind.Sequential)]

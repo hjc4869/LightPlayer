@@ -14,14 +14,15 @@ using SkiaSharp;
 
 namespace LightMediaRenderer.Avalonia.Shaders;
 
-internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action<Exception> reportFailure, bool samplesOnly = false) : IDisposable
+internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action<Exception> reportFailure, bool samplesOnly = false,
+    IPhotoTileSource? tiles = null) : IDisposable
 {
     private static readonly PhotoColorProfile LinearColor = new([1, 1, 0, 1, 0, 0, 0],
         [1, 0, 0, 0, 1, 0, 0, 0, 1]);
     private static readonly PhotoColorProfile LinearAlphaColor = new([1, 1, 0, 1, 0, 0, 0],
         [1, 0, 0, 0, 1, 0, 0, 0, 1], hasAlpha: true);
-    private readonly IPhotoTileSource source = frame.PhotoTiles!;
-    private readonly bool preferThroughput = PhotoDecodeResources.PreferThroughput && !frame.PhotoTiles!.AlwaysPreferMemory;
+    private readonly IPhotoTileSource source = tiles ?? frame.PhotoTiles!;
+    private readonly bool preferThroughput = PhotoDecodeResources.PreferThroughput && !(tiles ?? frame.PhotoTiles!).AlwaysPreferMemory;
     private readonly object sync = new();
     private readonly CancellationTokenSource cancellation = new();
     private readonly Dictionary<Work, Tile> details = [];
@@ -110,6 +111,22 @@ internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action
         }
 
         UploadReady(request, lease);
+        if (request.InMotion && !samplesOnly && !frame.HasAlpha && overviewImage is { } settled)
+        {
+            // The picture is resampled again next frame, so the overview stands in for the detail
+            // tiles, which are kept for when it comes to rest.
+            if (draw)
+            {
+                int saved = request.Canvas.Save();
+                try
+                {
+                    request.Canvas.ClipRect(request.Destination);
+                    Draw(request, settled);
+                }
+                finally { request.Canvas.RestoreToCount(saved); }
+            }
+            return;
+        }
         var wanted = new HashSet<Work>();
         int detailReduction = preferThroughput ? 1 : reduction;
         while (preferThroughput || detailReduction < overviewReduction)
@@ -141,7 +158,7 @@ internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action
 
         if (samplesOnly || frame.HasAlpha)
         {
-            UpdateSampleWindow(visible, preferThroughput ? reduction : detailReduction, lease.GrContext);
+            UpdateSampleWindow(visible, preferThroughput ? reduction : detailReduction, lease.GrContext, request.InMotion);
             if (!samplesOnly && draw && sampleWindow is { } combined)
                 Draw(request, combined);
         }
@@ -521,9 +538,34 @@ internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action
         reportFailure(exception);
     }
 
-    private static SKImage? Linearize(VideoFrame decoded, SKRectI? samplingBounds,
+    private SKImage? Linearize(VideoFrame decoded, SKRectI? samplingBounds,
         in VideoRenderRequest request, ISkiaSharpApiLease lease)
     {
+        // Tiles hold the scene light a color profile decodes; the photo's HDR transfer tone maps and
+        // scales them only when they are drawn.
+        if (decoded.PhotoColor is not null)
+            decoded.ColorTransfer = VideoColorTransfer.Linear;
+        if (source is PhotoSurfaceTileSource surface)
+        {
+            // The region samples its part of the imported picture, so converting it costs one
+            // pass over the region and no copy.
+            SKImage packed = surface.Import(lease.GrContext)
+                ?? throw new InvalidOperationException("The platform photo is not imported.");
+            try
+            {
+                return VideoFramePipeline.RenderPhotoLinear(request with
+                {
+                    Frame = decoded,
+                    PlaneSource = null,
+                    PackedImage = packed,
+                    ImageCache = null,
+                    Scaler = VideoScalers.For(VideoScalingQuality.Bilinear),
+                    SceneBounds = samplingBounds,
+                    SamplingBounds = samplingBounds,
+                }, out string declined) ?? throw new InvalidOperationException($"Could not process photo pixels: {declined}.");
+            }
+            finally { lease.GrContext?.Flush(submit: true); }
+        }
         using SKImage? external = decoded.Format == VideoPixelFormat.ExternalTexture ? ImportTexture(decoded, lease) : null;
         using VideoSurfacePlanes? imported = decoded.HasSurface ? VideoSurfaceImport.TryImport(lease, decoded) : null;
         if (decoded.HasSurface && imported is null || decoded.Format == VideoPixelFormat.ExternalTexture && external is null)
@@ -538,12 +580,7 @@ internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action
         {
             cache.SetRenderContext(lease);
             SKImage? packed = external is null && !VideoPlanarLayout.IsPlanar(pixels.Format) && !pixels.HasSurface
-                ? cache.GetPackedImage(new SKImageInfo(pixels.Width, pixels.Height, pixels.Format switch
-                    {
-                        VideoPixelFormat.Rgba64 => SKColorType.Rgba16161616,
-                        VideoPixelFormat.RgbaF16 => SKColorType.RgbaF16,
-                        _ => SKColorType.Bgra8888,
-                    }, SKAlphaType.Unpremul),
+                ? cache.GetPackedImage(VideoPackedFormatProbe.FrameImageInfo(pixels, lease.GrContext, SKAlphaType.Unpremul),
                     lease.GrContext) : null;
             VideoRenderRequest linear = request with
             {
@@ -632,7 +669,7 @@ internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action
         return sampleWindow?.Image;
     }
 
-    private void UpdateSampleWindow(SKRect visible, int reduction, GRContext? context)
+    private void UpdateSampleWindow(SKRect visible, int reduction, GRContext? context, bool inMotion)
     {
         if (overviewImage is null)
             return;
@@ -642,7 +679,8 @@ internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action
             Math.Max(0, ((int)MathF.Floor(visible.Top) - reduction * 2) / alignment * alignment),
             Math.Min(frame.Width, ((int)MathF.Ceiling(visible.Right) + reduction * 2 + alignment - 1) / alignment * alignment),
             Math.Min(frame.Height, ((int)MathF.Ceiling(visible.Bottom) + reduction * 2 + alignment - 1) / alignment * alignment));
-        if (sampleWindow is not null && sampleBounds == bounds && sampleReduction == reduction && sampleRevision == revision)
+        if (sampleWindow is not null && ((sampleBounds == bounds && sampleReduction == reduction && sampleRevision == revision) ||
+            (inMotion && sampleBounds.Contains(bounds))))
             return;
         int width = Math.Max(1, (bounds.Width + reduction - 1) / reduction);
         int height = Math.Max(1, (bounds.Height + reduction - 1) / reduction);

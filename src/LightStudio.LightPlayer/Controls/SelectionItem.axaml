@@ -8,13 +8,13 @@
                 HorizontalContentAlignment="Stretch"
                 VerticalContentAlignment="Stretch">
     <ContentControl.Styles>
-        <Style Selector="controls|SelectionItem.tile /template/ CheckBox#SelectionCheck">
+        <Style Selector="controls|SelectionItem.tile /template/ controls|LazyPart#SelectionCheckHost">
             <Setter Property="Grid.Column" Value="1" />
             <Setter Property="HorizontalAlignment" Value="Right" />
             <Setter Property="VerticalAlignment" Value="Top" />
             <Setter Property="Margin" Value="8" />
         </Style>
-        <Style Selector="controls|SelectionItem.tile /template/ CheckBox#SelectionCheck:unchecked /template/ Border#NormalRectangle, controls|SelectionItem.tile /template/ CheckBox#SelectionCheck:unchecked /template/ Border#MacCheckBoxWell">
+        <Style Selector="controls|SelectionItem.tile CheckBox.selectionCheck:unchecked /template/ Border#NormalRectangle, controls|SelectionItem.tile CheckBox.selectionCheck:unchecked /template/ Border#MacCheckBoxWell">
             <Setter Property="Background" Value="{DynamicResource AppPanelBackgroundBrush}" />
         </Style>
     </ContentControl.Styles>
@@ -27,18 +27,24 @@
                                       HorizontalContentAlignment="Stretch"
                                       VerticalContentAlignment="Stretch"
                                       IsHitTestVisible="{Binding !IsSelectionMode}" />
-                    <CheckBox x:Name="SelectionCheck"
-                              Grid.Column="0"
-                              IsVisible="{Binding IsSelectionMode}"
-                              IsChecked="{Binding IsSelected, Mode=OneWay}"
-                              IsHitTestVisible="False"
-                              Focusable="False"
-                              Width="20"
-                              MinWidth="0"
-                              MinHeight="32"
-                              Padding="0"
-                              Margin="4,0,8,0"
-                              VerticalAlignment="Center" />
+                    <!-- The check box only exists once the page enters selection mode. -->
+                    <controls:LazyPart x:Name="SelectionCheckHost"
+                                       Grid.Column="0"
+                                       IsActive="{Binding IsSelectionMode}"
+                                       Margin="4,0,8,0"
+                                       VerticalAlignment="Center">
+                        <Template>
+                            <CheckBox x:DataType="models:SelectionItemModel"
+                                      Classes="selectionCheck"
+                                      IsChecked="{Binding IsSelected, Mode=OneWay}"
+                                      IsHitTestVisible="False"
+                                      Focusable="False"
+                                      Width="20"
+                                      MinWidth="0"
+                                      MinHeight="32"
+                                      Padding="0" />
+                        </Template>
+                    </controls:LazyPart>
                 </Grid>
             </Border>
         </ControlTemplate>

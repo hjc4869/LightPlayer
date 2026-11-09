@@ -26,8 +26,11 @@ namespace LightStudio.LightPlayer.ViewModels.Pages;
 /// online source), can be searched/imported/cleared manually, and their timing
 /// can be nudged earlier or later.
 /// </summary>
-public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDisposable
+public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDisposable, IArtworkSizeTarget
 {
+    /// <summary>Side of the page's artwork in DIPs; the view reports the size it actually draws.</summary>
+    private const double ArtDisplaySize = 240;
+
     private const long OffsetStepMs = 1000;
 
     private readonly PlaybackController playback;
@@ -40,6 +43,7 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
     private ParsedLrc? current;
     private int lineIndex = -1;
     private int artVersion;
+    private int artPixelSize;
     private bool disposed;
     private CancellationTokenSource? lyricSearchCts;
     private IReadOnlyList<ExternalLrcInfo> lastCandidates = Array.Empty<ExternalLrcInfo>();
@@ -167,6 +171,17 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
         RefreshUpcoming();
     }
 
+    public void SetArtworkDisplaySize(int pixelSize)
+    {
+        if (disposed || pixelSize <= artPixelSize)
+        {
+            return;
+        }
+
+        artPixelSize = pixelSize;
+        _ = LoadArtAsync(playback.CurrentItem, ++artVersion);
+    }
+
     private async Task LoadArtAsync(MusicPlaybackItemModel? item, int version)
     {
         if (item is null)
@@ -174,17 +189,23 @@ public sealed partial class NowPlayingPageViewModel : PageViewModelBase, IDispos
             return;
         }
 
-        var bitmap = await albumArt.GetHighQualityTrackArtAsync(item.Media).ConfigureAwait(false);
+        // The first load fixes the size the view has not reported yet, so a later report can grow it.
+        if (artPixelSize == 0)
+        {
+            artPixelSize = AlbumArtService.DisplayPixels(ArtDisplaySize);
+        }
+
+        var image = await albumArt.GetHighQualityTrackArtAsync(item.Media, artPixelSize).ConfigureAwait(false);
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             if (disposed || version != artVersion || !ReferenceEquals(playback.CurrentItem, item))
             {
-                bitmap?.Dispose();
+                image?.Dispose();
                 return;
             }
 
-            ArtworkKey = bitmap is not null ? item.Media : null;
-            AlbumImage = bitmap;
+            ArtworkKey = image is not null ? item.Media : null;
+            AlbumImage = image;
         }, DispatcherPriority.Background);
     }
 

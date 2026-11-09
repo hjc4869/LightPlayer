@@ -26,6 +26,8 @@
   </array>
   <key>UILaunchScreen</key>
   <dict/>
+  <key>CADisableMinimumFrameDurationOnPhone</key>
+  <true/>
   <key>UIFileSharingEnabled</key>
   <true/>
   <key>LSSupportsOpeningDocumentsInPlace</key>
@@ -56,6 +58,10 @@
   </dict>
   <key>NSLocalNetworkUsageDescription</key>
   <string>Connect to media libraries on your local network.</string>
+  <key>NSAppleMusicUsageDescription</key>
+  <string>Play music from your device's media library.</string>
+  <key>NSPhotoLibraryUsageDescription</key>
+  <string>Show photos and videos from your device's media library.</string>
   <key>CFBundleLocalizations</key>
   <array>
     <string>en</string>
@@ -64,6 +70,7 @@
     <string>es</string>
     <string>fr</string>
     <string>ja</string>
+    <string>pt</string>
     <string>zh-Hans</string>
     <string>zh-Hant</string>
   </array>

@@ -84,6 +84,9 @@ public sealed class WindowsInferenceProvider : OnnxInferenceProviderBase
         var options = new SessionOptions { IntraOpNumThreads = Math.Clamp(Environment.ProcessorCount / 2, 1, 8) };
         try
         {
+            // Embedding sessions run in the background, so idle inference threads sleep instead of spinning.
+            if (width > 0)
+                options.AddSessionConfigEntry("session.intra_op.allow_spinning", "0");
             if (deviceId == "cpu")
             {
                 // ORT 1.27.1's FP16 layer-normalization fusion rejects shared constants in joint models.

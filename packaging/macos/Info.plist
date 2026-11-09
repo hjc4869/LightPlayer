@@ -49,6 +49,10 @@
     <string>11.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSAppleMusicUsageDescription</key>
+    <string>Play music from your Mac's media library.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Show photos and videos from your Mac's media library.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>LSApplicationCategoryType</key>

@@ -107,9 +107,19 @@ public sealed partial class MediaPageViewModel
     [NotifyPropertyChangedFor(nameof(UseNarrowList))]
     private LibraryItemPresentation narrowPresentation;
 
-    public bool UseCompactGrid => IsNarrow && NarrowPresentation == LibraryItemPresentation.Grid;
+    /// <summary>True while the page is too narrow for two wide tiles side by side. Set by the view.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(UsesNarrowLayout))]
+    [NotifyPropertyChangedFor(nameof(UseCompactGrid))]
+    [NotifyPropertyChangedFor(nameof(UseNarrowList))]
+    private bool fitsOneWideColumn;
 
-    public bool UseNarrowList => IsNarrow && NarrowPresentation == LibraryItemPresentation.List;
+    /// <summary>True while the page uses its narrow presentation and insets.</summary>
+    public bool UsesNarrowLayout => IsNarrow || FitsOneWideColumn;
+
+    public bool UseCompactGrid => UsesNarrowLayout && NarrowPresentation == LibraryItemPresentation.Grid;
+
+    public bool UseNarrowList => UsesNarrowLayout && NarrowPresentation == LibraryItemPresentation.List;
 
     public MediaPageViewModel(
         IUnifiedVideoLibraryQueryService videoLibraryQuery,
@@ -169,6 +179,7 @@ public sealed partial class MediaPageViewModel
         RetryLoadMoreCommand = new AsyncRelayCommand(RetryLoadMoreAsync);
         AddressBar = new PageAddressBarModel(GoUpCommand, RefreshCommand, nameof(Strings.Resources.Video_GoUp))
         {
+            IsBrowsingFolders = layout == LibraryLayoutMode.Folders,
             Sorting = new MediaSortModel(settings =>
             {
                 if (callbacks.ChangeViewSettings is { } changeSettings)
@@ -421,16 +432,21 @@ public sealed partial class MediaPageViewModel
     protected override void OnIsNarrowChanged(bool value)
     {
         UpdateAddressBarLayout();
+        OnPropertyChanged(nameof(UsesNarrowLayout));
         OnPropertyChanged(nameof(UseCompactGrid));
         OnPropertyChanged(nameof(UseNarrowList));
     }
 
     protected override void OnHasShellPathMenuChanged(bool value) => UpdateAddressBarLayout();
 
+    partial void OnFitsOneWideColumnChanged(bool value) => UpdateAddressBarLayout();
+
+    partial void OnLayoutChanged(LibraryLayoutMode value) => AddressBar.IsBrowsingFolders = value == LibraryLayoutMode.Folders;
+
     private void UpdateAddressBarLayout()
     {
         AddressBar.IsVisible = !HasShellPathMenu;
-        AddressBar.Margin = IsNarrow ? new Avalonia.Thickness(16, 8, 16, 0) : new Avalonia.Thickness(32, 12, 32, 0);
+        AddressBar.Margin = UsesNarrowLayout ? new Avalonia.Thickness(16, 8, 16, 0) : new Avalonia.Thickness(32, 12, 32, 0);
     }
 
     /// <summary>

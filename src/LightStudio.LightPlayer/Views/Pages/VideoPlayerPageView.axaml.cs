@@ -12,6 +12,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using CommunityToolkit.Mvvm.Input;
 using LightStudio.LightPlayer.Controls;
+using LightStudio.LightPlayer.Services;
 using LightStudio.LightPlayer.ViewModels.Pages;
 using LightStudio.Logging;
 
@@ -166,13 +167,71 @@ public partial class VideoPlayerPageView : UserControl
             HideToast();
         };
 
+        ApplyChromeInsets();
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
         if (change.Property == BoundsProperty)
+        {
+            ApplyChromeInsets();
             RequestDeckLayout();
+            UpdateFullScreenButton();
+        }
+        else if (change.Property == ShellChrome.SafeAreaInsetsProperty || change.Property == ShellChrome.WindowControlsInsetProperty ||
+            change.Property == ShellChrome.DeviceRegionsProperty)
+        {
+            ApplyChromeInsets();
+            RequestDeckLayout();
+        }
+    }
+
+    // The picture covers the window; the deck and panels keep clear of the window controls and, on
+    // touch heads, of the system bands around it. Beside a corner status bar the title takes the status
+    // bar's row.
+    private void ApplyChromeInsets()
+    {
+        var safe = ShellChrome.GetSafeAreaInsets(this);
+        var controls = ShellChrome.GetWindowControlsInset(this);
+        var titleMargin = TitleContent.Margin;
+        double titleBottom;
+        if (ShellChrome.GetDeviceRegions(this).HorizontalBar is { Height: > 0 } row)
+        {
+            TitleBar.Padding = new Thickness(
+                Math.Max(0, row.Left - titleMargin.Left),
+                Math.Max(0, row.Top - titleMargin.Top),
+                Math.Max(0, Bounds.Width - row.Right - titleMargin.Right),
+                0);
+            titleBottom = row.Bottom + titleMargin.Bottom;
+        }
+        else
+        {
+            TitleBar.Padding = new Thickness(controls.Left + safe.Left, controls.Top + safe.Top, safe.Right, 0);
+            titleBottom = 56 + safe.Top;
+        }
+
+        ControlDeck.Margin = new Thickness(12 + safe.Left, 12, 12 + safe.Right, 12 + safe.Bottom);
+        PlaylistBackdrop.Margin = new Thickness(0, safe.Top, safe.Right, safe.Bottom);
+        StatisticsPanel.Margin = new Thickness(12 + safe.Left, titleBottom, 12 + safe.Right, 12 + safe.Bottom);
+    }
+
+    // The width of the safe area, which the deck keeps within.
+    private double SafeWidth
+    {
+        get
+        {
+            var safe = ShellChrome.GetSafeAreaInsets(this);
+            return Math.Max(0, Bounds.Width - safe.Left - safe.Right);
+        }
+    }
+
+    // Touch heads turn the display to fit the picture instead of covering the window, so the button
+    // only shows while turning would help, or to turn back.
+    private void UpdateFullScreenButton()
+    {
+        if (MediaOrientation.TurnsDisplay && ViewModel is { } model)
+            FullScreenButton.IsVisible = model.IsFullScreen || MediaOrientation.OffersTurning(Bounds.Size, model.PictureAspectRatio);
     }
 
     private void RequestDeckLayout()
@@ -193,9 +252,10 @@ public partial class VideoPlayerPageView : UserControl
         if (!deckInitialized)
             return;
 
-        var compact = Bounds.Width < CompactDeckThreshold;
+        var width = SafeWidth;
+        var compact = width < CompactDeckThreshold;
         Classes.Set("compactDeck", compact);
-        Classes.Set("tightDeck", Bounds.Width < 360d);
+        Classes.Set("tightDeck", width < 360d);
         var playButtonSize = compact ? 44d : 56d;
         var playGlyphSize = compact ? 18d : 30d;
         PlayPauseButton.MinWidth = playButtonSize;
@@ -238,14 +298,15 @@ public partial class VideoPlayerPageView : UserControl
             PlaybackButtons.InvalidateArrange();
         }
 
-        var pairWidth = 2d * ((Bounds.Width < 360d ? 32d : Bounds.Width < CompactDeckThreshold ? 36d : 44d) + 2d);
+        var width = SafeWidth;
+        var pairWidth = 2d * ((width < 360d ? 32d : width < CompactDeckThreshold ? 36d : 44d) + 2d);
         var sideWidth = Math.Max(LeftButtons.DesiredSize.Width, RightButtons.DesiredSize.Width);
         var navigationPairs = (ViewModel?.CanSeek == true ? 1 : 0) +
             (ViewModel?.HasChapters == true ? 1 : 0) +
             (ViewModel?.IsPlaylistAvailable == true ? 1 : 0);
         var maximumWidth = PlayPauseButton.MinWidth + navigationPairs * pairWidth +
             2d * (sideWidth + 100d) + DeckLayout.Margin.Left + DeckLayout.Margin.Right;
-        ControlDeck.Width = Math.Max(0, Math.Min(maximumWidth, Bounds.Width - 24d));
+        ControlDeck.Width = Math.Max(0, Math.Min(maximumWidth, width - 24d));
 
         var remaining = DeckControlsRow.Bounds.Width - 2d * (sideWidth + 8d) - PlayPauseButton.MinWidth;
         SetNavigationVisibility("hideSeekSteps", ViewModel?.CanSeek == true);
@@ -745,6 +806,7 @@ public partial class VideoPlayerPageView : UserControl
 
         UpdateToneMappingControls();
         ApplyStageCursor();
+        UpdateFullScreenButton();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -752,6 +814,10 @@ public partial class VideoPlayerPageView : UserControl
         if (e.PropertyName == nameof(VideoPlayerPageViewModel.IsPlaylistOpen) && ViewModel is { } model)
         {
             SetPlaylistOpen(model.IsPlaylistOpen, animate: true);
+        }
+        else if (e.PropertyName is nameof(VideoPlayerPageViewModel.IsFullScreen) or nameof(VideoPlayerPageViewModel.PictureAspectRatio))
+        {
+            UpdateFullScreenButton();
         }
         else if (e.PropertyName == nameof(VideoPlayerPageViewModel.AreControlsVisible))
         {

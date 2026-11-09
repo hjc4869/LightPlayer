@@ -137,10 +137,6 @@ Microsoft.ML.Tokenizers
   License: MIT
   https://github.com/dotnet/machinelearning/blob/main/LICENSE
 
-MathNet.Numerics (audio separation transforms)
-  License: MIT
-  https://github.com/mathnet/mathnet-numerics/blob/master/LICENSE.md
-
 SQLite  (native database engine)
   License: Public Domain
   https://www.sqlite.org/copyright.html

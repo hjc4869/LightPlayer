@@ -114,7 +114,8 @@ public static class VideoOutputDiagnostics
             PhysicalPeakNits = mapping.PhysicalPeakNits,
             RelativeLuminance = mapping.RelativeLuminance,
             PlatformToneMapping = mapping.PlatformToneMapping,
-            HdrAdaptedToDisplay = transfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg && mapping.AdaptsToDisplay,
+            HdrAdaptedToDisplay = transfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog &&
+                mapping.AdaptsToDisplay,
             Scaling = scaling,
 
             // Which filter a newly asked for one turns into is not known until a frame is drawn.
@@ -430,7 +431,7 @@ public sealed record VideoOutputStatus
         !RelativeLuminance &&
         !PlatformToneMapping &&
         Target.IsExtendedRange() &&
-        SourceTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
+        SourceTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog;
 
     public string ToDisplayString()
     {
@@ -445,7 +446,7 @@ public sealed record VideoOutputStatus
             : $"shown through {TransferName(SurfaceTransfer)} ({(SurfaceTransferReported ? "reported" : "assumed")})";
         text.Add("Surface", $"asked {requested}  got {SurfaceEncoding}/{SurfaceColorSpace}  {surfaceTransfer}");
 
-        bool hdr = SourceTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg;
+        bool hdr = SourceTransfer is VideoColorTransfer.Pq or VideoColorTransfer.Hlg or VideoColorTransfer.AppleLog;
         string relativeMapping = !HdrAdaptedToDisplay
             ? "no client highlight compression"
             : ToneMappingAlgorithm switch
@@ -502,6 +503,9 @@ public sealed record VideoOutputStatus
             string average = hdr10Plus.SceneAverageNits > 0
                 ? $", average {hdr10Plus.SceneAverageNits:0}"
                 : string.Empty;
+            string scene = hdr10Plus.ScenePeakNits > 0
+                ? $"scene peak {hdr10Plus.ScenePeakNits:0}{average} nits"
+                : "no scene luminance";
             string mapping = hdr10Plus.Mapping switch
             {
                 VideoHdr10PlusMapping.St2094_40 => "ST 2094-40 applied",
@@ -511,8 +515,7 @@ public sealed record VideoOutputStatus
             text.Add(
                 "Dynamic HDR",
                 $"HDR10+ v{hdr10Plus.ApplicationVersion}, {windows}, target " +
-                $"{hdr10Plus.MetadataTargetNits:0} nits, scene peak " +
-                $"{hdr10Plus.ScenePeakNits:0}{average} nits, " +
+                $"{hdr10Plus.MetadataTargetNits:0} nits, {scene}, " +
                 $"{hdr10Plus.AnchorCount} anchors, {mapping}");
         }
         if (ActivePreScale is { } preScale)

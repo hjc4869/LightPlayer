@@ -1195,8 +1195,10 @@
         </Style>
     </Style>
 
-    <!-- Controls in a window that is not key lose their accent emphasis and focus rings. -->
-    <Style Selector=":is(Window).appleControls[IsActive=False]">
+    <!-- Controls in a window that is not key lose their accent emphasis and focus rings. The
+         inactive class is maintained by the app for every window, so the styled controls do not
+         each subscribe to the window's state. -->
+    <Style Selector=":is(Window).appleControls.inactive">
         <Style Selector="^ Button[IsDefault=True]:not(.icon):not(.miniIcon):not(.link):not(.accent):not(.tileButton):not(.nav):not(:disabled)">
             <Setter Property="Background" Value="{DynamicResource MacControlFill}" />
             <Setter Property="Foreground" Value="{DynamicResource MacLabelBrush}" />

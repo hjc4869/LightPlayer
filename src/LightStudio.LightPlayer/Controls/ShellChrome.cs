@@ -8,6 +8,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using LightStudio.LightPlayer.Services;
 
 namespace LightStudio.LightPlayer.Controls;
 
@@ -20,6 +21,20 @@ public static class ShellChrome
     /// </summary>
     public static readonly AttachedProperty<Thickness> WindowControlsInsetProperty =
         AvaloniaProperty.RegisterAttached<Control, Thickness>("WindowControlsInset", typeof(ShellChrome), inherits: true);
+
+    /// <summary>
+    /// The safe area insets a view whose picture covers the window keeps its controls within.
+    /// Inherited from the surface that extends under the system bands.
+    /// </summary>
+    public static readonly AttachedProperty<Thickness> SafeAreaInsetsProperty =
+        AvaloniaProperty.RegisterAttached<Control, Thickness>("SafeAreaInsets", typeof(ShellChrome), inherits: true);
+
+    /// <summary>
+    /// The regions the device reserves around a view whose picture covers the window, in its coordinates.
+    /// Inherited from the surface that extends under the system bands.
+    /// </summary>
+    public static readonly AttachedProperty<DeviceRegions> DeviceRegionsProperty =
+        AvaloniaProperty.RegisterAttached<Control, DeviceRegions>("DeviceRegions", typeof(ShellChrome), DeviceRegions.Empty, inherits: true);
 
     /// <summary>
     /// How far shell chrome overlaps a page host from beyond its top and bottom edges. Vertical
@@ -40,6 +55,16 @@ public static class ShellChrome
 
     public static void SetWindowControlsInset(Control control, Thickness value) =>
         control.SetValue(WindowControlsInsetProperty, value);
+
+    public static Thickness GetSafeAreaInsets(Control control) => control.GetValue(SafeAreaInsetsProperty);
+
+    public static void SetSafeAreaInsets(Control control, Thickness value) =>
+        control.SetValue(SafeAreaInsetsProperty, value);
+
+    public static DeviceRegions GetDeviceRegions(Control control) => control.GetValue(DeviceRegionsProperty);
+
+    public static void SetDeviceRegions(Control control, DeviceRegions value) =>
+        control.SetValue(DeviceRegionsProperty, value);
 
     public static Thickness GetScrollUnderInsets(Control control) => control.GetValue(ScrollUnderInsetsProperty);
 

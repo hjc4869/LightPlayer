@@ -80,7 +80,7 @@ internal static class OnnxAudioModels
 
     internal static MdxProfile GetProfileByFingerprint(string fingerprint, int frequencies) =>
         profiles.TryGetValue(fingerprint, out var profile) && profile.Frequencies == frequencies ? profile
-            : new MdxProfile(Math.Max(6144, (frequencies - 1) * 2), frequencies, 256, 1f);
+            : new MdxProfile(Math.Max(6144, ((frequencies - 1) * 2 + 3) / 4 * 4), frequencies, 256, 1f);
 }
 
 internal sealed record MdxProfile(int FftSize, int Frequencies, int Frames, float Gain);

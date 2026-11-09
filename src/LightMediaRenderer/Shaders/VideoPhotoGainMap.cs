@@ -95,12 +95,16 @@ internal static class VideoPhotoGainMap
     public static void AddStage(VideoShaderBuilder builder) =>
         builder.AddChild(Child).AddUniforms(Uniforms).AddStage(Stage);
 
-    public static unsafe SKImage? CreateImage(PhotoGainMap gainMap)
+    public static unsafe SKImage? CreateImage(PhotoGainMap gainMap, GRContext? context)
     {
         var info = new SKImageInfo(gainMap.Width, gainMap.Height,
             gainMap.BitsPerComponent == 16 ? SKColorType.Rgba16161616 : SKColorType.Rgba8888, SKAlphaType.Opaque);
         fixed (byte* pixels = gainMap.Pixels.Span)
-            return SKImage.FromPixelCopy(info, (IntPtr)pixels, info.RowBytes);
+        {
+            return VideoPackedFormatProbe.ConvertsToHalfFloat(info.ColorType, context)
+                ? VideoPackedFormatProbe.CreateHalfFloatRaster(info, (IntPtr)pixels, info.RowBytes)
+                : SKImage.FromPixelCopy(info, (IntPtr)pixels, info.RowBytes);
+        }
     }
 
     public static SKShader? CreateShader(in VideoRenderRequest request, VideoColorPlan plan,
@@ -109,7 +113,7 @@ internal static class VideoPhotoGainMap
         if (!plan.PhotoGainMap || request.Frame.GainMap is not { } gainMap)
             return null;
 
-        using SKImage? owned = request.ImageCache is null ? CreateImage(gainMap) : null;
+        using SKImage? owned = request.ImageCache is null ? CreateImage(gainMap, request.GrContext) : null;
         SKRect? sampleBounds = null;
         SKImage? image = request.ImageCache?.GetGainMapImage(out sampleBounds) ?? owned;
         SKMatrix local = SKMatrix.CreateScale((float)(width > 0 ? width : request.Frame.Width) / gainMap.Width,

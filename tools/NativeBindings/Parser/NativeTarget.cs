@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -63,7 +64,9 @@ internal sealed class NativeTarget
         var isStatic = options.Flag("static");
         target.Backend = !isStatic ? LinkBackend.Dynamic : target.IsBrowser ? LinkBackend.Wasm : LinkBackend.Direct;
         target.Arguments.AddRange(options.List("compilerArguments"));
-        if (options.Get("packageDirectory").Length != 0)
+        if (options.Get("ndkLibraries").Length != 0)
+            target.LoadAndroidNdk(options);
+        else if (options.Get("packageDirectory").Length != 0)
             await target.LoadPackageAsync(options);
         else
             await target.LoadSystemAsync(options);
@@ -181,6 +184,50 @@ internal sealed class NativeTarget
             Libraries.Add(new LibraryAsset(path, Backend != LinkBackend.Dynamic,
                 library.TryGetProperty("runtimeIdentity", out var identity) ? identity.GetString() : null));
         }
+    }
+
+    /// <summary>
+    /// Selects platform libraries of the Android NDK sysroot. Their stub libraries export every function of the
+    /// target API level, and the headers are system headers, so each request owns its own top-level directory.
+    /// </summary>
+    private void LoadAndroidNdk(Options options)
+    {
+        if (!IsAndroid)
+            throw new InvalidOperationException($"NativeBindingsNdkLibraries selects Android NDK libraries, which {Runtime} cannot use.");
+        if (!int.TryParse(options.Get("androidApiLevel"), out var apiLevel) || apiLevel <= 0)
+            throw new InvalidOperationException("Android NDK bindings need the target API level; set NativeBindingsAndroidApiLevel or SupportedOSPlatformVersion.");
+        var (triple, libraryAbi, bits) = Architecture switch
+        {
+            "arm64" => ("aarch64-linux-android", "aarch64-linux-android", 64),
+            "x64" => ("x86_64-linux-android", "x86_64-linux-android", 64),
+            "x86" => ("i686-linux-android", "i686-linux-android", 32),
+            "arm" => ("armv7a-linux-androideabi", "arm-linux-androideabi", 32),
+            _ => throw new NotSupportedException($"Unsupported Android runtime: {Runtime}")
+        };
+        ResolveAndroidToolchain(options);
+        if (!Directory.Exists(Sysroot))
+            throw new DirectoryNotFoundException($"The Android NDK sysroot does not exist: {Sysroot}");
+        Triple = triple + apiLevel.ToString(CultureInfo.InvariantCulture);
+        ExpectedPointerBits = bits;
+        ExpectedLongBits = bits;
+        if (options.List("libraries").Length != 0)
+            throw new InvalidOperationException("NativeBindingsNdkLibraries and NativeBindingsLibraries cannot be combined.");
+        var names = options.List("ndkLibraries").Distinct(StringComparer.Ordinal).ToArray();
+        Provider = "ndk:" + string.Join(' ', names);
+        var directory = Path.Combine(Sysroot, "usr", "lib", libraryAbi, apiLevel.ToString(CultureInfo.InvariantCulture));
+        if (!Directory.Exists(directory))
+            throw new DirectoryNotFoundException($"The Android NDK has no API level {apiLevel} libraries for {Runtime}: {directory}");
+        var missing = new List<string>();
+        foreach (var name in names)
+        {
+            var path = Path.Combine(directory, "lib" + name + ".so");
+            if (File.Exists(path))
+                Libraries.Add(new LibraryAsset(path, false, null, name));
+            else
+                missing.Add(Path.GetFileName(path));
+        }
+        if (missing.Count != 0)
+            throw new FileNotFoundException($"Missing Android NDK libraries in {directory}: {string.Join(", ", missing)}.");
     }
 
     private async Task LoadSystemAsync(Options options)
