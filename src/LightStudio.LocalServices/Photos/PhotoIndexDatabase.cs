@@ -271,8 +271,9 @@ internal sealed class PhotoIndexDatabase : IAsyncDisposable
         finally { sync.Release(); }
     }
 
+    /// <param name="minimumScore">The lowest cosine similarity to include, or null to rank every photo.</param>
     internal async Task<List<(long Id, double Score)>> RankAsync(float[] query, string modelId, IReadOnlyList<string> roots,
-        Func<string, string, bool> includePath, CancellationToken cancellationToken)
+        double? minimumScore, Func<string, string, bool> includePath, CancellationToken cancellationToken)
     {
         if (roots.Count == 0)
             return [];
@@ -303,10 +304,12 @@ internal sealed class PhotoIndexDatabase : IAsyncDisposable
             while (await reader.ReadAsync(cancellationToken: cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                var score = 1 - reader.GetDouble(1);
+                if (score < minimumScore)
+                    break;
                 if (!includePath(reader.GetString(2), reader.GetString(3)))
                     continue;
-                var distance = reader.GetDouble(1);
-                result.Add((reader.GetInt64(0), 1 - distance));
+                result.Add((reader.GetInt64(0), score));
             }
             return result;
         }

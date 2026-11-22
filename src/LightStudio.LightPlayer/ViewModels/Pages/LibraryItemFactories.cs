@@ -164,3 +164,35 @@ internal static class SearchArtistTileFactory
         return tile;
     }
 }
+
+internal static class PhotoSearchTileFactory
+{
+    internal static VideoTileModel Create(Sourced<PhotoSearchMatch> match, PhotoSearchServices services,
+        Func<IEnumerable<VideoTileModel>> shown)
+    {
+        var photo = new PhotoFileReference(match.SourceId, match.Value.Path, match.Value.FileName, match.Value.SizeInBytes)
+        {
+            PixelWidth = match.Value.Width,
+            PixelHeight = match.Value.Height,
+        };
+        var tile = VideoTileModel.ForPhoto(photo);
+        tile.OpenCommand = new RelayCommand(() =>
+        {
+            services.History?.RecordPhoto(photo.Source, photo.Path);
+            services.Callbacks.OpenPhoto?.Invoke(photo, shown().Where(item => item.Photo is not null).Select(item => item.Photo!).ToArray());
+        });
+        if (services.Callbacks.ShowPhotoProperties is { } properties)
+            tile.PropertiesCommand = new RelayCommand(() => properties(photo));
+        if (photo.IsLocal && services.Callbacks.OpenPhotoContainingFolder is { } folder)
+            tile.OpenFolderCommand = new RelayCommand(() => folder(photo));
+        tile.PreviewLoader = async (model, token) =>
+        {
+            var bitmap = photo.IsLocal
+                ? await services.Photos.GetThumbnailAsync(photo.Path, token).ConfigureAwait(false)
+                : await services.Previews.GetPreviewAsync(photo.Media, token).ConfigureAwait(false);
+            if (bitmap is not null)
+                AlbumArtService.ApplyOnUiThread(bitmap, loaded => model.Preview = loaded, token);
+        };
+        return tile;
+    }
+}

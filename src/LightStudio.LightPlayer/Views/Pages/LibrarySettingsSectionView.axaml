@@ -13,8 +13,12 @@
              x:Class="LightStudio.LightPlayer.Views.Pages.LibrarySettingsSectionView"
              x:DataType="vm:LibrarySettingsSectionViewModel">
     <UserControl.Styles>
-        <Style Selector="controls|SettingRow.albumGroupingSetting TextBlock, controls|SettingRow.autoScanSetting TextBlock, controls|SettingRow.nativeLibrarySetting TextBlock">
-            <Setter Property="TextWrapping" Value="Wrap" />
+        <!-- The touch stepper needs a wider slot to leave the number room. -->
+        <Style Selector="controls|SettingRow.scanInterval">
+            <Setter Property="ActionWidth" Value="110" />
+        </Style>
+        <Style Selector=":is(TopLevel).appleTouch controls|SettingRow.scanInterval">
+            <Setter Property="ActionWidth" Value="150" />
         </Style>
     </UserControl.Styles>
     <!-- The inset lives on the content, not the scroll viewer, so the scroll bar stays at the pane edge. -->
@@ -25,14 +29,10 @@
                     Spacing="10">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="0,0,0,4">
                 <StackPanel Grid.Column="0" Spacing="4">
-                    <TextBlock Text="{Binding LibraryTitle}"
-                               FontSize="22"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                    <TextBlock Text="{Binding LibrarySubtitle}"
-                               FontSize="13"
-                               TextWrapping="Wrap"
-                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                    <TextBlock Classes="settingsTitle" Text="{Binding LibraryTitle}"
+                               TextWrapping="Wrap" />
+                    <TextBlock Classes="settingsSubtitle" Text="{Binding LibrarySubtitle}"
+                               TextWrapping="Wrap" />
                 </StackPanel>
                 <Button Grid.Column="1"
                         Classes="icon"
@@ -48,18 +48,14 @@
                 </Button>
             </Grid>
 
-            <TextBlock Text="{Binding StatusMessage}"
+            <TextBlock Classes="settingsCaption nudged" Text="{Binding StatusMessage}"
                        IsVisible="{Binding HasStatusMessage}"
-                       FontSize="12"
-                       Margin="2,-2,2,2"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                       Margin="2,-2,2,2" />
 
             <StackPanel Spacing="10" IsVisible="{Binding CanManageLibraryFolders}">
-            <TextBlock Text="{Binding FolderAccessDescription}"
+            <TextBlock Classes="settingsNote" Text="{Binding FolderAccessDescription}"
                        IsVisible="{Binding HasFolderAccessDescription}"
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                       TextWrapping="Wrap" />
             <controls:SettingRow Header="{Binding MusicLibraryHeader}"
                                  Description="{Binding MusicLibraryDescription}">
                 <controls:SettingRow.ActionContent>
@@ -86,7 +82,7 @@
                 </controls:SettingRow.ActionContent>
                 <controls:SettingRow.RowsContent>
                     <StackPanel>
-                        <controls:SettingRow Classes="nativeLibrarySetting" IsGrouped="True" HasTopDivider="True"
+                        <controls:SettingRow IsGrouped="True" HasTopDivider="True"
                                              IsVisible="{Binding SupportsSystemMusicLibrary}"
                                              Header="{Binding LibrarySettings_UseSystemLibrary, Source={x:Static strings:LocalizedStrings.Instance}}"
                                              Description="{Binding LibrarySettings_SystemMusicDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
@@ -104,7 +100,7 @@
                                 </StackPanel>
                             </controls:SettingRow.ActionContent>
                         </controls:SettingRow>
-                        <controls:SettingRow Classes="nativeLibrarySetting" IsGrouped="True" HasTopDivider="True"
+                        <controls:SettingRow IsGrouped="True" HasTopDivider="True"
                                              IsVisible="{Binding SupportsSystemMusicLibrary}"
                                              Header="{Binding LibrarySettings_ScanFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
                                              Description="{Binding LibrarySettings_ScanFoldersDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
@@ -116,9 +112,8 @@
                         <StackPanel IsVisible="{Binding ShowMusicFolders}">
                         <Border Classes="settingsDividedRow"
                                 IsVisible="{Binding !HasLibraryFolders}">
-                            <TextBlock Text="{Binding LibrarySettings_NoFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
-                                       FontSize="13"
-                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                            <TextBlock Classes="settingsNote" Text="{Binding LibrarySettings_NoFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       TextWrapping="Wrap" />
                         </Border>
                         <ItemsControl ItemsSource="{Binding LibraryFolders}">
                             <ItemsControl.ItemTemplate>
@@ -191,7 +186,7 @@
                 </controls:SettingRow.ActionContent>
                 <controls:SettingRow.RowsContent>
                     <StackPanel>
-                        <controls:SettingRow Classes="nativeLibrarySetting" IsGrouped="True" HasTopDivider="True"
+                        <controls:SettingRow IsGrouped="True" HasTopDivider="True"
                                              IsVisible="{Binding SupportsSystemMediaLibrary}"
                                              Header="{Binding LibrarySettings_UseSystemLibrary, Source={x:Static strings:LocalizedStrings.Instance}}"
                                              Description="{Binding LibrarySettings_SystemMediaDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
@@ -209,7 +204,7 @@
                                 </StackPanel>
                             </controls:SettingRow.ActionContent>
                         </controls:SettingRow>
-                        <controls:SettingRow Classes="nativeLibrarySetting" IsGrouped="True" HasTopDivider="True"
+                        <controls:SettingRow IsGrouped="True" HasTopDivider="True"
                                              IsVisible="{Binding SupportsSystemMediaLibrary}"
                                              Header="{Binding LibrarySettings_ScanFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
                                              Description="{Binding LibrarySettings_ScanFoldersDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
@@ -221,9 +216,8 @@
                         <StackPanel IsVisible="{Binding ShowMediaFolders}">
                         <Border Classes="settingsDividedRow"
                                 IsVisible="{Binding !HasVideoFolders}">
-                            <TextBlock Text="{Binding LibrarySettings_NoFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
-                                       FontSize="13"
-                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                            <TextBlock Classes="settingsNote" Text="{Binding LibrarySettings_NoFolders, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       TextWrapping="Wrap" />
                         </Border>
                         <ItemsControl ItemsSource="{Binding VideoFolders}">
                             <ItemsControl.ItemTemplate>
@@ -275,10 +269,8 @@
                                  IsVisible="{Binding !CanManageLibraryFolders}">
                 <controls:SettingRow.RowsContent>
                     <Border Classes="settingsDividedRow">
-                        <TextBlock Text="{Binding LibrarySettings_FolderAccessUnavailable, Source={x:Static strings:LocalizedStrings.Instance}}"
-                                   FontSize="13"
-                                   TextWrapping="Wrap"
-                                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                        <TextBlock Classes="settingsNote" Text="{Binding LibrarySettings_FolderAccessUnavailable, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                   TextWrapping="Wrap" />
                     </Border>
                 </controls:SettingRow.RowsContent>
             </controls:SettingRow>
@@ -291,7 +283,7 @@
                 </controls:SettingRow.ActionContent>
                 <controls:SettingRow.RowsContent>
                     <StackPanel>
-                        <controls:SettingRow Classes="autoScanSetting" IsGrouped="True"
+                        <controls:SettingRow IsGrouped="True"
                                              HasTopDivider="{Binding ShowStartupScanSetting}"
                                              IsVisible="{Binding CanAutoScanLibrary}"
                                              Header="{Binding LibrarySettings_AutoScanHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
@@ -301,48 +293,39 @@
                                               IsChecked="{Binding AutoScanLibrary, Mode=TwoWay}" />
                             </controls:SettingRow.ActionContent>
                         </controls:SettingRow>
-                        <controls:SettingRow Classes="autoScanSetting" IsGrouped="True" HasTopDivider="True"
+                        <controls:SettingRow Classes="scanInterval" IsGrouped="True" HasTopDivider="True"
                                              IsVisible="{Binding ShowAutoScanInterval}"
                                              Header="{Binding LibrarySettings_AutoScanIntervalHeader, Source={x:Static strings:LocalizedStrings.Instance}}">
                             <controls:SettingRow.ActionContent>
-                                <NumericUpDown x:Name="AutoScanIntervalInput" Width="110"
+                                <NumericUpDown x:Name="AutoScanIntervalInput"
                                                Minimum="1" Maximum="1440" Increment="1" FormatString="0"
                                                ClipValueToMinMax="True"
                                                IsEnabled="{Binding AutoScanLibrary}"
                                                Value="{Binding AutoScanIntervalMinutes, Mode=TwoWay}" />
                             </controls:SettingRow.ActionContent>
                         </controls:SettingRow>
-                        <Border Classes="settingsDivider"
-                                IsVisible="{Binding ShowStartupScanSetting}" />
-                        <Grid ColumnDefinitions="*,Auto"
-                              Margin="16,12"
-                              VerticalAlignment="Center">
-                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding LibrarySettings_KeepHistoryHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
-                                           Classes="settingName"
-                                           FontSize="{DynamicResource AppSettingNameFontSize}" />
-                                <TextBlock Text="{Binding LibrarySettings_KeepHistoryDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
-                                           Classes="settingDescription"
-                                           FontSize="{DynamicResource AppSettingDescriptionFontSize}"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                            <ToggleSwitch Grid.Column="1"
-                                          Margin="16,0,0,0"
-                                          OnContent=""
-                                          OffContent=""
-                                          IsChecked="{Binding EnablePlaybackHistory, Mode=TwoWay}" />
-                        </Grid>
-                        <controls:SettingRow Classes="albumGroupingSetting" IsGrouped="True" HasTopDivider="True"
+                        <controls:SettingRow IsGrouped="True"
+                                             HasTopDivider="{Binding ShowStartupScanSetting}"
+                                             Header="{Binding LibrarySettings_KeepHistoryHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                             Description="{Binding LibrarySettings_KeepHistoryDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
+                            <controls:SettingRow.ActionContent>
+                                <ToggleSwitch OnContent=""
+                                              OffContent=""
+                                              IsChecked="{Binding EnablePlaybackHistory, Mode=TwoWay}" />
+                            </controls:SettingRow.ActionContent>
+                        </controls:SettingRow>
+                        <controls:SettingRow IsGrouped="True" HasTopDivider="True"
                                              IsVisible="{Binding ShowAlbumGrouping}"
                                              Header="{Binding LibrarySettings_AlbumGroupingHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
-                                             Description="{Binding LibrarySettings_AlbumGroupingDescription, Source={x:Static strings:LocalizedStrings.Instance}}">
+                                             Description="{Binding LibrarySettings_AlbumGroupingDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                             ActionWidth="110">
                             <controls:SettingRow.ActionContent>
-                                <ComboBox x:Name="AlbumGroupingSelector" Width="110"
+                                <ComboBox x:Name="AlbumGroupingSelector"
                                           ItemsSource="{Binding AlbumGroupingOptions}"
                                           SelectedIndex="{Binding SelectedAlbumGroupingIndex, Mode=TwoWay}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:AlbumGroupingOption">
-                                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="280" />
+                                            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" MaxWidth="280" HorizontalAlignment="Left" />
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>

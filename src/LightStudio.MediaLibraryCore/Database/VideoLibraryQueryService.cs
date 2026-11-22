@@ -17,6 +17,7 @@ public sealed class VideoLibraryQueryService : IVideoLibraryQueryService, ILibra
     private readonly ThumbnailMemoryCache thumbnails;
     private readonly Func<MediaLibraryDatabase>? databaseFactory;
     private readonly IMultiMediaPlatformIO? platform;
+    private readonly Func<string, Func<CancellationToken, Task<byte[]?>>, CancellationToken, Task<byte[]?>>? previewStore;
     private readonly LibraryBrowseIndexCache<DbVideoFile> browseIndex;
     private readonly LibraryBrowseIndexCache<IndexedMediaFile> mediaBrowseIndex;
 
@@ -27,14 +28,19 @@ public sealed class VideoLibraryQueryService : IVideoLibraryQueryService, ILibra
         mediaBrowseIndex = LibraryBrowseIndexes.Media(this, readLocalCreationTime: true);
     }
 
+    /// <param name="previewStore">
+    /// Returns the stored preview of a path, or runs the supplied generator and stores its result.
+    /// </param>
     public VideoLibraryQueryService(
         Func<MediaLibraryDatabase> databaseFactory,
         IMultiMediaPlatformIO platform,
-        ThumbnailMemoryCache? thumbnails = null)
+        ThumbnailMemoryCache? thumbnails = null,
+        Func<string, Func<CancellationToken, Task<byte[]?>>, CancellationToken, Task<byte[]?>>? previewStore = null)
         : this(thumbnails)
     {
         this.databaseFactory = databaseFactory ?? throw new ArgumentNullException(nameof(databaseFactory));
         this.platform = platform ?? throw new ArgumentNullException(nameof(platform));
+        this.previewStore = previewStore;
     }
 
     public Task<LibraryBrowseIndex> GetBrowseIndexAsync(
@@ -133,6 +139,16 @@ public sealed class VideoLibraryQueryService : IVideoLibraryQueryService, ILibra
             return cached.Thumbnail;
         }
 
+        byte[]? preview = previewStore is null
+            ? await ProbePreviewAsync(path, cancellationToken).ConfigureAwait(false)
+            : await previewStore(path, token => ProbePreviewAsync(path, token), cancellationToken).ConfigureAwait(false);
+        await thumbnails.SetAsync(ThumbnailCacheKind.VideoPreview, path, preview, cancellationToken)
+            .ConfigureAwait(false);
+        return preview;
+    }
+
+    private async Task<byte[]?> ProbePreviewAsync(string path, CancellationToken cancellationToken)
+    {
         VideoProbeInfo? probe;
         try
         {
@@ -145,10 +161,7 @@ public sealed class VideoLibraryQueryService : IVideoLibraryQueryService, ILibra
             probe = null;
         }
 
-        byte[]? preview = probe?.Preview is { Length: > 0 } bytes ? bytes : null;
-        await thumbnails.SetAsync(ThumbnailCacheKind.VideoPreview, path, preview, cancellationToken)
-            .ConfigureAwait(false);
-        return preview;
+        return probe?.Preview is { Length: > 0 } bytes ? bytes : null;
     }
 
     private async Task<TResult> QueryAsync<TResult>(Func<MediaLibraryDatabase, Task<TResult>> query)

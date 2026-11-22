@@ -290,10 +290,28 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
     [ObservableProperty]
     private string? errorMessage;
 
+    /// <summary>
+    /// What this player plays at: the application's own volume, or the volume a browser session's
+    /// page set, which applies until the session ends or the volume is set in the application.
+    /// </summary>
     public double Volume
     {
-        get => playbackController.Volume;
-        set => playbackController.SetVolume(value);
+        get => browserPageVolume is { } page ? (page.Muted ? 0d : page.Level) : playbackController.Volume;
+        set
+        {
+            if (browserPageVolume is null)
+            {
+                playbackController.SetVolume(value);
+                return;
+            }
+
+            // A control that writes back the volume it shows changes nothing.
+            if (Math.Abs(Volume - value) < 0.0001d)
+                return;
+            browserPageVolume = null;
+            playbackController.SetVolume(value);
+            ApplyVolumeToPlayer();
+        }
     }
 
     [ObservableProperty]
@@ -915,6 +933,7 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
         bool resume,
         bool persistPlaybackState = true)
     {
+        ReleaseBrowserSession();
         await openSync.WaitAsync().ConfigureAwait(true);
         try
         {
@@ -939,6 +958,13 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
     public async Task OpenStreamAsync(StreamLink streamLink)
     {
         ArgumentNullException.ThrowIfNull(streamLink);
+        ReleaseBrowserSession();
+        await OpenStreamCoreAsync(streamLink, browser: null).ConfigureAwait(true);
+    }
+
+    /// <param name="browser">The redirect that asked for the stream, which then decides when playback starts.</param>
+    private async Task OpenStreamCoreAsync(StreamLink streamLink, IBrowserVideoSession? browser)
+    {
         if (streamLink.Sources.Count == 0)
             throw new ArgumentException("At least one HTTP media URL is required.", nameof(streamLink));
 
@@ -946,34 +972,12 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
         await openSync.WaitAsync().ConfigureAwait(true);
         try
         {
-            SavePlaybackPosition();
-            DetachStreamProvider();
-            ResetStreamingTimeline();
-            currentVideo = null;
-            RefreshFileActions();
-            subtitleFiles = null;
-            ErrorMessage = null;
-            ScalingQuality = settingsStore.PreferredVideoScaling;
-            DownscalingQuality = settingsStore.PreferredVideoDownscaling;
-            DebandingQuality = settingsStore.VideoDebanding;
-            PreferHardwareProcessing = settingsStore.PreferHardwareVideoProcessing;
-            EnableHdrPassthrough = settingsStore.EnableHdrPassthrough;
-            DisplayPanelBitDepth = settingsStore.DisplayPanelBitDepth;
-            ToneProfiles.Reload(settingsStore.ToneMapping);
-            ApplySubtitleBrightness(saved: null);
-            RebuildShaderPackageOptions(video: null, selectedOverride: null);
-            subtitleSourceKinds.Clear();
-            IsSubtitleBrowserOpen = false;
-            ResetTranscodeMenu();
-            IsTranscodeOffered = false;
-            MediaTitle = streamUri.Host;
-            Playlist = [];
-            NavigationParameter = null;
-            OnPropertyChanged(nameof(CanBrowseServerSubtitles));
+            PrepareStreamOpen(string.IsNullOrWhiteSpace(streamLink.Title) ? streamUri.Host : streamLink.Title);
 
-            bool isDash = streamLink.Sources.Count == 1 &&
+            // A redirected file was classified by the browser, so its address is not second-guessed.
+            bool isDash = browser is null && streamLink.Sources.Count == 1 &&
                 streamUri.AbsolutePath.EndsWith(".mpd", StringComparison.OrdinalIgnoreCase);
-            bool isHls = streamLink.Sources.Count == 1 &&
+            bool isHls = browser is null && streamLink.Sources.Count == 1 &&
                 (streamUri.AbsolutePath.EndsWith(".m3u8", StringComparison.OrdinalIgnoreCase) ||
                  streamUri.AbsolutePath.EndsWith(".m3u", StringComparison.OrdinalIgnoreCase));
             string streamKind = isDash ? "DASH" : isHls ? "HLS" : "HTTP media";
@@ -1024,8 +1028,10 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
                 }
                 else
                 {
-                    httpProvider = new HttpMediaSourceProvider(streamLink.Sources);
+                    httpProvider = new HttpMediaSourceProvider(streamLink.Sources, streamLink.Headers);
                     provider = httpProvider;
+                    if (browser is not null)
+                        WatchBrowserFile(httpProvider);
                 }
 
                 streamingProvider = (IStreamingMediaSourceProvider)provider;
@@ -1065,6 +1071,8 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
                     Strings.Resources.VideoPlayer_StreamOpenFailedFormat,
                     streamKind,
                     detail);
+                if (browser is not null && ReferenceEquals(browserSession, browser))
+                    EndBrowserSession(BrowserSessionEndReason.Error, detail);
                 return;
             }
             finally
@@ -1076,24 +1084,66 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
                 StreamLoadingText = string.Empty;
             }
 
-            ApplyStreamingTimeline(streamingProvider?.Timeline ?? default);
-            DurationSeconds = Player.Duration.TotalSeconds;
-            Player.Volume = (float)Volume;
-            Player.Speed = Speed;
-            RefreshTracks();
-            RefreshVideoRenditions();
-            UpdatePictureAspectRatio();
-            UpdatePreferredOrientation();
-            OfferPictureInPicture();
-            ApplyDefaultSubtitle(saved: null);
+            FinishStreamOpen(streamingProvider?.Timeline ?? default);
 
-            if (PlatformServices.CanStartPlayback?.Invoke() ?? true)
+            if (browser is not null)
+            {
+                if (ReferenceEquals(browserSession, browser))
+                    StartBrowserPlayback(streamLink.StartSeconds);
+            }
+            else if (PlatformServices.CanStartPlayback?.Invoke() ?? true)
+            {
                 Player.Play();
+            }
         }
         finally
         {
             openSync.Release();
         }
+    }
+
+    /// <summary>Clears what the previous video left on the page; a stream has no library entry, sidecars or transcoding.</summary>
+    private void PrepareStreamOpen(string title)
+    {
+        SavePlaybackPosition();
+        DetachStreamProvider();
+        ResetStreamingTimeline();
+        currentVideo = null;
+        RefreshFileActions();
+        subtitleFiles = null;
+        ErrorMessage = null;
+        ScalingQuality = settingsStore.PreferredVideoScaling;
+        DownscalingQuality = settingsStore.PreferredVideoDownscaling;
+        DebandingQuality = settingsStore.VideoDebanding;
+        PreferHardwareProcessing = settingsStore.PreferHardwareVideoProcessing;
+        EnableHdrPassthrough = settingsStore.EnableHdrPassthrough;
+        DisplayPanelBitDepth = settingsStore.DisplayPanelBitDepth;
+        ToneProfiles.Reload(settingsStore.ToneMapping);
+        ApplySubtitleBrightness(saved: null);
+        RebuildShaderPackageOptions(video: null, selectedOverride: null);
+        subtitleSourceKinds.Clear();
+        IsSubtitleBrowserOpen = false;
+        ResetTranscodeMenu();
+        IsTranscodeOffered = false;
+        MediaTitle = title;
+        Playlist = [];
+        NavigationParameter = null;
+        OnPropertyChanged(nameof(CanBrowseServerSubtitles));
+    }
+
+    /// <summary>Brings the page in step with a stream the player just opened.</summary>
+    private void FinishStreamOpen(StreamingTimeline timeline)
+    {
+        ApplyStreamingTimeline(timeline);
+        DurationSeconds = PlayerDurationSeconds;
+        Player.Volume = (float)Volume;
+        Player.Speed = Speed;
+        RefreshTracks();
+        RefreshVideoRenditions();
+        UpdatePictureAspectRatio();
+        UpdatePreferredOrientation();
+        OfferPictureInPicture();
+        ApplyDefaultSubtitle(saved: null);
     }
 
     private async Task AttachHttpAudioAsync(IEnumerable<Uri> sources)
@@ -1745,9 +1795,9 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
         // wrong glyph until it was pressed twice.
         UpdateIsPlaying(Player.State);
 
-        if (Math.Abs(DurationSeconds - Player.Duration.TotalSeconds) > 0.01)
+        if (Math.Abs(DurationSeconds - PlayerDurationSeconds) > 0.01)
         {
-            DurationSeconds = Player.Duration.TotalSeconds;
+            DurationSeconds = PlayerDurationSeconds;
         }
 
         BufferedSeconds = Player.BufferedSeconds;
@@ -1768,7 +1818,7 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
 
         if (AreStatisticsVisible)
         {
-            StatisticsText = Player.GetStatistics().ToDisplayString();
+            StatisticsText = (Player.GetStatistics() with { Duration = TimeSpan.FromSeconds(DurationSeconds) }).ToDisplayString();
         }
     }
 
@@ -2107,6 +2157,7 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
         }
 
         SavePlaybackPosition();
+        ReleaseBrowserSession();
         DetachStreamProvider();
         disposed = true;
         ReleaseSystemMediaControls();
@@ -2151,11 +2202,19 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
     {
         if (e.PropertyName == nameof(PlaybackController.Volume))
         {
-            Player.Volume = (float)Volume;
-            OnPropertyChanged(nameof(Volume));
-            OnPropertyChanged(nameof(IsMuted));
-            OnPropertyChanged(nameof(VolumeIconKey));
+            // The application's own volume changed, so it replaces what a page set.
+            browserPageVolume = null;
+            ApplyVolumeToPlayer();
         }
+    }
+
+    private void ApplyVolumeToPlayer()
+    {
+        Player.Volume = (float)Volume;
+        OnPropertyChanged(nameof(Volume));
+        OnPropertyChanged(nameof(IsMuted));
+        OnPropertyChanged(nameof(VolumeIconKey));
+        ReportBrowserState();
     }
 
     partial void OnSpeedChanged(double value) =>
@@ -2384,6 +2443,7 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
 
     private void Stop()
     {
+        EndBrowserSession(BrowserSessionEndReason.Stopped);
         Player.Stop();
         IsPlaying = false;
         PositionSeconds = 0;
@@ -2391,6 +2451,28 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
 
     private void ToggleMute()
     {
+        // Over a page's volume, the application's own volume takes over: unmuting returns to it, and
+        // muting mutes it.
+        if (browserPageVolume is not null)
+        {
+            bool wasMuted = IsMuted;
+            double own = playbackController.Volume;
+            browserPageVolume = null;
+            if (wasMuted)
+            {
+                Volume = own > 0.0001d ? own : volumeBeforeMute <= 0.0001d ? 0.8d : volumeBeforeMute;
+            }
+            else
+            {
+                if (own > 0.0001d)
+                    volumeBeforeMute = own;
+                Volume = 0d;
+            }
+
+            ApplyVolumeToPlayer();
+            return;
+        }
+
         if (IsMuted)
         {
             Volume = volumeBeforeMute <= 0.0001d ? 0.8d : volumeBeforeMute;
@@ -2551,7 +2633,11 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
             Player.SelectVideoRendition(target);
     }
 
-    private void OnStateChanged(object? sender, PlaybackState state) => Post(() => UpdateIsPlaying(state));
+    private void OnStateChanged(object? sender, PlaybackState state) => Post(() =>
+    {
+        UpdateIsPlaying(state);
+        OnBrowserPlayerStateChanged(state);
+    });
 
     /// <summary>
     /// Maps an engine state onto the transport button. Opening and seeking say nothing about what
@@ -2567,8 +2653,11 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
         IsPlaying = state is PlaybackState.Playing or PlaybackState.Buffering;
     }
 
-    private void OnStallChanged(object? sender, PlaybackStallReason reason) =>
-        Post(() => IsBuffering = reason != PlaybackStallReason.None);
+    private void OnStallChanged(object? sender, PlaybackStallReason reason) => Post(() =>
+    {
+        IsBuffering = reason != PlaybackStallReason.None;
+        ReportBrowserState();
+    });
 
     private void OnErrorOccurred(object? sender, string message)
     {
@@ -2594,6 +2683,7 @@ public sealed partial class VideoPlayerPageViewModel : PageViewModelBase, INavig
             return;
         }
 
+        OnBrowserEndReached();
         SavePlaybackPosition(reachedEnd: true);
         PlayNextInList();
     });

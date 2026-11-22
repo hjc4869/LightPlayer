@@ -115,7 +115,7 @@ public partial class TrackRowModel : SelectionItemModel
     public MediaItemKey MediaKey => new(Media, StartTimeMs);
 
     public bool CanOpenContainingFolder =>
-        !IsFolder && SourceId.IsLocal && PlatformServices.SupportsLocalFileAccess;
+        !IsFolder && PlatformServices.CanRevealFiles(SourceId, LibraryMediaCategory.Music);
 
     public bool CanOpenAlbum => !IsFolder && !HideAlbum;
 

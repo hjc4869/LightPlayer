@@ -5,5 +5,6 @@
   -->
   <Import Project="$(MSBuildThisFileDirectory)build/GitHubNuGet.targets" />
   <Import Project="$(MSBuildThisFileDirectory)build/Ffmpeg.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)build/WasmPublishAssemblies.targets" />
   <Import Project="$(MSBuildThisFileDirectory)tools/NativeBindings/NativeBindings.targets" />
 </Project>

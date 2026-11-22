@@ -58,6 +58,21 @@
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.entertainment</string>
 
+    <!-- lightplayer: URLs only start or bring forward the application. -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>im.hjc.LightPlayer</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>lightplayer</string>
+            </array>
+        </dict>
+    </array>
+
     <!--
       Audio and video file associations (Finder "Open With" / drag-onto-icon).
       Mirrors the MimeType list in packaging/flatpak/im.hjc.LightPlayer.desktop so

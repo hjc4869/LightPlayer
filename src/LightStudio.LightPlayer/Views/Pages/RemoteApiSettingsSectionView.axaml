@@ -17,14 +17,10 @@
                     Margin="{Binding ContentMargin}"
                     Spacing="10">
             <StackPanel Spacing="4" Margin="0,0,0,4">
-                <TextBlock Text="{Binding RemoteApiSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
-                           FontSize="22"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                <TextBlock Text="{Binding RemoteApiSettings_Subtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
-                           FontSize="13"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Classes="settingsTitle" Text="{Binding RemoteApiSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           TextWrapping="Wrap" />
+                <TextBlock Classes="settingsSubtitle" Text="{Binding RemoteApiSettings_Subtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           TextWrapping="Wrap" />
             </StackPanel>
 
             <Border Classes="settingsGroup">
@@ -40,19 +36,20 @@
             <controls:SettingRow Header="{Binding RemoteApiSettings_ListenHostHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  Description="{Binding RemoteApiSettings_ListenHostDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  IsGrouped="True"
-                                 HasTopDivider="True">
+                                 HasTopDivider="True"
+                                 ActionWidth="140">
                 <controls:SettingRow.ActionContent>
-                    <TextBox Width="140" Text="{Binding Host, Mode=TwoWay}" />
+                    <TextBox Text="{Binding Host, Mode=TwoWay}" />
                 </controls:SettingRow.ActionContent>
             </controls:SettingRow>
 
             <controls:SettingRow Header="{Binding RemoteApiSettings_PortHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  Description="{Binding RemoteApiSettings_PortDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  IsGrouped="True"
-                                 HasTopDivider="True">
+                                 HasTopDivider="True"
+                                 ActionWidth="140">
                 <controls:SettingRow.ActionContent>
-                    <controls:NumberEntry Width="140"
-                                          Minimum="1"
+                    <controls:NumberEntry Minimum="1"
                                           Maximum="65535"
                                           Increment="1"
                                           FormatString="0"
@@ -72,9 +69,10 @@
             <controls:SettingRow Header="{Binding RemoteApiSettings_UsernameHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  IsVisible="{Binding RequireAuthentication}"
                                  IsGrouped="True"
-                                 HasTopDivider="True">
+                                 HasTopDivider="True"
+                                 ActionWidth="140">
                 <controls:SettingRow.ActionContent>
-                    <TextBox Width="140" Text="{Binding Username, Mode=TwoWay}" />
+                    <TextBox Text="{Binding Username, Mode=TwoWay}" />
                 </controls:SettingRow.ActionContent>
             </controls:SettingRow>
 
@@ -82,10 +80,10 @@
                                  Description="{Binding RemoteApiSettings_PasswordPlaceholder, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  IsVisible="{Binding RequireAuthentication}"
                                  IsGrouped="True"
-                                 HasTopDivider="True">
+                                 HasTopDivider="True"
+                                 ActionWidth="140">
                 <controls:SettingRow.ActionContent>
-                    <TextBox Width="140"
-                             PasswordChar="•"
+                    <TextBox PasswordChar="•"
                              Text="{Binding Password, Mode=TwoWay}" />
                 </controls:SettingRow.ActionContent>
             </controls:SettingRow>
@@ -93,7 +91,8 @@
             <controls:SettingRow Header="{Binding RemoteApiSettings_AllowedOriginsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  Description="{Binding RemoteApiSettings_AllowedOriginsDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  IsGrouped="True"
-                                 HasTopDivider="True">
+                                 HasTopDivider="True"
+                                 ActionWidth="140">
                 <controls:SettingRow.DescriptionContent>
                     <Button Classes="link"
                             FontSize="12"
@@ -103,8 +102,7 @@
                             Content="{Binding RemoteApiSettings_AllowedOriginsAddOfficial, Source={x:Static strings:LocalizedStrings.Instance}}" />
                 </controls:SettingRow.DescriptionContent>
                 <controls:SettingRow.ActionContent>
-                    <TextBox Width="140"
-                             Text="{Binding AllowedOrigins, Mode=TwoWay}" />
+                    <TextBox Text="{Binding AllowedOrigins, Mode=TwoWay}" />
                 </controls:SettingRow.ActionContent>
             </controls:SettingRow>
                 </StackPanel>
@@ -114,22 +112,15 @@
                     HorizontalAlignment="Right"
                     Command="{Binding ApplyCommand}" />
 
-            <TextBlock Text="{Binding StatusText}"
+            <TextBlock Classes="settingsCaption" Text="{Binding StatusText}"
                        IsVisible="{Binding HasStatusText}"
-                       FontSize="12"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                       TextWrapping="Wrap" />
 
-            <TextBlock Text="{Binding FirewallNotice}"
-                       FontSize="12"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
-            <TextBlock Text="{Binding ConnectionNotice}"
-                       FontSize="12"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
-            <TextBlock Text="{Binding SecurityNotice}"
-                       FontSize="12"
+            <TextBlock Classes="settingsCaption" Text="{Binding FirewallNotice}"
+                       TextWrapping="Wrap" />
+            <TextBlock Classes="settingsCaption" Text="{Binding ConnectionNotice}"
+                       TextWrapping="Wrap" />
+            <TextBlock Classes="settingsCaption" Text="{Binding SecurityNotice}"
                        TextWrapping="Wrap"
                        Foreground="{DynamicResource AppFavoriteBrush}" />
 
@@ -150,11 +141,10 @@
                             Margin="0,0,8,4"
                             Content="{Binding RemoteApiSettings_PairingShowQr, Source={x:Static strings:LocalizedStrings.Instance}}"
                             Click="ShowPairingQrCode" />
-                    <TextBlock Text="{Binding RemoteApiSettings_PairingCopied, Source={x:Static strings:LocalizedStrings.Instance}}"
+                    <TextBlock Classes="settingsCaption" Text="{Binding RemoteApiSettings_PairingCopied, Source={x:Static strings:LocalizedStrings.Instance}}"
                                IsVisible="{Binding PairingLinkCopied}"
                                VerticalAlignment="Center"
                                Margin="0,0,0,4"
-                               FontSize="12"
                                Foreground="{DynamicResource AppFavoriteBrush}" />
                 </WrapPanel>
                 <StackPanel x:Name="PairingQrPanel"
@@ -180,14 +170,11 @@
                             Content="{Binding Common_Close, Source={x:Static strings:LocalizedStrings.Instance}}"
                             Click="HidePairingQrCode" />
                 </StackPanel>
-                <TextBlock Text="{Binding RemoteApiSettings_PairingAuthenticatedNotice, Source={x:Static strings:LocalizedStrings.Instance}}"
+                <TextBlock Classes="settingsCaption" Text="{Binding RemoteApiSettings_PairingAuthenticatedNotice, Source={x:Static strings:LocalizedStrings.Instance}}"
                            IsVisible="{Binding PairingRequiresAuthentication}"
-                           FontSize="12"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
-                <TextBlock Text="{Binding RemoteApiSettings_PairingOpenNotice, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           TextWrapping="Wrap" />
+                <TextBlock Classes="settingsCaption" Text="{Binding RemoteApiSettings_PairingOpenNotice, Source={x:Static strings:LocalizedStrings.Instance}}"
                            IsVisible="{Binding PairingWithoutAuthentication}"
-                           FontSize="12"
                            TextWrapping="Wrap"
                            Foreground="{DynamicResource AppFavoriteBrush}" />
             </StackPanel>
@@ -225,10 +212,10 @@
             <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeDeviceTypeHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  IsVisible="{Binding HasHardwareTranscodeSettings}"
                                  IsGrouped="True"
-                                 HasTopDivider="True">
+                                 HasTopDivider="True"
+                                 ActionWidth="140">
                 <controls:SettingRow.ActionContent>
-                    <ComboBox Width="140"
-                              ItemsSource="{Binding TranscodeDeviceTypeOptions}"
+                    <ComboBox ItemsSource="{Binding TranscodeDeviceTypeOptions}"
                               SelectedItem="{Binding SelectedTranscodeDeviceType, Mode=TwoWay}"
                               DisplayMemberBinding="{Binding Title}" />
                 </controls:SettingRow.ActionContent>
@@ -237,10 +224,10 @@
             <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeDeviceHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  IsVisible="{Binding HasTranscodeDevices}"
                                  IsGrouped="True"
-                                 HasTopDivider="True">
+                                 HasTopDivider="True"
+                                 ActionWidth="140">
                 <controls:SettingRow.ActionContent>
-                    <ComboBox Width="140"
-                              ItemsSource="{Binding TranscodeDeviceOptions}"
+                    <ComboBox ItemsSource="{Binding TranscodeDeviceOptions}"
                               SelectedItem="{Binding SelectedTranscodeDevice, Mode=TwoWay}"
                               DisplayMemberBinding="{Binding Title}" />
                 </controls:SettingRow.ActionContent>
@@ -249,10 +236,10 @@
             <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeRateControlHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  IsVisible="{Binding HasTranscodeRateControlSettings}"
                                  IsGrouped="True"
-                                 HasTopDivider="True">
+                                 HasTopDivider="True"
+                                 ActionWidth="140">
                 <controls:SettingRow.ActionContent>
-                    <ComboBox Width="140"
-                              ItemsSource="{Binding TranscodeRateControlOptions}"
+                    <ComboBox ItemsSource="{Binding TranscodeRateControlOptions}"
                               SelectedItem="{Binding SelectedTranscodeRateControl, Mode=TwoWay}"
                               DisplayMemberBinding="{Binding Title}" />
                 </controls:SettingRow.ActionContent>
@@ -261,10 +248,10 @@
             <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeQualityHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  IsVisible="{Binding HasTranscodeQualitySettings}"
                                  IsGrouped="True"
-                                 HasTopDivider="True">
+                                 HasTopDivider="True"
+                                 ActionWidth="140">
                 <controls:SettingRow.ActionContent>
-                    <ComboBox Width="140"
-                              ItemsSource="{Binding TranscodeQualityOptions}"
+                    <ComboBox ItemsSource="{Binding TranscodeQualityOptions}"
                               SelectedItem="{Binding SelectedTranscodeQuality, Mode=TwoWay}"
                               DisplayMemberBinding="{Binding Title}" />
                 </controls:SettingRow.ActionContent>
@@ -273,10 +260,10 @@
             <controls:SettingRow Header="{Binding RemoteApiSettings_TranscodeUsageHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                  IsVisible="{Binding HasTranscodeUsageSettings}"
                                  IsGrouped="True"
-                                 HasTopDivider="True">
+                                 HasTopDivider="True"
+                                 ActionWidth="140">
                 <controls:SettingRow.ActionContent>
-                    <ComboBox Width="140"
-                              ItemsSource="{Binding TranscodeUsageOptions}"
+                    <ComboBox ItemsSource="{Binding TranscodeUsageOptions}"
                               SelectedItem="{Binding SelectedTranscodeUsage, Mode=TwoWay}"
                               DisplayMemberBinding="{Binding Title}" />
                 </controls:SettingRow.ActionContent>

@@ -827,6 +827,44 @@ public sealed class JsonAppSettingsStore : IAppSettingsStore
         Save();
     }
 
+    public BrowserLinkSettings BrowserLinkSettings => new()
+    {
+        Enabled = settings.BrowserLinkEnabled,
+        Port = settings.BrowserLinkPort is > 0 and <= 65535 ? settings.BrowserLinkPort : BrowserLinkSettings.DefaultPort,
+        PairedBrowsers = (settings.BrowserLinkPairings ?? [])
+            .Where(pairing => !string.IsNullOrEmpty(pairing.Origin) && !string.IsNullOrEmpty(pairing.TokenVerifier))
+            .Select(pairing => new BrowserLinkPairing(
+                pairing.Label ?? string.Empty,
+                pairing.Origin,
+                pairing.TokenVerifier,
+                pairing.CreatedAtUnixSeconds))
+            .ToArray(),
+    };
+
+    public event EventHandler? BrowserLinkSettingsChanged;
+
+    public void SetBrowserLinkSettings(BrowserLinkSettings value)
+    {
+        if (BrowserLinkSettings == value)
+        {
+            return;
+        }
+
+        settings.BrowserLinkEnabled = value.Enabled;
+        settings.BrowserLinkPort = value.Port;
+        settings.BrowserLinkPairings = value.PairedBrowsers
+            .Select(pairing => new PersistedBrowserLinkPairing
+            {
+                Label = pairing.Label,
+                Origin = pairing.Origin,
+                TokenVerifier = pairing.TokenVerifier,
+                CreatedAtUnixSeconds = pairing.CreatedAtUnixSeconds,
+            })
+            .ToList();
+        Save();
+        BrowserLinkSettingsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
     public RemoteTranscodeSettings RemoteTranscodeSettings => new()
     {
         Video = settings.RemoteTranscodeVideo,
@@ -1201,6 +1239,12 @@ public sealed class PersistedAppSettings
 
     public bool RemoteApiTranscodeAllowSoftware { get; set; }
 
+    public bool BrowserLinkEnabled { get; set; }
+
+    public int BrowserLinkPort { get; set; } = BrowserLinkSettings.DefaultPort;
+
+    public List<PersistedBrowserLinkPairing>? BrowserLinkPairings { get; set; }
+
     public bool RemoteTranscodeVideo { get; set; }
 
     public bool RemoteTranscodeAudio { get; set; }
@@ -1260,6 +1304,17 @@ public sealed class PersistedAppSettings
     public string VideoLayout { get; set; } = nameof(LibraryLayoutMode.Folders);
 
     public string VideoNarrowPresentation { get; set; } = nameof(LibraryItemPresentation.Grid);
+}
+
+public sealed class PersistedBrowserLinkPairing
+{
+    public string? Label { get; set; }
+
+    public string Origin { get; set; } = string.Empty;
+
+    public string TokenVerifier { get; set; } = string.Empty;
+
+    public long CreatedAtUnixSeconds { get; set; }
 }
 
 [JsonSourceGenerationOptions(WriteIndented = true)]

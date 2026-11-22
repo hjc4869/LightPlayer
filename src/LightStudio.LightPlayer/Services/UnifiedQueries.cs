@@ -83,9 +83,11 @@ public interface IUnifiedLibraryQueryService
         ShuffledMediaFilePageRequest request,
         CancellationToken cancellationToken = default);
 
+    /// <param name="sourceIds">The sources to search, or null for every music source.</param>
     Task<UnifiedLibrarySearchResults> SearchAsync(
         string keyword,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IReadOnlyCollection<LibrarySourceId>? sourceIds = null);
 
     Task<Sourced<MediaLibraryAlbum>> GetAlbumAsync(
         LibrarySourceId sourceId,
@@ -155,9 +157,11 @@ public interface IUnifiedVideoLibraryQueryService
         string? folderPath,
         CancellationToken cancellationToken = default);
 
+    /// <param name="sourceIds">The sources to search, or null for every video source.</param>
     Task<UnifiedCollection<Sourced<DbVideoFile>>> SearchVideosAsync(
         string keyword,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IReadOnlyCollection<LibrarySourceId>? sourceIds = null);
 
     Task<IReadOnlyList<Sourced<DbVideoFile>>> GetVideosInFolderAsync(
         LibrarySourceId sourceId,

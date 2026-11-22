@@ -11,7 +11,7 @@ public sealed partial class ShellViewModel
     private BackNavigation? backPresentation;
 
     internal bool CanPreviewPageBack => navigationHistory is null && CanGoBack &&
-        !IsOverlayOpen && !IsSearchActive && !IsVideoSheetAddressed && !NowPlayingSheet.IsExpanded &&
+        !IsOverlayOpen && !IsVideoSheetAddressed && !NowPlayingSheet.IsExpanded &&
         CurrentPage is not IInPageBackHandler { CanHandleBack: true };
 
     internal BackNavigation? PrepareBackNavigation()

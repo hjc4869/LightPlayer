@@ -150,12 +150,18 @@ public sealed class AvaloniaThemeService : IThemeService
         resources["AppIsAppleChrome"] = IsAppleChromeEnabled;
         resources["AppIsAppleCsd"] = PlatformServices.SupportsClientSideWindowControls && IsAppleChromeEnabled;
 
-        // Touch chrome lays settings rows out as iOS lists do: 17-point names over 15-point descriptions.
+        // Touch chrome lays settings rows out as iOS lists do: 17-point names over 13-point descriptions.
         bool touch = PlatformServices.UsesTouchChrome && IsAppleChromeEnabled;
         resources["AppSettingNameFontSize"] = touch ? 17d : 14d;
-        resources["AppSettingDescriptionFontSize"] = touch ? 15d : 12d;
+        resources["AppSettingDescriptionFontSize"] = touch ? 13d : 12d;
         resources["AppSettingRowPadding"] = touch ? new Thickness(20, 10) : new Thickness(16, 12);
         resources["AppSettingRowMinHeight"] = touch ? 32d : 0d;
+        resources["AppSettingActionWidthScale"] = touch ? 1.2d : 1d;
+        if (PlatformServices.UsesTouchChrome)
+        {
+            // Control text is shaped at the system font's widest optical size; this restores its 17-point spacing.
+            resources["AppMacControlLetterSpacing"] = 0.5d;
+        }
     }
 
     public void ReportMicaApplied(bool applied)
@@ -479,6 +485,12 @@ public sealed class AvaloniaThemeService : IThemeService
         dictionary["AppBackdropSelectionBrush"] = new SolidColorBrush(Color.FromArgb(dark ? (byte)0x50 : (byte)0x30, selection.R, selection.G, selection.B));
         dictionary["AppBackdropSelectedHoverBrush"] = new SolidColorBrush(Color.FromArgb(dark ? (byte)0x68 : (byte)0x48, selection.R, selection.G, selection.B));
         dictionary["AppBackdropFieldBrush"] = new SolidColorBrush(Color.FromArgb(0x30, material.R, material.G, material.B));
+
+        // Grouped lists stand lighter cells on a darker page, whichever way the theme assigns the two.
+        var page = theme.Get(AppColorRole.PageBackground);
+        bool panelIsLighter = panel.R + panel.G + panel.B >= page.R + page.G + page.B;
+        dictionary["AppGroupedBackgroundBrush"] = new SolidColorBrush(panelIsLighter ? page : panel);
+        dictionary["AppGroupedCellBrush"] = new SolidColorBrush(panelIsLighter ? panel : page);
 
         // Drive Fluent's accent from the selected theme so every built-in control -- slider,
         // check box, radio button, toggle switch, combo box and list selection -- follows the app

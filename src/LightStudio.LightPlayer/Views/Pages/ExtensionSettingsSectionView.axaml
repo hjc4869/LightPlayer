@@ -14,13 +14,10 @@
     <ScrollViewer>
         <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
             <StackPanel Spacing="4" Margin="0,0,0,4">
-                <TextBlock Text="{Binding ExtensionSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
-                           FontSize="22"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                <TextBlock Text="{Binding Description}"
-                           FontSize="13"
-                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                <TextBlock Classes="settingsTitle" Text="{Binding ExtensionSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           TextWrapping="Wrap" />
+                <TextBlock Classes="settingsSubtitle" Text="{Binding Description}"
+                           TextWrapping="Wrap" />
             </StackPanel>
 
             <controls:SettingRow Header="{Binding ExtensionSettings_ThirdPartyLyricsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
@@ -63,9 +60,8 @@
                         </Border>
                         <Border Classes="settingsDividedRow"
                                 IsVisible="{Binding !HasLyricSources}">
-                            <TextBlock Text="{Binding ExtensionSettings_NoSources, Source={x:Static strings:LocalizedStrings.Instance}}"
-                                       FontSize="13"
-                                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                            <TextBlock Classes="settingsNote" Text="{Binding ExtensionSettings_NoSources, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                       TextWrapping="Wrap" />
                         </Border>
                         <ItemsControl ItemsSource="{Binding LyricSources}">
                             <ItemsControl.ItemTemplate>

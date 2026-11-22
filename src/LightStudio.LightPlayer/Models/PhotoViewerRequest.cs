@@ -19,6 +19,12 @@ namespace LightStudio.LightPlayer.Models;
 /// </remarks>
 public sealed record PhotoViewerRequest(IReadOnlyList<MediaReference> Photos, int Index)
 {
+    /// <summary>
+    /// Stored pixel size of the picture at <see cref="Index"/> as the opening page's index recorded it,
+    /// before any orientation is applied; empty when unknown.
+    /// </summary>
+    public Size PixelSize { get; init; }
+
     public static PhotoViewerRequest ForOne(MediaReference photo) => new([photo], 0);
 }
 

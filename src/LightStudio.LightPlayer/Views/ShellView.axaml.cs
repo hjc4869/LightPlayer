@@ -99,28 +99,24 @@ public partial class ShellView : UserControl
     // The floating playback bar's distance from the bottom of the page surface, when no band is below it.
     private const double FloatingPlaybackBarBottom = 14;
 
-    // The page width below which the touch toolbar offers a search button instead of its search field.
-    private const double ToolbarSearchFieldMinimumWidth = 720;
-
     // The narrowest the floating playback bar and the in-shell dialog become to keep beside a division.
     private const double MinimumFloatingPlaybackBarWidth = 320;
     private const double MinimumOverlayCardWidth = 280;
+
+    // The narrowest either capsule of a floating playback bar divided by a fold becomes.
+    private const double MinimumPlaybackBarSegmentWidth = 240;
 
     // How far the vertical toolbar's column reaches past its band on either side, for the capsules
     // and their shadows, which are wider than the band.
     private const double VerticalToolbarOverhang = 12;
 
-    // How far the vertical tab bar's column reaches past its band on either side, for its wider capsule.
+    // How far the vertical tab bar's column reaches past its band on either side, for the capsule it grows to while held.
     private const double VerticalTabBarOverhang = 24;
 
     // The space below the vertical tab bar, matching the compact now-playing card's.
     private const double VerticalTabBarBottomMargin = 4;
 
-    // The height of the title row below the toolbar buttons while they share a corner status bar's row.
-    private const double StatusBandTitleHeight = 44;
-
     private bool statusBandLayout;
-    private double statusBandTitleRow;
     private Rect appliedStatusBand;
 
     public ShellView()
@@ -134,6 +130,7 @@ public partial class ShellView : UserControl
         NarrowTitle.AddHandler(ContextRequestedEvent, OnPathMenuRequested, RoutingStrategies.Tunnel);
         ToolbarGoUpButton.AddHandler(ContextRequestedEvent, OnPathMenuRequested, RoutingStrategies.Tunnel);
         VerticalGoUpButton.AddHandler(ContextRequestedEvent, OnPathMenuRequested, RoutingStrategies.Tunnel);
+        NarrowGoUpButton.AddHandler(ContextRequestedEvent, OnPathMenuRequested, RoutingStrategies.Tunnel);
 
         // Enable window-wide drag detection (AllowDrop inherits to every descendant) so the
         // now-playing pane can be revealed the moment a queue drag enters the window, wherever
@@ -164,17 +161,11 @@ public partial class ShellView : UserControl
         }
     }
 
-    // Beside a corner status bar, the height of the row below the buttons, for the title or the title band's search field.
-    private double StatusBandTitleRow =>
-        observedShell is { ShowToolbarTitle: true } or { ShowToolbarSearchField: true } ? StatusBandTitleHeight : 0;
-
-    // The toolbar's row of buttons, and the title row it gains beside a corner status bar.
+    // The toolbar's row of buttons, which stands at the top of the band beside a corner status bar.
     private void SetToolbarRows(bool statusBand)
     {
         statusBandLayout = statusBand;
-        statusBandTitleRow = statusBand ? StatusBandTitleRow : 0;
-        AppleTopBarContent.RowDefinitions = new RowDefinitions($"{ShellViewModel.AppleToolbarHeight},{statusBandTitleRow}");
-        AppleTopBarContent.Classes.Set("statusBand", statusBand);
+        AppleTopBarContent.RowDefinitions = new RowDefinitions($"{ShellViewModel.AppleToolbarHeight}");
         AppleTopBarContent.VerticalAlignment = statusBand ? Avalonia.Layout.VerticalAlignment.Top : Avalonia.Layout.VerticalAlignment.Bottom;
     }
 
@@ -244,8 +235,6 @@ public partial class ShellView : UserControl
             case nameof(ShellViewModel.IsChromeVisible):
             case nameof(ShellViewModel.ShowAppleTopBar):
             case nameof(ShellViewModel.ShowToolbarBand):
-            case nameof(ShellViewModel.ShowToolbarTitle):
-            case nameof(ShellViewModel.ShowToolbarSearchField):
             case nameof(ShellViewModel.ShowFloatingPlaybackBar):
             case nameof(ShellViewModel.ShowFloatingNarrowChrome):
             case nameof(ShellViewModel.UsesVerticalToolbar):
@@ -302,7 +291,7 @@ public partial class ShellView : UserControl
     private void UpdatePlaybackBarPlacement()
     {
         bool floating = observedShell?.IsAppleLayout == true;
-        Decorator host = floating ? FloatingPlaybackBarHost : DockedPlaybackBarHost;
+        Decorator host = floating ? FloatingPlaybackBarContent : DockedPlaybackBarHost;
         if (ReferenceEquals(PlaybackBarView.Parent, host))
         {
             return;
@@ -317,8 +306,8 @@ public partial class ShellView : UserControl
         host.Child = PlaybackBarView;
     }
 
-    // The narrow layout's tab bar stands below the page and its back button in the top bar, or both in
-    // the band the system offers vertical bars.
+    // The narrow layout's tab bar stands below the page and its buttons in the top bar, or all of them
+    // in the band the system offers vertical bars, where the back button tops the other buttons' column.
     private void UpdateNarrowBarPlacement()
     {
         bool vertical = observedShell?.UsesVerticalTabBar == true;
@@ -334,34 +323,48 @@ public partial class ShellView : UserControl
             host.Child = BottomNavGlass;
         }
 
-        if (vertical != ReferenceEquals(NarrowBackGlass.Parent, VerticalBackButton))
+        if (vertical != ReferenceEquals(NarrowActionsGlass.Parent, VerticalNarrowActions))
         {
             if (vertical)
             {
-                NarrowTopBar.Children.Remove(NarrowBackGlass);
-                VerticalBackButton.Child = NarrowBackGlass;
+                NarrowTopBar.Children.Remove(NarrowActionsGlass);
+                NarrowBackGlass.Child = null;
+                NarrowActions.Children.Insert(0, NarrowBackButton);
+                VerticalNarrowActions.Child = NarrowActionsGlass;
             }
             else
             {
-                VerticalBackButton.Child = null;
-                NarrowTopBar.Children.Insert(0, NarrowBackGlass);
+                VerticalNarrowActions.Child = null;
+                NarrowActions.Children.Remove(NarrowBackButton);
+                NarrowBackGlass.Child = NarrowBackButton;
+                NarrowTopBar.Children.Add(NarrowActionsGlass);
+            }
+
+            NarrowActions.Orientation = vertical ? Avalonia.Layout.Orientation.Vertical : Avalonia.Layout.Orientation.Horizontal;
+        }
+    }
+
+    // The status buttons' details open below the top bar, or over the page beside a vertical bar's band.
+    private void UpdateNarrowFlyoutPlacement(DeviceBarEdge? edge)
+    {
+        var placement = edge switch
+        {
+            DeviceBarEdge.Left => PlacementMode.Right,
+            DeviceBarEdge.Right => PlacementMode.Left,
+            _ => PlacementMode.Bottom,
+        };
+        foreach (var button in NarrowActions.Children.OfType<Button>())
+        {
+            if (button.Flyout is Flyout flyout)
+            {
+                flyout.Placement = placement;
             }
         }
     }
 
     private void OnFloatingPlaybackBarSizeChanged(object? sender, SizeChangedEventArgs args) => UpdateContentInsets();
 
-    private void OnPageSurfaceSizeChanged(object? sender, SizeChangedEventArgs args)
-    {
-        // Touch chrome folds the toolbar's search field into a button where the row would crowd the title.
-        if (observedShell is { } shell && sender == PageSurface)
-        {
-            shell.IsToolbarSearchCollapsed = PlatformServices.UsesTouchChrome &&
-                PageSurface.Bounds.Width - PageBleed.Right < ToolbarSearchFieldMinimumWidth;
-        }
-
-        UpdateContentInsets();
-    }
+    private void OnPageSurfaceSizeChanged(object? sender, SizeChangedEventArgs args) => UpdateContentInsets();
 
     // The touch Apple layout's page surface extends under the system bands beside the safe area, as
     // UIKit content does: the status bar above, the home indicator below, and a vertical bar's band
@@ -434,7 +437,7 @@ public partial class ShellView : UserControl
         var band = StatusBand;
         appliedStatusBand = band;
         AppleTopBar.Height = band.Height > 0
-            ? Math.Max(StatusBandTop(band) + ShellViewModel.AppleToolbarHeight + StatusBandTitleRow, bleed.Top)
+            ? Math.Max(StatusBandTop(band) + ShellViewModel.AppleToolbarHeight, bleed.Top)
             : ShellViewModel.AppleToolbarHeight + bleed.Top;
         double top = observedShell?.ShowToolbarBand == true ? AppleTopBar.Height : bleed.Top;
         double bottom = observedShell switch
@@ -486,7 +489,7 @@ public partial class ShellView : UserControl
         double top = observedShell?.OmitsToolbarBand == true ? safe.Top : ShellViewModel.AppleToolbarHeight + safe.Top;
         if (observedShell?.DeviceRegions is { VerticalBarEdge: null, HorizontalBar.Height: > 0 } regions)
         {
-            top = Math.Max(StatusBandTop(regions.HorizontalBar) + ShellViewModel.AppleToolbarHeight + StatusBandTitleRow, safe.Top);
+            top = Math.Max(StatusBandTop(regions.HorizontalBar) + ShellViewModel.AppleToolbarHeight, safe.Top);
         }
 
         double bottom = safe.Bottom;
@@ -513,24 +516,22 @@ public partial class ShellView : UserControl
             VerticalToolbar.MaxHeight = bar.Height;
         }
 
-        // The back button tops the band, below the status bar, and the tab bar ends level with the compact
+        // The buttons top the band, below the status bar, and the tab bar ends level with the compact
         // now-playing card, above the home indicator's band.
         if (observedShell is { UsesVerticalTabBar: true } shell)
         {
             var bar = regions.VerticalBar;
             double bottom = Math.Min(bar.Bottom, Bounds.Height - shell.SafeAreaPadding.Bottom) - VerticalTabBarBottomMargin;
-            var column = new Thickness(bar.X - VerticalTabBarOverhang, bar.Y, 0, 0);
-            double width = bar.Width + (2 * VerticalTabBarOverhang);
-            VerticalBackButton.Margin = column;
-            VerticalBackButton.Width = width;
-            VerticalTabBar.Margin = column;
-            VerticalTabBar.Width = width;
-            VerticalTabBar.Height = Math.Max(0, bottom - bar.Y);
+            VerticalNarrowBar.Margin = new Thickness(bar.X - VerticalTabBarOverhang, bar.Y, 0, 0);
+            VerticalNarrowBar.Width = bar.Width + (2 * VerticalTabBarOverhang);
+            VerticalNarrowBar.Height = Math.Max(0, bottom - bar.Y);
         }
+
+        UpdateNarrowFlyoutPlacement(observedShell?.UsesVerticalTabBar == true ? regions.VerticalBarEdge : null);
 
         var bleed = PageBleed;
         var band = StatusBand;
-        if (statusBandLayout != band.Height > 0 || statusBandTitleRow != (band.Height > 0 ? StatusBandTitleRow : 0))
+        if (statusBandLayout != band.Height > 0)
         {
             SetToolbarRows(band.Height > 0);
         }
@@ -543,7 +544,7 @@ public partial class ShellView : UserControl
         if (TopLevel.GetTopLevel(this) is not { } topLevel)
         {
             AppleTopBarContent.Margin = contentMargin;
-            FloatingPlaybackBarHost.Margin = barMargin;
+            FloatingPlaybackBarHost.Margin = DivideFloatingPlaybackBar(null, [], barMargin);
             OverlayCard.Margin = cardMargin;
             return;
         }
@@ -569,7 +570,7 @@ public partial class ShellView : UserControl
         }
 
         AppleTopBarContent.Margin = contentMargin;
-        FloatingPlaybackBarHost.Margin = KeepBesideDivisions(topLevel, PageSurface, regions.Divisions, barMargin, MinimumFloatingPlaybackBarWidth);
+        FloatingPlaybackBarHost.Margin = DivideFloatingPlaybackBar(topLevel, regions.Divisions, barMargin);
         OverlayCard.Margin = KeepBesideDivisions(topLevel, OverlayRoot, regions.Divisions, cardMargin, MinimumOverlayCardWidth);
         UpdateSidebarToggle();
     }
@@ -626,8 +627,41 @@ public partial class ShellView : UserControl
         return result;
     }
 
+    // A division across the floating playback bar divides it into a capsule on either side when both
+    // leave their content room; otherwise the bar keeps beside the division.
+    private Thickness DivideFloatingPlaybackBar(TopLevel? topLevel, IReadOnlyList<Rect> divisions, Thickness margin)
+    {
+        var division = default(Rect);
+        double available = PageSurface.Bounds.Width - margin.Left - margin.Right;
+        double width = Math.Min(available, FloatingPlaybackBarHost.MaxWidth);
+        if (topLevel is not null && observedShell?.IsAppleLayout == true && width > 0)
+        {
+            // The host centers the bar in the room its margin leaves.
+            double left = margin.Left + ((available - width) / 2);
+            var crossing = TranslateRegions(topLevel, PageSurface, divisions, [])
+                .Where(rect => rect.Height >= rect.Width && rect.Right > left && rect.Left < left + width)
+                .ToList();
+            if (crossing is [var fold] &&
+                fold.Left - left >= MinimumPlaybackBarSegmentWidth &&
+                left + width - fold.Right >= MinimumPlaybackBarSegmentWidth)
+            {
+                division = new Rect(fold.Left - left, 0, fold.Width, 0);
+            }
+        }
+
+        bool divided = division.Width > 0;
+        PlaybackBarView.Division = division;
+        FloatingPlaybackBarGlass.Margin = divided ? new Thickness(0, 0, width - division.X, 0) : default;
+        FloatingPlaybackBarEndGlass.Margin = new Thickness(division.Right, 0, 0, 0);
+        FloatingPlaybackBarEndGlass.IsVisible = divided;
+        return divided || topLevel is null
+            ? margin
+            : KeepBesideDivisions(topLevel, PageSurface, divisions, margin, MinimumFloatingPlaybackBarWidth);
+    }
+
     // Keeps a horizontally centered element to the wider side of each division that crosses it, as
-    // long as that side leaves it the minimum width.
+    // long as that side leaves it the minimum width. A division includes the margins the system keeps
+    // around it, so the element reaches its edge.
     private static Thickness KeepBesideDivisions(TopLevel topLevel, Control area, IReadOnlyList<Rect> divisions, Thickness margin, double minimumWidth)
     {
         if (divisions.Count == 0 || area.Bounds.Width <= 0)
@@ -649,11 +683,11 @@ public partial class ShellView : UserControl
             double after = end - rect.Right;
             if (after >= before && after >= minimumWidth)
             {
-                start = rect.Right + margin.Left;
+                start = rect.Right;
             }
             else if (before >= minimumWidth)
             {
-                end = rect.Left - margin.Right;
+                end = rect.Left;
             }
         }
 
@@ -960,13 +994,6 @@ public partial class ShellView : UserControl
             return;
         }
 
-        // A narrow-layout search field consumes back next, collapsing to the page title.
-        if (Shell?.CloseSearch() == true)
-        {
-            e.Handled = true;
-            return;
-        }
-
         // Consume the back gesture only when there is a page to return to; otherwise leave it
         // unhandled so the platform performs its default (Android closes/backgrounds the app).
         if (Shell?.TryGoBack() == true)
@@ -1158,17 +1185,6 @@ public partial class ShellView : UserControl
         return paths;
     }
 
-    private void OnExpandAndFocusSearch(object? sender, RoutedEventArgs e)
-    {
-        if (DataContext is ShellViewModel shell)
-        {
-            shell.Navigation.IsExpanded = true;
-        }
-
-        // Focus after the search box has been made visible and laid out.
-        Dispatcher.UIThread.Post(() => RailSearchBox?.FocusInput(), DispatcherPriority.Loaded);
-    }
-
     private void OnStatusPeekClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not ShellViewModel shell)
@@ -1213,49 +1229,11 @@ public partial class ShellView : UserControl
         }
     }
 
-    private void OnNarrowSearchClick(object? sender, RoutedEventArgs e)
-    {
-        // Reveal the narrow layout's top search field in place of the page title, then focus it once
-        // it has been made visible and laid out.
-        Shell?.OpenSearch();
-        Dispatcher.UIThread.Post(() => NarrowSearchBox?.FocusInput(), DispatcherPriority.Loaded);
-    }
-
-    private void OnNarrowSearchCloseClick(object? sender, RoutedEventArgs e)
-    {
-        Shell?.CloseSearch();
-    }
-
-    // The toolbar's search button opens the search field in the toolbar's title band, or closes it.
-    private void OnToolbarSearchClick(object? sender, RoutedEventArgs e)
-    {
-        if (Shell is not { } shell || shell.CloseSearch())
-        {
-            return;
-        }
-
-        shell.OpenSearch();
-        Dispatcher.UIThread.Post(() => TitleBandSearchBox.FocusInput(), DispatcherPriority.Loaded);
-    }
-
-    // An empty title band search field gives the band back to the page title once focus leaves it.
-    private void OnTitleBandSearchLostFocus(object? sender, RoutedEventArgs e)
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            if (Shell is { ShowToolbarSearchField: true } shell && !TitleBandSearchBox.IsKeyboardFocusWithin &&
-                string.IsNullOrEmpty(shell.Search.Text))
-            {
-                shell.CloseSearch();
-            }
-        }, DispatcherPriority.Input);
-    }
-
     private void OnNarrowTopBarTapped(object? sender, TappedEventArgs e)
     {
         // Tapping the title / empty area of the narrow top bar scrolls the current page's list back
         // to the top (phone "tap the status bar" gesture). Taps on the interactive chrome -- the
-        // search field and the status / search buttons -- keep their own behavior instead.
+        // status / search buttons -- keep their own behavior instead.
         if (e.Source is Visual source && IsInteractiveTopBarElement(source))
         {
             return;
@@ -1267,13 +1245,13 @@ public partial class ShellView : UserControl
             Shell?.ShowLibraryPager == true ? LibraryPagerHost.CurrentPageVisual : PageHost);
     }
 
-    // Walks up from the tapped visual to the top bar, treating the search field and any button as
-    // interactive so their taps are not hijacked by scroll-to-top.
+    // Walks up from the tapped visual to the top bar, treating any button as interactive so its
+    // taps are not hijacked by scroll-to-top.
     private bool IsInteractiveTopBarElement(Visual source)
     {
         for (Visual? current = source; current is not null && !ReferenceEquals(current, NarrowTopBar); current = current.GetVisualParent())
         {
-            if (current is Button or SearchBox)
+            if (current is Button)
             {
                 return true;
             }

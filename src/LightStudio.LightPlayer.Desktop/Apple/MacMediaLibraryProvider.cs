@@ -65,7 +65,7 @@ internal sealed class MacMediaLibraryProvider : INativeMediaLibraryProvider, ISy
         return new SystemLibrarySource(settingsStore, new LibrarySourceServices(
             query, query, platform, null, new SystemLibraryRefreshService(Refresh), query,
             PhotoSearch: photoSearch, MusicFolders: new IndexedMusicFolderBrowser(query, query.GetMusicRootsAsync)),
-            new LibrarySourceCapabilities(SupportsFileReveal: false), () => disposed);
+            new LibrarySourceCapabilities(SupportsFileReveal: false) { SupportsMusicFileReveal = true }, () => disposed);
     }
 
     // The first read opens the library without waiting; access prompts and the library load refresh the catalog when done.

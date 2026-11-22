@@ -3,6 +3,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using LightStudio.LightPlayer.Controls;
+using LightStudio.LightPlayer.ViewModels;
 using System;
 
 namespace LightStudio.LightPlayer.Views;
@@ -38,6 +40,13 @@ public partial class InitialSetupView : UserControl
         }
 
         base.OnDetachedFromVisualTree(e);
+    }
+
+    // The view stands in for the shell here, so it tells its setting rows when it is as narrow as the shell's narrow layout.
+    protected override void OnSizeChanged(SizeChangedEventArgs e)
+    {
+        base.OnSizeChanged(e);
+        SettingRowPanel.SetIsNarrowLayout(this, e.NewSize.Width < ShellViewModel.NarrowWidthThreshold);
     }
 
     private void OnSafeAreaChanged(object? sender, SafeAreaChangedArgs e) =>

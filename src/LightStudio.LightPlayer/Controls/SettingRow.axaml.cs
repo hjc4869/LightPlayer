@@ -5,7 +5,7 @@ namespace LightStudio.LightPlayer.Controls;
 
 /// <summary>
 /// A single settings entry with a header, optional description, and an action
-/// control slot on the right.
+/// control slot at the trailing edge.
 /// </summary>
 public partial class SettingRow : UserControl
 {
@@ -22,6 +22,13 @@ public partial class SettingRow : UserControl
     public static readonly StyledProperty<object?> ActionContentProperty =
         AvaloniaProperty.Register<SettingRow, object?>(nameof(ActionContent));
 
+    /// <summary>
+    /// Width of the action beside the header, for pickers and fields that fill it. Such a row moves
+    /// the action below the header when the row is too narrow for both (see <see cref="SettingRowPanel"/>).
+    /// </summary>
+    public static readonly StyledProperty<double> ActionWidthProperty =
+        AvaloniaProperty.Register<SettingRow, double>(nameof(ActionWidth), double.NaN);
+
     public static readonly StyledProperty<object?> RowsContentProperty =
         AvaloniaProperty.Register<SettingRow, object?>(nameof(RowsContent));
 
@@ -37,6 +44,18 @@ public partial class SettingRow : UserControl
     public SettingRow()
     {
         InitializeComponent();
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+
+        if (change.Property == IsGroupedProperty || change.Property == RowsContentProperty ||
+            change.Property == DescriptionProperty)
+        {
+            // A row that is a group of its own can state its description under the group.
+            PseudoClasses.Set(":footed", !IsGrouped && RowsContent is null && !string.IsNullOrEmpty(Description));
+        }
     }
 
     public string Header
@@ -61,6 +80,12 @@ public partial class SettingRow : UserControl
     {
         get => GetValue(ActionContentProperty);
         set => SetValue(ActionContentProperty, value);
+    }
+
+    public double ActionWidth
+    {
+        get => GetValue(ActionWidthProperty);
+        set => SetValue(ActionWidthProperty, value);
     }
 
     public object? RowsContent

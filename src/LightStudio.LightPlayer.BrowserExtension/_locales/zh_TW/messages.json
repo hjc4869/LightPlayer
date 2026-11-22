@@ -1,0 +1,219 @@
+{
+    "extensionName": {
+        "message": "Light Media Center Browser Link"
+    },
+    "extensionDescription": {
+        "message": "在 Light Media Center 中播放網頁上的影片。"
+    },
+    "actionTitle": {
+        "message": "Light Media Center"
+    },
+    "controlRedirect": {
+        "message": "在 Light Media Center 中播放"
+    },
+    "controlUnavailable": {
+        "message": "此影片暫時無法傳送到 Light Media Center"
+    },
+    "controlConnecting": {
+        "message": "正在連線到 Light Media Center..."
+    },
+    "controlPlaying": {
+        "message": "正在 Light Media Center 中播放"
+    },
+    "controlReturn": {
+        "message": "在此觀看"
+    },
+    "messageNotPaired": {
+        "message": "請先將此瀏覽器與 Light Media Center 配對。"
+    },
+    "messagePairAction": {
+        "message": "配對"
+    },
+    "messageUnreachable": {
+        "message": "無法連線到 Light Media Center。請確認它正在執行，並已在其設定中允許瀏覽器連線。"
+    },
+    "messageUnauthorized": {
+        "message": "此影片需要登入，而 Light Media Center 無法使用該登入。"
+    },
+    "messageUnsupported": {
+        "message": "Light Media Center 無法播放此影片。"
+    },
+    "messageEncrypted": {
+        "message": "此影片受到保護，無法在 Light Media Center 中播放。"
+    },
+    "messageError": {
+        "message": "Light Media Center 已停止播放此影片。"
+    },
+    "messageProtocol": {
+        "message": "此擴充功能的版本與 Light Media Center 不相符。請同時更新兩者。"
+    },
+    "messageDisconnected": {
+        "message": "與 Light Media Center 的連線已中斷。"
+    },
+    "statusChecking": {
+        "message": "正在檢查 Light Media Center..."
+    },
+    "statusConnected": {
+        "message": "已連線到 Light Media Center $VERSION$",
+        "placeholders": {
+            "version": {
+                "content": "$1",
+                "example": "2.1.3"
+            }
+        }
+    },
+    "statusNotPaired": {
+        "message": "Light Media Center 正在執行，但此瀏覽器尚未配對。"
+    },
+    "pairingStatePaired": {
+        "message": "此瀏覽器已與 Light Media Center 配對。"
+    },
+    "pairingStateNone": {
+        "message": "此瀏覽器尚未與 Light Media Center 配對。"
+    },
+    "pairingStateRevoked": {
+        "message": "Light Media Center 已不再接受此瀏覽器。請重新配對。"
+    },
+    "optionsPairingHeader": {
+        "message": "配對"
+    },
+    "optionsPairButton": {
+        "message": "配對"
+    },
+    "optionsPairAgainButton": {
+        "message": "重新配對"
+    },
+    "optionsCancelButton": {
+        "message": "取消"
+    },
+    "optionsForgetButton": {
+        "message": "移除配對"
+    },
+    "optionsPairingCode": {
+        "message": "請確認 Light Media Center 顯示的是此代碼，然後在其中接受要求。"
+    },
+    "optionsPairingSucceeded": {
+        "message": "已與 Light Media Center 配對。"
+    },
+    "optionsPairingRejected": {
+        "message": "Light Media Center 拒絕了配對，或要求已逾時。"
+    },
+    "optionsPairingFailed": {
+        "message": "配對未完成。請再試一次。"
+    },
+    "optionsForgetHint": {
+        "message": "若要完全撤銷存取權，也請在 Light Media Center 設定的已配對瀏覽器清單中移除此瀏覽器。"
+    },
+    "optionsConnectionHeader": {
+        "message": "連線"
+    },
+    "optionsPortLabel": {
+        "message": "連接埠"
+    },
+    "optionsPortHint": {
+        "message": "使用 Light Media Center 設定中顯示的連接埠。"
+    },
+    "optionsPortInvalid": {
+        "message": "請輸入 1 到 65535 之間的連接埠。"
+    },
+    "optionsSiteAccessHeader": {
+        "message": "網站存取權"
+    },
+    "siteAccessMissing": {
+        "message": "在獲得網站存取權之前，擴充功能無法找到影片。"
+    },
+    "siteAccessGrant": {
+        "message": "允許存取"
+    },
+    "popupVideosHeader": {
+        "message": "此頁面上的影片"
+    },
+    "popupNoVideos": {
+        "message": "此頁面上找不到影片。"
+    },
+    "popupNoAccess": {
+        "message": "無法存取此頁面。"
+    },
+    "popupSettings": {
+        "message": "設定"
+    },
+    "videoRedirect": {
+        "message": "在應用程式中播放"
+    },
+    "videoProtected": {
+        "message": "受保護"
+    },
+    "videoUnsupported": {
+        "message": "不支援"
+    },
+    "videoLive": {
+        "message": "直播"
+    },
+    "controlArm": {
+        "message": "重新載入並在 Light Media Center 中播放"
+    },
+    "videoArm": {
+        "message": "重新載入並在應用程式中播放"
+    },
+    "placeholderWaiting": {
+        "message": "此頁面上的另一部影片正在 Light Media Center 中播放。"
+    },
+    "placeholderClosed": {
+        "message": "此影片已在 Light Media Center 中關閉。"
+    },
+    "placeholderReplaced": {
+        "message": "Light Media Center 正在播放另一部影片。"
+    },
+    "placeholderProtected": {
+        "message": "此影片受到保護。頁面將重新載入，以便在此處播放。"
+    },
+    "popupArmed": {
+        "message": "此分頁中的影片會在 Light Media Center 中播放。"
+    },
+    "popupDisarm": {
+        "message": "在瀏覽器中播放"
+    },
+    "startOffer": {
+        "message": "無法連線到 Light Media Center。"
+    },
+    "startAction": {
+        "message": "啟動 Light Media Center"
+    },
+    "startWaiting": {
+        "message": "正在啟動 Light Media Center... 如果瀏覽器詢問是否開啟它，請允許。"
+    },
+    "startNoAnswer": {
+        "message": "Light Media Center 未在連接埠 $PORT$ 上回應。如果它已開啟，請在其設定中開啟「允許瀏覽器連線」並檢查連接埠。如果沒有開啟任何程式，請確認它已安裝。",
+        "placeholders": {
+            "port": {
+                "content": "$1",
+                "example": "47833"
+            }
+        }
+    },
+    "startTryAgain": {
+        "message": "重試"
+    },
+    "startOtherPort": {
+        "message": "Light Media Center 在連接埠 $APP$ 上回應，但擴充功能連線的是連接埠 $EXTENSION$。",
+        "placeholders": {
+            "app": {
+                "content": "$1",
+                "example": "47833"
+            },
+            "extension": {
+                "content": "$2",
+                "example": "47911"
+            }
+        }
+    },
+    "startUsePort": {
+        "message": "使用連接埠 $PORT$",
+        "placeholders": {
+            "port": {
+                "content": "$1",
+                "example": "47833"
+            }
+        }
+    }
+}

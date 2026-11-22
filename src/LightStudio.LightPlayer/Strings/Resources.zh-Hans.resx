@@ -510,7 +510,7 @@
     <value>在添加目录前，请先从媒体库中移除其子目录。</value>
   </data>
   <data name="LibrarySettings_ScanAtStartupDescription" xml:space="preserve">
-    <value>应用启动时自动扫描媒体库文件夹。</value>
+    <value>应用启动时扫描文件夹。</value>
   </data>
   <data name="LibrarySettings_ScanAtStartupHeader" xml:space="preserve">
     <value>启动时扫描</value>
@@ -970,29 +970,11 @@
   <data name="SearchBox_Clear" xml:space="preserve">
     <value>清除搜索</value>
   </data>
-  <data name="SearchBox_Placeholder" xml:space="preserve">
-    <value>搜索...</value>
-  </data>
-  <data name="Search_AlbumsHeaderFormat" xml:space="preserve">
-    <value>专辑 ({0})</value>
-  </data>
-  <data name="Search_ArtistsHeaderFormat" xml:space="preserve">
-    <value>艺术家 ({0})</value>
-  </data>
   <data name="Search_NoResultsDescription" xml:space="preserve">
     <value>尝试搜索其他内容。</value>
   </data>
   <data name="Search_NoResultsHeader" xml:space="preserve">
     <value>无结果</value>
-  </data>
-  <data name="Search_ResultsForFormat" xml:space="preserve">
-    <value>“{0}”的搜索结果</value>
-  </data>
-  <data name="Search_SongsHeaderFormat" xml:space="preserve">
-    <value>音乐 ({0})</value>
-  </data>
-  <data name="Search_VideosHeaderFormat" xml:space="preserve">
-    <value>视频 ({0})</value>
   </data>
   <data name="SettingsSection_LibraryTitle" xml:space="preserve">
     <value>媒体库</value>
@@ -2056,10 +2038,17 @@
   <data name="Inference_PauseDownload" xml:space="preserve"><value>暂停下载</value></data>
   <data name="Inference_ResumeDownload" xml:space="preserve"><value>恢复下载</value></data>
   <data name="Search_PhotosHeader" xml:space="preserve"><value>照片</value></data>
-  <data name="Search_MorePhotos" xml:space="preserve"><value>更多照片结果</value></data>
-  <data name="Search_MoreAlbums" xml:space="preserve"><value>更多专辑结果</value></data>
-  <data name="Search_MoreArtists" xml:space="preserve"><value>更多艺术家结果</value></data>
-  <data name="Search_MoreSongs" xml:space="preserve"><value>更多歌曲结果</value></data>
+  <data name="Search_Placeholder" xml:space="preserve"><value>搜索媒体库</value></data>
+  <data name="Search_LandingDescription" xml:space="preserve"><value>在所有媒体库中查找音乐、专辑、艺术家、视频和照片。</value></data>
+  <data name="Search_ScopeAll" xml:space="preserve"><value>全部</value></data>
+  <data name="Search_VideosHeader" xml:space="preserve"><value>视频</value></data>
+  <data name="Search_AllLibraries" xml:space="preserve"><value>所有媒体库</value></data>
+  <data name="Search_LibrariesHeader" xml:space="preserve"><value>要搜索的媒体库</value></data>
+  <data name="Search_RecentHeader" xml:space="preserve"><value>最近搜索</value></data>
+  <data name="Search_ClearRecent" xml:space="preserve"><value>清除</value></data>
+  <data name="Search_RemoveRecent" xml:space="preserve"><value>从最近搜索中移除</value></data>
+  <data name="Search_NoResultsFilteredDescription" xml:space="preserve"><value>尝试搜索其他内容，或清除筛选条件。</value></data>
+  <data name="Search_ClearFilters" xml:space="preserve"><value>清除筛选条件</value></data>
   <data name="AudioSeparation_Title" xml:space="preserve"><value>音源分离</value></data>
   <data name="AudioSeparation_Subtitle" xml:space="preserve"><value>在音乐播放期间聆听由 AI 模型分离的音轨。</value></data>
   <data name="AudioSeparation_Enable" xml:space="preserve"><value>启用音源分离</value></data>
@@ -2107,7 +2096,7 @@
     <value>自动扫描</value>
   </data>
   <data name="LibrarySettings_AutoScanDescription" xml:space="preserve">
-    <value>自动保持本地媒体库为最新状态。</value>
+    <value>保持媒体库为最新状态。</value>
   </data>
   <data name="LibrarySettings_AutoScanIntervalHeader" xml:space="preserve">
     <value>扫描间隔（分钟）</value>
@@ -2124,8 +2113,8 @@
   <data name="LibrarySettings_MusicLibraryHeader" xml:space="preserve"><value>音乐库</value></data>
   <data name="LibrarySettings_MediaLibraryHeader" xml:space="preserve"><value>照片与视频</value></data>
   <data name="LibrarySettings_UseSystemLibrary" xml:space="preserve"><value>使用系统媒体库</value></data>
-  <data name="LibrarySettings_SystemMusicDescription" xml:space="preserve"><value>显示设备媒体库中的音乐。</value></data>
-  <data name="LibrarySettings_SystemMediaDescription" xml:space="preserve"><value>显示设备媒体库中的照片和视频。</value></data>
+  <data name="LibrarySettings_SystemMusicDescription" xml:space="preserve"><value>显示设备中的音乐。</value></data>
+  <data name="LibrarySettings_SystemMediaDescription" xml:space="preserve"><value>显示设备中的照片和视频。</value></data>
   <data name="LibrarySettings_ScanFolders" xml:space="preserve"><value>扫描文件夹</value></data>
   <data name="LibrarySettings_ScanFoldersDescription" xml:space="preserve"><value>包含所选文件夹中的文件。</value></data>
   <data name="LibrarySettings_ManageMediaAccess" xml:space="preserve"><value>管理媒体访问权限</value></data>
@@ -2257,4 +2246,23 @@
   <data name="Photo_SaveGamutPreserveHue" xml:space="preserve"><value>保持色相</value></data>
   <data name="Photo_SaveGamutClip" xml:space="preserve"><value>裁切</value></data>
   <data name="Photo_SaveWarnGamut" xml:space="preserve"><value>此照片可能包含所选色彩空间以外的颜色，这些颜色无法精确保存。</value></data>
+  <data name="BrowserLink_PairTitle" xml:space="preserve"><value>配对浏览器扩展</value></data>
+  <data name="BrowserLink_PairMessageFormat" xml:space="preserve"><value>{0} ({1}) 想要将视频发送到 Light Media Center。仅当扩展显示代码 {2} 时才进行配对。</value></data>
+  <data name="BrowserLink_PairConfirm" xml:space="preserve"><value>配对</value></data>
+  <data name="BrowserLinkSettings_Title" xml:space="preserve"><value>浏览器扩展</value></data>
+  <data name="BrowserLinkSettings_Subtitle" xml:space="preserve"><value>通过浏览器扩展在 Light Media Center 中播放网页上的视频。</value></data>
+  <data name="BrowserLinkSettings_EnabledHeader" xml:space="preserve"><value>允许浏览器连接</value></data>
+  <data name="BrowserLinkSettings_EnabledDescription" xml:space="preserve"><value>此电脑上已配对的浏览器可以将视频发送到这里。其他设备无法连接。</value></data>
+  <data name="BrowserLinkSettings_PortHeader" xml:space="preserve"><value>端口</value></data>
+  <data name="BrowserLinkSettings_PortDescription" xml:space="preserve"><value>请在扩展的选项中设置相同的端口。</value></data>
+  <data name="BrowserLinkSettings_ApplyButton" xml:space="preserve"><value>应用</value></data>
+  <data name="BrowserLinkSettings_InvalidPort" xml:space="preserve"><value>端口必须是 1 到 65535 之间的整数。</value></data>
+  <data name="BrowserLinkSettings_RunningFormat" xml:space="preserve"><value>正在端口 {0} 上等待浏览器连接。</value></data>
+  <data name="BrowserLinkSettings_Disabled" xml:space="preserve"><value>浏览器连接已关闭。</value></data>
+  <data name="BrowserLinkSettings_FailedFormat" xml:space="preserve"><value>无法使用端口 {0}：{1}</value></data>
+  <data name="BrowserLinkSettings_PairedHeader" xml:space="preserve"><value>已配对的浏览器</value></data>
+  <data name="BrowserLinkSettings_PairedDescription" xml:space="preserve"><value>配对需从扩展发起。移除的浏览器需要重新配对。</value></data>
+  <data name="BrowserLinkSettings_PairedEmpty" xml:space="preserve"><value>尚未配对任何浏览器。</value></data>
+  <data name="BrowserLinkSettings_PairedOnFormat" xml:space="preserve"><value>配对于 {0}</value></data>
+  <data name="BrowserLinkSettings_Remove" xml:space="preserve"><value>移除</value></data>
 </root>

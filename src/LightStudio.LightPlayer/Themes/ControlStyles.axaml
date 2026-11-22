@@ -1,5 +1,6 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:LightStudio.LightPlayer.Controls"
         xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls"
         xmlns:services="using:LightStudio.LightPlayer.Services">
     <Style Selector="ComboBox /template/ Popup#PART_Popup">
@@ -147,8 +148,29 @@
     <Style Selector="TextBlock.settingName">
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style Selector="TextBlock.settingDescription">
+        <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
+    </Style>
+
+    <!-- Section headings and the notes around settings groups. -->
+    <Style Selector="TextBlock.settingsTitle">
+        <Setter Property="FontSize" Value="22" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.settingsSectionTitle">
+        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.settingsSubtitle, TextBlock.settingsNote">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
+    </Style>
+    <Style Selector="TextBlock.settingsCaption">
+        <Setter Property="FontSize" Value="12" />
         <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
     </Style>
 
@@ -167,6 +189,10 @@
     <Style Selector="Border.settingsGroup.joinedAbove">
         <Setter Property="BorderThickness" Value="1,0,1,1" />
         <Setter Property="CornerRadius" Value="0,0,6,6" />
+    </Style>
+    <!-- A group's rows rearrange together in the narrow layout; joined groups leave that to their common host. -->
+    <Style Selector="Border.settingsGroup:not(.joinedBelow):not(.joinedAbove)">
+        <Setter Property="controls:SettingRowPanel.IsRowGroup" Value="True" />
     </Style>
     <Style Selector="Border.settingsDivider">
         <Setter Property="Height" Value="1" />

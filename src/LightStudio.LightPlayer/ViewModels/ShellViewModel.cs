@@ -31,7 +31,7 @@ using Strings = LightStudio.LightPlayer.Strings;
 namespace LightStudio.LightPlayer.ViewModels;
 
 /// <summary>
-/// Root view model for the application shell. Owns navigation, search, the
+/// Root view model for the application shell. Owns navigation, the
 /// playback bar, the now-playing queue, the more-menu commands, and library refresh status.
 /// </summary>
 public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
@@ -49,6 +49,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     private readonly IUnifiedVideoLibraryQueryService unifiedVideoLibraryQueryService;
     private readonly IClientMediaResolver mediaResolver;
     private readonly ILibrarySourceRegistry sourceRegistry;
+    private readonly RecentSearchList recentSearches;
     private readonly IRemoteLibraryManager? remoteLibraryManager;
     private readonly ISubtitleFileBrowser? subtitleFileBrowser;
     private readonly VideoPreviewService? videoPreviewService;
@@ -132,12 +133,9 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     // Below this shell width the shell switches to the narrow (mobile) adaptive layout: the
     // navigation rail is replaced by a top bar plus bottom navigation, and the now-playing queue is
     // presented as a full navigation page instead of a docked side panel.
-    private const double NarrowWidthThreshold = 530d;
+    public const double NarrowWidthThreshold = 530d;
     private const double QueueOverlayWidthThreshold = 1100d;
     private const double SplitViewCompactInlineThreshold = 1750d;
-
-    // Suggestion thumbnails are 34 DIPs; this covers displays scaled up to 3x.
-    private const int SuggestionArtPixelSize = 102;
 
     // Library tabs surfaced by the narrow layout's top tab strip and bottom "Library" section.
     private static readonly AppRouteId[] LibrarySectionRoutes =
@@ -170,18 +168,10 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     [NotifyPropertyChangedFor(nameof(NavRailCompactWidth))]
     [NotifyPropertyChangedFor(nameof(IsNavPaneVisible))]
     [NotifyPropertyChangedFor(nameof(IsNarrowChromeVisible))]
+    [NotifyPropertyChangedFor(nameof(ShowNarrowTopBar))]
     [NotifyPropertyChangedFor(nameof(ShowNarrowBackButton))]
     [NotifyPropertyChangedFor(nameof(ShowPlaybackBar))]
     private bool isNarrow;
-
-    // True while the narrow layout's top bar, or the Apple layout's title band, shows its search
-    // field in place of the page title.
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowNarrowBackButton))]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarTitle))]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchField))]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarBand))]
-    private bool isSearchActive;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SafeAreaPadding))]
@@ -206,12 +196,10 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     [NotifyPropertyChangedFor(nameof(NarrowTopBarMargin))]
     [NotifyPropertyChangedFor(nameof(UsesVerticalToolbar))]
     [NotifyPropertyChangedFor(nameof(UsesVerticalTabBar))]
+    [NotifyPropertyChangedFor(nameof(ShowNarrowTopBar))]
     [NotifyPropertyChangedFor(nameof(ShowBottomChromeFade))]
     [NotifyPropertyChangedFor(nameof(ShowHorizontalToolbarControls))]
     [NotifyPropertyChangedFor(nameof(ShowToolbarTitle))]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchField))]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchBox))]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchButton))]
     [NotifyPropertyChangedFor(nameof(OmitsToolbarBand))]
     [NotifyPropertyChangedFor(nameof(OmitsToolbarTitle))]
     [NotifyPropertyChangedFor(nameof(ShowToolbarBand))]
@@ -283,6 +271,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     [NotifyPropertyChangedFor(nameof(RoutedPage))]
     [NotifyPropertyChangedFor(nameof(WindowPageTitle))]
     [NotifyPropertyChangedFor(nameof(SettingsSidebar))]
+    [NotifyPropertyChangedFor(nameof(UsesGroupedPage))]
     private PageViewModelBase currentPage = null!;
 
     /// <summary>The page label shown in the main window title.</summary>
@@ -464,9 +453,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         LibraryPager = new LibraryPagerViewModel(LibrarySectionRoutes, CreateLibraryPage);
         LibraryPager.PageSelected += OnLibraryPageSelected;
 
-        Search = new SearchBoxViewModel(SearchLibrarySuggestionsAsync);
-        Search.QuerySubmitted += OnQuerySubmitted;
-        Search.SuggestionChosen += OnSuggestionChosen;
+        recentSearches = new RecentSearchList(stateStore);
 
         // Publishes "now playing" / transport to the OS (MPRIS on Linux, no-op placeholders elsewhere).
         audioOutputSettings = AudioOutputDeviceFactory.Settings;
@@ -525,6 +512,9 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         // audio device, and the user has plainly asked for the queue back.
         playbackController.PlaybackRequestedWhileSuspended += CloseVideoSheet;
 
+        if (PlatformServices.BrowserLink is { } browserLink)
+            browserLink.Presenter = new BrowserLinkPresenter(this);
+
         ShuffleAllCommand = new AsyncRelayCommand(ShuffleAllAsync);
         SaveQueueAsPlaylistCommand = new AsyncRelayCommand(SaveQueueAsPlaylistFromMenuAsync);
         RecentlyAddedCommand = new RelayCommand(RecentlyAdded);
@@ -542,6 +532,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         SetLayoutCommand = new RelayCommand<LibraryLayoutMode>(SetLayout);
         SetVideoNarrowPresentationCommand = new RelayCommand<LibraryItemPresentation>(SetVideoNarrowPresentation);
         GoHomeCommand = new RelayCommand(() => NavigateTopLevel(AppRouteId.Home));
+        OpenSearchCommand = new RelayCommand(OpenSearch);
         OpenLibraryCommand = new RelayCommand(OpenLibrary);
         OpenVideoLibraryCommand = new RelayCommand(() => NavigateTopLevel(AppRouteId.Videos));
         OpenPlaylistsCommand = new RelayCommand(() => NavigateTopLevel(AppRouteId.Playlists));
@@ -668,8 +659,6 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     /// <summary>The narrow (mobile) layout's swipeable library-section pager.</summary>
     public LibraryPagerViewModel LibraryPager { get; }
 
-    public SearchBoxViewModel Search { get; }
-
     public PlaybackBarViewModel PlaybackBar { get; }
 
     public QueuePaneViewModel Queue { get; }
@@ -716,6 +705,9 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     /// <summary>Narrow-layout bottom navigation: opens the Home page.</summary>
     public IRelayCommand GoHomeCommand { get; }
+
+    /// <summary>Opens the search page, or moves keyboard focus to its field when it is already showing.</summary>
+    public IRelayCommand OpenSearchCommand { get; }
 
     /// <summary>Narrow-layout bottom navigation: opens the library section (last-viewed tab).</summary>
     public IRelayCommand OpenLibraryCommand { get; }
@@ -850,7 +842,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     /// </summary>
     public bool UsesVerticalToolbar => ShowAppleTopBar && DeviceRegions.VerticalBarEdge is not null;
 
-    /// <summary>Whether the toolbar shows its buttons and search field in a row.</summary>
+    /// <summary>Whether the toolbar shows its buttons in a row.</summary>
     public bool ShowHorizontalToolbarControls => ShowAppleTopBar && !UsesVerticalToolbar;
 
     /// <summary>
@@ -859,8 +851,8 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     /// </summary>
     public bool OmitsToolbarBand => HasSidebarRail && DeviceRegions.VerticalBarEdge is not null;
 
-    /// <summary>Whether the toolbar's band shows over the page, as it does for its search field even where it is left out.</summary>
-    public bool ShowToolbarBand => ShowAppleTopBar && (!OmitsToolbarBand || ShowToolbarSearchField);
+    /// <summary>Whether the toolbar's band shows over the page.</summary>
+    public bool ShowToolbarBand => ShowAppleTopBar && !OmitsToolbarBand;
 
     /// <summary>
     /// Whether the toolbar leaves the page title out where it would take room of its own: with the band,
@@ -880,32 +872,8 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     /// <summary>Whether the toolbar's row starts with the sidebar button, for a sidebar that slides away entirely.</summary>
     public bool ShowToolbarSidebarToggle => ShowSidebarToggle && !HasSidebarRail;
 
-    /// <summary>
-    /// Whether the toolbar is too narrow for its search field and offers a search button instead, as
-    /// the shell view reports for touch chrome.
-    /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarTitle))]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchField))]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchBox))]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarSearchButton))]
-    [NotifyPropertyChangedFor(nameof(ShowToolbarBand))]
-    private bool isToolbarSearchCollapsed;
-
-    // Search opens in the title band beside a vertical toolbar or a toolbar without room for the field.
-    private bool OpensSearchInTitleBand => UsesVerticalToolbar || IsToolbarSearchCollapsed;
-
-    /// <summary>Whether the toolbar shows the page title, which the title band's search field replaces.</summary>
-    public bool ShowToolbarTitle => !OmitsToolbarTitle && (!OpensSearchInTitleBand || !IsSearchActive);
-
-    /// <summary>Whether the toolbar's title band shows the search field.</summary>
-    public bool ShowToolbarSearchField => ShowAppleTopBar && OpensSearchInTitleBand && IsSearchActive;
-
-    /// <summary>Whether the toolbar's row of buttons ends with the search field.</summary>
-    public bool ShowToolbarSearchBox => ShowHorizontalToolbarControls && !IsToolbarSearchCollapsed;
-
-    /// <summary>Whether the toolbar's row of buttons ends with a search button.</summary>
-    public bool ShowToolbarSearchButton => ShowHorizontalToolbarControls && IsToolbarSearchCollapsed;
+    /// <summary>Whether the toolbar shows the page title.</summary>
+    public bool ShowToolbarTitle => !OmitsToolbarTitle;
 
     /// <summary>Whether the playback bar is docked below the shell.</summary>
     public bool ShowDockedPlaybackBar => ShowPlaybackBar && !IsAppleLayout;
@@ -925,6 +893,12 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     /// </summary>
     public bool UsesVerticalTabBar =>
         IsNarrow && isAppleChromeEnabled && PlatformServices.UsesTouchChrome && DeviceRegions.VerticalBarEdge is not null;
+
+    /// <summary>
+    /// Whether the narrow layout's top bar is shown. Beside a vertical tab bar the page takes its height,
+    /// and its buttons stand in the tab bar's band.
+    /// </summary>
+    public bool ShowNarrowTopBar => IsNarrowChromeVisible && !UsesVerticalTabBar;
 
     /// <summary>
     /// Whether the page fades out toward the bottom edge, under the chrome floating there. Beside a vertical
@@ -956,6 +930,13 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     public bool ShowNavEntries => IsNavPaneVisible && SettingsSidebar is null;
 
     /// <summary>
+    /// Whether the page stands on the grouped list background, as Settings does with touch chrome
+    /// in the Apple UI style.
+    /// </summary>
+    public bool UsesGroupedPage =>
+        PlatformServices.UsesTouchChrome && isAppleChromeEnabled && CurrentPage is SettingsPageViewModel;
+
+    /// <summary>
     /// Presents Settings in a window of its own over the main window, completing once it closes, or
     /// brings forward the window already showing the page. Assigned by the macOS main window; the
     /// Apple layout opens Settings there instead of navigating to it.
@@ -984,6 +965,9 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     /// <summary>Narrow-layout bottom-navigation highlight for "Settings".</summary>
     public bool IsSettingsSelected => currentRouteId == AppRouteId.Settings;
+
+    /// <summary>Whether the search page is showing, which highlights the navigation pane's search entry.</summary>
+    public bool IsSearchSelected => currentRouteId == AppRouteId.Search;
 
     /// <summary>Narrow-layout bottom-navigation highlight for "Video".</summary>
     public bool IsVideoSelected => currentRouteId == AppRouteId.Videos;
@@ -1112,11 +1096,10 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     /// Whether the shell shows its own back button in the top-left of the narrow layout. Desktop
     /// narrow layouts have no global back gesture, so the shell supplies one that stands in for the
     /// platform back key; Android keeps its system back and the wide layout uses the per-page back
-    /// buttons instead. Hidden while the search field replaces the title bar, or when there is
-    /// nothing to go back to.
+    /// buttons instead. Hidden when there is nothing to go back to.
     /// </summary>
     public bool ShowNarrowBackButton =>
-        IsNarrow && !PlatformServices.HostProvidesBackNavigation && !IsSearchActive && CanNavigateBack;
+        IsNarrow && !PlatformServices.HostProvidesBackNavigation && CanNavigateBack;
 
     /// <summary>Invokes the shell's simulated global back key (the narrow-layout back button).</summary>
     public IRelayCommand NarrowBackCommand { get; }
@@ -1430,8 +1413,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         ShowPage(entry.Id, entry.Parameter, page, isBack: false, retained);
     }
 
-    private static bool IsSearchPage(PageViewModelBase? page) =>
-        page is SearchPageViewModel or PhotoSearchPageViewModel or MusicSearchPageViewModel;
+    private static bool IsSearchPage(PageViewModelBase? page) => page is SearchPageViewModel;
 
     // Discards the forward history. A fresh navigation invalidates any pages queued for Forward;
     // dispose any that carried a live page so none are leaked.
@@ -1540,6 +1522,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         OnPropertyChanged(nameof(IsHomeSelected));
         OnPropertyChanged(nameof(IsLibrarySelected));
         OnPropertyChanged(nameof(IsSettingsSelected));
+        OnPropertyChanged(nameof(IsSearchSelected));
         OnPropertyChanged(nameof(IsVideoSelected));
         OnPropertyChanged(nameof(IsPlaylistsSelected));
         OnPropertyChanged(nameof(ShowLibraryTabs));
@@ -1636,10 +1619,6 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
             AppRouteId.AlbumDetail => CreateAlbumDetailPage(parameter, route),
             AppRouteId.ArtistDetail => CreateArtistDetailPage(parameter, route),
             AppRouteId.Search => CreateSearchPage(parameter),
-            AppRouteId.PhotoSearch => CreatePhotoSearchPage(parameter, route),
-            AppRouteId.AlbumSearch => CreateMusicSearchPage(parameter, LibraryItemKind.Album),
-            AppRouteId.ArtistSearch => CreateMusicSearchPage(parameter, LibraryItemKind.Artist),
-            AppRouteId.SongSearch => CreateMusicSearchPage(parameter, LibraryItemKind.Song),
             AppRouteId.Playlists => CreatePlaylistsPage(route),
             AppRouteId.PlaylistDetail => CreatePlaylistDetailPage(parameter, route),
             AppRouteId.Home => CreateHomePage(),
@@ -1860,6 +1839,28 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     private Task OpenStreamAsync(Uri streamUri) => OpenVideoSession().OpenStreamAsync(streamUri);
 
+    /// <summary>Asks before a browser extension pairs, and plays what it redirects on the video sheet.</summary>
+    private sealed class BrowserLinkPresenter(ShellViewModel shell) : IBrowserLinkPresenter
+    {
+        public async Task<bool> ConfirmPairingAsync(BrowserLinkPairingRequest request, CancellationToken cancellationToken)
+        {
+            if (shell.dialogService is not { } dialogs)
+                return false;
+
+            string browser = string.IsNullOrWhiteSpace(request.Browser)
+                ? Strings.Resources.Common_Unknown
+                : request.Browser;
+            return await dialogs.ConfirmAsync(
+                Strings.Resources.BrowserLink_PairTitle,
+                string.Format(Strings.Resources.BrowserLink_PairMessageFormat, browser, request.Origin, request.Code),
+                Strings.Resources.BrowserLink_PairConfirm,
+                cancellationToken).ConfigureAwait(true);
+        }
+
+        public Task OpenSessionAsync(IBrowserVideoSession session) =>
+            shell.OpenVideoSession().OpenBrowserSessionAsync(session);
+    }
+
     /// <summary>
     /// The live video session, maximized. Creating one takes the audio device and the OS transport
     /// controls off the music queue: suspending is not enough on its own, because the OS session
@@ -1870,8 +1871,14 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
     {
         if (VideoSheet.Content is { } existing)
         {
-            VideoSheet.IsExpanded = true;
-            return existing;
+            if (!VideoSheet.IsClosing)
+            {
+                VideoSheet.IsExpanded = true;
+                return existing;
+            }
+
+            // The card is on its way out: that session ends now, and the new one gets a player of its own.
+            CloseVideoSheet();
         }
 
         playbackController.SuspendForVideo();
@@ -2087,51 +2094,22 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     private PageViewModelBase CreateSearchPage(object? parameter)
     {
-        var keyword = parameter as string ?? Search.Text ?? string.Empty;
         var page = new SearchPageViewModel(
-            keyword,
+            parameter as SearchRequest ?? new SearchRequest(parameter as string ?? string.Empty),
             libraryCommands,
             albumArtService,
             unifiedLibraryQueryService,
+            sourceRegistry,
+            recentSearches,
             CreateVideoSearchServices(),
-            CreatePhotoSearchServices(),
-            NavigateBack,
-            (kind, query) => Navigate(kind switch
-            {
-                LibraryItemKind.Album => AppRouteId.AlbumSearch,
-                LibraryItemKind.Artist => AppRouteId.ArtistSearch,
-                _ => AppRouteId.SongSearch,
-            }, query));
-        _ = LoadDetailPageAsync(page.LoadAsync());
-        return page;
-    }
-
-    private PageViewModelBase CreatePhotoSearchPage(object? parameter, AppRoute route)
-    {
-        if (CreatePhotoSearchServices() is not { } services)
-            return PlaceholderPageViewModel.Placeholder(route);
-        var page = new PhotoSearchPageViewModel(parameter as string ?? Search.Text ?? string.Empty, services, NavigateBack);
+            CreatePhotoSearchServices());
         _ = LoadDetailPageAsync(page.LoadAsync());
         return page;
     }
 
     private PhotoSearchServices? CreatePhotoSearchServices() => videoPreviewService is null
         ? null
-        : new PhotoSearchServices(sourceRegistry, photoFolderService, videoPreviewService, CreateVideoCallbacks(),
-            query => Navigate(AppRouteId.PhotoSearch, query), videoHistory);
-
-    private PageViewModelBase CreateMusicSearchPage(object? parameter, LibraryItemKind kind)
-    {
-        var query = parameter as string ?? Search.Text ?? string.Empty;
-        var source = CurrentPage is SearchPageViewModel search && search.Keyword == query
-            ? search
-            : backStack.Select(entry => entry.Page).OfType<SearchPageViewModel>()
-                .FirstOrDefault(search => search.Keyword == query);
-        var page = new MusicSearchPageViewModel(query, kind, libraryCommands, albumArtService,
-            unifiedLibraryQueryService, source?.MusicResults, NavigateBack);
-        _ = LoadDetailPageAsync(page.LoadAsync());
-        return page;
-    }
+        : new PhotoSearchServices(sourceRegistry, photoFolderService, videoPreviewService, CreateVideoCallbacks(), videoHistory);
 
     // Null on heads with no video library, which keeps the video section off the search page there.
     private VideoSearchServices? CreateVideoSearchServices() =>
@@ -2262,23 +2240,18 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         }
     }
 
-    /// <summary>Reveals the search field of the narrow top bar or of the Apple layout's title band.</summary>
-    public void OpenSearch() => IsSearchActive = true;
-
-    /// <summary>
-    /// Hides the search field of the narrow top bar or of the Apple layout's title band, returning
-    /// to the page title. Returns true when a field was open, so a back gesture can consume
-    /// itself closing search before navigating.
-    /// </summary>
-    public bool CloseSearch()
+    // Opens the search page, or moves keyboard focus to its field when it is already showing.
+    private void OpenSearch()
     {
-        if (!IsSearchActive)
+        // Collapse the overlay navigation pane so it stops covering the page.
+        Navigation.CollapseOverlay();
+        if (CurrentPage is SearchPageViewModel page)
         {
-            return false;
+            page.RequestFocus();
+            return;
         }
 
-        IsSearchActive = false;
-        return true;
+        Navigate(AppRouteId.Search);
     }
 
     private void ToggleNowPlaying()
@@ -2382,8 +2355,10 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         OnPropertyChanged(nameof(NavPaneOpenWidth));
         OnPropertyChanged(nameof(IsNavPaneVisible));
         OnPropertyChanged(nameof(IsNarrowChromeVisible));
+        OnPropertyChanged(nameof(ShowNarrowTopBar));
         NotifyAppleToolbarChanged();
         OnPropertyChanged(nameof(ShowNavEntries));
+        OnPropertyChanged(nameof(UsesGroupedPage));
         UpdateNowPlayingPresentation();
     }
 
@@ -2404,9 +2379,6 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         OnPropertyChanged(nameof(ShowSidebarToggle));
         OnPropertyChanged(nameof(ShowToolbarSidebarToggle));
         OnPropertyChanged(nameof(ShowToolbarTitle));
-        OnPropertyChanged(nameof(ShowToolbarSearchField));
-        OnPropertyChanged(nameof(ShowToolbarSearchBox));
-        OnPropertyChanged(nameof(ShowToolbarSearchButton));
         OnPropertyChanged(nameof(ShowToolbarBand));
     }
 
@@ -2432,6 +2404,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         OnPropertyChanged(nameof(ShowFloatingPlaybackBar));
         OnPropertyChanged(nameof(ShowFloatingNarrowChrome));
         OnPropertyChanged(nameof(UsesVerticalTabBar));
+        OnPropertyChanged(nameof(ShowNarrowTopBar));
         OnPropertyChanged(nameof(ShowBottomChromeFade));
         OnPropertyChanged(nameof(ReservesNowPlayingSheetSpace));
         OnPropertyChanged(nameof(BottomNavItemPadding));
@@ -2998,11 +2971,6 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
             return;
         }
 
-        if (restored.RouteId == AppRouteId.Search && restored.Parameter is string keyword)
-        {
-            Search.Text = keyword;
-        }
-
         Navigate(restored.RouteId, restored.Parameter);
         ApplyInPageState(restored);
         isRestoringInPageState = restored.DetailKey is not null
@@ -3183,10 +3151,10 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
             return;
         }
 
-        // Surfaces that are not part of the location (a modal dialog, the narrow search field)
-        // consume a back the way the platform back gesture does, and the move is undone so the
-        // history entry they were opened over stays current.
-        if (delta < 0 && (CloseOverlay() || CloseSearch()))
+        // Surfaces that are not part of the location (a modal dialog) consume a back the way the
+        // platform back gesture does, and the move is undone so the history entry they were opened
+        // over stays current.
+        if (delta < 0 && CloseOverlay())
         {
             navigationHistory.Go(-delta);
             return;
@@ -3313,204 +3281,6 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         }
     }
 
-    private void OnQuerySubmitted(string query)
-    {
-        // Collapse the overlay navigation pane so it stops covering the search results.
-        Navigation.CollapseOverlay();
-
-        // Collapse the top bar's search field once a query is committed.
-        IsSearchActive = false;
-
-        // Re-search in place when already on the search page: the shell mediates,
-        // so the search box never couples directly to the page.
-        if (CurrentPage is SearchPageViewModel searchPage)
-        {
-            currentParameter = query;
-            searchPage.UpdateKeyword(query);
-            return;
-        }
-
-        Navigate(AppRouteId.Search, query);
-    }
-
-    private void OnSuggestionChosen(SearchResultModel result)
-    {
-        // Collapse the overlay navigation pane so it stops covering the destination page.
-        Navigation.CollapseOverlay();
-
-        // Collapse the top bar's search field once a suggestion is chosen.
-        IsSearchActive = false;
-
-        switch (result.Kind)
-        {
-            case SearchResultKind.Album when result.Identifier is MediaLibraryItemIdentifier albumId:
-                Navigate(AppRouteId.AlbumDetail, albumId);
-                break;
-            case SearchResultKind.Artist when result.Identifier is MediaLibraryItemIdentifier artistId:
-                Navigate(AppRouteId.ArtistDetail, artistId);
-                break;
-            default:
-                // Music (and any suggestion without an identifier) open the full search results.
-                OnQuerySubmitted(result.Title);
-                break;
-        }
-    }
-
-    /// <summary>
-    /// Builds drop-down suggestions for the shell search box from the real library. Albums and
-    /// artists carry their identifier so choosing one opens its detail page. Videos are listed
-    /// plainly by name: they have no detail page of their own to point at.
-    /// </summary>
-    private async Task<IReadOnlyList<SearchResultModel>> SearchLibrarySuggestionsAsync(string? query, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(query))
-        {
-            return Array.Empty<SearchResultModel>();
-        }
-
-        UnifiedLibrarySearchResults results;
-        IReadOnlyList<Sourced<DbVideoFile>> videos;
-        try
-        {
-            var videoQuery = videoLibraryQueryService is null
-                ? Task.FromResult(new UnifiedCollection<Sourced<DbVideoFile>>([], []))
-                : unifiedVideoLibraryQueryService.SearchVideosAsync(query, cancellationToken);
-            results = await unifiedLibraryQueryService
-                .SearchAsync(query, cancellationToken)
-                .ConfigureAwait(false);
-            videos = (await videoQuery.ConfigureAwait(false)).Items;
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            return Array.Empty<SearchResultModel>();
-        }
-        catch (Exception ex)
-        {
-            // AutoCompleteBox awaits the populator from its own void path, so a failed lookup here
-            // would otherwise crash the app while the user is typing.
-            ReportActionFailure(Strings.Resources.Shell_WarnLoadLibrary, ex);
-            return Array.Empty<SearchResultModel>();
-        }
-
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return Array.Empty<SearchResultModel>();
-        }
-
-        const int maxSuggestions = 10;
-        var suggestions = new List<SearchResultModel>(maxSuggestions);
-
-        foreach (var sourcedAlbum in results.Albums)
-        {
-            if (suggestions.Count >= maxSuggestions)
-            {
-                break;
-            }
-
-            var album = sourcedAlbum.Value;
-            var albumTitle = LibrarySortKeys.Fallback(album.Title, Strings.Resources.Common_UnknownAlbum);
-            var suggestion = new SearchResultModel(
-                albumTitle,
-                Strings.Resources.Common_ColumnAlbum,
-                SearchResultKind.Album,
-                ThumbnailKind.Album,
-                hasThumbnail: true)
-            {
-                Identifier = LibraryItemReference.Album(sourcedAlbum.SourceId, album),
-            };
-
-            // Swap the disc placeholder for the real cover once it is extracted. Keys match the album
-            // pages so the throttled, on-disk artwork cache is shared.
-            _ = LoadSuggestionArtAsync(
-                suggestion,
-                albumArtService.GetLowQualityTrackArtAsync(
-                    new MediaReference(sourcedAlbum.SourceId, album.FirstFileInAlbum ?? string.Empty),
-                    1,
-                    SuggestionArtPixelSize,
-                    cancellationToken),
-                cancellationToken);
-
-            suggestions.Add(suggestion);
-        }
-
-        foreach (var artist in results.Artists)
-        {
-            if (suggestions.Count >= maxSuggestions)
-            {
-                break;
-            }
-
-            suggestions.Add(new SearchResultModel(
-                LibrarySortKeys.Fallback(artist.DisplayName, Strings.Resources.Common_UnknownArtist),
-                Strings.Resources.Common_ColumnArtist,
-                SearchResultKind.Artist,
-                ThumbnailKind.Artist,
-                hasThumbnail: true)
-            {
-                Identifier = LibraryItemReference.Artist(artist),
-            });
-        }
-
-        foreach (var sourcedFile in results.Files)
-        {
-            if (suggestions.Count >= maxSuggestions)
-            {
-                break;
-            }
-
-            var file = sourcedFile.Value;
-            var pathTitle = Path.GetFileNameWithoutExtension(file.Path);
-            var songTitle = LibrarySortKeys.Fallback(
-                file.Title,
-                string.IsNullOrWhiteSpace(pathTitle) ? Strings.Resources.Common_UnknownTitle : pathTitle);
-            suggestions.Add(new SearchResultModel(songTitle, Strings.Resources.Common_Song, SearchResultKind.Song)
-            {
-                Identifier = (MediaLibraryItemIdentifier)file,
-            });
-        }
-
-        foreach (var sourcedVideo in videos)
-        {
-            if (suggestions.Count >= maxSuggestions)
-            {
-                break;
-            }
-
-            var video = sourcedVideo.Value;
-            suggestions.Add(new SearchResultModel(
-                LibrarySortKeys.Fallback(video.DisplayName, Strings.Resources.Common_UnknownTitle),
-                Strings.Resources.Nav_Video,
-                SearchResultKind.Video));
-        }
-
-        return suggestions;
-    }
-
-    /// <summary>
-    /// Assigns a suggestion's artwork on the UI thread once <paramref name="artTask"/> completes, so
-    /// the search drop-down shows the real cover instead of the placeholder. Fire-and-forget: a missing
-    /// cover or a failure simply leaves the placeholder in place.
-    /// </summary>
-    private static async Task LoadSuggestionArtAsync(SearchResultModel suggestion, Task<FastImageSource?> artTask, CancellationToken cancellationToken)
-    {
-        FastImageSource? image;
-        try
-        {
-            image = await artTask.ConfigureAwait(false);
-        }
-        catch
-        {
-            return;
-        }
-
-        if (image is null)
-        {
-            return;
-        }
-
-        AlbumArtService.ApplyOnUiThread(image, art => suggestion.Image = art, cancellationToken);
-    }
-
     private void OnPlaybackError(string message)
     {
         HasWarnings = true;
@@ -3574,7 +3344,7 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
 
     private void RevealPhotoInFileManager(PhotoFileReference photo)
     {
-        if (mediaResolver.GetCapabilities(LibrarySourceId.Local).SupportsFileReveal)
+        if (mediaResolver.GetCapabilities(photo.Source).SupportsFileReveal)
         {
             RevealInFileManager(photo.Path);
         }
@@ -3601,7 +3371,10 @@ public partial class ShellViewModel : ViewModelBase, IShellOverlayHost
         }
 
         // A page that has moved on since the tile was built may no longer list the picture at all.
-        return index < 0 ? PhotoViewerRequest.ForOne(photo.Media) : new PhotoViewerRequest(references, index);
+        return (index < 0 ? PhotoViewerRequest.ForOne(photo.Media) : new PhotoViewerRequest(references, index)) with
+        {
+            PixelSize = new Size(photo.PixelWidth, photo.PixelHeight),
+        };
     }
 
     /// <summary>Pictures opened from outside the library: the first is shown, the rest page from it.</summary>

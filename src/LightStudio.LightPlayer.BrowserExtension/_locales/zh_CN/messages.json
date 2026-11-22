@@ -1,0 +1,219 @@
+{
+    "extensionName": {
+        "message": "Light Media Center Browser Link"
+    },
+    "extensionDescription": {
+        "message": "在 Light Media Center 中播放网页上的视频。"
+    },
+    "actionTitle": {
+        "message": "Light Media Center"
+    },
+    "controlRedirect": {
+        "message": "在 Light Media Center 中播放"
+    },
+    "controlUnavailable": {
+        "message": "此视频暂时无法发送到 Light Media Center"
+    },
+    "controlConnecting": {
+        "message": "正在连接 Light Media Center..."
+    },
+    "controlPlaying": {
+        "message": "正在 Light Media Center 中播放"
+    },
+    "controlReturn": {
+        "message": "在此观看"
+    },
+    "messageNotPaired": {
+        "message": "请先将此浏览器与 Light Media Center 配对。"
+    },
+    "messagePairAction": {
+        "message": "配对"
+    },
+    "messageUnreachable": {
+        "message": "无法连接到 Light Media Center。请确认它正在运行，并且已在其设置中允许浏览器连接。"
+    },
+    "messageUnauthorized": {
+        "message": "此视频需要登录，而 Light Media Center 无法使用该登录。"
+    },
+    "messageUnsupported": {
+        "message": "Light Media Center 无法播放此视频。"
+    },
+    "messageEncrypted": {
+        "message": "此视频受保护，无法在 Light Media Center 中播放。"
+    },
+    "messageError": {
+        "message": "Light Media Center 已停止播放此视频。"
+    },
+    "messageProtocol": {
+        "message": "此扩展程序的版本与 Light Media Center 不匹配。请同时更新两者。"
+    },
+    "messageDisconnected": {
+        "message": "与 Light Media Center 的连接已断开。"
+    },
+    "statusChecking": {
+        "message": "正在检查 Light Media Center..."
+    },
+    "statusConnected": {
+        "message": "已连接到 Light Media Center $VERSION$",
+        "placeholders": {
+            "version": {
+                "content": "$1",
+                "example": "2.1.3"
+            }
+        }
+    },
+    "statusNotPaired": {
+        "message": "Light Media Center 正在运行，但此浏览器尚未配对。"
+    },
+    "pairingStatePaired": {
+        "message": "此浏览器已与 Light Media Center 配对。"
+    },
+    "pairingStateNone": {
+        "message": "此浏览器尚未与 Light Media Center 配对。"
+    },
+    "pairingStateRevoked": {
+        "message": "Light Media Center 已不再接受此浏览器。请重新配对。"
+    },
+    "optionsPairingHeader": {
+        "message": "配对"
+    },
+    "optionsPairButton": {
+        "message": "配对"
+    },
+    "optionsPairAgainButton": {
+        "message": "重新配对"
+    },
+    "optionsCancelButton": {
+        "message": "取消"
+    },
+    "optionsForgetButton": {
+        "message": "移除配对"
+    },
+    "optionsPairingCode": {
+        "message": "请确认 Light Media Center 显示的是此代码，然后在其中接受请求。"
+    },
+    "optionsPairingSucceeded": {
+        "message": "已与 Light Media Center 配对。"
+    },
+    "optionsPairingRejected": {
+        "message": "Light Media Center 拒绝了配对，或请求已超时。"
+    },
+    "optionsPairingFailed": {
+        "message": "配对未完成。请重试。"
+    },
+    "optionsForgetHint": {
+        "message": "要完全撤销访问权限，还需在 Light Media Center 设置的已配对浏览器列表中移除此浏览器。"
+    },
+    "optionsConnectionHeader": {
+        "message": "连接"
+    },
+    "optionsPortLabel": {
+        "message": "端口"
+    },
+    "optionsPortHint": {
+        "message": "使用 Light Media Center 设置中显示的端口。"
+    },
+    "optionsPortInvalid": {
+        "message": "请输入 1 到 65535 之间的端口。"
+    },
+    "optionsSiteAccessHeader": {
+        "message": "网站访问权限"
+    },
+    "siteAccessMissing": {
+        "message": "在获得网站访问权限之前，扩展程序无法发现视频。"
+    },
+    "siteAccessGrant": {
+        "message": "允许访问"
+    },
+    "popupVideosHeader": {
+        "message": "此页面上的视频"
+    },
+    "popupNoVideos": {
+        "message": "此页面上未找到视频。"
+    },
+    "popupNoAccess": {
+        "message": "无法访问此页面。"
+    },
+    "popupSettings": {
+        "message": "设置"
+    },
+    "videoRedirect": {
+        "message": "在应用中播放"
+    },
+    "videoProtected": {
+        "message": "受保护"
+    },
+    "videoUnsupported": {
+        "message": "不支持"
+    },
+    "videoLive": {
+        "message": "直播"
+    },
+    "controlArm": {
+        "message": "重新加载并在 Light Media Center 中播放"
+    },
+    "videoArm": {
+        "message": "重新加载并在应用中播放"
+    },
+    "placeholderWaiting": {
+        "message": "此页面上的另一个视频正在 Light Media Center 中播放。"
+    },
+    "placeholderClosed": {
+        "message": "此视频已在 Light Media Center 中关闭。"
+    },
+    "placeholderReplaced": {
+        "message": "Light Media Center 正在播放另一个视频。"
+    },
+    "placeholderProtected": {
+        "message": "此视频受保护。页面将重新加载，以便在此处播放。"
+    },
+    "popupArmed": {
+        "message": "此标签页中的视频在 Light Media Center 中播放。"
+    },
+    "popupDisarm": {
+        "message": "在浏览器中播放"
+    },
+    "startOffer": {
+        "message": "无法连接到 Light Media Center。"
+    },
+    "startAction": {
+        "message": "启动 Light Media Center"
+    },
+    "startWaiting": {
+        "message": "正在启动 Light Media Center... 如果浏览器询问是否打开它，请允许。"
+    },
+    "startNoAnswer": {
+        "message": "Light Media Center 未在端口 $PORT$ 上响应。如果它已打开，请在其设置中开启“允许浏览器连接”并检查端口。如果没有任何程序打开，请确认它已安装。",
+        "placeholders": {
+            "port": {
+                "content": "$1",
+                "example": "47833"
+            }
+        }
+    },
+    "startTryAgain": {
+        "message": "重试"
+    },
+    "startOtherPort": {
+        "message": "Light Media Center 在端口 $APP$ 上响应，但扩展程序连接的是端口 $EXTENSION$。",
+        "placeholders": {
+            "app": {
+                "content": "$1",
+                "example": "47833"
+            },
+            "extension": {
+                "content": "$2",
+                "example": "47911"
+            }
+        }
+    },
+    "startUsePort": {
+        "message": "使用端口 $PORT$",
+        "placeholders": {
+            "port": {
+                "content": "$1",
+                "example": "47833"
+            }
+        }
+    }
+}

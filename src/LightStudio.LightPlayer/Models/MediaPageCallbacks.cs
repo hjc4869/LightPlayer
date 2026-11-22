@@ -91,7 +91,6 @@ public sealed record PhotoSearchServices(
     PhotoFolderService Photos,
     VideoPreviewService Previews,
     MediaPageCallbacks Callbacks,
-    Action<string> ShowAll,
     IVideoHistoryStore? History = null);
 
 /// <summary>

@@ -89,10 +89,19 @@
       <?endforeach?>
     </Component>
 
+    <!-- lightplayer: URLs only start or bring forward the application. -->
+    <Component Id="UrlSchemeRegistration" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryValue Root="HKLM" Key="Software\Classes\lightplayer" Value="URL:Light Media Center" KeyPath="yes" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\lightplayer" Name="URL Protocol" Value="" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\lightplayer\DefaultIcon" Value="[INSTALLFOLDER]LightPlayer.ico" />
+      <RegistryValue Root="HKLM" Key="Software\Classes\lightplayer\shell\open\command" Value="&quot;[INSTALLFOLDER]lmc.exe&quot; &quot;%1&quot;" />
+    </Component>
+
     <Feature Id="MainFeature" Title="Light Media Center">
       <ComponentGroupRef Id="PublishedFiles" />
       <ComponentRef Id="ApplicationExecutable" />
       <ComponentRef Id="WindowsApplicationRegistration" />
+      <ComponentRef Id="UrlSchemeRegistration" />
     </Feature>
   </Package>
 </Wix>

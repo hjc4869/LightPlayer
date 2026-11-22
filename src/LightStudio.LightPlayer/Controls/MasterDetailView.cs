@@ -8,6 +8,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.VisualTree;
 using LightStudio.LightPlayer.Animations;
 using LightStudio.LightPlayer.Services;
@@ -55,6 +56,9 @@ public class MasterDetailView : Decorator
 
     public static readonly StyledProperty<ICommand?> DetailBackCommandProperty =
         AvaloniaProperty.Register<MasterDetailView, ICommand?>(nameof(DetailBackCommand));
+
+    public static readonly StyledProperty<IBrush?> DetailBackgroundProperty =
+        AvaloniaProperty.Register<MasterDetailView, IBrush?>(nameof(DetailBackground));
 
     // Width of the left column reserved for the built-in back button on narrow layouts, so the
     // button sits beside the detail content (in its own column) rather than above it in a row.
@@ -204,6 +208,13 @@ public class MasterDetailView : Decorator
         set => SetValue(DetailBackCommandProperty, value);
     }
 
+    /// <summary>Fill behind the detail, for hosts whose page stands on another background; null for the page's.</summary>
+    public IBrush? DetailBackground
+    {
+        get => GetValue(DetailBackgroundProperty);
+        set => SetValue(DetailBackgroundProperty, value);
+    }
+
     /// <summary>
     /// The pane the user is currently working in: the detail host when a sub-page is open, otherwise
     /// the master host. On narrow layouts the master stays visible behind the detail overlay, so this
@@ -232,7 +243,7 @@ public class MasterDetailView : Decorator
         {
             CancelBackPreview();
         }
-        else if (change.Property == ShowDetailBackButtonProperty)
+        else if (change.Property == ShowDetailBackButtonProperty || change.Property == DetailBackgroundProperty)
         {
             UpdateChrome();
         }
@@ -345,8 +356,15 @@ public class MasterDetailView : Decorator
             currentDetailBorder.Margin = new Thickness(0, -bleed, 0, -bleed);
             currentDetailBorder.Padding = ComputeDetailPadding(Detail) + new Thickness(0, bleed, 0, bleed);
             // Compact details cover the master, so use the opaque page brush instead of a Mica layer.
-            currentDetailBorder.Bind(Border.BackgroundProperty,
-                this.GetResourceObservable(IsCompact ? "AppPageBackgroundBrush" : "AppContentLayerBrush"));
+            if (DetailBackground is not null)
+            {
+                currentDetailBorder.Bind(Border.BackgroundProperty, this.GetObservable(DetailBackgroundProperty));
+            }
+            else
+            {
+                currentDetailBorder.Bind(Border.BackgroundProperty,
+                    this.GetResourceObservable(IsCompact ? "AppPageBackgroundBrush" : "AppContentLayerBrush"));
+            }
         }
     }
 

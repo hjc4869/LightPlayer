@@ -166,11 +166,10 @@ public sealed partial class VideoTileModel : SelectionItemModel
 
     public string? FolderPath => Folder?.Path;
 
-    // A remote picture is read through its server, which leaves nothing on this device to reveal.
     public bool CanOpenContainingFolder =>
         OpenFolderCommand is not null &&
-        (IsPhoto ? Photo!.IsLocal : (IsFolder ? Folder?.SourceId : SourcedVideo?.SourceId)?.IsLocal == true) &&
-        PlatformServices.SupportsLocalFileAccess;
+        (IsPhoto ? Photo!.Source : IsFolder ? Folder?.SourceId : SourcedVideo?.SourceId) is { } sourceId &&
+        PlatformServices.CanRevealFiles(sourceId, LibraryMediaCategory.Video);
     /// <summary>
     /// Offered where the tile is shown away from the folder it lives in - the recently viewed list -
     /// so the library can be re-entered at that folder rather than browsed back down to it.

@@ -63,7 +63,14 @@ internal static class IosDeviceRegions
         private readonly Action<DeviceRegions> changed;
         private readonly GuideProbe[] probes;
 #if IOS_RESERVED_REGIONS
+        // Reserved regions settle shortly after the hinge does, without a notification of their own, so
+        // the observer measures them again for a moment after each hinge update.
+        private static readonly TimeSpan HingeSettleInterval = TimeSpan.FromMilliseconds(50);
+        private const int HingeSettleChecks = 20;
+
         private readonly IUIInteraction? hingeInteraction;
+        private DispatcherTimer? hingeSettleTimer;
+        private int hingeSettleChecks;
 #endif
         private DeviceRegions? reported;
         private bool reportPending;
@@ -88,7 +95,7 @@ internal static class IosDeviceRegions
                     view.GetLayoutGuide(BarRegion(UIRectEdge.Right)),
                 ];
 #pragma warning disable CA1416 // The head targets iOS only; the bindings leave Mac Catalyst out.
-                hingeInteraction = new UIHingeInteraction((_, _) => ScheduleReport());
+                hingeInteraction = new UIHingeInteraction((_, _) => OnHingeChanged());
 #pragma warning restore CA1416
                 view.AddInteraction(hingeInteraction);
             }
@@ -97,6 +104,30 @@ internal static class IosDeviceRegions
             probes = guides.Select(guide => new GuideProbe(this, view, guide)).ToArray();
             Report();
         }
+
+#if IOS_RESERVED_REGIONS
+        private void OnHingeChanged()
+        {
+            ScheduleReport();
+            hingeSettleChecks = HingeSettleChecks;
+            if (hingeSettleTimer is null)
+            {
+                hingeSettleTimer = new DispatcherTimer { Interval = HingeSettleInterval };
+                hingeSettleTimer.Tick += OnHingeSettleTick;
+            }
+
+            hingeSettleTimer.Start();
+        }
+
+        private void OnHingeSettleTick(object? sender, EventArgs args)
+        {
+            Report();
+            if (--hingeSettleChecks <= 0)
+            {
+                hingeSettleTimer?.Stop();
+            }
+        }
+#endif
 
         public void ScheduleReport()
         {
@@ -213,6 +244,7 @@ internal static class IosDeviceRegions
             }
 
 #if IOS_RESERVED_REGIONS
+            hingeSettleTimer?.Stop();
             if (hingeInteraction is not null)
             {
                 view.RemoveInteraction(hingeInteraction);

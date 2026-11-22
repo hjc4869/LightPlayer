@@ -55,6 +55,9 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
     private readonly TaskCompletionSource viewportReady = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Size previewViewport;
 
+    /// <summary>Stored pixel size the opening page's index recorded for the picture opened first, until another is shown.</summary>
+    private Size indexedPixelSize;
+
     /// <summary>Cancels the picture being decoded when another is paged to before it arrives.</summary>
     private CancellationTokenSource load;
 
@@ -186,6 +189,7 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
         this.callbacks = callbacks;
         photos = request.Photos.Count > 0 ? request.Photos : [MediaReference.Local(string.Empty)];
         index = Math.Clamp(request.Index, 0, photos.Count - 1);
+        indexedPixelSize = request.PixelSize;
         load = CancellationTokenSource.CreateLinkedTokenSource(cancellation.Token);
         readAhead = CancellationTokenSource.CreateLinkedTokenSource(cancellation.Token);
         Close = callbacks.Close;
@@ -462,9 +466,21 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
     {
         if (!cancellation.IsCancellationRequested && (Preview is null ||
             value.IsViewportPreview && !Preview.IsViewportPreview && (IsHighDynamicRange(value) || !IsHighDynamicRange(Preview))))
+        {
             Preview = value;
+            SeedNaturalSize(value.Image.Size);
+        }
         else
             value.Release();
+    }
+
+    // The index records stored pixels, so the upright preview decides which way round they are seen.
+    private void SeedNaturalSize(Size preview)
+    {
+        if (NaturalSize != default || indexedPixelSize is not { Width: > 0, Height: > 0 } pixels)
+            return;
+        bool turned = (preview.Width - preview.Height) * (pixels.Width - pixels.Height) < 0;
+        NaturalSize = turned ? new Size(pixels.Height, pixels.Width) : pixels;
     }
 
     // An SDR viewport preview replacing an HDR thumbnail would dim the picture until the photo decodes.
@@ -568,6 +584,7 @@ public sealed partial class PhotoViewerPageViewModel : PageViewModelBase, INavig
             : incomingPreview?.NaturalSize ?? default;
 
         index = target;
+        indexedPixelSize = default;
         ToneProfiles.Revert();
         Rotation = 0;
         CanSwitchRawRendering = false;

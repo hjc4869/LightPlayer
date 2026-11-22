@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -60,7 +61,7 @@ internal sealed class OverlayDialogService : IDialogService
             return Task.CompletedTask;
         }
 
-        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "2.1.3.0";
+        var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "2.2.0.0";
         var body = new StackPanel { Spacing = 12 };
         body.Children.Add(CenteredText(Strings.Resources.About_ProductName, 22, FontWeight.SemiBold));
         body.Children.Add(CenteredSecondary(string.Format(Strings.Resources.About_VersionFormat, version, BuildInfo.SourceVersion), 13, wrap: true));
@@ -325,9 +326,9 @@ internal sealed class OverlayDialogService : IDialogService
             extraButton: (Strings.Resources.Common_Copy, () => CopyToClipboard(details)));
     }
 
-    public Task<bool> ConfirmAsync(string title, string message, string confirmLabel) =>
+    public Task<bool> ConfirmAsync(string title, string message, string confirmLabel, CancellationToken cancellationToken = default) =>
         Host is { } host
-            ? OverlayDialog.ConfirmAsync(host, title, message, confirmLabel)
+            ? OverlayDialog.ConfirmAsync(host, title, message, confirmLabel, cancellationToken)
             : Task.FromResult(false);
 
     public async Task<ColorTheme?> ShowThemeEditorAsync(ThemeEditorViewModel viewModel)

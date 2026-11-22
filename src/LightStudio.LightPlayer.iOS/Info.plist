@@ -26,6 +26,11 @@
   </array>
   <key>UILaunchScreen</key>
   <dict/>
+  <key>UIApplicationSceneManifest</key>
+  <dict>
+    <key>UIApplicationSupportsMultipleScenes</key>
+    <false/>
+  </dict>
   <key>CADisableMinimumFrameDurationOnPhone</key>
   <true/>
   <key>UIFileSharingEnabled</key>

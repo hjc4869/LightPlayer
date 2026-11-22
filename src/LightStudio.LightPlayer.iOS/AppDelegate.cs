@@ -60,6 +60,7 @@ public sealed class AppDelegate : AvaloniaAppDelegate<App>
         PlatformServices.LibraryFolderAccess = storage;
         PlatformServices.MediaFilePicker = storage.PickMediaAsync;
         PlatformServices.FileShareService = storage;
+        PlatformServices.FileRevealService = new IosFileRevealService();
         PlatformServices.SupportsSystemAccentTheme = true;
         ((IAvaloniaAppDelegate)this).Activated += OnActivated;
         var localServices = new LocalServices.LocalServices(

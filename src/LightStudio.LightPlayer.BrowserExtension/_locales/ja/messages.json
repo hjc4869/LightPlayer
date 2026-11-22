@@ -1,0 +1,219 @@
+{
+    "extensionName": {
+        "message": "Light Media Center Browser Link"
+    },
+    "extensionDescription": {
+        "message": "Web ページの動画を Light Media Center で再生します。"
+    },
+    "actionTitle": {
+        "message": "Light Media Center"
+    },
+    "controlRedirect": {
+        "message": "Light Media Center で再生"
+    },
+    "controlUnavailable": {
+        "message": "この動画はまだ Light Media Center に送信できません"
+    },
+    "controlConnecting": {
+        "message": "Light Media Center に接続しています..."
+    },
+    "controlPlaying": {
+        "message": "Light Media Center で再生中"
+    },
+    "controlReturn": {
+        "message": "ここで見る"
+    },
+    "messageNotPaired": {
+        "message": "先にこのブラウザーを Light Media Center とペアリングしてください。"
+    },
+    "messagePairAction": {
+        "message": "ペアリング"
+    },
+    "messageUnreachable": {
+        "message": "Light Media Center に接続できません。起動していること、および設定でブラウザーからの接続が許可されていることを確認してください。"
+    },
+    "messageUnauthorized": {
+        "message": "この動画には、Light Media Center では使用できないサインインが必要です。"
+    },
+    "messageUnsupported": {
+        "message": "Light Media Center はこの動画を再生できません。"
+    },
+    "messageEncrypted": {
+        "message": "この動画は保護されているため、Light Media Center で再生できません。"
+    },
+    "messageError": {
+        "message": "Light Media Center がこの動画の再生を停止しました。"
+    },
+    "messageProtocol": {
+        "message": "この拡張機能のバージョンは Light Media Center と一致しません。両方を更新してください。"
+    },
+    "messageDisconnected": {
+        "message": "Light Media Center との接続が切断されました。"
+    },
+    "statusChecking": {
+        "message": "Light Media Center を確認しています..."
+    },
+    "statusConnected": {
+        "message": "Light Media Center $VERSION$ に接続済み",
+        "placeholders": {
+            "version": {
+                "content": "$1",
+                "example": "2.1.3"
+            }
+        }
+    },
+    "statusNotPaired": {
+        "message": "Light Media Center は起動していますが、このブラウザーはペアリングされていません。"
+    },
+    "pairingStatePaired": {
+        "message": "このブラウザーは Light Media Center とペアリングされています。"
+    },
+    "pairingStateNone": {
+        "message": "このブラウザーは Light Media Center とペアリングされていません。"
+    },
+    "pairingStateRevoked": {
+        "message": "Light Media Center はこのブラウザーを受け付けなくなりました。もう一度ペアリングしてください。"
+    },
+    "optionsPairingHeader": {
+        "message": "ペアリング"
+    },
+    "optionsPairButton": {
+        "message": "ペアリング"
+    },
+    "optionsPairAgainButton": {
+        "message": "再ペアリング"
+    },
+    "optionsCancelButton": {
+        "message": "キャンセル"
+    },
+    "optionsForgetButton": {
+        "message": "ペアリングを解除"
+    },
+    "optionsPairingCode": {
+        "message": "Light Media Center にこのコードが表示されていることを確認してから、そこでリクエストを承認してください。"
+    },
+    "optionsPairingSucceeded": {
+        "message": "Light Media Center とペアリングしました。"
+    },
+    "optionsPairingRejected": {
+        "message": "Light Media Center がペアリングを拒否したか、リクエストがタイムアウトしました。"
+    },
+    "optionsPairingFailed": {
+        "message": "ペアリングが完了しませんでした。もう一度お試しください。"
+    },
+    "optionsForgetHint": {
+        "message": "アクセスを完全に取り消すには、Light Media Center の設定にあるペアリング済みブラウザーからもこのブラウザーを削除してください。"
+    },
+    "optionsConnectionHeader": {
+        "message": "接続"
+    },
+    "optionsPortLabel": {
+        "message": "ポート"
+    },
+    "optionsPortHint": {
+        "message": "Light Media Center の設定に表示されているポートを使用してください。"
+    },
+    "optionsPortInvalid": {
+        "message": "1 から 65535 までのポート番号を入力してください。"
+    },
+    "optionsSiteAccessHeader": {
+        "message": "Web サイトへのアクセス"
+    },
+    "siteAccessMissing": {
+        "message": "Web サイトへのアクセスが許可されるまで、拡張機能は動画を検出できません。"
+    },
+    "siteAccessGrant": {
+        "message": "アクセスを許可"
+    },
+    "popupVideosHeader": {
+        "message": "このページの動画"
+    },
+    "popupNoVideos": {
+        "message": "このページに動画は見つかりませんでした。"
+    },
+    "popupNoAccess": {
+        "message": "このページにはアクセスできません。"
+    },
+    "popupSettings": {
+        "message": "設定"
+    },
+    "videoRedirect": {
+        "message": "アプリで再生"
+    },
+    "videoProtected": {
+        "message": "保護されています"
+    },
+    "videoUnsupported": {
+        "message": "非対応"
+    },
+    "videoLive": {
+        "message": "ライブ"
+    },
+    "controlArm": {
+        "message": "再読み込みして Light Media Center で再生"
+    },
+    "videoArm": {
+        "message": "再読み込みしてアプリで再生"
+    },
+    "placeholderWaiting": {
+        "message": "このページの別の動画が Light Media Center で再生中です。"
+    },
+    "placeholderClosed": {
+        "message": "この動画は Light Media Center で閉じられました。"
+    },
+    "placeholderReplaced": {
+        "message": "Light Media Center では別の動画を再生中です。"
+    },
+    "placeholderProtected": {
+        "message": "この動画は保護されています。ここで再生するためにページを再読み込みします。"
+    },
+    "popupArmed": {
+        "message": "このタブの動画は Light Media Center で再生されます。"
+    },
+    "popupDisarm": {
+        "message": "ブラウザーで再生"
+    },
+    "startOffer": {
+        "message": "Light Media Center に接続できません。"
+    },
+    "startAction": {
+        "message": "Light Media Center を起動"
+    },
+    "startWaiting": {
+        "message": "Light Media Center を起動しています... 開くかどうかブラウザーに確認された場合は、許可してください。"
+    },
+    "startNoAnswer": {
+        "message": "Light Media Center がポート $PORT$ で応答しませんでした。起動した場合は、設定で「ブラウザーからの接続を許可」をオンにして、ポートを確認してください。何も起動しなかった場合は、インストールされていることを確認してください。",
+        "placeholders": {
+            "port": {
+                "content": "$1",
+                "example": "47833"
+            }
+        }
+    },
+    "startTryAgain": {
+        "message": "再試行"
+    },
+    "startOtherPort": {
+        "message": "Light Media Center はポート $APP$ で応答していますが、拡張機能はポート $EXTENSION$ に接続しています。",
+        "placeholders": {
+            "app": {
+                "content": "$1",
+                "example": "47833"
+            },
+            "extension": {
+                "content": "$2",
+                "example": "47911"
+            }
+        }
+    },
+    "startUsePort": {
+        "message": "ポート $PORT$ を使用",
+        "placeholders": {
+            "port": {
+                "content": "$1",
+                "example": "47833"
+            }
+        }
+    }
+}

@@ -58,7 +58,7 @@ public partial class MusicPlaybackItemModel : ObservableObject
     public MediaReference Media => new(SourceId, FilePath);
 
     public bool CanOpenContainingFolder =>
-        SourceId.IsLocal && Services.PlatformServices.SupportsLocalFileAccess;
+        Services.PlatformServices.CanRevealFiles(SourceId, Services.LibraryMediaCategory.Music);
 
     /// <summary>
     /// Cue start offset, in milliseconds, when this entry is a CUE-sheet track (0 is a valid

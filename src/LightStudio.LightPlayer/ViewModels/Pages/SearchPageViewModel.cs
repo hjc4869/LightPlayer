@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LightStudio.LightPlayer.Models;
@@ -16,298 +19,867 @@ using Strings = LightStudio.LightPlayer.Strings;
 namespace LightStudio.LightPlayer.ViewModels.Pages;
 
 /// <summary>
-/// Search results page: photo, song, album, artist, and video sections for a keyword. The
-/// keyword arrives as a navigation parameter, and the shell re-runs the query in
-/// place via <see cref="UpdateKeyword"/> when the user searches again, so the
-/// search box never couples directly to this page.
+/// The search page: a query field over song, album, artist, video, and photo results, narrowed by
+/// result kind and by library source. Results follow the query as it is typed. The All scope
+/// previews every kind, and each kind's own scope lists all of its results in batches.
 /// </summary>
 public sealed partial class SearchPageViewModel : PageViewModelBase, INowPlayingHighlightTarget,
-    IScrollPositionPageViewModel, IDisposable
+    IScrollPositionPageViewModel, IIncrementalLoadingViewModel, INavigationParameterSource, IDisposable
 {
+    private const int BatchSize = 60;
+    private const int SongPreviewCount = 5;
+    private const int PhotoPreviewCount = 8;
+    private static readonly TimeSpan TypingDelay = TimeSpan.FromMilliseconds(300);
+    private static readonly TimeSpan RecentDelay = TimeSpan.FromSeconds(2);
+
     private readonly LibraryCommands commands;
-    private readonly AlbumArtService albumArt;
     private readonly IUnifiedLibraryQueryService libraryQuery;
+    private readonly ILibrarySourceRegistry registry;
+    private readonly RecentSearchList recentSearches;
     private readonly VideoSearchServices? videoSearch;
     private readonly PhotoSearchServices? photoSearch;
-    private readonly Action<LibraryItemKind, string>? showMoreMusic;
-    private CancellationTokenSource? queryCancellation;
-    private Task? loadTask;
-    private int queryVersion;
+    private HashSet<LibrarySourceId>? includedSources;
+    private CancellationTokenSource? searchCancellation;
+    private SearchRun? activeRun;
+    private SearchRun? appliedRun;
+    private PhotoSearchSession? photoSession;
+    private Task searchTask = Task.CompletedTask;
+    private Task? loadMoreTask;
     private MediaItemKey? nowPlaying;
-    private double previewWidth = 1180;
+    private string requestedTerm = string.Empty;
+    private string? autoRecorded;
+    private int searchVersion;
+    private double contentWidth = 1160;
     private bool photosHaveMore;
+    private int? photoTotalCount;
+    private bool updatingSources;
+    private bool disposed;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SongPreview))]
-    [NotifyPropertyChangedFor(nameof(PhotoPreview))]
-    [NotifyPropertyChangedFor(nameof(HasMoreSongs))]
-    [NotifyPropertyChangedFor(nameof(HasMorePhotos))]
-    private int previewLimit = 8;
+    private string query;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AlbumPreview))]
-    [NotifyPropertyChangedFor(nameof(ArtistPreview))]
-    [NotifyPropertyChangedFor(nameof(HasMoreAlbums))]
-    [NotifyPropertyChangedFor(nameof(HasMoreArtists))]
-    private int tilePreviewLimit = 16;
+    private SearchScope scope;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HeaderText))]
-    private string keyword = string.Empty;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowResults))]
-    [NotifyPropertyChangedFor(nameof(ShowNoResults))]
+    [NotifyPropertyChangedFor(nameof(CanLoadMore))]
+    [NotifyPropertyChangedFor(nameof(IsWorking))]
     private bool isBusy;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowNoResults))]
-    private bool noResults;
+    [NotifyPropertyChangedFor(nameof(CanLoadMore))]
+    [NotifyPropertyChangedFor(nameof(IsWorking))]
+    private bool isLoadingMore;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasAlbums))]
-    [NotifyPropertyChangedFor(nameof(AlbumsHeader))]
-    [NotifyPropertyChangedFor(nameof(AlbumPreview))]
-    [NotifyPropertyChangedFor(nameof(HasMoreAlbums))]
-    private IReadOnlyList<LibraryTileModel> albumResults = [];
+    [NotifyPropertyChangedFor(nameof(HasFailures))]
+    private string failureText = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasArtists))]
-    [NotifyPropertyChangedFor(nameof(ArtistsHeader))]
-    [NotifyPropertyChangedFor(nameof(ArtistPreview))]
-    [NotifyPropertyChangedFor(nameof(HasMoreArtists))]
-    private IReadOnlyList<LibraryTileModel> artistResults = [];
+    private bool showResults;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasSongs))]
-    [NotifyPropertyChangedFor(nameof(SongsHeader))]
-    [NotifyPropertyChangedFor(nameof(SongPreview))]
-    [NotifyPropertyChangedFor(nameof(HasMoreSongs))]
-    private IReadOnlyList<TrackRowModel> songResults = [];
+    private bool showNoResults;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasVideos))]
-    [NotifyPropertyChangedFor(nameof(VideosHeader))]
-    private IReadOnlyList<VideoTileModel> videoResults = [];
+    private bool showRecentSearches;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasPhotos))]
-    [NotifyPropertyChangedFor(nameof(PhotoPreview))]
-    [NotifyPropertyChangedFor(nameof(HasMorePhotos))]
-    private IReadOnlyList<VideoTileModel> photoResults = [];
+    private bool showLandingHint;
+
+    /// <summary>Whether videos and photos are listed as rows, for lack of room for two tiles side by side.</summary>
+    [ObservableProperty]
+    private bool showMediaAsList;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(HasPartialFailures))]
-    private string partialFailureText = string.Empty;
+    private bool showSourceFilter;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanClearFilters))]
+    [NotifyPropertyChangedFor(nameof(NoResultsDescription))]
+    private bool isSourceFilterActive;
+
+    [ObservableProperty]
+    private string sourceFilterLabel = string.Empty;
 
     public SearchPageViewModel(
-        string keyword,
+        SearchRequest request,
         LibraryCommands commands,
         AlbumArtService albumArt,
         IUnifiedLibraryQueryService libraryQuery,
+        ILibrarySourceRegistry registry,
+        RecentSearchList recentSearches,
         VideoSearchServices? videoSearch = null,
-        PhotoSearchServices? photoSearch = null,
-        Action? onBack = null,
-        Action<LibraryItemKind, string>? showMoreMusic = null)
+        PhotoSearchServices? photoSearch = null)
     {
         this.commands = commands;
-        this.albumArt = albumArt;
         this.libraryQuery = libraryQuery;
+        this.registry = registry;
+        this.recentSearches = recentSearches;
         this.videoSearch = videoSearch;
         this.photoSearch = photoSearch;
-        this.showMoreMusic = showMoreMusic;
         TitleKey = nameof(Strings.Resources.Common_Search);
-        this.keyword = keyword ?? string.Empty;
-        BackCommand = new RelayCommand(() => onBack?.Invoke(), () => onBack is not null);
+        query = request.Query;
+        includedSources = request.Sources?.ToHashSet();
+
+        Songs = new(SearchScope.Songs, nameof(Strings.Resources.Nav_Music), SelectScope, CreateSongRow, static _ => { });
+        Albums = new(SearchScope.Albums, nameof(Strings.Resources.Nav_Albums), SelectScope,
+            album => AlbumTileFactory.Create(album, commands.AlbumTileActions, albumArt), static tile => tile.ReleaseArt());
+        Artists = new(SearchScope.Artists, nameof(Strings.Resources.Nav_Artists), SelectScope,
+            artist => SearchArtistTileFactory.Create(artist, commands.ArtistTileActions), static tile => tile.ReleaseArt());
+        Videos = new(SearchScope.Videos, nameof(Strings.Resources.Search_VideosHeader), SelectScope,
+            CreateVideoTile, static tile => tile.ReleasePreview());
+        Photos = new(SearchScope.Photos, nameof(Strings.Resources.Search_PhotosHeader), SelectScope,
+            photo => PhotoSearchTileFactory.Create(photo, photoSearch!, () => Photos!.Items), static tile => tile.ReleasePreview());
+
+        // Kinds the head has no library for are left out.
+        var scopes = new List<SearchScopeOption>
+        {
+            new(SearchScope.All, nameof(Strings.Resources.Search_ScopeAll), SelectScope),
+            new(SearchScope.Songs, nameof(Strings.Resources.Nav_Music), SelectScope),
+            new(SearchScope.Albums, nameof(Strings.Resources.Nav_Albums), SelectScope),
+            new(SearchScope.Artists, nameof(Strings.Resources.Nav_Artists), SelectScope),
+        };
+        if (videoSearch is not null)
+        {
+            scopes.Add(new(SearchScope.Videos, nameof(Strings.Resources.Search_VideosHeader), SelectScope));
+        }
+
+        if (photoSearch is not null)
+        {
+            scopes.Add(new(SearchScope.Photos, nameof(Strings.Resources.Search_PhotosHeader), SelectScope));
+        }
+
+        ScopeOptions = scopes;
+        scope = ScopeOptions.Any(option => option.Scope == request.Scope) ? request.Scope : SearchScope.All;
+        foreach (var option in ScopeOptions)
+        {
+            option.IsSelected = option.Scope == scope;
+        }
+
+        RefreshSourceOptions();
+        RefreshRecentSearches();
+        registry.DefinitionsChanged += OnSourcesChanged;
+        registry.StatusChanged += OnSourcesChanged;
+        recentSearches.Changed += OnRecentSearchesChanged;
+        UpdateLayout();
     }
 
-    public IRelayCommand BackCommand { get; }
+    /// <summary>Raised when the query field should take keyboard focus.</summary>
+    public event EventHandler? FocusRequested;
+
+    /// <summary>Raised when the results change to those of another query or scope and start from the top.</summary>
+    public event EventHandler? ScrollResetRequested;
 
     public double ScrollOffset { get; set; }
 
-    public bool ShowBackButton => BackCommand.CanExecute(null) && !PlatformServices.HostProvidesBackNavigation && !HasShellBackButton;
+    public SearchSectionViewModel<Sourced<DbMediaFile>, TrackRowModel> Songs { get; }
 
-    protected override void OnIsNarrowChanged(bool value) => SetPreviewWidth(previewWidth);
+    public SearchSectionViewModel<Sourced<MediaLibraryAlbum>, LibraryTileModel> Albums { get; }
 
-    protected override void OnHasShellBackButtonChanged(bool value) => OnPropertyChanged(nameof(ShowBackButton));
+    public SearchSectionViewModel<UnifiedArtistReference, LibraryTileModel> Artists { get; }
 
-    public IEnumerable<LibraryTileModel> AlbumPreview => AlbumResults.Take(TilePreviewLimit);
-    public IEnumerable<LibraryTileModel> ArtistPreview => ArtistResults.Take(TilePreviewLimit);
-    public IEnumerable<TrackRowModel> SongPreview => SongResults.Take(PreviewLimit);
-    public IEnumerable<VideoTileModel> PhotoPreview => PhotoResults.Take(PreviewLimit);
-    internal UnifiedLibrarySearchResults? MusicResults { get; private set; }
-    public bool HasMoreAlbums => MusicResults?.Albums.Count > TilePreviewLimit;
-    public bool HasMoreArtists => MusicResults?.Artists.Count > TilePreviewLimit;
-    public bool HasMoreSongs => MusicResults?.Files.Count > PreviewLimit;
-    public bool HasMorePhotos => photosHaveMore || PhotoResults.Count > PreviewLimit;
+    public SearchSectionViewModel<Sourced<DbVideoFile>, VideoTileModel> Videos { get; }
 
-    public void SetPreviewWidth(double width)
+    public SearchSectionViewModel<Sourced<PhotoSearchMatch>, VideoTileModel> Photos { get; }
+
+    public IReadOnlyList<SearchScopeOption> ScopeOptions { get; }
+
+    public ObservableCollection<SearchSourceOption> SourceOptions { get; } = [];
+
+    public ObservableCollection<RecentSearchItem> RecentSearches { get; } = [];
+
+    /// <summary>Whether a search or a further batch of results is being loaded.</summary>
+    public bool IsWorking => IsBusy || IsLoadingMore;
+
+    public bool HasFailures => FailureText.Length > 0;
+
+    public bool CanClearFilters => Scope != SearchScope.All || IsSourceFilterActive;
+
+    public string NoResultsDescription => Localized(CanClearFilters
+        ? nameof(Strings.Resources.Search_NoResultsFilteredDescription)
+        : nameof(Strings.Resources.Search_NoResultsDescription));
+
+    /// <inheritdoc />
+    public object? NavigationParameter => new SearchRequest(
+        Query.Trim(),
+        Scope,
+        includedSources is null
+            ? null
+            : SourceOptions.Where(option => option.IsSelected).Select(option => option.Id).ToArray());
+
+    public bool CanLoadMore => !disposed && !IsBusy && !IsLoadingMore && Scope switch
     {
-        if (width <= 0)
-            return;
-        previewWidth = width;
-        TilePreviewLimit = 2 * Math.Max(1, (int)(width / 136));
-        PreviewLimit = IsNarrow ? 6 : 2 * Math.Max(1, (int)(width / 274));
+        SearchScope.Songs => Songs.Items.Count < Songs.ResultCount,
+        SearchScope.Albums => Albums.Items.Count < Albums.ResultCount,
+        SearchScope.Artists => Artists.Items.Count < Artists.ResultCount,
+        SearchScope.Videos => Videos.Items.Count < Videos.ResultCount,
+        SearchScope.Photos => Photos.Items.Count < Photos.ResultCount || photosHaveMore,
+        _ => false,
+    };
+
+    public int LoadedItemCount => Scope switch
+    {
+        SearchScope.Songs => Songs.Items.Count,
+        SearchScope.Albums => Albums.Items.Count,
+        SearchScope.Artists => Artists.Items.Count,
+        SearchScope.Videos => Videos.Items.Count,
+        SearchScope.Photos => Photos.Items.Count,
+        _ => 0,
+    };
+
+    public int TotalItemCount => Scope switch
+    {
+        SearchScope.Songs => Songs.ResultCount,
+        SearchScope.Albums => Albums.ResultCount,
+        SearchScope.Artists => Artists.ResultCount,
+        // Video and photo panels keep no room for results they have yet to show.
+        SearchScope.Videos => Videos.Items.Count,
+        SearchScope.Photos => Photos.Items.Count,
+        _ => 0,
+    };
+
+    /// <summary>Runs the search for the query the page was opened with.</summary>
+    public Task LoadAsync()
+    {
+        if (requestedTerm.Length == 0 && Query.Trim().Length > 0)
+        {
+            StartSearch(TimeSpan.Zero);
+        }
+
+        return searchTask;
     }
 
-    public string HeaderText =>
-        string.IsNullOrWhiteSpace(Keyword) ? Strings.Resources.Common_Search : string.Format(Strings.Resources.Search_ResultsForFormat, Keyword);
+    /// <summary>Asks the view to move keyboard focus to the query field.</summary>
+    public void RequestFocus() => FocusRequested?.Invoke(this, EventArgs.Empty);
 
-    public bool HasAlbums => AlbumResults.Count > 0;
-
-    public bool HasArtists => ArtistResults.Count > 0;
-
-    public bool HasSongs => SongResults.Count > 0;
-
-    public bool HasVideos => VideoResults.Count > 0;
-
-    public bool HasPhotos => PhotoResults.Count > 0;
-
-    [RelayCommand]
-    private void ShowMorePhotos() => photoSearch?.ShowAll(Keyword);
-
-    [RelayCommand]
-    private void ShowMoreAlbums() => showMoreMusic?.Invoke(LibraryItemKind.Album, Keyword);
-
-    [RelayCommand]
-    private void ShowMoreArtists() => showMoreMusic?.Invoke(LibraryItemKind.Artist, Keyword);
-
-    [RelayCommand]
-    private void ShowMoreSongs() => showMoreMusic?.Invoke(LibraryItemKind.Song, Keyword);
-
-    public string AlbumsHeader => string.Format(Strings.Resources.Search_AlbumsHeaderFormat, MusicResults?.Albums.Count ?? 0);
-
-    public string ArtistsHeader => string.Format(Strings.Resources.Search_ArtistsHeaderFormat, MusicResults?.Artists.Count ?? 0);
-
-    public string SongsHeader => string.Format(Strings.Resources.Search_SongsHeaderFormat, MusicResults?.Files.Count ?? 0);
-
-    public string VideosHeader => string.Format(
-        Localized(nameof(Strings.Resources.Search_VideosHeaderFormat), "Videos ({0})"),
-        VideoResults.Count);
-
-    public bool ShowResults => !IsBusy && !NoResults;
-
-    public bool ShowNoResults => !IsBusy && NoResults;
-
-    public bool HasPartialFailures => PartialFailureText.Length > 0;
-
-    /// <summary>Runs the initial query for the keyword supplied at navigation.</summary>
-    public Task LoadAsync() => loadTask ??= RunQueryAsync();
+    /// <summary>Reports the width available to the result panels, which sizes the previews.</summary>
+    public void SetContentWidth(double width)
+    {
+        if (width > 0 && Math.Abs(width - contentWidth) >= 0.5)
+        {
+            contentWidth = width;
+            UpdateLayout();
+        }
+    }
 
     /// <inheritdoc />
     public void SetNowPlaying(MediaItemKey? mediaItem)
     {
         nowPlaying = mediaItem;
-        NowPlayingHighlight.Apply(SongResults, nowPlaying);
+        NowPlayingHighlight.Apply(Songs.Items, nowPlaying);
     }
 
-    /// <summary>Re-runs the search for a new keyword without recreating the page.</summary>
-    public void UpdateKeyword(string newKeyword)
+    public Task LoadMoreAsync() => loadMoreTask is { IsCompleted: false }
+        ? loadMoreTask
+        : loadMoreTask = LoadMoreCoreAsync();
+
+    public override void OnLocalizedTextChanged()
     {
-        var nextKeyword = newKeyword ?? string.Empty;
-        if (Keyword == nextKeyword)
-            return;
+        base.OnLocalizedTextChanged();
+        foreach (var option in ScopeOptions)
+        {
+            option.RefreshText();
+        }
+
+        foreach (SearchSectionViewModel section in new SearchSectionViewModel[] { Songs, Albums, Artists, Videos, Photos })
+        {
+            section.RefreshText();
+        }
+
+        UpdateSourceSummary();
+    }
+
+    protected override void OnIsNarrowChanged(bool value) => UpdateLayout();
+
+    partial void OnQueryChanged(string value)
+    {
+        if (value.Trim() != requestedTerm)
+        {
+            StartSearch(TypingDelay);
+        }
+    }
+
+    partial void OnScopeChanged(SearchScope value)
+    {
+        foreach (var option in ScopeOptions)
+        {
+            option.IsSelected = option.Scope == value;
+        }
+
         ScrollOffset = 0;
-        Keyword = nextKeyword;
-        loadTask = RunQueryAsync();
+        ScrollResetRequested?.Invoke(this, EventArgs.Empty);
+        UpdateLayout();
+        OnPropertyChanged(nameof(CanClearFilters));
+        OnPropertyChanged(nameof(NoResultsDescription));
+        OnPropertyChanged(nameof(NavigationParameter));
     }
 
-    private async Task RunQueryAsync()
+    /// <summary>Searches for the query at once and remembers it as a recent search.</summary>
+    [RelayCommand]
+    private void Submit()
     {
-        var version = ++queryVersion;
-        var term = Keyword;
-        queryCancellation?.Cancel();
-        queryCancellation?.Dispose();
-        queryCancellation = new CancellationTokenSource();
-        var cancellationToken = queryCancellation.Token;
+        var term = Query.Trim();
+        if (term.Length == 0)
+        {
+            return;
+        }
 
+        if (activeRun is not { IsStarted: true } run || run.Term != term)
+        {
+            StartSearch(TimeSpan.Zero);
+        }
+
+        recentSearches.Add(term);
+        autoRecorded = null;
+    }
+
+    [RelayCommand]
+    private void ClearQuery()
+    {
+        Query = string.Empty;
+        RequestFocus();
+    }
+
+    [RelayCommand]
+    private void ClearFilters()
+    {
+        if (includedSources is not null)
+        {
+            updatingSources = true;
+            foreach (var option in SourceOptions)
+            {
+                option.IsSelected = true;
+            }
+
+            updatingSources = false;
+            ApplySourceSelection();
+        }
+
+        Scope = SearchScope.All;
+    }
+
+    [RelayCommand]
+    private void ClearRecentSearches() => recentSearches.Clear();
+
+    private void SelectScope(SearchScope value) => Scope = value;
+
+    private void StartSearch(TimeSpan delay)
+    {
+        var version = ++searchVersion;
+        searchCancellation?.Cancel();
+        searchCancellation?.Dispose();
+        searchCancellation = null;
+        activeRun = null;
+        requestedTerm = Query.Trim();
+        if (requestedTerm.Length == 0)
+        {
+            ClearResults();
+            FailureText = string.Empty;
+            IsBusy = false;
+            searchTask = Task.CompletedTask;
+            UpdateLayout();
+            OnPropertyChanged(nameof(NavigationParameter));
+            return;
+        }
+
+        searchCancellation = new CancellationTokenSource();
         IsBusy = true;
-        NoResults = false;
-        MusicResults = null;
+        UpdateState();
+        activeRun = new SearchRun(version, requestedTerm, includedSources?.ToArray(), searchCancellation.Token);
+        searchTask = RunSearchAsync(activeRun, delay);
+    }
 
+    private async Task RunSearchAsync(SearchRun run, TimeSpan delay)
+    {
         try
         {
-            if (string.IsNullOrWhiteSpace(term))
+            if (delay > TimeSpan.Zero)
             {
-                if (version != queryVersion)
-                {
-                    return;
-                }
+                await Task.Delay(delay, run.Token);
+            }
 
-                AlbumResults = [];
-                ArtistResults = [];
-                SongResults = [];
-                VideoResults = [];
-                PhotoResults = [];
-                PartialFailureText = string.Empty;
-                NoResults = true;
+            run.IsStarted = true;
+            OnPropertyChanged(nameof(NavigationParameter));
+
+            // Each kind shows as soon as its own query returns, so a slow source does not hold the rest back.
+            await Task.WhenAll(LoadMusicAsync(run), LoadVideosAsync(run), LoadPhotosAsync(run));
+            if (!Begin(run))
+            {
                 return;
             }
 
-            // The two libraries are indexed separately; query them together so a slow video source
-            // does not hold the music results back.
-            var musicQuery = libraryQuery.SearchAsync(term, cancellationToken);
-            var videoQuery = videoSearch is null
-                ? Task.FromResult(new UnifiedCollection<Sourced<DbVideoFile>>([], []))
-                : videoSearch.Query.SearchVideosAsync(term, cancellationToken);
-            var photoQuery = photoSearch is null
-                ? Task.FromResult(new PhotoSearchBatch([], false, ""))
-                : new PhotoSearchSession(photoSearch.Sources, term).ReadAsync(8, cancellationToken);
-            var results = await musicQuery.WaitAsync(cancellationToken);
-            var videos = await videoQuery.WaitAsync(cancellationToken);
-            var photos = await photoQuery;
-            if (version != queryVersion)
-                return;
-            PartialFailureText = string.Join(
-                Environment.NewLine,
-                results.SourceFailures.Concat(videos.SourceFailures).Select(failure =>
-                    $"{failure.SourceName}: {failure.Message}").Append(photos.ErrorText).Where(message => message.Length > 0));
+            FailureText = string.Join(Environment.NewLine, run.Failures.Distinct());
+            IsBusy = false;
+            UpdateLayout();
 
-            MusicResults = results;
-            AlbumResults = results.Albums.Take(16).Select(a =>
-                AlbumTileFactory.Create(a, commands.AlbumTileActions, albumArt)).ToList();
-            ArtistResults = results.Artists.Take(16).Select(artist =>
-                SearchArtistTileFactory.Create(artist, commands.ArtistTileActions)).ToList();
-            SongResults = results.Files.Take(8).Select(file =>
+            if (ShowResults)
             {
-                var row = TrackRowFactory.CreateRow(file, commands.TrackActions, () => SongResults);
-                row.AsyncPlaybackContext = () => Task.FromResult<IReadOnlyList<TrackRowModel>>(
-                    results.Files.Select(match => TrackRowFactory.CreateRow(match, commands.TrackActions)).ToArray());
-                return row;
-            }).ToList();
-            VideoResults = videos.Items.Select(CreateVideoTile).ToList();
-            photosHaveMore = photos.HasMore;
-            PhotoResults = photos.Items.Select(photo => PhotoSearchTileFactory.Create(photo, photoSearch!, () => PhotoResults)).ToList();
-            NowPlayingHighlight.Apply(SongResults, nowPlaying);
-            NoResults = AlbumResults.Count == 0 && ArtistResults.Count == 0 &&
-                SongResults.Count == 0 && VideoResults.Count == 0 && PhotoResults.Count == 0;
+                await Task.Delay(RecentDelay, run.Token);
+                RecordSettledQuery(run.Term);
+            }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (run.Token.IsCancellationRequested)
+        {
+        }
+    }
+
+    // Replaces the previous query's results once the first results of this one are in.
+    private bool Begin(SearchRun run)
+    {
+        if (disposed || run.Version != searchVersion)
+        {
+            return false;
+        }
+
+        if (!ReferenceEquals(appliedRun, run))
+        {
+            ClearResults();
+            appliedRun = run;
+            ScrollOffset = 0;
+            ScrollResetRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        return true;
+    }
+
+    private async Task LoadMusicAsync(SearchRun run)
+    {
+        UnifiedLibrarySearchResults results;
+        try
+        {
+            results = await libraryQuery.SearchAsync(run.Term, run.Token, run.Sources);
+        }
+        catch (OperationCanceledException) when (run.Token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            AppLog.Warning("Search", "The music search failed.", exception);
+            run.Failures.Add(exception.Message);
+            return;
+        }
+
+        if (!Begin(run))
+        {
+            return;
+        }
+
+        run.AddFailures(results.SourceFailures);
+        Songs.SetResults(results.Files);
+        Albums.SetResults(results.Albums);
+        Artists.SetResults(results.Artists);
+        UpdateLayout();
+    }
+
+    private async Task LoadVideosAsync(SearchRun run)
+    {
+        if (videoSearch is null)
+        {
+            return;
+        }
+
+        UnifiedCollection<Sourced<DbVideoFile>> videos;
+        try
+        {
+            videos = await videoSearch.Query.SearchVideosAsync(run.Term, run.Token, run.Sources);
+        }
+        catch (OperationCanceledException) when (run.Token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            AppLog.Warning("Search", "The video search failed.", exception);
+            run.Failures.Add(exception.Message);
+            return;
+        }
+
+        if (!Begin(run))
+        {
+            return;
+        }
+
+        run.AddFailures(videos.SourceFailures);
+        Videos.SetResults(videos.Items);
+        UpdateLayout();
+    }
+
+    private async Task LoadPhotosAsync(SearchRun run)
+    {
+        if (photoSearch is null)
+        {
+            return;
+        }
+
+        PhotoSearchSession session;
+        PhotoSearchBatch batch;
+        try
+        {
+            (session, batch) = await ReadPhotosAsync(run, Scope == SearchScope.Photos ? BatchSize : PhotoPreviewCount);
+        }
+        catch (OperationCanceledException) when (run.Token.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            AppLog.Warning("Search", "The photo search failed.", exception);
+            run.Failures.Add(exception.Message);
+            return;
+        }
+
+        if (!Begin(run))
+        {
+            return;
+        }
+
+        run.AddFailures(batch.ErrorText);
+        photoSession = session;
+        photosHaveMore = batch.HasMore;
+        photoTotalCount = batch.TotalCount;
+        Photos.SetResults(batch.Items);
+        UpdateLayout();
+    }
+
+    // Starts a photo session for the run. A source whose index changed meanwhile invalidates the
+    // session, and the read starts over once.
+    private async Task<(PhotoSearchSession Session, PhotoSearchBatch Batch)> ReadPhotosAsync(SearchRun run, int count)
+    {
+        var session = new PhotoSearchSession(photoSearch!.Sources, run.Term, run.Sources);
+        var batch = await session.ReadAsync(count, run.Token);
+        if (batch.RestartRequired)
+        {
+            session = new PhotoSearchSession(photoSearch.Sources, run.Term, run.Sources);
+            batch = await session.ReadAsync(count, run.Token);
+        }
+
+        return (session, batch.RestartRequired ? batch with { HasMore = false } : batch);
+    }
+
+    private async Task LoadMoreCoreAsync()
+    {
+        if (!CanLoadMore || appliedRun is not { } run)
+        {
+            return;
+        }
+
+        IsLoadingMore = true;
+        try
+        {
+            switch (Scope)
+            {
+                case SearchScope.Songs:
+                    Songs.Show(Songs.Items.Count + BatchSize);
+                    NowPlayingHighlight.Apply(Songs.Items, nowPlaying);
+                    break;
+                case SearchScope.Albums:
+                    Albums.Show(Albums.Items.Count + BatchSize);
+                    break;
+                case SearchScope.Artists:
+                    Artists.Show(Artists.Items.Count + BatchSize);
+                    break;
+                case SearchScope.Videos:
+                    Videos.Show(Videos.Items.Count + BatchSize);
+                    break;
+                case SearchScope.Photos:
+                    await LoadMorePhotosAsync(run);
+                    break;
+            }
+
+            // Lets the new items lay out before another batch is considered.
+            await Dispatcher.UIThread.InvokeAsync(static () => { }, DispatcherPriority.Background);
+        }
+        catch (OperationCanceledException) when (run.Token.IsCancellationRequested)
         {
         }
         catch (Exception exception)
         {
-            AppLog.Warning("Search", $"Search for {term} failed.", exception);
-            if (version != queryVersion)
+            AppLog.Warning("Search", "Could not load more search results.", exception);
+            if (Begin(run))
+            {
+                photosHaveMore = false;
+                FailureText = exception.Message;
+            }
+        }
+        finally
+        {
+            IsLoadingMore = false;
+            if (Begin(run))
+            {
+                UpdateLayout();
+                Dispatcher.UIThread.Post(() => OnPropertyChanged(nameof(CanLoadMore)), DispatcherPriority.Background);
+            }
+        }
+    }
+
+    private async Task LoadMorePhotosAsync(SearchRun run)
+    {
+        if (Photos.Items.Count < Photos.ResultCount)
+        {
+            Photos.Show(Photos.ResultCount);
+            return;
+        }
+
+        if (photoSession is not { } session)
+        {
+            return;
+        }
+
+        var batch = await session.ReadAsync(BatchSize, run.Token);
+        if (!Begin(run))
+        {
+            return;
+        }
+
+        if (batch.RestartRequired)
+        {
+            (session, batch) = await ReadPhotosAsync(run, BatchSize);
+            if (!Begin(run))
             {
                 return;
             }
 
-            AlbumResults = [];
-            ArtistResults = [];
-            SongResults = [];
-            VideoResults = [];
-            PhotoResults = [];
-            NoResults = true;
-            PartialFailureText = string.Empty;
+            photoSession = session;
+            Photos.SetResults([]);
         }
-        finally
+
+        Photos.Append(batch.Items);
+        Photos.Show(Photos.ResultCount);
+        photosHaveMore = batch.HasMore;
+        photoTotalCount = batch.TotalCount;
+        if (batch.ErrorText.Length > 0)
         {
-            if (version == queryVersion)
+            FailureText = batch.ErrorText;
+        }
+    }
+
+    private void ClearResults()
+    {
+        appliedRun = null;
+        photoSession = null;
+        photosHaveMore = false;
+        photoTotalCount = null;
+        Songs.SetResults([]);
+        Albums.SetResults([]);
+        Artists.SetResults([]);
+        Videos.SetResults([]);
+        Photos.SetResults([]);
+    }
+
+    // Sizes each section for the scope and the width: a preview among the other kinds, or everything
+    // loaded so far in the section's own scope.
+    private void UpdateLayout()
+    {
+        var tileColumns = Math.Max(1, (int)(contentWidth / 136));
+        var mediaColumns = Math.Max(1, (int)(contentWidth / 274));
+        ShowMediaAsList = IsNarrow || mediaColumns < 2;
+        var tilePreview = tileColumns * (tileColumns <= 3 ? 2 : 1);
+        Arrange(Songs, SongPreviewCount);
+        Arrange(Albums, tilePreview);
+        Arrange(Artists, tilePreview);
+        Arrange(Videos, ShowMediaAsList ? 3 : mediaColumns * (mediaColumns <= 2 ? 2 : 1));
+        Arrange(Photos, ShowMediaAsList ? 3 : Math.Min(PhotoPreviewCount, mediaColumns * 2), photosHaveMore);
+        NowPlayingHighlight.Apply(Songs.Items, nowPlaying);
+
+        foreach (var option in ScopeOptions)
+        {
+            int? count = option.Scope switch
             {
-                IsBusy = false;
+                SearchScope.Songs => Songs.ResultCount,
+                SearchScope.Albums => Albums.ResultCount,
+                SearchScope.Artists => Artists.ResultCount,
+                SearchScope.Videos => Videos.ResultCount,
+                SearchScope.Photos => photoTotalCount,
+                _ => null,
+            };
+            option.CountText = count > 0 ? count.Value.ToString("N0", CultureInfo.CurrentCulture) : string.Empty;
+            option.IsEmpty = appliedRun is not null && !IsBusy &&
+                (option.Scope == SearchScope.Photos ? Photos.ResultCount == 0 : count == 0);
+        }
+
+        UpdateState();
+        OnPropertyChanged(nameof(CanLoadMore));
+        OnPropertyChanged(nameof(LoadedItemCount));
+        OnPropertyChanged(nameof(TotalItemCount));
+    }
+
+    private void Arrange<TResult, TItem>(SearchSectionViewModel<TResult, TItem> section, int previewCount, bool moreAvailable = false)
+    {
+        var all = Scope == SearchScope.All;
+        var active = Scope == section.Scope;
+        if (all)
+        {
+            section.Show(previewCount);
+        }
+        else if (active)
+        {
+            section.Show(Math.Max(section.Items.Count, BatchSize));
+        }
+
+        section.IsVisible = (all || active) && section.Items.Count > 0;
+        section.ShowHeader = all;
+        section.HasMore = all && (section.ResultCount > section.Items.Count || moreAvailable);
+        section.ExtentCount = all ? 0 : section.ResultCount;
+    }
+
+    private void UpdateState()
+    {
+        var hasQuery = requestedTerm.Length > 0;
+        var anyVisible = Songs.IsVisible || Albums.IsVisible || Artists.IsVisible || Videos.IsVisible || Photos.IsVisible;
+        ShowResults = hasQuery && anyVisible;
+        ShowNoResults = hasQuery && !IsBusy && !anyVisible;
+        ShowRecentSearches = !hasQuery && RecentSearches.Count > 0;
+        ShowLandingHint = !hasQuery && RecentSearches.Count == 0;
+    }
+
+    // A query whose results stayed up is remembered without being submitted. Refining it replaces the entry.
+    private void RecordSettledQuery(string term)
+    {
+        if (autoRecorded is { } previous && previous != term &&
+            (term.StartsWith(previous, StringComparison.CurrentCultureIgnoreCase) ||
+             previous.StartsWith(term, StringComparison.CurrentCultureIgnoreCase)))
+        {
+            recentSearches.Remove(previous);
+        }
+
+        recentSearches.Add(term);
+        autoRecorded = term;
+    }
+
+    private void OnRecentSearchesChanged(object? sender, EventArgs args)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            RefreshRecentSearches();
+        }
+        else
+        {
+            Dispatcher.UIThread.Post(RefreshRecentSearches);
+        }
+    }
+
+    private void RefreshRecentSearches()
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        RecentSearches.Clear();
+        foreach (var text in recentSearches.Items)
+        {
+            RecentSearches.Add(new RecentSearchItem(text, SearchRecent, recentSearches.Remove));
+        }
+
+        UpdateState();
+    }
+
+    private void SearchRecent(string text)
+    {
+        Query = text;
+        Submit();
+    }
+
+    private void OnSourcesChanged(object? sender, LibrarySourceChangedEventArgs args) =>
+        Dispatcher.UIThread.Post(RefreshSourceOptions);
+
+    private void RefreshSourceOptions()
+    {
+        if (disposed)
+        {
+            return;
+        }
+
+        var sources = registry.Sources
+            .Where(source => (source.LoadMusic || source.LoadVideo) &&
+                source.Status is not (LibrarySourceStatus.SignInRequired or LibrarySourceStatus.Incompatible))
+            .Select(source => (source.Id, Name: source.DisplayName))
+            .ToArray();
+        if (SourceOptions.Select(option => (option.Id, option.Name)).SequenceEqual(sources))
+        {
+            return;
+        }
+
+        var previous = includedSources?.Count;
+        includedSources?.IntersectWith(sources.Select(source => source.Id));
+        if (includedSources is { } included && (included.Count == 0 || included.Count == sources.Length))
+        {
+            includedSources = null;
+        }
+
+        updatingSources = true;
+        SourceOptions.Clear();
+        foreach (var (id, name) in sources)
+        {
+            SourceOptions.Add(new SearchSourceOption(id, name, includedSources?.Contains(id) ?? true, OnSourceOptionChanged));
+        }
+
+        updatingSources = false;
+        UpdateSourceSummary();
+        if (previous != includedSources?.Count)
+        {
+            OnPropertyChanged(nameof(NavigationParameter));
+            if (requestedTerm.Length > 0)
+            {
+                StartSearch(TimeSpan.Zero);
             }
         }
+    }
+
+    private void OnSourceOptionChanged(SearchSourceOption option)
+    {
+        if (!updatingSources)
+        {
+            ApplySourceSelection();
+        }
+    }
+
+    private void ApplySourceSelection()
+    {
+        var selected = SourceOptions.Where(option => option.IsSelected).Select(option => option.Id).ToHashSet();
+
+        // Leaving every library out searches all of them again.
+        if (selected.Count == 0)
+        {
+            updatingSources = true;
+            foreach (var option in SourceOptions)
+            {
+                option.IsSelected = true;
+            }
+
+            updatingSources = false;
+        }
+
+        includedSources = selected.Count is 0 || selected.Count == SourceOptions.Count ? null : selected;
+        UpdateSourceSummary();
+        OnPropertyChanged(nameof(NavigationParameter));
+        if (requestedTerm.Length > 0)
+        {
+            StartSearch(TimeSpan.Zero);
+        }
+    }
+
+    private void UpdateSourceSummary()
+    {
+        var selected = SourceOptions.Where(option => option.IsSelected).ToArray();
+        ShowSourceFilter = SourceOptions.Count > 1;
+        IsSourceFilterActive = selected.Length < SourceOptions.Count;
+        SourceFilterLabel = !IsSourceFilterActive
+            ? Strings.Resources.Search_AllLibraries
+            : selected.Length == 1
+                ? selected[0].Name
+                : string.Format(CultureInfo.CurrentCulture, Strings.Resources.RemoteLibraries_LibrariesFormat, selected.Length);
+    }
+
+    private TrackRowModel CreateSongRow(Sourced<DbMediaFile> file)
+    {
+        var matches = Songs.Results;
+        var row = TrackRowFactory.CreateRow(file, commands.TrackActions, () => Songs.Items);
+        row.AsyncPlaybackContext = () => Task.FromResult<IReadOnlyList<TrackRowModel>>(
+            matches.Select(match => TrackRowFactory.CreateRow(match, commands.TrackActions)).ToArray());
+        return row;
     }
 
     /// <summary>
@@ -383,8 +955,9 @@ public sealed partial class SearchPageViewModel : PageViewModelBase, INowPlaying
                 .GetVideosInFolderAsync(video.SourceId, video.Value.FolderPath, CancellationToken.None)
                 .ConfigureAwait(true);
         }
-        catch
+        catch (Exception exception)
         {
+            AppLog.Warning("Search", "Could not list the folder of a video result.", exception);
             siblings = [video];
         }
 
@@ -402,42 +975,43 @@ public sealed partial class SearchPageViewModel : PageViewModelBase, INowPlaying
         return string.Join("  ·  ", new[] { duration, resolution }.Where(part => part.Length > 0));
     }
 
-    partial void OnAlbumResultsChanged(IReadOnlyList<LibraryTileModel>? oldValue, IReadOnlyList<LibraryTileModel> newValue) =>
-        ReleaseTiles(oldValue);
-
-    partial void OnArtistResultsChanged(IReadOnlyList<LibraryTileModel>? oldValue, IReadOnlyList<LibraryTileModel> newValue) =>
-        ReleaseTiles(oldValue);
-
-    partial void OnVideoResultsChanged(IReadOnlyList<VideoTileModel>? oldValue, IReadOnlyList<VideoTileModel> newValue) =>
-        ReleaseVideoTiles(oldValue);
-
-    partial void OnPhotoResultsChanged(IReadOnlyList<VideoTileModel>? oldValue, IReadOnlyList<VideoTileModel> newValue) =>
-        ReleaseVideoTiles(oldValue);
-
     public void Dispose()
     {
-        queryVersion++;
-        queryCancellation?.Cancel();
-        queryCancellation?.Dispose();
-        ReleaseTiles(AlbumResults);
-        ReleaseTiles(ArtistResults);
-        ReleaseVideoTiles(VideoResults);
-        ReleaseVideoTiles(PhotoResults);
+        if (disposed)
+        {
+            return;
+        }
+
+        disposed = true;
+        searchVersion++;
+        searchCancellation?.Cancel();
+        searchCancellation?.Dispose();
+        registry.DefinitionsChanged -= OnSourcesChanged;
+        registry.StatusChanged -= OnSourcesChanged;
+        recentSearches.Changed -= OnRecentSearchesChanged;
+        ClearResults();
     }
 
-    private static void ReleaseTiles(IReadOnlyList<LibraryTileModel>? tiles)
+    // One search of a query against a set of sources, superseded when the query or the sources change.
+    private sealed class SearchRun(int version, string term, IReadOnlyCollection<LibrarySourceId>? sources, CancellationToken token)
     {
-        foreach (var tile in tiles ?? [])
-        {
-            tile.ReleaseArt();
-        }
-    }
+        public int Version { get; } = version;
 
-    private static void ReleaseVideoTiles(IReadOnlyList<VideoTileModel>? tiles)
-    {
-        foreach (var tile in tiles ?? [])
-        {
-            tile.ReleasePreview();
-        }
+        public string Term { get; } = term;
+
+        public IReadOnlyCollection<LibrarySourceId>? Sources { get; } = sources;
+
+        public CancellationToken Token { get; } = token;
+
+        /// <summary>Whether the run has queried its sources, after waiting for typing to pause.</summary>
+        public bool IsStarted { get; set; }
+
+        public List<string> Failures { get; } = [];
+
+        public void AddFailures(IEnumerable<UnifiedSourceFailure> failures) =>
+            Failures.AddRange(failures.Select(failure => $"{failure.SourceName}: {failure.Message}"));
+
+        public void AddFailures(string text) =>
+            Failures.AddRange(text.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries));
     }
 }

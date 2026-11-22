@@ -168,6 +168,7 @@ internal sealed class WebDavMultimediaPlatformIO : IMultiMediaPlatformIO, IMedia
 
     public async Task<LibraryMediaInfo> GetMediaInfoAsync(string mediaFilePath, CancellationToken cancellationToken)
     {
+        using var slot = await client.EnterBackgroundReadAsync(cancellationToken).ConfigureAwait(false);
         if (probes is not null)
             return await probes.GetMediaInfoAsync(mediaFilePath, cancellationToken).ConfigureAwait(false);
         await using var stream = await OpenMediaFileForScanAsync(mediaFilePath, cancellationToken).ConfigureAwait(false);
@@ -183,6 +184,7 @@ internal sealed class WebDavMultimediaPlatformIO : IMultiMediaPlatformIO, IMedia
     {
         async Task<byte[]> Fetch(CancellationToken token)
         {
+            using var slot = await client.EnterBackgroundReadAsync(token).ConfigureAwait(false);
             try
             {
                 byte[]? embedded;
@@ -240,6 +242,7 @@ internal sealed class WebDavMultimediaPlatformIO : IMultiMediaPlatformIO, IMedia
         bool withPreview = true,
         CancellationToken cancellationToken = default)
     {
+        using var slot = await client.EnterBackgroundReadAsync(cancellationToken).ConfigureAwait(false);
         if (probes is not null)
             return await probes.ProbeVideoAsync(mediaFilePath, withPreview, cancellationToken).ConfigureAwait(false);
         await using var stream = await client.OpenMediaStreamAsync(
@@ -255,6 +258,7 @@ internal sealed class WebDavMultimediaPlatformIO : IMultiMediaPlatformIO, IMedia
         string mediaFilePath,
         CancellationToken cancellationToken = default)
     {
+        using var slot = await client.EnterBackgroundReadAsync(cancellationToken).ConfigureAwait(false);
         if (probes is not null)
             return await probes.ProbeAudioStreamsAsync(mediaFilePath, cancellationToken).ConfigureAwait(false);
         await using var stream = await client.OpenMediaStreamAsync(
@@ -282,6 +286,7 @@ internal sealed class WebDavMultimediaPlatformIO : IMultiMediaPlatformIO, IMedia
         string mediaFilePath,
         CancellationToken cancellationToken = default)
     {
+        using var slot = await client.EnterBackgroundReadAsync(cancellationToken).ConfigureAwait(false);
         if (probes is not null)
             return await probes.ProbeImageAsync(mediaFilePath, cancellationToken).ConfigureAwait(false);
         await using var stream = await client.OpenMediaStreamAsync(

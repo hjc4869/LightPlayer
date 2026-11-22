@@ -89,10 +89,10 @@ public sealed partial class LibraryTileModel : SelectionItemModel
     public bool IsTrackTile => Track is not null;
 
     public bool CanOpenContainingFolder => Track?.CanOpenContainingFolder ??
-        (OpenFolderCommand is not null && PlatformServices.SupportsLocalFileAccess &&
-         (Media?.SourceId.IsLocal == true ||
+        (OpenFolderCommand is not null &&
+         (Media is { } media && PlatformServices.CanRevealFiles(media.SourceId, LibraryMediaCategory.Music) ||
           Identifier is LibraryItemReference { UnifiedArtist: { } artist } &&
-          artist.SourceIds.Any(sourceId => sourceId.IsLocal)));
+          artist.SourceIds.Any(sourceId => PlatformServices.CanRevealFiles(sourceId, LibraryMediaCategory.Music))));
 
     public bool HasArtistNavigation => OpenArtistCommand is not null;
 

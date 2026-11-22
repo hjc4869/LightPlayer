@@ -11,11 +11,6 @@
              d:DesignHeight="900"
              x:Class="LightStudio.LightPlayer.Views.Pages.DisplaySettingsSectionView"
              x:DataType="vm:VideoSettingsSectionViewModel">
-    <UserControl.Styles>
-        <Style Selector="controls|SettingRow TextBlock.settingName">
-            <Setter Property="TextWrapping" Value="Wrap" />
-        </Style>
-    </UserControl.Styles>
     <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" VerticalAlignment="Top" Spacing="10">
         <Border Classes="settingsGroup">
             <StackPanel>
@@ -33,10 +28,10 @@
                 <controls:SettingRow Header="{Binding Bt709InterpretationHeader}"
                                      Description="{Binding Bt709InterpretationDescription}"
                                      IsGrouped="True"
-                                     HasTopDivider="{Binding SupportsAdvancedColorOutput}">
+                                     HasTopDivider="{Binding SupportsAdvancedColorOutput}"
+                                     ActionWidth="150">
                     <controls:SettingRow.ActionContent>
-                        <ComboBox Width="150"
-                                  ItemsSource="{Binding Bt709InterpretationOptions}"
+                        <ComboBox ItemsSource="{Binding Bt709InterpretationOptions}"
                                   SelectedItem="{Binding SelectedBt709Interpretation, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:VideoSettingsOption">
@@ -50,10 +45,10 @@
                 <controls:SettingRow Header="{Binding PanelBitDepthHeader}"
                                      Description="{Binding PanelBitDepthDescription}"
                                      IsGrouped="True"
-                                     HasTopDivider="True">
+                                     HasTopDivider="True"
+                                     ActionWidth="150">
                     <controls:SettingRow.ActionContent>
-                        <ComboBox Width="150"
-                                  ItemsSource="{Binding PanelBitDepthOptions}"
+                        <ComboBox ItemsSource="{Binding PanelBitDepthOptions}"
                                   SelectedItem="{Binding SelectedPanelBitDepth, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="vm:VideoSettingsOption">
@@ -67,24 +62,20 @@
         </Border>
 
         <StackPanel Spacing="4" Margin="2,14,2,0">
-            <TextBlock Text="{Binding Photo_ToneMapping, Source={x:Static strings:LocalizedStrings.Instance}}"
-                       FontSize="16"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
-            <TextBlock Text="{Binding ToneMapping_Description, Source={x:Static strings:LocalizedStrings.Instance}}"
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            <TextBlock Classes="settingsSectionTitle" Text="{Binding Photo_ToneMapping, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       TextWrapping="Wrap" />
+            <TextBlock Classes="settingsSubtitle" Text="{Binding ToneMapping_Description, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       TextWrapping="Wrap" />
         </StackPanel>
 
         <Border Classes="settingsGroup">
             <StackPanel>
                 <controls:SettingRow Header="{Binding ToneMapping_ImageDefaultHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                      Description="{Binding ToneMapping_ImageDefaultDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
-                                     IsGrouped="True">
+                                     IsGrouped="True"
+                                     ActionWidth="150">
                     <controls:SettingRow.ActionContent>
-                        <ComboBox Width="150"
-                                  ItemsSource="{Binding ToneMapping.DefaultChoices}"
+                        <ComboBox ItemsSource="{Binding ToneMapping.DefaultChoices}"
                                   SelectedItem="{Binding ToneMapping.SelectedImageDefault, Mode=TwoWay}"
                                   AutomationProperties.Name="{Binding ToneMapping_ImageDefaultHeader, Source={x:Static strings:LocalizedStrings.Instance}}">
                             <ComboBox.ItemTemplate>
@@ -99,10 +90,10 @@
                 <controls:SettingRow Header="{Binding ToneMapping_VideoDefaultHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                                      Description="{Binding ToneMapping_VideoDefaultDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                                      IsGrouped="True"
-                                     HasTopDivider="True">
+                                     HasTopDivider="True"
+                                     ActionWidth="150">
                     <controls:SettingRow.ActionContent>
-                        <ComboBox Width="150"
-                                  ItemsSource="{Binding ToneMapping.DefaultChoices}"
+                        <ComboBox ItemsSource="{Binding ToneMapping.DefaultChoices}"
                                   SelectedItem="{Binding ToneMapping.SelectedVideoDefault, Mode=TwoWay}"
                                   AutomationProperties.Name="{Binding ToneMapping_VideoDefaultHeader, Source={x:Static strings:LocalizedStrings.Instance}}">
                             <ComboBox.ItemTemplate>
@@ -161,10 +152,10 @@
                                      Description="{Binding ToneMapping.NameError}"
                                      IsVisible="{Binding ToneMapping.HasSelectedProfile}"
                                      IsGrouped="True"
-                                     HasTopDivider="True">
+                                     HasTopDivider="True"
+                                     ActionWidth="150">
                     <controls:SettingRow.ActionContent>
-                        <TextBox Width="150"
-                                 Text="{Binding ToneMapping.ProfileName, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                        <TextBox Text="{Binding ToneMapping.ProfileName, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                                  AutomationProperties.Name="{Binding ToneMapping_Name, Source={x:Static strings:LocalizedStrings.Instance}}" />
                     </controls:SettingRow.ActionContent>
                 </controls:SettingRow>

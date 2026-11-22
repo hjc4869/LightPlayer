@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>lmcios</AssemblyName>
     <RootNamespace>LightStudio.LightPlayer.iOS</RootNamespace>
+    <TargetFramework>net11.0</TargetFramework>
     <TargetFramework>$(TargetFramework)-ios</TargetFramework>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">iossimulator-arm64</RuntimeIdentifier>
     <SupportedOSPlatformVersion>15.0</SupportedOSPlatformVersion>
@@ -25,6 +26,8 @@
     <PackageReference Include="Microsoft.ML.Tokenizers" />
     <LinkerArgument Include="-framework" />
     <LinkerArgument Include="CoreML" />
+    <!-- The ONNX Runtime extensions library is not linked, so its registration entry point is undefined. -->
+    <ReferenceNativeSymbol Include="RegisterCustomOps" SymbolType="Function" SymbolMode="Ignore" />
   </ItemGroup>
 
   <ItemGroup>

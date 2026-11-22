@@ -60,6 +60,71 @@ internal static class Av1Bitstream
         return (output.ToArray(), sequence ?? throw new InvalidDataException("The AV1 encoder produced no sequence header."));
     }
 
+    /// <summary>
+    /// Reads the maximum frame size from a sequence header in <paramref name="packet"/>. False when the
+    /// packet carries none or it cannot be read.
+    /// </summary>
+    public static bool TryReadSequenceSize(ReadOnlySpan<byte> packet, out int width, out int height)
+    {
+        width = height = 0;
+        try
+        {
+            int position = 0;
+            while (position < packet.Length)
+            {
+                int start = position;
+                byte header = packet[position++];
+                int type = (header >> 3) & 0xF;
+                if ((header & 4) != 0)
+                    position++;
+                int end = (header & 2) != 0
+                    ? checked(position + (int)ReadLeb128(packet, ref position))
+                    : packet.Length;
+                if (end > packet.Length || end < position)
+                    return false;
+
+                if (type == SequenceHeader)
+                {
+                    // The parser expects a sized OBU, as the image encoder produces.
+                    byte[] obu = (header & 2) != 0
+                        ? packet[start..end].ToArray()
+                        : SizedObu(packet[start..end]);
+                    SequenceInfo info = ParseSequenceHeader(obu);
+                    width = info.Width;
+                    height = info.Height;
+                    return true;
+                }
+
+                position = end;
+            }
+        }
+        catch (Exception exception) when (exception is InvalidDataException or OverflowException)
+        {
+        }
+
+        return false;
+    }
+
+    private static byte[] SizedObu(ReadOnlySpan<byte> obu)
+    {
+        int headerLength = (obu[0] & 4) != 0 ? 2 : 1;
+        int payload = obu.Length - headerLength;
+        var output = new MemoryStream(obu.Length + 8);
+        output.WriteByte((byte)(obu[0] | 2));
+        if (headerLength == 2)
+            output.WriteByte(obu[1]);
+        uint remaining = (uint)payload;
+        do
+        {
+            byte next = (byte)(remaining & 0x7F);
+            remaining >>= 7;
+            output.WriteByte(remaining != 0 ? (byte)(next | 0x80) : next);
+        }
+        while (remaining != 0);
+        output.Write(obu[headerLength..]);
+        return output.ToArray();
+    }
+
     public static SequenceInfo ParseSequenceHeader(byte[] obu)
     {
         int position = 1;

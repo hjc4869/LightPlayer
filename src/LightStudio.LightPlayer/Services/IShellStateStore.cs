@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace LightStudio.LightPlayer.Services;
 
 /// <summary>
@@ -18,4 +20,7 @@ public interface IShellStateStore
 
     /// <summary>Where the picture-in-picture window last was, or <c>null</c> when it has never been opened.</summary>
     PictureInPicturePlacement? PictureInPicturePlacement { get; set; }
+
+    /// <summary>The search queries the user ran most recently, newest first.</summary>
+    IReadOnlyList<string> RecentSearches { get; set; }
 }

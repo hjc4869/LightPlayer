@@ -12,10 +12,10 @@
     <Border Classes="settingsGroup" MaxWidth="680" HorizontalAlignment="Stretch" VerticalAlignment="Top">
         <StackPanel>
         <controls:SettingRow Header="{Binding BufferHeader}"
-                             IsGrouped="True">
+                             IsGrouped="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          ItemsSource="{Binding BufferOptions}"
+                <ComboBox ItemsSource="{Binding BufferOptions}"
                           SelectedItem="{Binding SelectedBuffer, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:VideoSettingsOption">
@@ -28,10 +28,10 @@
 
         <controls:SettingRow Header="{Binding DebandingHeader}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          ItemsSource="{Binding DebandingOptions}"
+                <ComboBox ItemsSource="{Binding DebandingOptions}"
                           SelectedItem="{Binding SelectedDebanding, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:VideoSettingsOption">
@@ -44,10 +44,10 @@
 
         <controls:SettingRow Header="{Binding ScalingHeader}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          ItemsSource="{Binding ScalingOptions}"
+                <ComboBox ItemsSource="{Binding ScalingOptions}"
                           SelectedItem="{Binding SelectedScaling, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:VideoSettingsOption">
@@ -60,10 +60,10 @@
 
         <controls:SettingRow Header="{Binding DownscalingHeader}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          ItemsSource="{Binding ScalingOptions}"
+                <ComboBox ItemsSource="{Binding ScalingOptions}"
                           SelectedItem="{Binding SelectedDownscaling, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:VideoSettingsOption">
@@ -99,10 +99,10 @@
                              Description="{Binding HardwareDecoderDescription}"
                              IsVisible="{Binding HasHardwareDecoderSettings}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          IsEnabled="{Binding EnableHardwareDecoding}"
+                <ComboBox IsEnabled="{Binding EnableHardwareDecoding}"
                           ItemsSource="{Binding HardwareDecoderOptions}"
                           SelectedItem="{Binding SelectedHardwareDecoder, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
@@ -117,15 +117,10 @@
         <controls:SettingRow Header="{Binding PhotoDecodePreferenceHeader}"
                              IsVisible="{Binding SupportsPhotoDecodePreference}"
                              IsGrouped="True"
-                             HasTopDivider="True">
-            <controls:SettingRow.Styles>
-                <Style Selector="TextBlock">
-                    <Setter Property="TextWrapping" Value="Wrap" />
-                </Style>
-            </controls:SettingRow.Styles>
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          ItemsSource="{Binding PhotoDecodePreferenceOptions}"
+                <ComboBox ItemsSource="{Binding PhotoDecodePreferenceOptions}"
                           SelectedItem="{Binding SelectedPhotoDecodePreference, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:VideoSettingsOption">
@@ -140,10 +135,10 @@
                              Description="{Binding HardwareDeviceDescription}"
                              IsVisible="{Binding HasHardwareDevices}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          IsEnabled="{Binding EnableHardwareDecoding}"
+                <ComboBox IsEnabled="{Binding EnableHardwareDecoding}"
                           ItemsSource="{Binding HardwareDeviceOptions}"
                           SelectedItem="{Binding SelectedHardwareDevice, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
@@ -167,11 +162,11 @@
                     <controls:SettingRow Header="{Binding Header}"
                                          Description="{Binding Description}"
                                          IsGrouped="True"
-                                         HasTopDivider="True">
+                                         HasTopDivider="True"
+                                         ActionWidth="150">
                         <controls:SettingRow.ActionContent>
                             <Panel>
-                                <ComboBox Width="150"
-                                          IsVisible="{Binding IsChoice}"
+                                <ComboBox IsVisible="{Binding IsChoice}"
                                           ItemsSource="{Binding Choices}"
                                           SelectedItem="{Binding SelectedChoice, Mode=TwoWay}">
                                     <ComboBox.ItemTemplate>
@@ -180,8 +175,7 @@
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
-                                <TextBox Width="150"
-                                         IsVisible="{Binding IsText}"
+                                <TextBox IsVisible="{Binding IsText}"
                                          Text="{Binding Text, Mode=TwoWay}" />
                             </Panel>
                         </controls:SettingRow.ActionContent>

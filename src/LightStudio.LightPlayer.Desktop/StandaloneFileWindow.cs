@@ -45,10 +45,11 @@ internal sealed partial class StandaloneFileWindow : Window
     private bool closing;
     private bool playbackReleased;
 
-    public StandaloneFileWindow(string path, IAppSettingsStore settings)
+    public StandaloneFileWindow(string path, IAppSettingsStore settings, IShellStateStore windowState)
     {
         InitializeComponent();
         this.settings = settings;
+        WindowPlacementManager.Attach(this, windowState);
         platform = new DesktopMultimediaPlatformIO(AppPaths.DataDirectory);
         platform.InitializePlatform();
         resolver = new CapturedPlatformMediaResolver(platform);
@@ -58,7 +59,6 @@ internal sealed partial class StandaloneFileWindow : Window
         PlatformServices.FileShareService ??= new DesktopFileShareService();
         PlatformServices.VideoShaderPackages = new VideoShaderPackageCatalog(
             Path.Combine(AppPaths.DataDirectory, "video-shader-packages"));
-        Title = Path.GetFileName(path);
         if (OperatingSystem.IsMacOS())
         {
             Styles.Add(new Style(selector => selector.OfType<Border>().Name("TitleBar"))
@@ -318,7 +318,7 @@ internal sealed partial class StandaloneFileWindow : Window
         {
             AppLog.Error("Desktop.Activation", $"Could not open {path}.", exception);
             if (!cancellation.IsCancellationRequested)
-                await dialogs.ShowWarningDetailsAsync(Title ?? Path.GetFileName(path), exception.ToString());
+                await dialogs.ShowWarningDetailsAsync(Path.GetFileName(path), exception.ToString());
         }
     }
 

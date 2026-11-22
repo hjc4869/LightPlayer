@@ -1,10 +1,13 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using Strings = LightStudio.LightPlayer.Strings;
 
@@ -68,7 +71,12 @@ internal static class OverlayDialog
     }
 
     /// <summary>A standard confirm/cancel card. Returns true only when the confirm button was used.</summary>
-    public static Task<bool> ConfirmAsync(IShellOverlayHost host, string title, string message, string confirmLabel)
+    public static async Task<bool> ConfirmAsync(
+        IShellOverlayHost host,
+        string title,
+        string message,
+        string confirmLabel,
+        CancellationToken cancellationToken = default)
     {
         var confirmed = false;
         var body = new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap };
@@ -88,6 +96,12 @@ internal static class OverlayDialog
         buttons.Children.Add(cancel);
         buttons.Children.Add(confirm);
 
-        return ShowForResultAsync(host, BuildContent(title, body, buttons), () => confirmed);
+        Control content = BuildContent(title, body, buttons);
+        using CancellationTokenRegistration registration = cancellationToken.Register(() => Dispatcher.UIThread.Post(() =>
+        {
+            if (content.IsAttachedToVisualTree())
+                host.CloseOverlay();
+        }));
+        return await ShowForResultAsync(host, content, () => confirmed);
     }
 }

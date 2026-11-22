@@ -48,7 +48,7 @@ public class NativeGlassPanel : Control
     private GlassHost? host;
     private IInputElement? focusToRestore;
     private bool restoresFocus;
-    private bool isInViewport = true;
+    private Rect? viewport;
 
     static NativeGlassPanel()
     {
@@ -61,10 +61,12 @@ public class NativeGlassPanel : Control
         // The native view draws its edges and shadow even where the window would clip the panel.
         EffectiveViewportChanged += (_, e) =>
         {
-            isInViewport = e.EffectiveViewport.Intersects(new Rect(Bounds.Size));
+            viewport = e.EffectiveViewport;
             UpdateVisibility();
         };
     }
+
+    private bool IsInViewport => viewport is not { } visible || visible.Intersects(new Rect(Bounds.Size));
 
     [Content]
     public Control? Child
@@ -129,6 +131,10 @@ public class NativeGlassPanel : Control
         else if (change.Property == IsGlassEnabledProperty || change.Property == IsOccludedProperty)
         {
             Update();
+        }
+        else if (change.Property == BoundsProperty)
+        {
+            UpdateVisibility();
         }
         else if (change.Property == CornerRadiusProperty)
         {
@@ -203,7 +209,7 @@ public class NativeGlassPanel : Control
     private void UpdateVisibility()
     {
         if (host is not null)
-            host.IsVisible = isInViewport && !GetIsOccluded(this);
+            host.IsVisible = IsInViewport && !GetIsOccluded(this);
     }
 
     private void EnterGlass(INativeGlass glass)
@@ -239,7 +245,7 @@ public class NativeGlassPanel : Control
     private void AddHost(GlassHost added)
     {
         host = added;
-        added.IsVisible = isInViewport && !GetIsOccluded(this);
+        added.IsVisible = IsInViewport && !GetIsOccluded(this);
         added.SetCornerRadius(CornerRadius);
         VisualChildren.Add(added);
         InvalidateMeasure();

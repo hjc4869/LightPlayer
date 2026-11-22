@@ -52,6 +52,17 @@ public interface IEmbeddingInferenceSession : IDisposable
         ValueTask.FromResult(EncodeImage(image, cancellationToken));
     ValueTask<float[][]> EncodeImagesAsync(IReadOnlyList<StillImageThumbnail> images, CancellationToken cancellationToken) =>
         ValueTask.FromResult(EncodeImages(images, cancellationToken));
+    /// <summary>Returns the model's match calibration, or null when its similarities carry no pairwise match probability.</summary>
+    EmbeddingMatchCalibration? GetMatchCalibration(CancellationToken cancellationToken) => null;
+    ValueTask<EmbeddingMatchCalibration?> GetMatchCalibrationAsync(CancellationToken cancellationToken) =>
+        ValueTask.FromResult(GetMatchCalibration(cancellationToken));
+}
+
+/// <summary>Maps an image-text cosine similarity to the model's match logit; the logit's sigmoid is the probability that the pair matches.</summary>
+public readonly record struct EmbeddingMatchCalibration(double Scale, double Bias)
+{
+    /// <summary>The cosine similarity at which the match probability equals <paramref name="probability"/>.</summary>
+    public double SimilarityAt(double probability) => (Math.Log(probability / (1 - probability)) - Bias) / Scale;
 }
 
 public interface IInferenceModelDownloads : IDisposable

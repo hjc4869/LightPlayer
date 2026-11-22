@@ -636,6 +636,11 @@ public partial class VideoSheet : UserControl
         // content down, so it is left to the next dispatcher turn rather than run inside the frame
         // that is still placing the card.
         exiting = false;
-        Dispatcher.UIThread.Post(() => ViewModel?.CompleteClose());
+        VideoPlayerPageViewModel? leaving = ViewModel?.Content;
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (ViewModel is { } model && ReferenceEquals(model.Content, leaving))
+                model.CompleteClose();
+        });
     }
 }

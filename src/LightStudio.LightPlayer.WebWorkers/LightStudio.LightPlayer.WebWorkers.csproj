@@ -4,6 +4,7 @@
     Playback has one managed owner; bounded background jobs share the runtime and native resources.
   -->
   <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
     <TargetFramework>$(TargetFramework)-browser</TargetFramework>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
@@ -62,6 +63,7 @@
 
   <Import Project="../../build/WasmWorkerRuntime.targets" />
   <Import Project="../../build/WasmThreadIdentity.targets" />
+  <Import Project="../../build/WasmThreadStart.targets" />
   <PropertyGroup>
     <NativeBindingsEnabled>true</NativeBindingsEnabled>
   </PropertyGroup>

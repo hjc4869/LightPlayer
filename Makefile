@@ -15,6 +15,7 @@
 #   make docker                     Build the standalone server container image.
 #                                   (INCLUDE_WEB=true also bundles the browser client.)
 #   make src                        Create artifacts/LightPlayer.tar.gz from working-tree sources.
+#   make browser-extension          Build the browser extension's unpacked folders and store archives.
 #   make clean                      Remove build artifacts.
 #
 # The Flatpak targets build the desktop app *inside the Flatpak sandbox* with the
@@ -48,6 +49,7 @@ ANDROID_PROJECT                 := src/LightStudio.LightPlayer.Android/LightStud
 IOS_PROJECT                     := src/LightStudio.LightPlayer.iOS/LightStudio.LightPlayer.iOS.csproj
 WEB_PROJECT                     := src/LightStudio.LightPlayer.Web/LightStudio.LightPlayer.Web.csproj
 WEB_OUTPUT                      := artifacts/web
+EXTENSION_OUTPUT                := artifacts/browser-extension
 WEB_CF_OUTPUT                   := artifacts/web-cf
 WEB_CF_SOURCE                   := packaging/cloudflare
 WEB_RUN_OUTPUT                  := artifacts/web-run
@@ -137,7 +139,7 @@ CSPROJ_FILES          := $(shell find src tools/LightStudio.LightPlayer.Generato
 NUGET_INPUTS          := $(CSPROJ_FILES) Directory.Build.props Directory.Build.targets Directory.Packages.props build/GitHubNuGet.targets build/NativeBindings.Configuration.targets tools/NativeBindings/NativeBindings.props tools/NativeBindings/NativeBindings.Selection.targets tools/NativeBindings/NativeBindings.targets nuget.config
 
 .PHONY: all build run videodemo osxapp macos-publish web web-cf web-run browser-build browser-run browser-media docker docker-run flatpak flatpak-deps flatpak-nuget-sources flatpak-install clean
-.PHONY: iosapp ios-deploy ios-sim ios-sim-deploy src
+.PHONY: iosapp ios-deploy ios-sim ios-sim-deploy src browser-extension
 
 all: build
 
@@ -146,6 +148,11 @@ build:
 
 src:
 	python3 tools/package-source.py
+
+# Build the browser extension: the unpacked development folders, the store builds under store/, and
+# one archive per store, all in $(EXTENSION_OUTPUT).
+browser-extension:
+	node src/LightStudio.LightPlayer.BrowserExtension/build.mjs --package --out "$(EXTENSION_OUTPUT)"
 
 run:
 	dotnet run --project "$(AVALONIA_PROJECT)" -c "$(CONFIGURATION)" -p:Platform=$(PLATFORM)

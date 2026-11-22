@@ -8,7 +8,7 @@ public abstract class SettingsSectionViewModel : ViewModelBase
     private static readonly Thickness WideContentMargin = new(24, 32, 24, 32);
 
     /// <summary>Inset a section applies to its own content on the narrow (mobile) settings layout.</summary>
-    private static readonly Thickness NarrowContentMargin = new(15, 5, 15, 5);
+    private static readonly Thickness NarrowContentMargin = new(16, 8, 16, 16);
 
     private readonly string titleKey;
     private readonly string descriptionKey;

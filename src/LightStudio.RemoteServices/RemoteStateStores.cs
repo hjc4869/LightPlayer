@@ -412,6 +412,18 @@ public sealed class KeyValueAppSettingsStore(IKeyValueStore store) : IAppSetting
     {
     }
 
+    public BrowserLinkSettings BrowserLinkSettings => BrowserLinkSettings.Default;
+
+    public void SetBrowserLinkSettings(BrowserLinkSettings settings)
+    {
+    }
+
+    public event EventHandler? BrowserLinkSettingsChanged
+    {
+        add { }
+        remove { }
+    }
+
     public RemoteTranscodeSettings RemoteTranscodeSettings => new()
     {
         Video = store.GetBoolean("settings.transcode.video"),
@@ -574,6 +586,17 @@ public sealed class RemoteAppSettingsStore(
 
     public void SetRemoteApiSettings(RemoteApiSettings settings)
     {
+    }
+
+    /// <summary>Belongs to this device rather than to the session, so it stays in the head's store.</summary>
+    public BrowserLinkSettings BrowserLinkSettings => inner.BrowserLinkSettings;
+
+    public void SetBrowserLinkSettings(BrowserLinkSettings settings) => inner.SetBrowserLinkSettings(settings);
+
+    public event EventHandler? BrowserLinkSettingsChanged
+    {
+        add => inner.BrowserLinkSettingsChanged += value;
+        remove => inner.BrowserLinkSettingsChanged -= value;
     }
 
     /// <summary>Belongs to this device rather than to the session, so it stays in the head's store.</summary>
@@ -859,6 +882,12 @@ public sealed class RemoteShellStateStore(IShellStateStore device, IKeyValueStor
         set => device.PictureInPicturePlacement = value;
     }
 
+    public IReadOnlyList<string> RecentSearches
+    {
+        get => device.RecentSearches;
+        set => device.RecentSearches = value;
+    }
+
     public PlaybackQueuePersistedState? PlaybackQueue
     {
         get => GetJson<PlaybackQueuePersistedState>("shell.playbackQueue");
@@ -923,6 +952,12 @@ public sealed class KeyValueShellStateStore(IKeyValueStore store) : IShellStateS
         set => SetJson("shell.pictureInPicturePlacement", value);
     }
 
+    public IReadOnlyList<string> RecentSearches
+    {
+        get => GetJson<string[]>("shell.recentSearches") ?? [];
+        set => SetJson("shell.recentSearches", value.Count == 0 ? null : value.ToArray());
+    }
+
     private T? GetJson<T>(string key)
     {
         var json = store.Get(key);
@@ -961,6 +996,7 @@ public sealed class KeyValueShellStateStore(IKeyValueStore store) : IShellStateS
 [JsonSerializable(typeof(NativeLibrarySettings))]
 [JsonSerializable(typeof(ToneMappingSettings))]
 [JsonSerializable(typeof(LegacyBrowserServerEntry[]))]
+[JsonSerializable(typeof(string[]))]
 public sealed partial class RemoteStateJsonContext : JsonSerializerContext;
 
 [JsonSourceGenerationOptions(

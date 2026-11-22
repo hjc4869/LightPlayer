@@ -173,7 +173,8 @@ public sealed partial class UnifiedLibraryQueryService : IUnifiedLibraryQuerySer
 
     public async Task<UnifiedLibrarySearchResults> SearchAsync(
         string keyword,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyCollection<LibrarySourceId>? sourceIds = null)
     {
         keyword ??= string.Empty;
         var normalizedKeyword = keyword.Trim().ToLowerInvariant();
@@ -183,8 +184,9 @@ public sealed partial class UnifiedLibraryQueryService : IUnifiedLibraryQuerySer
         }
 
         var snapshot = registry.CreateSnapshot(LibraryMediaCategory.Music);
-        var responses = await Task.WhenAll(snapshot.Sources.Select(item =>
-            SearchSourceAsync(item, keyword, cancellationToken))).ConfigureAwait(false);
+        var responses = await Task.WhenAll(snapshot.Sources
+            .Where(item => sourceIds is null || sourceIds.Contains(item.Source.Id))
+            .Select(item => SearchSourceAsync(item, keyword, cancellationToken))).ConfigureAwait(false);
         var failures = responses.Where(response => response.Failure is not null)
             .Select(response => response.Failure!)
             .ToArray();
@@ -672,7 +674,8 @@ public sealed partial class UnifiedVideoLibraryQueryService : IUnifiedVideoLibra
     /// </summary>
     public async Task<UnifiedCollection<Sourced<DbVideoFile>>> SearchVideosAsync(
         string keyword,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyCollection<LibrarySourceId>? sourceIds = null)
     {
         if (string.IsNullOrWhiteSpace(keyword))
         {
@@ -680,7 +683,9 @@ public sealed partial class UnifiedVideoLibraryQueryService : IUnifiedVideoLibra
         }
 
         var snapshot = registry.CreateSnapshot(LibraryMediaCategory.Video);
-        var responses = await Task.WhenAll(snapshot.Sources.Select(async item =>
+        var responses = await Task.WhenAll(snapshot.Sources
+            .Where(item => sourceIds is null || sourceIds.Contains(item.Source.Id))
+            .Select(async item =>
         {
             using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             deadline.CancelAfter(QueryDeadline);

@@ -16,11 +16,14 @@ namespace LightStudio.RemoteServices;
 internal sealed class WebDavIndexedLibrary : IDisposable
 {
     private readonly string databaseConnectionString;
+    private readonly RemoteImageCache? imageCache;
+    private readonly ThumbnailMemoryCache previews = new();
 
     public WebDavIndexedLibrary(
         string databasePath,
         WebDavClient client,
         WebDavMultimediaPlatformIO platform,
+        RemoteImageCache? imageCache,
         Func<bool> loadMusic,
         Func<bool> loadVideo,
         Func<AlbumGroupingMode>? albumGrouping = null)
@@ -29,14 +32,24 @@ internal sealed class WebDavIndexedLibrary : IDisposable
             ?? throw new ArgumentException("The WebDAV index path has no parent directory.", nameof(databasePath));
         Directory.CreateDirectory(directory);
         databaseConnectionString = $"Data Source=\"{databasePath.Replace("\"", "\"\"")}\"";
+        this.imageCache = imageCache;
         LibraryQuery = new LibraryQueryService(CreateDatabase, albumGrouping);
-        VideoLibraryQuery = new VideoLibraryQueryService(CreateDatabase, platform, new ThumbnailMemoryCache());
+        VideoLibraryQuery = new VideoLibraryQueryService(
+            CreateDatabase,
+            platform,
+            previews,
+            imageCache is null ? null : GetStoredPreviewAsync);
+        if (imageCache is not null)
+        {
+            imageCache.Cleared += OnImageCacheCleared;
+        }
         LibraryScan = new WebDavLibraryScanService(
             CreateDatabase,
             platform,
             client.RootPath,
             loadMusic,
             loadVideo);
+        LibraryScan.ScanCompleted += OnScanCompleted;
         var locations = new WebDavLibraryLocationService(client.RootPath);
         VideoFolders = new PlatformVideoFolderBrowser(platform, locations);
         MusicFolders = new IndexedMusicFolderBrowser(LibraryQuery,
@@ -58,13 +71,78 @@ internal sealed class WebDavIndexedLibrary : IDisposable
 
     private MediaLibraryDatabase CreateDatabase() => new(databaseConnectionString);
 
+    /// <summary>
+    /// Keeps generated previews in the library's image cache. A preview is stored for the size and
+    /// modification time its file was indexed with, so a rescan that finds the file changed replaces it.
+    /// </summary>
+    private async Task<byte[]?> GetStoredPreviewAsync(
+        string path,
+        Func<CancellationToken, Task<byte[]?>> generate,
+        CancellationToken cancellationToken)
+    {
+        var name = $"{path}\n{await GetIndexedRevisionAsync(path, cancellationToken).ConfigureAwait(false)}";
+        var stored = await imageCache!.ReadVideoPreviewAsync(name).WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (stored is { Length: > 0 })
+        {
+            return stored;
+        }
+
+        var preview = await generate(cancellationToken).ConfigureAwait(false);
+        if (preview is { Length: > 0 })
+        {
+            await imageCache.StoreVideoPreviewAsync(name, preview).ConfigureAwait(false);
+        }
+
+        return preview;
+    }
+
+    private async Task<string> GetIndexedRevisionAsync(string path, CancellationToken cancellationToken)
+    {
+        await using var database = CreateDatabase();
+        var localPath = Uri.TryCreate(path, UriKind.Absolute, out var uri) ? uri.LocalPath : path;
+        if (MediaContainerFormats.IsImage(localPath))
+        {
+            return await database.GetImageFileByPathAsync(path, cancellationToken).ConfigureAwait(false) is { } image
+                ? Revision(image.FileSize, image.FileLastModifiedDate)
+                : string.Empty;
+        }
+
+        return await database.GetVideoFileByPathAsync(path, cancellationToken).ConfigureAwait(false) is { } video
+            ? Revision(video.FileSize, video.FileLastModifiedDate)
+            : string.Empty;
+    }
+
+    private static string Revision(long size, DateTimeOffset modified) =>
+        FormattableString.Invariant($"{size}\n{modified.UtcTicks}");
+
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
         await using var database = CreateDatabase();
         await database.EnsureSchemaCreatedAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public void Dispose() => LibraryScan.Dispose();
+    private void OnImageCacheCleared(object? sender, EventArgs e) =>
+        previews.Clear(ThumbnailCacheKind.VideoPreview);
+
+    // Previews in memory are held by path alone, so they are dropped once the index records changed files.
+    private void OnScanCompleted(object? sender, LibraryScanCompletedEventArgs e)
+    {
+        if (e.HasChanges)
+        {
+            previews.Clear(ThumbnailCacheKind.VideoPreview);
+        }
+    }
+
+    public void Dispose()
+    {
+        LibraryScan.ScanCompleted -= OnScanCompleted;
+        if (imageCache is not null)
+        {
+            imageCache.Cleared -= OnImageCacheCleared;
+        }
+
+        LibraryScan.Dispose();
+    }
 }
 
 internal sealed class WebDavLibraryScanService : ILibraryScanService, IDisposable

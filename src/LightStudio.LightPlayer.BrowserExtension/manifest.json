@@ -1,0 +1,65 @@
+{
+    "manifest_version": 3,
+    "name": "__MSG_extensionName__",
+    "description": "__MSG_extensionDescription__",
+    "default_locale": "en",
+    "icons": {
+        "16": "icons/icon-16.png",
+        "32": "icons/icon-32.png",
+        "48": "icons/icon-48.png",
+        "128": "icons/icon-128.png"
+    },
+    "action": {
+        "default_title": "__MSG_actionTitle__",
+        "default_popup": "popup/popup.html",
+        "default_icon": {
+            "16": "icons/icon-16.png",
+            "32": "icons/icon-32.png"
+        }
+    },
+    "options_ui": {
+        "page": "options/options.html",
+        "open_in_tab": true
+    },
+    "permissions": [
+        "storage",
+        "webRequest",
+        "scripting"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "scripts": [
+            "shared/settings.js",
+            "shared/launch.js",
+            "background/requests.js",
+            "background/sessions.js",
+            "background/takeover.js",
+            "background/main.js"
+        ]
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "shared/launch.js",
+                "content/link.js",
+                "content/videos.js",
+                "content/control.js",
+                "content/page-video.js",
+                "content/file-session.js",
+                "content/manifest-session.js",
+                "content/placeholder.js",
+                "content/takeover.js",
+                "content/main.js"
+            ],
+            "all_frames": true,
+            "match_about_blank": true,
+            "match_origin_as_fallback": true,
+            "run_at": "document_start"
+        }
+    ]
+}

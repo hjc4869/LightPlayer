@@ -98,7 +98,7 @@ public partial class ShellView
             private void OnPredictiveBackInput(object? sender, RoutedEventArgs args) => CancelPredictiveBack();
 
     private bool CanPreviewBack(ShellViewModel shell) => IsEffectivelyVisible &&
-        !shell.IsOverlayOpen && !shell.IsSearchActive && !shell.NowPlayingSheet.IsExpanded &&
+        !shell.IsOverlayOpen && !shell.NowPlayingSheet.IsExpanded &&
         !shell.VideoSheet.IsExpanded && inputPane?.State != Avalonia.Controls.Platform.InputPaneState.Open &&
         backSubscribedTopLevel.FindDescendantOfType<OverlayPopupHost>(includeSelf: false,
             predicate: static popup => popup.IsVisible) is null;

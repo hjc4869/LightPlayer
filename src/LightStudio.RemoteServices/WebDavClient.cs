@@ -49,7 +49,9 @@ internal sealed class WebDavClient : IDisposable, IRemoteMediaRangeClient
     private static readonly HttpRequestOptionsKey<bool> BrowserResponseStreaming =
         new("WebAssemblyEnableStreamingResponse");
 
+    private readonly WebDavRequestThrottle throttle = new();
     private readonly HttpClient metadataClient;
+    private readonly HttpClient backgroundClient;
     private readonly HttpClient streamingClient;
     private readonly RemoteRangeRequests rangeRequests = new();
     private readonly Uri rootUri;
@@ -59,8 +61,11 @@ internal sealed class WebDavClient : IDisposable, IRemoteMediaRangeClient
     {
         rootUri = CollectionUri(new Uri(rootAddress, UriKind.Absolute));
         rootPath = Uri.UnescapeDataString(rootUri.AbsolutePath);
-        metadataClient = CreateClient(TimeSpan.FromSeconds(90), username, password);
-        streamingClient = CreateClient(Timeout.InfiniteTimeSpan, username, password);
+        metadataClient = CreateClient(
+            new HttpClient(throttle.CreatePacedHandler()), TimeSpan.FromSeconds(90), username, password);
+        backgroundClient = CreateClient(
+            new HttpClient(throttle.CreatePacedHandler()), Timeout.InfiniteTimeSpan, username, password);
+        streamingClient = CreateClient(new HttpClient(), Timeout.InfiniteTimeSpan, username, password);
     }
 
     public event EventHandler? Unauthorized;
@@ -69,6 +74,10 @@ internal sealed class WebDavClient : IDisposable, IRemoteMediaRangeClient
 
     public string EndpointIdentity => rootUri.AbsoluteUri;
 
+    /// <summary>Waits for a slot to read media for a preview, artwork, or a scan.</summary>
+    public Task<IDisposable> EnterBackgroundReadAsync(CancellationToken cancellationToken) =>
+        throttle.EnterBackgroundReadAsync(cancellationToken);
+
     public async Task<Stream> OpenMediaStreamAsync(
         string resourceId,
         CancellationToken cancellationToken = default,
@@ -76,7 +85,7 @@ internal sealed class WebDavClient : IDisposable, IRemoteMediaRangeClient
     {
         var resource = GetResourceUri(resourceId, collection: false);
         var stream = await HttpMediaStream.OpenAsync(
-            streamingClient,
+            readAheadEnabled ? streamingClient : backgroundClient,
             resource,
             cancellationToken,
             response => EnsureSuccess(response, resource),
@@ -332,6 +341,7 @@ internal sealed class WebDavClient : IDisposable, IRemoteMediaRangeClient
         int depth,
         CancellationToken cancellationToken)
     {
+        using var slot = await throttle.EnterListingAsync(cancellationToken).ConfigureAwait(false);
         using var request = new HttpRequestMessage(PropFindMethod, resource)
         {
             Content = new StringContent(PropFindBody, Encoding.UTF8, "application/xml"),
@@ -412,9 +422,9 @@ internal sealed class WebDavClient : IDisposable, IRemoteMediaRangeClient
         return request;
     }
 
-    private static HttpClient CreateClient(TimeSpan timeout, string? username, string? password)
+    private static HttpClient CreateClient(HttpClient client, TimeSpan timeout, string? username, string? password)
     {
-        var client = new HttpClient { Timeout = timeout };
+        client.Timeout = timeout;
         client.DefaultRequestHeaders.UserAgent.ParseAdd("LightPlayer/1.0");
         if (!string.IsNullOrEmpty(username) || !string.IsNullOrEmpty(password))
         {
@@ -538,6 +548,7 @@ internal sealed class WebDavClient : IDisposable, IRemoteMediaRangeClient
     public void Dispose()
     {
         metadataClient.Dispose();
+        backgroundClient.Dispose();
         streamingClient.Dispose();
     }
 }

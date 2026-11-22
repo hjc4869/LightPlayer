@@ -307,8 +307,21 @@ public partial class App : Application
 
     private void OnFileActivated(object? sender, ActivatedEventArgs e)
     {
-        // Only file activations carry paths to enqueue; ignore other activation
-        // kinds (reopen, background, protocol).
+        // A lightplayer: URL only brings the application forward. Other non-file activation
+        // kinds (reopen, background, other protocols) are ignored.
+        if (e is ProtocolActivatedEventArgs protocolActivated &&
+            string.Equals(protocolActivated.Uri.Scheme, FileActivation.WakeScheme, StringComparison.OrdinalIgnoreCase))
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (awaitingDesktopActivation)
+                    InitializePendingDesktopWindow();
+                else
+                    ActivateMainWindow();
+            });
+            return;
+        }
+
         if (e is not FileActivatedEventArgs fileActivated)
         {
             return;

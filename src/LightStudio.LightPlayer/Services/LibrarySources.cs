@@ -26,9 +26,17 @@ public enum LibraryMediaCategory
     Video,
 }
 
+/// <param name="SupportsFileReveal">Whether the folder of a video or photo can be shown in the host's file manager.</param>
 public sealed record LibrarySourceCapabilities(
     bool SupportsFileReveal,
-    RemoteTranscodeCapabilities? Transcoding = null);
+    RemoteTranscodeCapabilities? Transcoding = null)
+{
+    /// <summary>
+    /// Whether the folder of a song can be shown in the host's file manager. Differs from
+    /// <see cref="SupportsFileReveal"/> where a system library keeps songs as files but photos and videos as assets.
+    /// </summary>
+    public bool SupportsMusicFileReveal { get; init; } = SupportsFileReveal;
+}
 
 /// <param name="VideoFolders">
 /// Lists this source's video folders from wherever they live, or null when it cannot be browsed and

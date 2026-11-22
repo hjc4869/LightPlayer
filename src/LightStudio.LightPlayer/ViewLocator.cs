@@ -32,8 +32,6 @@ public class ViewLocator : IDataTemplate
         [typeof(PlaylistDetailPageViewModel)] = static () => new PlaylistDetailPageView(),
         [typeof(VideoPlaylistDetailPageViewModel)] = static () => new VideoPlaylistDetailPageView(),
         [typeof(SearchPageViewModel)] = static () => new SearchPageView(),
-        [typeof(PhotoSearchPageViewModel)] = static () => new PhotoSearchPageView(),
-        [typeof(MusicSearchPageViewModel)] = static () => new MusicSearchPageView(),
         [typeof(MediaPageViewModel)] = static () => new MediaPageView(),
         [typeof(VideoPlayerPageViewModel)] = static () => new VideoPlayerPageView(),
         [typeof(PhotoViewerPageViewModel)] = static () => new PhotoViewerPageView(),
@@ -51,6 +49,7 @@ public class ViewLocator : IDataTemplate
         [typeof(ExtensionSettingsSectionViewModel)] = static () => new ExtensionSettingsSectionView(),
         [typeof(StorageSettingsSectionViewModel)] = static () => new StorageSettingsSectionView(),
         [typeof(RemoteApiSettingsSectionViewModel)] = static () => new RemoteApiSettingsSectionView(),
+        [typeof(BrowserLinkSettingsSectionViewModel)] = static () => new BrowserLinkSettingsSectionView(),
         [typeof(RemoteLibrariesSettingsSectionViewModel)] = static () => new RemoteLibrariesSettingsSectionView(),
         [typeof(RemoteLibraryEditorViewModel)] = static () => new RemoteLibraryEditorView(),
     };

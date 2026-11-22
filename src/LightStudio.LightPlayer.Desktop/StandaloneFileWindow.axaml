@@ -1,8 +1,11 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:strings="using:LightStudio.LightPlayer.Strings"
+        xmlns:pages="using:LightStudio.LightPlayer.ViewModels.Pages"
         x:Class="LightStudio.LightPlayer.Desktop.StandaloneFileWindow"
         x:ClassModifier="internal"
+        x:DataType="pages:PageViewModelBase"
+        Title="{Binding Title, StringFormat='{}{0} — Light Media Center', FallbackValue='Light Media Center'}"
         Width="1000" Height="700" MinWidth="320" MinHeight="240">
     <Border x:Name="ClientWindowFrame" ClipToBounds="True" Background="Black">
         <Panel>

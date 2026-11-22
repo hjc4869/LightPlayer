@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using System.Threading.Tasks;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.ViewModels.Dialogs;
@@ -16,7 +17,16 @@ namespace LightStudio.LightPlayer.Services;
 public sealed record PickedFile(string Name, byte[] Content);
 
 /// <summary>HTTP media sources entered together, in playback preference order.</summary>
-public sealed record StreamLink(IReadOnlyList<Uri> Sources);
+public sealed record StreamLink(IReadOnlyList<Uri> Sources)
+{
+    /// <summary>Headers sent with every request for the sources, such as <c>Referer</c>.</summary>
+    public IReadOnlyDictionary<string, string>? Headers { get; init; }
+
+    /// <summary>Shown in place of the host name.</summary>
+    public string? Title { get; init; }
+
+    public double StartSeconds { get; init; }
+}
 
 /// <summary>
 /// Hosts the application's modal dialogs (About, file properties, confirmations,
@@ -41,7 +51,8 @@ public interface IDialogService
     /// <summary>Prompts for one or more absolute HTTP or HTTPS media URLs.</summary>
     Task<StreamLink?> PromptForStreamUrlAsync();
 
-    Task<bool> ConfirmAsync(string title, string message, string confirmLabel);
+    /// <summary>Asks the user to confirm; false when declined, or when <paramref name="cancellationToken"/> closed the prompt first.</summary>
+    Task<bool> ConfirmAsync(string title, string message, string confirmLabel, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Shows the custom color theme editor. Returns the saved theme, or null when

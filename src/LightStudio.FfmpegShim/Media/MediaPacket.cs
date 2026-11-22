@@ -129,8 +129,8 @@ public sealed unsafe partial class MediaPacket : IMediaQueueItem, IPacketWriter
         size = Handle->size;
     }
 
-    /// <summary>Retains the same reference-counted FFmpeg packet payload.</summary>
-    internal void ReferenceFrom(MediaPacket source)
+    /// <summary>Retains the same reference-counted FFmpeg packet payload, with its side data.</summary>
+    public void ReferenceFrom(MediaPacket source)
     {
         ArgumentNullException.ThrowIfNull(source);
         if (source.Handle == null)
@@ -214,6 +214,83 @@ public sealed unsafe partial class MediaPacket : IMediaQueueItem, IPacketWriter
         ReadOnlySpan<byte> payload,
         ReadOnlySpan<byte> hdr10PlusMetadata) =>
         FillFromWire(streamIndex, pts, dts, duration, isKeyFrame, payload, hdr10PlusMetadata);
+
+    /// <summary>Restates the packet's stream and timing, in the time base of the stream it now belongs to.</summary>
+    public void Retime(int streamIndex, long pts, long dts, long duration)
+    {
+        Handle->stream_index = streamIndex;
+        Handle->pts = pts;
+        Handle->dts = dts;
+        Handle->duration = duration;
+        StreamIndex = streamIndex;
+    }
+
+    /// <summary>Samples the decoder drops from the start of this packet's output, from its skip side data.</summary>
+    public int LeadingSkipSamples
+    {
+        get
+        {
+            nuint sideSize = 0;
+            byte* side = Handle == null
+                ? null
+                : av_packet_get_side_data(Handle, AVPacketSideDataType.AV_PKT_DATA_SKIP_SAMPLES, &sideSize);
+            return side != null && sideSize >= 4 ? (int)ReadUInt32(side) : 0;
+        }
+    }
+
+    /// <summary>
+    /// Has the decoder drop <paramref name="samples"/> from the start of this packet's output, keeping
+    /// any trailing discard the packet already states.
+    /// </summary>
+    public void SetLeadingSkipSamples(int samples)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(samples);
+        nuint sideSize = 0;
+        byte* side = av_packet_get_side_data(Handle, AVPacketSideDataType.AV_PKT_DATA_SKIP_SAMPLES, &sideSize);
+        if (side == null || sideSize < 10)
+        {
+            if (samples == 0)
+                return;
+
+            uint trailing = side != null && sideSize >= 8 ? ReadUInt32(side + 4) : 0;
+            side = av_packet_new_side_data(Handle, AVPacketSideDataType.AV_PKT_DATA_SKIP_SAMPLES, 10);
+            if (side == null)
+                throw new OutOfMemoryException("Could not allocate skip-samples packet side data.");
+            new Span<byte>(side, 10).Clear();
+            WriteUInt32(side + 4, trailing);
+        }
+
+        WriteUInt32(side, (uint)samples);
+    }
+
+    /// <summary>
+    /// Attaches codec setup that takes effect from this packet on, as libavcodec's new-extradata side
+    /// data. Replaces any the packet already carries.
+    /// </summary>
+    public void SetNewExtradata(ReadOnlySpan<byte> extradata)
+    {
+        if (extradata.IsEmpty)
+            return;
+
+        byte* side = av_packet_new_side_data(
+            Handle,
+            AVPacketSideDataType.AV_PKT_DATA_NEW_EXTRADATA,
+            (nuint)extradata.Length);
+        if (side == null)
+            throw new OutOfMemoryException("Could not allocate new-extradata packet side data.");
+        extradata.CopyTo(new Span<byte>(side, extradata.Length));
+    }
+
+    private static uint ReadUInt32(byte* value) =>
+        (uint)(value[0] | value[1] << 8 | value[2] << 16 | value[3] << 24);
+
+    private static void WriteUInt32(byte* target, uint value)
+    {
+        target[0] = (byte)value;
+        target[1] = (byte)(value >> 8);
+        target[2] = (byte)(value >> 16);
+        target[3] = (byte)(value >> 24);
+    }
 
     public void MarkEndOfStream(int streamIndex)
     {

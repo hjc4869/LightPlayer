@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    A WebAssembly publish keeps any converted assembly in this shared folder that is newer than its source, and
+    the source changes with ahead-of-time compilation: the trimmed assembly without it, a copy with its compiled
+    method bodies removed with it. Converting into an empty folder keeps one mode's assemblies out of the other's
+    output.
+  -->
+  <Target Name="RemoveConvertedPublishAssemblies" BeforeTargets="ProcessPublishFilesForWasm"
+          Condition="'$(WasmBuildingForNestedPublish)' != 'true'">
+    <RemoveDir Directories="$(IntermediateOutputPath)webcil/publish" />
+  </Target>
+</Project>

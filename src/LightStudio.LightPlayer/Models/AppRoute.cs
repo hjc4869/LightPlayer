@@ -16,10 +16,6 @@ public enum AppRouteId
     Videos,
     VideoPlayer,
     PhotoViewer,
-    PhotoSearch,
-    AlbumSearch,
-    ArtistSearch,
-    SongSearch,
 }
 
 public enum AppRouteKind

@@ -61,14 +61,21 @@ public sealed record NavigationLocation(
         var span = text.AsSpan().Trim().TrimStart('#');
         var separator = span.IndexOf('?');
         var name = (separator < 0 ? span : span[..separator]).ToString();
+        var values = separator < 0
+            ? new Dictionary<string, string>(StringComparer.Ordinal)
+            : ParseQuery(span[(separator + 1)..].ToString());
+
+        // Addresses of a single search category name the category as their route.
+        if (CategorySearchRoutes.TryGetValue(name, out var scope))
+        {
+            name = nameof(AppRouteId.Search);
+            values["sc"] = scope.ToString();
+        }
+
         if (!Enum.TryParse<AppRouteId>(name, ignoreCase: true, out var routeId) || !Enum.IsDefined(routeId))
         {
             return false;
         }
-
-        var values = separator < 0
-            ? new Dictionary<string, string>(StringComparer.Ordinal)
-            : ParseQuery(span[(separator + 1)..].ToString());
 
         location = new NavigationLocation(
             routeId,
@@ -79,6 +86,14 @@ public sealed record NavigationLocation(
         return true;
     }
 
+    private static readonly Dictionary<string, SearchScope> CategorySearchRoutes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["photosearch"] = SearchScope.Photos,
+        ["albumsearch"] = SearchScope.Albums,
+        ["artistsearch"] = SearchScope.Artists,
+        ["songsearch"] = SearchScope.Songs,
+    };
+
     private string ParameterText() =>
         string.Join('&', ParameterPairs().Select(pair => pair.Key + '=' + pair.Value));
 
@@ -88,6 +103,24 @@ public sealed record NavigationLocation(
         {
             case string text when text.Length > 0:
                 yield return ("p", text);
+                break;
+
+            case SearchRequest request:
+                if (request.Query.Length > 0)
+                {
+                    yield return ("p", request.Query);
+                }
+
+                if (request.Scope != SearchScope.All)
+                {
+                    yield return ("sc", request.Scope.ToString().ToLowerInvariant());
+                }
+
+                if (request.Sources is { } sources)
+                {
+                    yield return ("src", string.Join(',', sources.Select(source => Uri.EscapeDataString(source.Value))));
+                }
+
                 break;
 
             case MediaReference media when media.Path.Length > 0:
@@ -221,6 +254,20 @@ public sealed record NavigationLocation(
             return MediaReferenceUri.TryParse(photoPath, out var mediaItem)
                 ? mediaItem.Media
                 : MediaReference.Local(photoPath);
+        }
+
+        if (routeId == AppRouteId.Search)
+        {
+            return new SearchRequest(
+                values.GetValueOrDefault("p") ?? string.Empty,
+                Enum.TryParse<SearchScope>(values.GetValueOrDefault("sc"), ignoreCase: true, out var scope) && Enum.IsDefined(scope)
+                    ? scope
+                    : SearchScope.All,
+                values.TryGetValue("src", out var sources)
+                    ? sources.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(source => new LibrarySourceId(Uri.UnescapeDataString(source)))
+                        .ToArray()
+                    : null);
         }
 
         if (routeId == AppRouteId.Songs && values.TryGetValue("ms", out var musicSource))

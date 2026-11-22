@@ -12,15 +12,11 @@
           ColumnSpacing="12"
           Margin="0,0,0,4">
         <StackPanel Grid.Column="0" Spacing="4">
-            <TextBlock Text="{Binding CustomFiltersHeader}"
-                       FontSize="22"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
-            <TextBlock Text="{Binding CustomFiltersDescription}"
-                       FontSize="13"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
-            <Button Classes="link"
+            <TextBlock Classes="settingsTitle" Text="{Binding CustomFiltersHeader}"
+                       TextWrapping="Wrap" />
+            <TextBlock Classes="settingsSubtitle" Text="{Binding CustomFiltersDescription}"
+                       TextWrapping="Wrap" />
+            <Button Classes="link noteLink"
                     HorizontalAlignment="Left"
                     FontSize="13"
                     Content="{Binding FindShaderPackagesText}"
@@ -40,18 +36,15 @@
         </Button>
     </Grid>
 
-    <TextBlock Text="{Binding ShaderPackageStatus}"
+    <TextBlock Classes="settingsCaption nudged" Text="{Binding ShaderPackageStatus}"
                IsVisible="{Binding HasShaderPackageStatus}"
                Margin="2,-2,2,2"
-               FontSize="12"
-               TextWrapping="Wrap"
-               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+               TextWrapping="Wrap" />
 
-    <TextBlock Text="{Binding NoCustomFiltersText}"
+    <TextBlock Classes="settingsNote nudged" Text="{Binding NoCustomFiltersText}"
                IsVisible="{Binding !HasShaderPackages}"
                Margin="2,6,2,0"
-               FontSize="13"
-               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+               TextWrapping="Wrap" />
 
     <ItemsControl ItemsSource="{Binding ShaderPackages}">
         <ItemsControl.ItemTemplate>
@@ -59,15 +52,12 @@
                 <Border Classes="settingsGroup"
                         Margin="0,0,0,8">
                     <StackPanel>
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="16,12">
-                            <StackPanel Grid.Column="0" Spacing="2">
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                    <TextBlock Grid.Column="0"
-                                               Text="{Binding DisplayName}"
-                                               Classes="settingName"
-                                               FontSize="{DynamicResource AppSettingNameFontSize}"
-                                               TextWrapping="Wrap" />
-                                </Grid>
+                        <!-- The actions move below the filter's details in a narrow card. -->
+                        <controls:SettingRowPanel Margin="16,12" ActionSpacing="10">
+                            <TextBlock Text="{Binding DisplayName}"
+                                       Classes="settingName"
+                                       FontSize="{DynamicResource AppSettingNameFontSize}" />
+                            <StackPanel Spacing="2">
                                 <TextBlock Text="{Binding Description}"
                                            Classes="settingDescription"
                                            FontSize="{DynamicResource AppSettingDescriptionFontSize}"
@@ -77,12 +67,10 @@
                                            FontSize="11"
                                            TextWrapping="Wrap" />
                             </StackPanel>
-                            <StackPanel Grid.Column="1"
-                                        Orientation="Horizontal"
+                            <StackPanel Orientation="Horizontal"
                                         Spacing="4"
                                         VerticalAlignment="Center">
-                                <TextBlock Grid.Column="1"
-                                           Text="{Binding PriorityText}"
+                                <TextBlock Text="{Binding PriorityText}"
                                            FontSize="11"
                                            VerticalAlignment="Center"
                                            Foreground="{DynamicResource AppSecondaryTextBrush}" />
@@ -111,14 +99,15 @@
                                     </Viewbox>
                                 </Button>
                             </StackPanel>
-                        </Grid>
+                        </controls:SettingRowPanel>
 
                         <Border Classes="settingsDivider" />
 
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="16,8">
-                            <StackPanel Grid.Column="0" Spacing="2">
+                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding EnabledText}"
                                            FontSize="13"
+                                           TextWrapping="Wrap"
                                            Foreground="{DynamicResource AppPrimaryTextBrush}" />
                             </StackPanel>
                             <ToggleSwitch Grid.Column="1"
@@ -129,24 +118,24 @@
 
                         <Border Classes="settingsDivider" />
 
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Margin="16,8">
-                            <StackPanel Grid.Column="0" Spacing="2">
-                                <TextBlock Text="{Binding MaximumResolutionText}"
-                                           FontSize="13"
-                                           Foreground="{DynamicResource AppPrimaryTextBrush}" />
-                                <TextBlock Text="{Binding MaximumResolutionDescription}"
-                                           Classes="settingDescription"
-                                           FontSize="11"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                            <controls:NumberEntry Grid.Column="1"
-                                                  Width="150"
-                                                  Minimum="0"
+                        <controls:SettingRowPanel Margin="16,8"
+                                                  ActionSpacing="12"
+                                                  ActionWidth="150"
+                                                  ActionWidthScale="{DynamicResource AppSettingActionWidthScale}">
+                            <TextBlock Text="{Binding MaximumResolutionText}"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"
+                                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                            <TextBlock Text="{Binding MaximumResolutionDescription}"
+                                       Classes="settingDescription"
+                                       FontSize="11"
+                                       TextWrapping="Wrap" />
+                            <controls:NumberEntry Minimum="0"
                                                   Maximum="{Binding MaximumResolutionLimit}"
                                                   Increment="120"
                                                   FormatString="0"
                                                   Number="{Binding MaximumSourceResolution, Mode=TwoWay}" />
-                        </Grid>
+                        </controls:SettingRowPanel>
                     </StackPanel>
                 </Border>
             </DataTemplate>

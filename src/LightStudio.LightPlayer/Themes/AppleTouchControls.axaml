@@ -3,6 +3,7 @@
         xmlns:controls="using:LightStudio.LightPlayer.Controls"
         xmlns:lmr="using:LightMediaRenderer.Avalonia.Controls"
         xmlns:views="using:LightStudio.LightPlayer.Views.Pages"
+        xmlns:shell="using:LightStudio.LightPlayer.Views"
         x:Class="LightStudio.LightPlayer.Themes.AppleTouchControls">
     <!--
         Touch metrics for the Apple UI style, loaded by touch heads after AppleControls.axaml. Sizes follow
@@ -16,15 +17,19 @@
                     <SolidColorBrush x:Key="IosControlFill">#1F767680</SolidColorBrush>
                     <SolidColorBrush x:Key="IosControlFillPressed">#3D767680</SolidColorBrush>
                     <SolidColorBrush x:Key="IosFieldFill">#1F767680</SolidColorBrush>
-                    <SolidColorBrush x:Key="IosSwitchOffFill">#29787880</SolidColorBrush>
+                    <SolidColorBrush x:Key="IosSwitchOffFill">#CBCBCD</SolidColorBrush>
                     <SolidColorBrush x:Key="IosMarkOffBorder">#4D3C3C43</SolidColorBrush>
+                    <SolidColorBrush x:Key="IosSecondaryLabel">#85858B</SolidColorBrush>
+                    <SolidColorBrush x:Key="IosTertiaryLabel">#C5C5C7</SolidColorBrush>
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Dark">
                     <SolidColorBrush x:Key="IosControlFill">#3D767680</SolidColorBrush>
                     <SolidColorBrush x:Key="IosControlFillPressed">#5C767680</SolidColorBrush>
                     <SolidColorBrush x:Key="IosFieldFill">#3D767680</SolidColorBrush>
-                    <SolidColorBrush x:Key="IosSwitchOffFill">#52787880</SolidColorBrush>
+                    <SolidColorBrush x:Key="IosSwitchOffFill">#39393D</SolidColorBrush>
                     <SolidColorBrush x:Key="IosMarkOffBorder">#5CEBEBF5</SolidColorBrush>
+                    <SolidColorBrush x:Key="IosSecondaryLabel">#98989F</SolidColorBrush>
+                    <SolidColorBrush x:Key="IosTertiaryLabel">#5A5A5E</SolidColorBrush>
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 
@@ -654,6 +659,52 @@
     </Style>
 
     <Style Selector=":is(TopLevel).appleControls">
+        <!--
+            Settings follow the iOS grouped list: system text, lighter cells on the grouped background,
+            gray section headers, and footnotes at the row inset.
+        -->
+        <Style Selector="^ views|SettingsPageView, ^ shell|InitialSetupView">
+            <Setter Property="FontFamily" Value="{DynamicResource AppMacControlFontFamily}" />
+            <!-- The system font is shaped at its widest optical size; this restores its text spacing. -->
+            <Setter Property="LetterSpacing" Value="0.55" />
+            <Style Selector="^ Border.settingsGroup">
+                <Setter Property="Background" Value="{DynamicResource AppGroupedCellBrush}" />
+            </Style>
+        </Style>
+        <!-- Groups stand further apart than their rows; a joined pair stays one panel. -->
+        <Style Selector="^ Border.settingsGroup:not(.joinedBelow)">
+            <Setter Property="Margin" Value="0,0,0,14" />
+        </Style>
+        <Style Selector="^ TextBlock.settingName">
+            <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}" />
+        </Style>
+        <Style Selector="^ TextBlock.settingDescription">
+            <Setter Property="Foreground" Value="{DynamicResource IosSecondaryLabel}" />
+        </Style>
+        <Style Selector="^ TextBlock.settingsTitle, ^ TextBlock.settingsSectionTitle">
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="LetterSpacing" Value="1" />
+            <Setter Property="Foreground" Value="{DynamicResource IosSecondaryLabel}" />
+            <Setter Property="Padding" Value="20,6,20,0" />
+        </Style>
+        <Style Selector="^ TextBlock.settingsSubtitle, ^ TextBlock.settingsNote, ^ TextBlock.settingsCaption">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource IosSecondaryLabel}" />
+            <Setter Property="Padding" Value="20,0" />
+        </Style>
+        <!-- Notes that carry a 2-DIP margin of their own keep the same inset. -->
+        <Style Selector="^ TextBlock.settingsNote.nudged, ^ TextBlock.settingsCaption.nudged">
+            <Setter Property="Padding" Value="18,0" />
+        </Style>
+        <!-- A link among the notes starts at their inset. -->
+        <Style Selector="^ Button.noteLink">
+            <Setter Property="Margin" Value="20,0" />
+        </Style>
+        <!-- Inside a group the row already insets them. -->
+        <Style Selector="^ Border.settingsGroup TextBlock.settingsNote, ^ Border.settingsGroup TextBlock.settingsCaption, ^ Border.settingsGroup TextBlock.settingsSubtitle">
+            <Setter Property="Padding" Value="0" />
+        </Style>
+
         <!-- Settings groups take the inset grouped list shape: 26-DIP corners and 20-DIP row insets. -->
         <Style Selector="^ Border.settingsGroup">
             <Setter Property="CornerRadius" Value="26" />
@@ -789,6 +840,10 @@
                     <Setter Property="Background" Value="Transparent" />
                 </Style>
             </Style>
+        </Style>
+        <!-- In a settings row the chosen value reads as the row's value, in the secondary label color. -->
+        <Style Selector="^ ContentControl.settingAction ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource IosSecondaryLabel}" />
         </Style>
         <Style Selector="^ ComboBoxItem">
             <Setter Property="FontSize" Value="17" />

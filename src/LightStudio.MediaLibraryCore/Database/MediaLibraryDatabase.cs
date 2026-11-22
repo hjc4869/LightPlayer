@@ -1157,6 +1157,15 @@ CREATE INDEX IF NOT EXISTS ""IX_ImageFiles_BrowseName"" ON ""ImageFiles"" (""Fil
         return await ReadImageFilesAsync(cmd, cancellationToken: cancellationToken);
     }
 
+    /// <summary>Finds a picture by its identifier, or <see langword="null"/>.</summary>
+    public async Task<DbImageFile> GetImageFileByPathAsync(string path, CancellationToken cancellationToken = default)
+    {
+        await using var cmd = CreateCommand($"SELECT {ImageFileColumns} FROM ImageFiles WHERE Path = $path LIMIT 1;");
+        cmd.Parameters.AddWithValue("$path", string.IsNullOrEmpty(path) ? DBNull.Value : path);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken: cancellationToken);
+        return await reader.ReadAsync(cancellationToken: cancellationToken) ? ReadImageFile(reader) : null;
+    }
+
     public async Task<List<DbImageFile>> SearchImageFilesAsync(string likePattern, CancellationToken cancellationToken = default)
     {
         await using var cmd = CreateCommand($"SELECT {ImageFileColumns} FROM ImageFiles WHERE FileName LIKE $kw ESCAPE '\\' " +

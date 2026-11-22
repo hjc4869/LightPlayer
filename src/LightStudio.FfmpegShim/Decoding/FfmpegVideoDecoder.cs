@@ -40,6 +40,10 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
     // into reading frames back.
     private const int SurfaceHeadroom = 8;
 
+    // Surfaces the renderer has yet to let go of after their frame left the screen: the draw the
+    // compositor still holds, one on its way to it, and a GPU read not yet seen to finish, plus a spare.
+    private const int RenderHeldSurfaces = 4;
+
     // Fewer than this and the renderer runs dry between decodes; more and nothing is gained, while
     // every entry is another whole frame of video memory reserved for the life of the stream.
     private const int MinimumSharedSurfaces = 6;
@@ -168,6 +172,12 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
     private double decodeFrameTimeMilliseconds;
     private double estimatedDecodeLatencyMilliseconds;
 
+    // A hardware AV1 context stays sized for the sequence it started on, so a larger sequence waits
+    // here with its keyframe while the old context drains, and then gets a context of its own.
+    private AVPacket* rebuildPacket;
+    private int sequenceWidth;
+    private int sequenceHeight;
+
     public FfmpegVideoDecoder(IPacketSource packetSource, VideoDecoderOptions options = null)
     {
         ArgumentNullException.ThrowIfNull(packetSource);
@@ -230,6 +240,10 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         try
         {
             codec = OpenCodec();
+
+            // Only the first context can start at the start of the track; the software fallback and
+            // rebuilds are created mid-stream, where priming no longer applies.
+            codecParameters->initial_padding = 0;
 
             frame = av_frame_alloc();
             if (frame == null)
@@ -782,12 +796,13 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
     private int ReserveSurfaces()
     {
         long bytes = SurfaceBytes();
+        long admitted = options.FramePoolSize + RenderHeldSurfaces;
         long affordable = bytes > 0 && options.FramePoolByteCapacity > 0
             ? (options.FramePoolByteCapacity / bytes) + SurfaceHeadroom
-            : options.FramePoolSize;
+            : admitted;
 
         return (int)Math.Clamp(
-            Math.Min(options.FramePoolSize, affordable),
+            Math.Min(admitted, affordable),
             MinimumSharedSurfaces,
             MaximumSharedSurfaces);
     }
@@ -1190,6 +1205,8 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         if (disposed)
             return;
 
+        // A seek abandons a pending rebuild; the next keyframe is checked again.
+        FreeRebuildPacket();
         avcodec_flush_buffers(codec);
         enhancementDecoder?.Flush();
         alphaAdditionDecoder?.Flush();
@@ -1242,6 +1259,13 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
                 : DecoderStatus.Ok;
         }
 
+        if (rebuildPacket != null)
+            return DecoderStatus.NeedMoreInput;
+
+        AdoptNewExtradata(packet.Handle);
+        if (NeedsLargerSequence(packet))
+            return BeginRebuild(context, packet);
+
         int ret = avcodec_send_packet(context, packet.Handle);
         if (ret >= 0)
         {
@@ -1268,6 +1292,116 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
         // Corrupt packets and mid-stream parameter changes surface here; the decoder resynchronizes
         // at the next keyframe, so playback continues rather than failing.
         return ClassifyDecodeError(ret);
+    }
+
+    /// <summary>
+    /// Keeps codec setup a packet brings as new-extradata side data, so a context built later -- the
+    /// software fallback or a rebuild -- starts from the setup the stream is actually using.
+    /// </summary>
+    private void AdoptNewExtradata(AVPacket* packet)
+    {
+        nuint size = 0;
+        byte* extradata = av_packet_get_side_data(packet, AVPacketSideDataType.AV_PKT_DATA_NEW_EXTRADATA, &size);
+        if (extradata == null || size == 0 || size > int.MaxValue / 2 || codecParameters == null)
+            return;
+
+        var incoming = new ReadOnlySpan<byte>(extradata, (int)size);
+        if (codecParameters->extradata != null &&
+            incoming.SequenceEqual(new ReadOnlySpan<byte>(codecParameters->extradata, codecParameters->extradata_size)))
+        {
+            return;
+        }
+
+        // Decoders read past the end of extradata, so the copy carries FFmpeg's padding.
+        int total = (int)size + AV_INPUT_BUFFER_PADDING_SIZE;
+        var copy = (byte*)av_malloc((nuint)total);
+        if (copy == null)
+            throw new OutOfMemoryException("Could not copy new codec extradata.");
+        new Span<byte>(copy, total).Clear();
+        incoming.CopyTo(new Span<byte>(copy, (int)size));
+        av_freep(&codecParameters->extradata);
+        codecParameters->extradata = copy;
+        codecParameters->extradata_size = (int)size;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="packet"/> is a keyframe of a hardware-decoded AV1 stream whose sequence
+    /// is larger than the one the current context was sized for. The first sequence a context sees
+    /// sizes it, so only growth after that counts.
+    /// </summary>
+    private bool NeedsLargerSequence(MediaPacket packet)
+    {
+        if (!usingHardwareDecoder || !packet.IsKeyFrame || packet.Handle->data == null ||
+            codecParameters == null || codecParameters->codec_id != AVCodecID.AV_CODEC_ID_AV1 ||
+            !ImageEncoding.Av1Bitstream.TryReadSequenceSize(
+                new ReadOnlySpan<byte>(packet.Handle->data, packet.Handle->size), out int width, out int height))
+        {
+            return false;
+        }
+
+        bool first = sequenceWidth == 0;
+        bool grows = !first && (width > sequenceWidth || height > sequenceHeight);
+        sequenceWidth = Math.Max(sequenceWidth, width);
+        sequenceHeight = Math.Max(sequenceHeight, height);
+        return grows;
+    }
+
+    private DecoderStatus BeginRebuild(AVCodecContext* context, MediaPacket packet)
+    {
+        rebuildPacket = av_packet_clone(packet.Handle);
+        if (rebuildPacket == null)
+            throw new OutOfMemoryException("Could not hold the keyframe of a larger AV1 sequence.");
+
+        AppLog.Information(
+            "FFmpeg.Decode",
+            $"#{id} AV1 sequence grows to {sequenceWidth}x{sequenceHeight}; draining the hardware decoder to rebuild it.");
+        int drain = avcodec_send_packet(context, null);
+        if (drain < 0 && !FfmpegError.IsEndOfFile(drain))
+            return CompleteRebuild() == DecoderStatus.Ok ? DecoderStatus.Ok : DecoderStatus.Recovered;
+        return DecoderStatus.Ok;
+    }
+
+    /// <summary>Opens a context for the larger sequence and hands it the keyframe that brought it.</summary>
+    private DecoderStatus CompleteRebuild()
+    {
+        AVPacket* pending = rebuildPacket;
+        rebuildPacket = null;
+        try
+        {
+            codecParameters->width = sequenceWidth;
+            codecParameters->height = sequenceHeight;
+            Width = sequenceWidth;
+            Height = sequenceHeight;
+            ReleaseCodec(codec);
+            if (transferredFrame != null)
+            {
+                AVFrame* handle = transferredFrame;
+                av_frame_free(&handle);
+                transferredFrame = null;
+            }
+
+            codec = OpenCodec();
+            lastPts = MediaTime.NoTimestamp;
+            deliveryPath = VideoFrameDeliveryPath.Unknown;
+            deliveredSampleFormat = AVPixelFormat.AV_PIX_FMT_NONE;
+            deliveredFormat = null;
+            PublishDiagnostics();
+            int sent = avcodec_send_packet(codec, pending);
+            return sent >= 0 ? DecoderStatus.Ok : ClassifyDecodeError(sent);
+        }
+        finally
+        {
+            av_packet_free(&pending);
+        }
+    }
+
+    private void FreeRebuildPacket()
+    {
+        if (rebuildPacket == null)
+            return;
+        AVPacket* pending = rebuildPacket;
+        rebuildPacket = null;
+        av_packet_free(&pending);
     }
 
     private void SendAlphaAddition(AVPacket* value)
@@ -1311,6 +1445,12 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
 
         if (FfmpegError.IsEndOfFile(ret))
         {
+            if (rebuildPacket != null)
+            {
+                DecoderStatus rebuilt = CompleteRebuild();
+                return rebuilt == DecoderStatus.Ok ? ReceiveCore(out decoded) : rebuilt;
+            }
+
             return DecoderStatus.EndOfStream;
         }
 
@@ -2407,6 +2547,7 @@ public sealed unsafe partial class FfmpegVideoDecoder : IVideoDecoder
             transferredFrame = null;
         }
 
+        FreeRebuildPacket();
         ReleaseCodec(codec);
         enhancementDecoder?.Dispose();
         enhancementDecoder = null;

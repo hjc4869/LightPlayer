@@ -213,6 +213,13 @@ public interface IAppSettingsStore
 
     void SetRemoteApiSettings(RemoteApiSettings settings);
 
+    /// <summary>Desktop browser link listener configuration. Inert on non-desktop heads.</summary>
+    BrowserLinkSettings BrowserLinkSettings { get; }
+
+    void SetBrowserLinkSettings(BrowserLinkSettings settings);
+
+    event EventHandler? BrowserLinkSettingsChanged;
+
     /// <summary>
     /// What this device asks a server to re-encode for it. Read whenever a remote video is opened;
     /// inert while the device is playing its own library.

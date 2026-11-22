@@ -15,6 +15,7 @@
     <x:Double x:Key="AppSettingDescriptionFontSize">12</x:Double>
     <Thickness x:Key="AppSettingRowPadding">16,12</Thickness>
     <x:Double x:Key="AppSettingRowMinHeight">0</x:Double>
+    <x:Double x:Key="AppSettingActionWidthScale">1</x:Double>
 
     <ResourceDictionary.ThemeDictionaries>
         <!-- Light variant -->
@@ -36,6 +37,8 @@
             <SolidColorBrush x:Key="AppAccentBrush" Color="#3C6E57" />
             <SolidColorBrush x:Key="AppPageBackgroundBrush" Color="#F6F5F1" />
             <SolidColorBrush x:Key="AppPanelBackgroundBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="AppGroupedBackgroundBrush" Color="#F6F5F1" />
+            <SolidColorBrush x:Key="AppGroupedCellBrush" Color="#FFFFFF" />
             <SolidColorBrush x:Key="AppNavBackgroundBrush" Color="#EFEDE6" />
             <SolidColorBrush x:Key="AppPlaybackBarBackgroundBrush" Color="#FBFAF7" />
             <SolidColorBrush x:Key="AppPrimaryTextBrush" Color="#1A211D" />
@@ -82,6 +85,8 @@
             <SolidColorBrush x:Key="AppAccentBrush" Color="#7FC6A6" />
             <SolidColorBrush x:Key="AppPageBackgroundBrush" Color="#16191A" />
             <SolidColorBrush x:Key="AppPanelBackgroundBrush" Color="#1E2123" />
+            <SolidColorBrush x:Key="AppGroupedBackgroundBrush" Color="#16191A" />
+            <SolidColorBrush x:Key="AppGroupedCellBrush" Color="#1E2123" />
             <SolidColorBrush x:Key="AppNavBackgroundBrush" Color="#202425" />
             <SolidColorBrush x:Key="AppPlaybackBarBackgroundBrush" Color="#1B1E1F" />
             <SolidColorBrush x:Key="AppPrimaryTextBrush" Color="#F0F2EF" />

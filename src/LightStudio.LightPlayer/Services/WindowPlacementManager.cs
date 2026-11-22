@@ -5,7 +5,7 @@ using Avalonia.Controls;
 namespace LightStudio.LightPlayer.Services;
 
 /// <summary>
-/// Restores and persists the desktop main window's size and maximized state across launches.
+/// Restores and persists a desktop window's size and maximized state across launches.
 ///
 /// On close the current placement is written to the shell state store. On open a saved maximized
 /// state is restored directly; a saved windowed size is only reapplied when it still fits the screen
@@ -42,7 +42,7 @@ public sealed class WindowPlacementManager
         window.PropertyChanged += OnWindowPropertyChanged;
     }
 
-    /// <summary>Wires size/maximized persistence onto the desktop main window.</summary>
+    /// <summary>Wires size/maximized persistence onto a desktop window.</summary>
     public static void Attach(Window window, IShellStateStore store) =>
         _ = new WindowPlacementManager(window, store);
 

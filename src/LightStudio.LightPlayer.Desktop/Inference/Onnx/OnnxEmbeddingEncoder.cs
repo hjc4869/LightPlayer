@@ -14,6 +14,8 @@ internal sealed class OnnxEmbeddingEncoder : IEmbeddingInferenceSession
     private readonly InferenceSession session;
     private readonly EmbeddingPreprocessor preprocessing;
     private readonly int sequenceLength;
+    private EmbeddingMatchCalibration? calibration;
+    private bool calibrated;
 
     public int EmbeddingDimensions { get; }
     public int ImageSize => Math.Max(preprocessing.Width, preprocessing.Height);
@@ -83,7 +85,48 @@ internal sealed class OnnxEmbeddingEncoder : IEmbeddingInferenceSession
         return Enumerable.Range(0, images.Count).Select(index => embeddings.AsSpan(index * EmbeddingDimensions, EmbeddingDimensions).ToArray()).ToArray();
     }
 
+    public EmbeddingMatchCalibration? GetMatchCalibration(CancellationToken cancellationToken)
+    {
+        if (calibrated)
+            return calibration;
+        if (preprocessing.HasMatchProbability && session.OutputMetadata.ContainsKey("logits_per_text"))
+        {
+            // The logit is linear in the cosine similarity, so two texts scored against one image recover its scale and bias.
+            var pixels = new float[3 * preprocessing.Width * preprocessing.Height];
+            var first = Probe("a plain gray background");
+            var second = Probe("a crowded city street at night with neon signs");
+            var scale = (first.Logit - second.Logit) / (first.Similarity - second.Similarity);
+            var bias = first.Logit - scale * first.Similarity;
+            if (Math.Abs(first.Similarity - second.Similarity) < 0.001 || !double.IsFinite(scale) || !double.IsFinite(bias) || scale <= 0)
+                throw new InvalidDataException("The model returned inconsistent match logits.");
+            calibration = new EmbeddingMatchCalibration(scale, bias);
+
+            (double Similarity, double Logit) Probe(string text)
+            {
+                var outputs = Run(pixels, Tokenize(text), ["text_embeds", "image_embeds", "logits_per_text"], cancellationToken, 1);
+                EmbeddingPreprocessor.Normalize(outputs[0], 1, EmbeddingDimensions);
+                EmbeddingPreprocessor.Normalize(outputs[1], 1, EmbeddingDimensions);
+                double similarity = 0;
+                for (var index = 0; index < EmbeddingDimensions; index++)
+                    similarity += (double)outputs[0][index] * outputs[1][index];
+                if (outputs[2].Length != 1)
+                    throw new InvalidDataException("The model returned match logits with invalid dimensions.");
+                return (similarity, outputs[2][0]);
+            }
+        }
+        calibrated = true;
+        return calibration;
+    }
+
     private float[] Execute(float[] pixels, long[] tokens, string output, CancellationToken cancellationToken, int imageCount = 1)
+    {
+        var embedding = Run(pixels, tokens, [output], cancellationToken, imageCount)[0];
+        EmbeddingPreprocessor.Normalize(embedding, output == "image_embeds" ? imageCount : 1, EmbeddingDimensions);
+        cancellationToken.ThrowIfCancellationRequested();
+        return embedding;
+    }
+
+    private float[][] Run(float[] pixels, long[] tokens, string[] outputs, CancellationToken cancellationToken, int imageCount)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var inputs = new Dictionary<string, OrtValue>();
@@ -107,15 +150,11 @@ internal sealed class OnnxEmbeddingEncoder : IEmbeddingInferenceSession
             }
             else
                 inputs["pixel_values"] = OrtValue.CreateTensorValueFromMemory(pixels, imageShape);
-            using var results = session.Run(options, inputs, [output]);
-            var result = results[0];
-            var embedding = result.GetTensorTypeAndShape().ElementDataType == Microsoft.ML.OnnxRuntime.Tensors.TensorElementType.Float16
-                ? result.GetTensorDataAsSpan<Float16>().ToArray().Select(value => (float)value).ToArray()
-                : result.GetTensorDataAsSpan<float>().ToArray();
-            var count = output == "image_embeds" ? imageCount : 1;
-            EmbeddingPreprocessor.Normalize(embedding, count, EmbeddingDimensions);
-            cancellationToken.ThrowIfCancellationRequested();
-            return embedding;
+            using var results = session.Run(options, inputs, outputs);
+            return results.Select(result =>
+                result.GetTensorTypeAndShape().ElementDataType == Microsoft.ML.OnnxRuntime.Tensors.TensorElementType.Float16
+                    ? result.GetTensorDataAsSpan<Float16>().ToArray().Select(value => (float)value).ToArray()
+                    : result.GetTensorDataAsSpan<float>().ToArray()).ToArray();
         }
         catch (OnnxRuntimeException) when (cancellationToken.IsCancellationRequested)
         {

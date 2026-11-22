@@ -250,6 +250,9 @@ public static class PlatformServices
     /// <summary>Desktop-owned controller used to apply HTTP server settings immediately.</summary>
     public static IRemoteApiServerController? RemoteApiServerController { get; set; }
 
+    /// <summary>Desktop listener that lets a browser extension redirect page video; null on other heads.</summary>
+    public static IBrowserLinkController? BrowserLink { get; set; }
+
     /// <summary>
     /// Platform observer for proactively staging playback state before host lifecycle events.
     /// Browser registers this because unload handlers cannot call synchronously into managed code.
@@ -285,6 +288,14 @@ public static class PlatformServices
     /// own implementation.
     /// </summary>
     public static IFileRevealService? FileRevealService { get; set; }
+
+    /// <summary>Whether "Open containing folder" applies to <paramref name="category"/> items of a library source.</summary>
+    public static bool CanRevealFiles(Models.LibrarySourceId sourceId, LibraryMediaCategory category) =>
+        SupportsLocalFileAccess && sourceId.IsLocal &&
+        LibrarySources?.TryGetSource(sourceId, out var source) == true &&
+        (category == LibraryMediaCategory.Music
+            ? source.Capabilities.SupportsMusicFileReveal
+            : source.Capabilities.SupportsFileReveal);
 
     /// <summary>
     /// Platform hook for "Open with" and "Share". Left null, the shared bootstrapper falls back to

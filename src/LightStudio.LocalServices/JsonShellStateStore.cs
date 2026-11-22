@@ -172,6 +172,16 @@ public sealed class JsonShellStateStore : IShellStateStore
         }
     }
 
+    public IReadOnlyList<string> RecentSearches
+    {
+        get => state.RecentSearches;
+        set
+        {
+            state.RecentSearches = [.. value];
+            Save();
+        }
+    }
+
     private static PersistedShellState Load(string path)
     {
         try
@@ -230,6 +240,8 @@ public sealed class PersistedShellState
     public PersistedWindowPlacement? WindowPlacement { get; set; }
 
     public PersistedPictureInPicturePlacement? PictureInPicturePlacement { get; set; }
+
+    public List<string> RecentSearches { get; set; } = [];
 }
 
 public sealed class PersistedPictureInPicturePlacement

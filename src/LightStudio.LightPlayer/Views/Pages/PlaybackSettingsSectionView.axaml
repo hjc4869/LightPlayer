@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
              xmlns:services="using:LightStudio.LightPlayer.Services"
              xmlns:views="using:LightStudio.LightPlayer.Views.Pages"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
@@ -15,10 +16,13 @@
         <StackPanel Margin="{Binding ContentMargin}"
                     Spacing="10">
             <StackPanel>
-                <ContentControl Content="{Binding AudioSettings}"
-                                IsVisible="{x:Static services:PlatformServices.SupportsAudioOutputSettings}" />
-                <ContentControl Content="{Binding SampleRate}"
-                                IsVisible="{x:Static services:PlatformServices.SupportsSampleRateSettings}" />
+                <!-- The output and sample rate groups join into one panel, whose rows rearrange together. -->
+                <StackPanel controls:SettingRowPanel.IsRowGroup="True">
+                    <ContentControl Content="{Binding AudioSettings}"
+                                    IsVisible="{x:Static services:PlatformServices.SupportsAudioOutputSettings}" />
+                    <ContentControl Content="{Binding SampleRate}"
+                                    IsVisible="{x:Static services:PlatformServices.SupportsSampleRateSettings}" />
+                </StackPanel>
                 <Panel IsVisible="{Binding HasAudioSeparation}">
                     <views:AudioSeparationSettingsView DataContext="{Binding AudioSeparation}" />
                 </Panel>

@@ -1,12 +1,10 @@
 using System.Collections.Generic;
-using Avalonia;
 
 namespace LightStudio.LightPlayer.ViewModels.Pages;
 
 public sealed class SettingsNavigationItemViewModel : ViewModelBase
 {
     private readonly string titleKey;
-    private bool isFirstInGroup;
     private bool isSelected;
 
     public SettingsNavigationItemViewModel(string titleKey, object content, string iconKey = "IconSettings")
@@ -22,7 +20,7 @@ public sealed class SettingsNavigationItemViewModel : ViewModelBase
         Children = children;
         for (var index = 0; index < children.Length; index++)
         {
-            children[index].isFirstInGroup = index == 0;
+            children[index].IsFirstInGroup = index == 0;
             children[index].IsLastInGroup = index == children.Length - 1;
         }
     }
@@ -33,6 +31,7 @@ public sealed class SettingsNavigationItemViewModel : ViewModelBase
     public object? Content { get; }
     public IReadOnlyList<SettingsNavigationItemViewModel> Children { get; } = [];
     public bool IsCategory => Content is null;
+    public bool IsFirstInGroup { get; private set; } = true;
     public bool IsLastInGroup { get; private set; } = true;
 
     /// <summary>Whether this is the open section, highlighted in the sidebar.</summary>
@@ -41,12 +40,6 @@ public sealed class SettingsNavigationItemViewModel : ViewModelBase
         get => isSelected;
         set => SetProperty(ref isSelected, value);
     }
-
-    public CornerRadius GroupCornerRadius => new(
-        isFirstInGroup ? 8 : 0,
-        isFirstInGroup ? 8 : 0,
-        IsLastInGroup ? 8 : 0,
-        IsLastInGroup ? 8 : 0);
 }
 
 public sealed class SettingsContentSectionViewModel(string titleKey, object content)

@@ -53,10 +53,10 @@
   </screenshots>
 
   <releases>
-    <release version="2.1.3" date="2026-11-09">
-      <url type="details">https://github.com/hjc4869/LightPlayer/releases/tag/v2.1.3</url>
+    <release version="2.2.0" date="2026-11-23">
+      <url type="details">https://github.com/hjc4869/LightPlayer/releases/tag/v2.2.0</url>
       <description>
-        <p>Light Media Center 2.1.3 delivers smoother photo viewing with lower memory usage.</p>
+        <p>Light Media Center 2.2 adds a browser extension for watching web videos in the app, a redesigned search page, and a more polished interface on iPhone and iPad.</p>
       </description>
     </release>
   </releases>

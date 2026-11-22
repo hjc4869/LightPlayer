@@ -105,7 +105,11 @@ public partial class VideoPlayerPageView : UserControl
         PlaylistPanel.RenderTransform = playlistOffset;
         playlistGlide = new Glide(this, ApplyPlaylistOffset);
 
-        uiTimer.Tick += (_, _) => ViewModel?.Tick(draggingSeekBar);
+        uiTimer.Tick += (_, _) =>
+        {
+            ViewModel?.Tick(draggingSeekBar);
+            ViewModel?.UpdateVideoSurface(Video.Bounds.Size, TopLevel.GetTopLevel(this)?.RenderScaling ?? 1, Video.VideoSize);
+        };
         hideControlsTimer.Tick += (_, _) => HideControls();
         tapHideTimer.Tick += (_, _) => HideControlsNow();
         clickPlayPauseTimer.Tick += (_, _) => CommitClickPlayPause();

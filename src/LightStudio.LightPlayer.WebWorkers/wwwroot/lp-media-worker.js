@@ -1,6 +1,5 @@
 // Shared media runtime: playback stays on the managed owner thread; bounded background jobs decode photos
 // and inspect media. This script owns source transport, timers, pump scheduling and WebCodecs.
-import { dotnet } from "./_framework/dotnet.js";
 import { WorkerSources } from "./source-bridge.js";
 import { PhotoDecoders } from "./photo-codecs.js";
 
@@ -34,6 +33,10 @@ const photos = new PhotoDecoders(async request => {
 }, codecConfig);
 
 const ready = (async () => {
+    // The threaded loader starts as a pthread of another runtime in any worker that has not declared
+    // itself the runtime's host before the loader is evaluated.
+    globalThis.dotnetSidecar = true;
+    const { dotnet } = await import("./_framework/dotnet.js");
     runtime = await dotnet
         .withEnvironmentVariables({
             DOTNET_PROCESSOR_COUNT: String(threadLimit),

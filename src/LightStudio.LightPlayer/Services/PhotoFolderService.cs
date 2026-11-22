@@ -20,9 +20,17 @@ public sealed record PhotoFileReference(LibrarySourceId Source, string Path, str
     DateTimeOffset LastModifiedUtc = default, DateTimeOffset? CreatedUtc = null, DateTimeOffset? DateTaken = null,
     string? Country = null, string? State = null, string? City = null)
 {
-    /// <summary>The picture with the capture date and location recorded by the library index.</summary>
+    /// <summary>Stored pixel width recorded by the library index, before any orientation is applied; 0 when unknown.</summary>
+    public int PixelWidth { get; init; }
+
+    /// <inheritdoc cref="PixelWidth"/>
+    public int PixelHeight { get; init; }
+
+    /// <summary>The picture with the pixel size, capture date and location recorded by the library index.</summary>
     public PhotoFileReference WithIndexedMetadata(DbImageFile image) => this with
     {
+        PixelWidth = image.Width,
+        PixelHeight = image.Height,
         DateTaken = image.DateTaken,
         Country = image.Country,
         State = image.State,

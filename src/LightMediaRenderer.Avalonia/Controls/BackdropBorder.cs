@@ -97,11 +97,14 @@ public sealed class BackdropBorder : Decorator
         AvaloniaProperty.Register<BackdropBorder, double>(nameof(GlassFrost),
             coerce: static (_, value) => double.IsFinite(value) ? Math.Clamp(value, 0, 1) : 0);
 
+    public static readonly StyledProperty<bool> IsLensProperty =
+        AvaloniaProperty.Register<BackdropBorder, bool>(nameof(IsLens));
+
     static BackdropBorder()
     {
         AffectsRender<BackdropBorder>(CornerRadiusProperty, BorderBrushProperty, BoxShadowProperty, BackdropStyleProperty,
             IsForegroundBoostEnabledProperty, FallbackColorProperty, TintColorProperty, GlassTintStrengthProperty,
-            GlassFrostProperty);
+            GlassFrostProperty, IsLensProperty);
     }
 
     public CornerRadius CornerRadius
@@ -169,6 +172,16 @@ public sealed class BackdropBorder : Decorator
     {
         get => GetValue(GlassFrostProperty);
         set => SetValue(GlassFrostProperty, value);
+    }
+
+    /// <summary>
+    /// Whether <see cref="BackdropStyle.LiquidGlass"/> is a lens: its face shows what lies beneath it sharply and
+    /// in place, and its edge gathers the surroundings into a narrow band.
+    /// </summary>
+    public bool IsLens
+    {
+        get => GetValue(IsLensProperty);
+        set => SetValue(IsLensProperty, value);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -409,7 +422,7 @@ public sealed class BackdropBorder : Decorator
             BackdropRepaint? repaint = root is null ? null : repaints.GetValue(root, static root => new BackdropRepaint(root));
             context.Custom(new BackdropDrawOperation(new Rect(Bounds.Size), CornerRadius,
                 BackdropStyle, IsForegroundBoostEnabled, FallbackColor, TintColor, GlassTintStrength, GlassFrost,
-                shadows.Count == 0, foregroundState, root is null ? default : root.ClientSize * root.RenderScaling,
+                IsLens, shadows.Count == 0, foregroundState, root is null ? default : root.ClientSize * root.RenderScaling,
                 roundedClips,
                 repaint is null ? null : () =>
                 {
@@ -660,6 +673,7 @@ public sealed class BackdropBorder : Decorator
         Color tintColor,
         double glassTintStrength,
         double glassFrost,
+        bool isLens,
         bool hasGlassShadow,
         ForegroundState foregroundState,
         Size surfacePixelSize,
@@ -670,6 +684,7 @@ public sealed class BackdropBorder : Decorator
         Action? requestClipRefresh) : ICustomDrawOperation
     {
         private static readonly Lazy<SKRuntimeEffect?> GlassEffect = new(CreateGlassEffect);
+        private static readonly Lazy<SKRuntimeEffect?> LensEffect = new(CreateLensEffect);
         private static readonly Lazy<SKRuntimeEffect?> OpacityEffect = new(CreateOpacityEffect);
         private static readonly Lazy<SKRuntimeEffect?> ForegroundEffect = new(CreateForegroundEffect);
         private GRContext? foregroundContext;
@@ -937,7 +952,9 @@ public sealed class BackdropBorder : Decorator
                 paint.Blender = blender;
                 if (resolved == BackdropStyle.LiquidGlass)
                 {
-                    return DrawGlass(lease, backdrop, blur, capture, transform, rounded, paint);
+                    return isLens
+                        ? DrawLens(lease, backdrop, capture, transform, rounded, paint)
+                        : DrawGlass(lease, backdrop, blur, capture, transform, rounded, paint);
                 }
 
                 canvas.ClipRoundRect(rounded, SKClipOperation.Intersect, true);
@@ -1155,9 +1172,49 @@ public sealed class BackdropBorder : Decorator
             if (shader is null)
                 return false;
 
+            DrawMaterial(lease, rounded, paint, shader);
+            return true;
+        }
+
+        // A lens shows the captured pixels through its face and gathers its surroundings along its edge.
+        private bool DrawLens(ISkiaSharpApiLease lease, SKImage backdrop, SKRectI capture, SKMatrix transform,
+            SKRoundRect rounded, SKPaint paint)
+        {
+            if (LensEffect.Value is not { } effect)
+                return false;
+
+            SKRect rectangle = rounded.Rect;
+            using SKShader input = backdrop.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
+                new SKSamplingOptions(SKFilterMode.Linear));
+            if (foregroundPeak > 1)
+                foregroundBackdrop = backdrop.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp,
+                    new SKSamplingOptions(SKFilterMode.Linear));
+            var uniforms = new SKRuntimeEffectUniforms(effect)
+            {
+                ["size"] = new[] { rectangle.Width, rectangle.Height },
+                ["corners"] = new[]
+                {
+                    (float)cornerRadius.TopLeft, (float)cornerRadius.TopRight,
+                    (float)cornerRadius.BottomRight, (float)cornerRadius.BottomLeft,
+                },
+                ["transformX"] = new[] { transform.ScaleX, transform.SkewX, transform.TransX - capture.Left },
+                ["transformY"] = new[] { transform.SkewY, transform.ScaleY, transform.TransY - capture.Top },
+                ["lightAppearance"] =
+                    fallbackColor.R * 0.2126f + fallbackColor.G * 0.7152f + fallbackColor.B * 0.0722f > 127.5f ? 1f : 0f,
+            };
+            using SKShader? shader = effect.ToShader(uniforms, new SKRuntimeEffectChildren(effect) { ["backdrop"] = input });
+            if (shader is null)
+                return false;
+
+            DrawMaterial(lease, rounded, paint, shader);
+            return true;
+        }
+
+        private void DrawMaterial(ISkiaSharpApiLease lease, SKRoundRect rounded, SKPaint paint, SKShader shader)
+        {
             if (hasGlassShadow)
             {
-                float shadowSigma = GlassShadowSigma(rectangle);
+                float shadowSigma = GlassShadowSigma(rounded.Rect);
                 using SKImageFilter shadow = SKImageFilter.CreateDropShadowOnly(0, shadowSigma * 1.5f,
                     shadowSigma, shadowSigma, ToSkColor(Color.FromArgb(18, 0, 0, 0), lease.CurrentOpacity));
                 int saved = lease.SkCanvas.Save();
@@ -1174,9 +1231,8 @@ public sealed class BackdropBorder : Decorator
             }
             lease.SkCanvas.ClipRoundRect(rounded, SKClipOperation.Intersect, true);
             paint.Shader = shader;
-            lease.SkCanvas.DrawRect(rectangle, paint);
+            lease.SkCanvas.DrawRect(rounded.Rect, paint);
             paint.Shader = null;
-            return true;
         }
 
         private static float GlassShadowSigma(SKRect rectangle) =>
@@ -1390,6 +1446,83 @@ public sealed class BackdropBorder : Decorator
                 """, out string errors);
             if (effect is null)
                 AppLog.Error("Appearance.Backdrop", $"Could not compile the liquid glass shader: {errors}");
+            return effect;
+        }
+
+        private static SKRuntimeEffect? CreateLensEffect()
+        {
+            SKRuntimeEffect? effect = SKRuntimeEffect.CreateShader("""
+                uniform shader backdrop;
+                uniform float2 size;
+                uniform float4 corners;
+                uniform float3 transformX;
+                uniform float3 transformY;
+                uniform float lightAppearance;
+
+                half4 sampleBackdrop(float2 position) {
+                    float3 local = float3(position, 1.0);
+                    return backdrop.eval(float2(dot(transformX, local), dot(transformY, local)));
+                }
+
+                // One sample of the spectrum: red bends slightly further than blue and the spread carries it
+                // along the rim; the weights of the seven samples add up to one in each channel.
+                half4 spectralSample(float2 position, float2 reach, float2 spread, float band, half3 weight) {
+                    half4 bent = sampleBackdrop(position + reach * (1.0 + 0.04 * band) + spread * band);
+                    return half4(bent.rgb * weight, bent.a / 7.0);
+                }
+
+                half4 main(float2 position) {
+                    float2 halfSize = size * 0.5;
+                    float2 centered = position - halfSize;
+                    float radius = centered.x < 0.0
+                        ? (centered.y < 0.0 ? corners.x : corners.w)
+                        : (centered.y < 0.0 ? corners.y : corners.z);
+                    radius = min(radius, min(halfSize.x, halfSize.y));
+                    float2 edge = abs(centered) - halfSize + radius;
+                    float2 outside = max(edge, 0.0);
+                    float outsideLength = length(outside);
+                    float distance = outsideLength + min(max(edge.x, edge.y), 0.0) - radius;
+                    float2 outward = outsideLength > 0.001
+                        ? outside / outsideLength * sign(centered)
+                        : (edge.x > edge.y ? float2(sign(centered.x), 0.0) : float2(0.0, sign(centered.y)));
+                    float depth = max(-distance, 0.0);
+                    float extent = min(halfSize.x, halfSize.y);
+
+                    // The face shows what lies beneath it in place and the rim meets its surroundings unbent, while
+                    // between them the lens draws from further out along an ellipse through the outline.
+                    float inset = depth / extent;
+                    float2 gradient = centered / (halfSize * halfSize);
+                    float2 normal = gradient / max(length(gradient), 0.000001);
+                    float rise = sin(1.5707963 * clamp((inset - 0.022) / 0.195, 0.0, 1.0));
+                    float bend = extent * 0.125 * rise * (1.0 - smoothstep(0.217, 0.65, inset));
+                    // Near the rim the spectrum spreads along it, red to one side and blue to the other.
+                    float2 spread = float2(normal.y, -normal.x) * (extent * 0.144 * (1.0 - smoothstep(0.19, 0.4, inset)));
+                    half4 color = spectralSample(position, normal * bend, spread, -1.0, half3(0.0, 0.0, 0.34))
+                        + spectralSample(position, normal * bend, spread, -0.667, half3(0.0, 0.07, 0.2))
+                        + spectralSample(position, normal * bend, spread, -0.333, half3(0.0, 0.15, 0.12))
+                        + spectralSample(position, normal * bend, spread, 0.0, half3(0.34, 0.56, 0.34))
+                        + spectralSample(position, normal * bend, spread, 0.333, half3(0.12, 0.15, 0.0))
+                        + spectralSample(position, normal * bend, spread, 0.667, half3(0.2, 0.07, 0.0))
+                        + spectralSample(position, normal * bend, spread, 1.0, half3(0.34, 0.0, 0.0));
+
+                    // A thin dark line follows the edge with the ends shaded inside it. Inside the line the light
+                    // treatment adds a fringe, cool along the sides and warm across the ends, and the dark one a glint.
+                    float across = outward.x * outward.x;
+                    float outline = exp(-pow((depth - 0.3) / 0.4, 2.0)) * (1.0 + 0.86 * across);
+                    float fringe = exp(-pow((depth - 1.1) / 0.6, 2.0));
+                    half3 lit = toLinearSrgb(color.rgb / max(color.a, 0.0001));
+                    lit *= (1.0 - mix(0.45, 0.29, lightAppearance) * outline)
+                        * (1.0 - (0.02 + 0.09 * across) * (1.0 - smoothstep(3.5, 13.0, depth)));
+                    half3 tinted = lit * half3(1.0 - 0.12 * fringe * (1.0 - across), 1.0, 1.0 - 0.2 * fringe * across);
+                    half3 glint = half3(0.058 * exp(-pow((depth - 2.4) / 0.45, 2.0)),
+                        0.078 * exp(-pow((depth - 1.9) / 0.45, 2.0)), 0.046 * exp(-pow((depth - 1.8) / 0.45, 2.0)));
+                    lit = mix(lit + glint * (1.0 - across), tinted, half(lightAppearance));
+                    color.rgb = fromLinearSrgb(lit) * color.a;
+                    return color;
+                }
+                """, out string errors);
+            if (effect is null)
+                AppLog.Error("Appearance.Backdrop", $"Could not compile the lens shader: {errors}");
             return effect;
         }
 

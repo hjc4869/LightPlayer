@@ -3,6 +3,7 @@
              xmlns:strings="using:LightStudio.LightPlayer.Strings"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
              xmlns:media="using:Avalonia.Media"
              xmlns:services="using:LightStudio.LightPlayer.Services"
              xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
@@ -11,9 +12,123 @@
              d:DesignHeight="720"
              x:Class="LightStudio.LightPlayer.Views.Pages.ThemeSettingsSectionView"
              x:DataType="vm:ThemeSettingsSectionViewModel">
+    <UserControl.Resources>
+        <!-- Appearance mocks shared by the mode rows and the touch mode tiles. -->
+        <DataTemplate x:Key="LightModeMock">
+            <Border Width="72" Height="48" CornerRadius="6"
+                    Background="#FFFFFF" BorderBrush="#E2DFD5" BorderThickness="1"
+                    ClipToBounds="True">
+                <Grid ColumnDefinitions="16,*">
+                    <Border Background="#EFEDE6" />
+                    <StackPanel Grid.Column="1" Margin="5" Spacing="4" VerticalAlignment="Center">
+                        <Border Width="28" Height="5" CornerRadius="2" Background="#3C6E57" HorizontalAlignment="Left" />
+                        <Border Width="40" Height="4" CornerRadius="2" Background="#C9CCC8" HorizontalAlignment="Left" />
+                        <Border Width="34" Height="4" CornerRadius="2" Background="#D9DBD7" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+        <DataTemplate x:Key="DarkModeMock">
+            <Border Width="72" Height="48" CornerRadius="6"
+                    Background="#16191A" BorderBrush="#32373A" BorderThickness="1"
+                    ClipToBounds="True">
+                <Grid ColumnDefinitions="16,*">
+                    <Border Background="#202425" />
+                    <StackPanel Grid.Column="1" Margin="5" Spacing="4" VerticalAlignment="Center">
+                        <Border Width="28" Height="5" CornerRadius="2" Background="#7FC6A6" HorizontalAlignment="Left" />
+                        <Border Width="40" Height="4" CornerRadius="2" Background="#3A3F41" HorizontalAlignment="Left" />
+                        <Border Width="34" Height="4" CornerRadius="2" Background="#2F3335" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- A touch mode tile: the mock over its name and a selection mark, as iOS offers Light and Dark. -->
+        <ControlTheme x:Key="ModeTileRadio" TargetType="RadioButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="FocusAdorner" Value="{x:Null}" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}">
+                        <StackPanel Spacing="10" HorizontalAlignment="Center">
+                            <ContentPresenter Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Content}"
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalAlignment="Center" />
+                            <Panel Width="22" Height="22" HorizontalAlignment="Center">
+                                <Border Name="ModeMark" CornerRadius="11" BorderThickness="1.5"
+                                        BorderBrush="{DynamicResource IosMarkOffBorder}" />
+                                <Path Name="ModeCheck" Data="M 6.2,11.4 L 9.6,14.8 L 15.9,7.6"
+                                      Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                      FlowDirection="LeftToRight" IsVisible="False" />
+                            </Panel>
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:checked /template/ Border#ModeMark">
+                <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+            </Style>
+            <Style Selector="^:checked /template/ Path#ModeCheck">
+                <Setter Property="IsVisible" Value="True" />
+            </Style>
+            <Style Selector="^:pressed">
+                <Setter Property="Opacity" Value="0.6" />
+            </Style>
+        </ControlTheme>
+    </UserControl.Resources>
     <UserControl.Styles>
         <Style Selector="Border.card">
             <Setter Property="Padding" Value="16" />
+        </Style>
+        <!-- A titled card: its title and description stand over its body. -->
+        <Style Selector="TextBlock.cardDescription">
+            <Setter Property="(DockPanel.Dock)" Value="Top" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+        <Style Selector="Border.cardBody">
+            <Setter Property="Margin" Value="0,10,0,0" />
+        </Style>
+        <Style Selector="Border.cardBody.spacious">
+            <Setter Property="Margin" Value="0,12,0,0" />
+        </Style>
+        <Style Selector="ItemsControl.modeTiles">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!--
+            Touch: rows inset their content by 20 DIPs. A titled card becomes an iOS list section: the title
+            a header over the body's group, the description a footnote under it, and the modes a row of tiles.
+        -->
+        <Style Selector=":is(TopLevel).appleTouch Border.card">
+            <Setter Property="Padding" Value="20,14" />
+        </Style>
+        <Style Selector=":is(TopLevel).appleTouch Border.card.titled">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Style Selector="^ TextBlock.cardTitle">
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="LetterSpacing" Value="1" />
+                <Setter Property="Foreground" Value="{DynamicResource IosSecondaryLabel}" />
+                <Setter Property="Margin" Value="20,6,20,8" />
+            </Style>
+            <Style Selector="^ TextBlock.cardDescription">
+                <Setter Property="(DockPanel.Dock)" Value="Bottom" />
+                <Setter Property="Margin" Value="20,8,20,0" />
+            </Style>
+            <Style Selector="^ Border.cardBody">
+                <Setter Property="Background" Value="{DynamicResource AppGroupedCellBrush}" />
+                <Setter Property="CornerRadius" Value="26" />
+                <Setter Property="Padding" Value="20,16" />
+                <Setter Property="Margin" Value="0" />
+            </Style>
+            <Style Selector="^ ItemsControl.modeRows">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+            <Style Selector="^ ItemsControl.modeTiles">
+                <Setter Property="IsVisible" Value="True" />
+            </Style>
         </Style>
         <Style Selector="Border.modeRow">
             <Setter Property="Background" Value="Transparent" />
@@ -42,6 +157,7 @@
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
             <Setter Property="VerticalContentAlignment" Value="Stretch" />
         </Style>
@@ -67,13 +183,10 @@
     <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
         <!-- Section header -->
         <StackPanel Spacing="4" Margin="0,0,0,4">
-            <TextBlock Text="{Binding ThemeSettings_SectionTitle, Source={x:Static strings:LocalizedStrings.Instance}}"
-                       FontSize="22"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
-            <TextBlock Text="{Binding ThemeSettings_SectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
-                       FontSize="13"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+            <TextBlock Classes="settingsTitle" Text="{Binding ThemeSettings_SectionTitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       TextWrapping="Wrap" />
+            <TextBlock Classes="settingsSubtitle" Text="{Binding ThemeSettings_SectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       TextWrapping="Wrap" />
         </StackPanel>
 
         <!-- Native Apple UI style -->
@@ -95,103 +208,118 @@
         </Border>
 
         <!-- Theme (appearance mode) -->
-        <Border Classes="settingsGroup card">
-            <StackPanel Spacing="10">
-                <StackPanel Spacing="2">
-                    <TextBlock Text="{Binding ThemeSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
-                               Classes="settingName"
-                               FontSize="{DynamicResource AppSettingNameFontSize}" />
-                    <TextBlock Text="{Binding ThemeSettings_ModeSectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
-                               Classes="settingDescription"
-                               FontSize="{DynamicResource AppSettingDescriptionFontSize}"
-                               TextWrapping="Wrap" />
-                </StackPanel>
+        <Border Classes="settingsGroup card titled">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Text="{Binding ThemeSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingName cardTitle"
+                           FontSize="{DynamicResource AppSettingNameFontSize}" />
+                <TextBlock Text="{Binding ThemeSettings_ModeSectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingDescription cardDescription"
+                           FontSize="{DynamicResource AppSettingDescriptionFontSize}"
+                           TextWrapping="Wrap" />
+                <Border Classes="cardBody">
+                    <Panel>
+                        <ItemsControl Classes="modeRows" ItemsSource="{Binding ModeOptions}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ThemeModeOption">
+                                    <Border Classes="modeRow" Classes.selected="{Binding IsSelected}">
+                                        <!--
+                                            Intentionally no GroupName: single-selection is driven solely by the
+                                            view model (ThemeSettingsSectionViewModel.OnModeSelected clears the
+                                            other options' IsSelected). Avalonia groups RadioButtons by GroupName in
+                                            a per-window manager, but this section's view is recreated on every
+                                            settings sub-page switch while the view model (and its ModeOptions)
+                                            persist. During the detail transition the departing and arriving views
+                                            are briefly attached together, so a shared GroupName would let the old
+                                            view's radios uncheck the new view's radio for the same option through
+                                            the shared TwoWay IsSelected binding, collapsing the selection to none
+                                            until the whole Settings page is rebuilt.
+                                        -->
+                                        <RadioButton Classes="modeOption"
+                                                     IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                     HorizontalAlignment="Stretch"
+                                                     HorizontalContentAlignment="Stretch"
+                                                     VerticalContentAlignment="Center">
+                                            <Grid ColumnDefinitions="*,Auto" Margin="6,0,0,0">
+                                                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Title}"
+                                                               Classes="settingName" />
+                                                    <TextBlock Text="{Binding Description}"
+                                                               Classes="settingDescription"
+                                                               FontSize="{DynamicResource AppSettingDescriptionFontSize}"
+                                                               TextWrapping="Wrap" />
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="1"
+                                                            Orientation="Horizontal"
+                                                            Spacing="6"
+                                                            VerticalAlignment="Center">
+                                                    <ContentControl ContentTemplate="{StaticResource LightModeMock}"
+                                                                    IsVisible="{Binding ShowLightPreview}" />
+                                                    <ContentControl ContentTemplate="{StaticResource DarkModeMock}"
+                                                                    IsVisible="{Binding ShowDarkPreview}" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </RadioButton>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-                <ItemsControl ItemsSource="{Binding ModeOptions}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ThemeModeOption">
-                            <Border Classes="modeRow" Classes.selected="{Binding IsSelected}">
-                                <!--
-                                    Intentionally no GroupName: single-selection is driven solely by the
-                                    view model (ThemeSettingsSectionViewModel.OnModeSelected clears the
-                                    other options' IsSelected). Avalonia groups RadioButtons by GroupName in
-                                    a per-window manager, but this section's view is recreated on every
-                                    settings sub-page switch while the view model (and its ModeOptions)
-                                    persist. During the detail transition the departing and arriving views
-                                    are briefly attached together, so a shared GroupName would let the old
-                                    view's radios uncheck the new view's radio for the same option through
-                                    the shared TwoWay IsSelected binding, collapsing the selection to none
-                                    until the whole Settings page is rebuilt.
-                                -->
-                                <RadioButton Classes="modeOption"
-                                             IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                             HorizontalAlignment="Stretch"
-                                             HorizontalContentAlignment="Stretch"
-                                             VerticalContentAlignment="Center">
-                                    <Grid ColumnDefinitions="*,Auto" Margin="6,0,0,0">
-                                        <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                        <!-- The system mode's tile shows half of each appearance. Without a GroupName, as above. -->
+                        <ItemsControl Classes="modeTiles" ItemsSource="{Binding ModeOptions}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:ThemeModeOption">
+                                    <RadioButton Theme="{StaticResource ModeTileRadio}"
+                                                 IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                 AutomationProperties.Name="{Binding Title}">
+                                        <StackPanel Spacing="8">
+                                            <Panel Width="72" Height="48" HorizontalAlignment="Center">
+                                                <ContentControl ContentTemplate="{StaticResource LightModeMock}"
+                                                                IsVisible="{Binding ShowLightPreview}" />
+                                                <ContentControl ContentTemplate="{StaticResource DarkModeMock}"
+                                                                IsVisible="{Binding ShowDarkPreview}" />
+                                                <Border Width="36" HorizontalAlignment="Right" ClipToBounds="True"
+                                                        CornerRadius="0,6,6,0"
+                                                        IsVisible="{Binding IsSystem}">
+                                                    <ContentControl ContentTemplate="{StaticResource DarkModeMock}"
+                                                                    HorizontalAlignment="Right" />
+                                                </Border>
+                                            </Panel>
                                             <TextBlock Text="{Binding Title}"
-                                                       Classes="settingName" />
-                                            <TextBlock Text="{Binding Description}"
-                                                       Classes="settingDescription"
-                                                       FontSize="{DynamicResource AppSettingDescriptionFontSize}"
-                                                       TextWrapping="Wrap" />
+                                                       Classes="settingName"
+                                                       FontSize="{DynamicResource AppSettingNameFontSize}"
+                                                       TextWrapping="NoWrap"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       HorizontalAlignment="Center" />
                                         </StackPanel>
-                                        <StackPanel Grid.Column="1"
-                                                    Orientation="Horizontal"
-                                                    Spacing="6"
-                                                    VerticalAlignment="Center">
-                                            <!-- Light appearance mock -->
-                                            <Border Width="72" Height="48" CornerRadius="6"
-                                                    Background="#FFFFFF" BorderBrush="#E2DFD5" BorderThickness="1"
-                                                    ClipToBounds="True"
-                                                    IsVisible="{Binding ShowLightPreview}">
-                                                <Grid ColumnDefinitions="16,*">
-                                                    <Border Background="#EFEDE6" />
-                                                    <StackPanel Grid.Column="1" Margin="5" Spacing="4" VerticalAlignment="Center">
-                                                        <Border Width="28" Height="5" CornerRadius="2" Background="#3C6E57" HorizontalAlignment="Left" />
-                                                        <Border Width="40" Height="4" CornerRadius="2" Background="#C9CCC8" HorizontalAlignment="Left" />
-                                                        <Border Width="34" Height="4" CornerRadius="2" Background="#D9DBD7" HorizontalAlignment="Left" />
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                            <!-- Dark appearance mock -->
-                                            <Border Width="72" Height="48" CornerRadius="6"
-                                                    Background="#16191A" BorderBrush="#32373A" BorderThickness="1"
-                                                    ClipToBounds="True"
-                                                    IsVisible="{Binding ShowDarkPreview}">
-                                                <Grid ColumnDefinitions="16,*">
-                                                    <Border Background="#202425" />
-                                                    <StackPanel Grid.Column="1" Margin="5" Spacing="4" VerticalAlignment="Center">
-                                                        <Border Width="28" Height="5" CornerRadius="2" Background="#7FC6A6" HorizontalAlignment="Left" />
-                                                        <Border Width="40" Height="4" CornerRadius="2" Background="#3A3F41" HorizontalAlignment="Left" />
-                                                        <Border Width="34" Height="4" CornerRadius="2" Background="#2F3335" HorizontalAlignment="Left" />
-                                                    </StackPanel>
-                                                </Grid>
-                                            </Border>
-                                        </StackPanel>
-                                    </Grid>
-                                </RadioButton>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </StackPanel>
+                                    </RadioButton>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Panel>
+                </Border>
+            </DockPanel>
         </Border>
 
         <!-- Theme color -->
-        <Border Classes="settingsGroup card">
+        <Border Classes="settingsGroup card titled">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Text="{Binding ThemeColor_SectionTitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingName cardTitle"
+                           FontSize="{DynamicResource AppSettingNameFontSize}" />
+                <TextBlock Text="{Binding ThemeColor_SectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingDescription cardDescription"
+                           FontSize="{DynamicResource AppSettingDescriptionFontSize}"
+                           TextWrapping="Wrap" />
+                <Border Classes="cardBody spacious">
             <StackPanel Spacing="12">
-                <StackPanel Spacing="2">
-                    <TextBlock Text="{Binding ThemeColor_SectionTitle, Source={x:Static strings:LocalizedStrings.Instance}}"
-                               Classes="settingName"
-                               FontSize="{DynamicResource AppSettingNameFontSize}" />
-                    <TextBlock Text="{Binding ThemeColor_SectionSubtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
-                               Classes="settingDescription"
-                               FontSize="{DynamicResource AppSettingDescriptionFontSize}"
-                               TextWrapping="Wrap" />
-                </StackPanel>
-
                 <!-- Light color themes -->
                 <StackPanel Spacing="8" IsVisible="{Binding ShowLightThemes}">
                     <TextBlock Text="{Binding Common_ThemeLight, Source={x:Static strings:LocalizedStrings.Instance}}"
@@ -202,12 +330,13 @@
                     <ItemsControl ItemsSource="{Binding LightThemes}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel />
+                                <controls:UniformWrapPanel MinItemWidth="100" ColumnSpacing="6"
+                                                           StretchItems="{Binding $self.(controls:SettingRowPanel.IsNarrowLayout)}" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ColorThemeChoiceViewModel">
-                                <Grid Width="100" Margin="0,0,6,10">
+                                <Grid Margin="0,0,0,10">
                                     <Button Classes="tileButton" Command="{Binding SelectCommand}">
                                         <Border Classes="tileCard" Classes.selected="{Binding IsSelected}">
                                             <StackPanel Spacing="7">
@@ -307,12 +436,13 @@
                     <ItemsControl ItemsSource="{Binding DarkThemes}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <WrapPanel />
+                                <controls:UniformWrapPanel MinItemWidth="100" ColumnSpacing="6"
+                                                           StretchItems="{Binding $self.(controls:SettingRowPanel.IsNarrowLayout)}" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ColorThemeChoiceViewModel">
-                                <Grid Width="100" Margin="0,0,6,10">
+                                <Grid Margin="0,0,0,10">
                                     <Button Classes="tileButton" Command="{Binding SelectCommand}">
                                         <Border Classes="tileCard" Classes.selected="{Binding IsSelected}">
                                             <StackPanel Spacing="7">
@@ -426,6 +556,8 @@
                     </Grid>
                 </StackPanel>
             </StackPanel>
+                </Border>
+            </DockPanel>
         </Border>
     </StackPanel>
 </UserControl>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title data-i18n="extensionName"></title>
+    <link rel="stylesheet" href="../shared/page.css">
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+<main>
+    <header class="brand">
+        <img src="../icons/icon-48.png" alt="">
+        <h1 data-i18n="extensionName"></h1>
+    </header>
+
+    <section class="status">
+        <p id="status" role="status" data-i18n="statusChecking"></p>
+        <progress id="progress" max="1" value="0" hidden></progress>
+        <button id="start" class="primary" type="button" hidden></button>
+    </section>
+
+    <section>
+        <h2 data-i18n="optionsPairingHeader"></h2>
+        <p id="pairing-state"></p>
+        <div id="pairing-code" hidden>
+            <p data-i18n="optionsPairingCode"></p>
+            <output id="code" aria-live="polite"></output>
+        </div>
+        <p id="pairing-result" role="status" hidden></p>
+        <div class="buttons">
+            <button id="pair" class="primary" type="button" data-i18n="optionsPairButton"></button>
+            <button id="cancel" type="button" data-i18n="optionsCancelButton" hidden></button>
+            <button id="forget" type="button" data-i18n="optionsForgetButton" hidden></button>
+        </div>
+        <p id="forget-hint" class="hint" data-i18n="optionsForgetHint" hidden></p>
+    </section>
+
+    <section>
+        <h2 data-i18n="optionsConnectionHeader"></h2>
+        <label for="port" data-i18n="optionsPortLabel"></label>
+        <input id="port" type="number" min="1" max="65535" step="1" inputmode="numeric">
+        <p id="port-hint" class="hint" data-i18n="optionsPortHint"></p>
+        <p id="port-error" class="error" data-i18n="optionsPortInvalid" hidden></p>
+    </section>
+
+    <section id="access" hidden>
+        <h2 data-i18n="optionsSiteAccessHeader"></h2>
+        <p data-i18n="siteAccessMissing"></p>
+        <button id="grant" type="button" data-i18n="siteAccessGrant"></button>
+    </section>
+</main>
+<script src="../shared/settings.js"></script>
+<script src="../shared/launch.js"></script>
+<script src="../shared/page.js"></script>
+<script src="options.js"></script>
+</body>
+</html>

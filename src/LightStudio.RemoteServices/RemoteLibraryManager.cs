@@ -750,6 +750,7 @@ public sealed class RemoteLibraryManager : IRemoteLibraryManager
                 indexPath,
                 client,
                 platform,
+                imageCache,
                 () => source.LoadMusic,
                 () => source.LoadVideo,
                 () => appSettings?.AlbumGrouping ?? AlbumGroupingMode.SameFolder);

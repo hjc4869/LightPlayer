@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:strings="using:LightStudio.LightPlayer.Strings"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
+             xmlns:vm="using:LightStudio.LightPlayer.ViewModels.Pages"
+             mc:Ignorable="d"
+             d:DesignWidth="620"
+             d:DesignHeight="520"
+             x:Class="LightStudio.LightPlayer.Views.Pages.BrowserLinkSettingsSectionView"
+             x:DataType="vm:BrowserLinkSettingsSectionViewModel">
+    <!-- The inset lives on the content, not the scroll viewer, so the scroll bar stays at the pane edge. -->
+    <ScrollViewer>
+        <StackPanel MaxWidth="680"
+                    HorizontalAlignment="Stretch"
+                    Margin="{Binding ContentMargin}"
+                    Spacing="10">
+            <StackPanel Spacing="4" Margin="0,0,0,4">
+                <TextBlock Classes="settingsTitle" Text="{Binding BrowserLinkSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           TextWrapping="Wrap" />
+                <TextBlock Classes="settingsSubtitle" Text="{Binding BrowserLinkSettings_Subtitle, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+
+            <Border Classes="settingsGroup">
+                <StackPanel>
+                    <controls:SettingRow Header="{Binding BrowserLinkSettings_EnabledHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                         Description="{Binding BrowserLinkSettings_EnabledDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                         IsGrouped="True">
+                        <controls:SettingRow.ActionContent>
+                            <ToggleSwitch OnContent="" OffContent="" IsChecked="{Binding Enabled, Mode=TwoWay}" />
+                        </controls:SettingRow.ActionContent>
+                    </controls:SettingRow>
+
+                    <controls:SettingRow Header="{Binding BrowserLinkSettings_PortHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                         Description="{Binding BrowserLinkSettings_PortDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                         IsGrouped="True"
+                                         HasTopDivider="True"
+                                         ActionWidth="140">
+                        <controls:SettingRow.ActionContent>
+                            <controls:NumberEntry Minimum="1"
+                                                  Maximum="65535"
+                                                  Increment="1"
+                                                  FormatString="0"
+                                                  Number="{Binding Port, Mode=TwoWay}" />
+                        </controls:SettingRow.ActionContent>
+                    </controls:SettingRow>
+                </StackPanel>
+            </Border>
+
+            <Button Content="{Binding BrowserLinkSettings_ApplyButton, Source={x:Static strings:LocalizedStrings.Instance}}"
+                    HorizontalAlignment="Right"
+                    Command="{Binding ApplyCommand}" />
+
+            <TextBlock Classes="settingsCaption" Text="{Binding StatusText}"
+                       TextWrapping="Wrap" />
+
+            <StackPanel Spacing="4" Margin="0,14,0,4">
+                <TextBlock Text="{Binding BrowserLinkSettings_PairedHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingName"
+                           FontSize="{DynamicResource AppSettingNameFontSize}" />
+                <TextBlock Text="{Binding BrowserLinkSettings_PairedDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                           Classes="settingDescription"
+                           FontSize="{DynamicResource AppSettingDescriptionFontSize}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+
+            <TextBlock Classes="settingsCaption" Text="{Binding BrowserLinkSettings_PairedEmpty, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       IsVisible="{Binding !HasPairedBrowsers}"
+                       TextWrapping="Wrap" />
+
+            <Border Classes="settingsGroup"
+                    IsVisible="{Binding HasPairedBrowsers}">
+                <ItemsControl ItemsSource="{Binding PairedBrowsers}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:BrowserLinkPairingRowViewModel">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="16,12">
+                                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Label}"
+                                               Classes="settingName"
+                                               FontSize="{DynamicResource AppSettingNameFontSize}"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Origin}"
+                                               Classes="settingDescription"
+                                               FontSize="{DynamicResource AppSettingDescriptionFontSize}"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Classes="settingsCaption" Text="{Binding PairedOn}" />
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Classes="icon"
+                                        VerticalAlignment="Center"
+                                        ToolTip.Tip="{Binding BrowserLinkSettings_Remove, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                        AutomationProperties.Name="{Binding BrowserLinkSettings_Remove, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                        Command="{Binding RemoveCommand}">
+                                    <Viewbox Width="16" Height="16">
+                                        <Path Data="{StaticResource IconDelete}"
+                                              Fill="{DynamicResource AppSecondaryTextBrush}" />
+                                    </Viewbox>
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

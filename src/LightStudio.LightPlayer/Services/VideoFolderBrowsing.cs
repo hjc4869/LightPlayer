@@ -110,7 +110,7 @@ public sealed class PlatformVideoFolderBrowser(
 
         folderPath = await platform.NormalizePathAsync(folderPath, cancellationToken).ConfigureAwait(false);
         var entries = new List<VideoFolderEntry>();
-        var folders = await platform.ListFoldersFullNameInPathAsync(folderPath).ConfigureAwait(false);
+        var folders = await platform.ListFoldersFullNameInPathAsync(folderPath, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         VideoDiscStructureInfo? currentDisc;
         try
@@ -169,7 +169,7 @@ public sealed class PlatformVideoFolderBrowser(
                 LastModifiedUtc: disc?.MarkerLastModified ?? default));
         }
 
-        var files = await platform.ListFilesFullNameInPathAsync(folderPath).ConfigureAwait(false);
+        var files = await platform.ListFilesFullNameInPathAsync(folderPath, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         var siblings = files.Select(file => (file.Name, file.Path)).ToArray();
         entries.AddRange(files

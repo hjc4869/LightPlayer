@@ -1,7 +1,8 @@
 name: Release
 
-# Build the Linux Flatpak bundles, Windows x64/ARM64 MSIX and WiX packages, and
-# the macOS ARM64 ZIP, Android APK, and iOS IPA, then publish every platform asset in one GitHub Release. Triggered by
+# Build the Linux Flatpak bundles, Windows x64/ARM64 MSIX and WiX packages, the
+# macOS ARM64 ZIP, Android APK, iOS IPA, and the Chromium and Firefox browser
+# extension ZIPs, then publish every asset in one GitHub Release. Triggered by
 # pushing a version tag (e.g. v1.0.0) or run manually from the Actions tab.
 on:
   push:
@@ -331,10 +332,10 @@ jobs:
 
   build-ios:
     name: Build unsigned iOS ARM64 IPA
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 120
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.0.1.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_27.2.app/Contents/Developer
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -342,12 +343,12 @@ jobs:
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.100
+          dotnet-version: 11.0.100
 
       - name: Install .NET iOS workload
         run: |
-          dotnet new globaljson --sdk-version 10.0.100 --roll-forward disable
-          dotnet workload install ios --version 10.0.100
+          dotnet new globaljson --sdk-version 11.0.100 --roll-forward disable
+          dotnet workload install ios --version 11.0.100.1
 
       - name: Build unsigned iOS ARM64 IPA
         run: |
@@ -442,6 +443,30 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  build-browser-extension:
+    name: Build browser extension ZIPs
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Writes one store archive per browser, versioned from Directory.Build.props.
+      - name: Build browser extension store archives
+        run: make browser-extension
+
+      - name: Upload browser extension release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-browser-extension
+          path: artifacts/browser-extension/LightPlayer-BrowserExtension-*.zip
+          if-no-files-found: error
+          retention-days: 1
+
   publish-release:
     name: Publish unified release
     needs:
@@ -452,6 +477,7 @@ jobs:
       - build-macos-arm64
       - build-ios
       - build-android
+      - build-browser-extension
     runs-on: ubuntu-26.04
     steps:
       - name: Resolve release tag

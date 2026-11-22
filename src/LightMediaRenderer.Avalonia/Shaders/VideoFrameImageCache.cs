@@ -48,6 +48,7 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
     private bool photoDownloadAttempted;
     private PhotoTileCache? photoTiles;
     private PhotoTileCache? gainTiles;
+    private int photoReady;
     private int version;
     private SKImageInfo packedInfo;
     private bool packedHalfFloat;
@@ -75,18 +76,32 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
 
     public int Version => Volatile.Read(ref version);
 
+    public bool IsPhotoReady => Volatile.Read(ref photoReady) != 0 ||
+        frame.PhotoTiles is null && frame.PhotoSurface is null && frame.GainMap?.Samples is null;
+
+    public void MarkPhotoReady()
+    {
+        if (Interlocked.Exchange(ref photoReady, 1) == 0)
+            Invalidate();
+    }
+
     public event Action? Invalidated;
 
     public event Action<VideoFrame, Exception>? Failed;
 
-    public void RenderPhotoTiles(in VideoRenderRequest request, ISkiaSharpApiLease lease, bool draw = true)
+    public bool RenderPhotoTiles(in VideoRenderRequest request, ISkiaSharpApiLease lease, bool draw = true)
     {
         photoTiles ??= new PhotoTileCache(frame, Invalidate, ReportFailure);
-        try { photoTiles.Render(request, lease, draw); }
+        try
+        {
+            photoTiles.Render(request, lease, draw);
+            return photoTiles.IsReady;
+        }
         catch (Exception exception)
         {
             AppLog.Error("Photo.Rendering", "Could not render the photo viewport.", exception);
             ReportFailure(exception);
+            return false;
         }
     }
 
@@ -130,7 +145,7 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
         return gainTiles.GetSampleImage(out _) is not null;
     }
 
-    public void RenderPlatformPhoto(in VideoRenderRequest request, ISkiaSharpApiLease lease)
+    public bool RenderPlatformPhoto(in VideoRenderRequest request, ISkiaSharpApiLease lease, bool draw = true)
     {
         SetRenderContext(lease);
         if (Volatile.Read(ref softwarePhoto) is { } fallback)
@@ -139,16 +154,19 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
             VideoRenderRequest software = request with { Frame = fallback.frame, ImageCache = fallback, PlaneSource = fallback };
             bool gainReady = fallback.PrepareGainMap(software, lease);
             if (fallback.frame.PhotoTiles is not null)
-                fallback.RenderPhotoTiles(software, lease, gainReady);
+                return fallback.RenderPhotoTiles(software, lease, draw && gainReady) && gainReady;
             else if (gainReady)
             {
                 SKImage? packed = VideoPlanarLayout.IsPlanar(fallback.frame.Format) ? null : fallback.GetPackedImage(
                     VideoPackedFormatProbe.FrameImageInfo(fallback.frame, lease.GrContext, SKAlphaType.Unpremul),
                     lease.GrContext);
-                if (!VideoFramePipeline.Render(software with { PackedImage = packed }, out string failure))
+                if (draw && !VideoFramePipeline.Render(software with { PackedImage = packed }, out string failure))
+                {
                     ReportFailure(new InvalidOperationException($"Could not render software photo: {failure}."));
+                    return false;
+                }
             }
-            return;
+            return gainReady;
         }
 
         try
@@ -159,9 +177,9 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
                 // The imported picture is read into the tile cache's retained overview and detail
                 // tiles region by region, so a gesture never resamples the whole photo.
                 photoTiles ??= new PhotoTileCache(frame, Invalidate, ReportFailure, tiles: new PhotoSurfaceTileSource(this, frame));
-                RenderPhotoTiles(request, lease);
+                bool ready = RenderPhotoTiles(request, lease, draw);
                 lease.GrContext?.Flush(submit: true);
-                return;
+                return ready;
             }
         }
         catch (Exception exception)
@@ -170,6 +188,7 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
             lease.GrContext?.ResetContext();
         }
         StartSoftwarePhoto();
+        return false;
     }
 
     private void StartSoftwarePhoto()
@@ -568,6 +587,8 @@ internal sealed class VideoFrameImageCache : IVideoFrameImageCache
     private void DisposeTextures(bool purgeUnlockedResources = false)
     {
         using IDisposable? current = MakeTextureContextCurrent();
+        if (Interlocked.Exchange(ref photoReady, 0) != 0)
+            Invalidate();
         photoTiles?.Dispose();
         photoTiles = null;
         gainTiles?.Dispose();

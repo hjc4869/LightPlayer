@@ -25,6 +25,8 @@ namespace LightStudio.LocalServices.Photos;
 public sealed class PhotoIndexService : IPhotoIndexService, IDisposable, IAsyncDisposable
 {
     private const string SystemPhotoRoot = "system-library://photos";
+    // Short queries describe only part of a photo, so their matches score well below even odds.
+    private const double MinimumMatchProbability = 0.0003;
     private readonly IMultiMediaPlatformIO platform;
     private readonly ILibraryLocationService locations;
     private readonly INativeMediaLibraryProvider? nativeLibrary;
@@ -885,9 +887,13 @@ public sealed class PhotoIndexService : IPhotoIndexService, IDisposable, IAsyncD
         }
     }
 
-    private async Task<float[]> EncodeTextAsync(string query, CancellationToken cancellationToken)
+    private async Task<(float[] Vector, EmbeddingMatchCalibration? Calibration)> EncodeTextAsync(string query, CancellationToken cancellationToken)
     {
-        var vector = await RunInferenceAsync(async () =>
+        async ValueTask<(float[] Vector, EmbeddingMatchCalibration? Calibration)> Encode(IEmbeddingInferenceSession session) =>
+            (await session.EncodeTextAsync(query, cancellationToken).ConfigureAwait(false),
+                await session.GetMatchCalibrationAsync(cancellationToken).ConfigureAwait(false));
+
+        var result = await RunInferenceAsync<(float[] Vector, EmbeddingMatchCalibration? Calibration)?>(async () =>
         {
             textEncoder ??= await provider.CreateIndependentTextSessionAsync(ModelDirectory(settings.ModelId!), settings.ModelFileName,
                 cancellationToken).ConfigureAwait(false);
@@ -899,9 +905,9 @@ public sealed class PhotoIndexService : IPhotoIndexService, IDisposable, IAsyncD
                 textEncoder = null;
                 throw new InvalidDataException("The photo model embedding dimensions changed; import the model again.");
             }
-            return await textEncoder.EncodeTextAsync(query, cancellationToken).ConfigureAwait(false);
+            return await Encode(textEncoder).ConfigureAwait(false);
         }, cancellationToken).ConfigureAwait(false);
-        return vector ?? await EncodeAsync(current => current.EncodeTextAsync(query, cancellationToken), cancellationToken).ConfigureAwait(false);
+        return result ?? await EncodeAsync(Encode, cancellationToken).ConfigureAwait(false);
     }
 
     public Task<PhotoSearchPage> SearchAsync(string query, int pageSize = 20, string? cursor = null,
@@ -946,7 +952,7 @@ public sealed class PhotoIndexService : IPhotoIndexService, IDisposable, IAsyncD
             }
             else
             {
-                var vector = await EncodeTextAsync(query, cancellationToken).ConfigureAwait(false);
+                var (vector, calibration) = await EncodeTextAsync(query, cancellationToken).ConfigureAwait(false);
                 var indexDatabase = await GetDatabaseAsync(cancellationToken).ConfigureAwait(false);
                 var roots = sourceId is null || sourceId == LibrarySourceId.Local
                     ? locations.GetVideoFolderPaths().ToList() : [];
@@ -957,7 +963,7 @@ public sealed class PhotoIndexService : IPhotoIndexService, IDisposable, IAsyncD
                     systemPaths = (await nativeLibrary!.GetPhotosAsync(cancellationToken).ConfigureAwait(false))
                         .Select(photo => photo.Path).ToHashSet(StringComparer.Ordinal);
                 }
-                var ranked = await indexDatabase.RankAsync(vector, modelId, roots,
+                var ranked = await indexDatabase.RankAsync(vector, modelId, roots, calibration?.SimilarityAt(MinimumMatchProbability),
                     (path, root) => root != SystemPhotoRoot || systemPaths?.Contains(path) == true, cancellationToken).ConfigureAwait(false);
                 if (settings.ModelId != modelId || !Status.IsAvailable || generation != Volatile.Read(ref catalogGeneration))
                     return new PhotoSearchPage([], null, Status.IsAvailable, RestartRequired: true);
@@ -971,7 +977,8 @@ public sealed class PhotoIndexService : IPhotoIndexService, IDisposable, IAsyncD
             }
             var items = await database!.ReadPageAsync(snapshot.Ranked, offset, pageSize, modelId, cancellationToken).ConfigureAwait(false);
             var next = offset + pageSize;
-            return new PhotoSearchPage(items, next < snapshot.Ranked.Count ? key + "." + next.ToString(CultureInfo.InvariantCulture) : null, true);
+            return new PhotoSearchPage(items, next < snapshot.Ranked.Count ? key + "." + next.ToString(CultureInfo.InvariantCulture) : null, true,
+                TotalCount: snapshot.Ranked.Count);
         }
         finally
         {

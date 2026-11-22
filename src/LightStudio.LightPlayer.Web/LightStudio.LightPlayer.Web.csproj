@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
   <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
     <TargetFramework>$(TargetFramework)-browser</TargetFramework>
     <OutputType>Exe</OutputType>
     <AssemblyName>lmcweb</AssemblyName>
@@ -90,5 +91,6 @@
   </Target>
   <Import Project="../../build/BrowserMediaWorker.targets" Condition="'$(MultiThreadApp)' != 'true'" />
   <Import Project="../../build/WasmThreadIdentity.targets" Condition="'$(MultiThreadApp)' == 'true'" />
+  <Import Project="../../build/WasmThreadStart.targets" Condition="'$(MultiThreadApp)' == 'true'" />
   <Import Project="../../build/BrowserSqliteWorker.targets" />
 </Project>

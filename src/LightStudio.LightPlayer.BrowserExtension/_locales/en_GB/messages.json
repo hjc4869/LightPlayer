@@ -1,0 +1,219 @@
+{
+    "extensionName": {
+        "message": "Light Media Center Browser Link"
+    },
+    "extensionDescription": {
+        "message": "Play videos from web pages in Light Media Center."
+    },
+    "actionTitle": {
+        "message": "Light Media Center"
+    },
+    "controlRedirect": {
+        "message": "Play in Light Media Center"
+    },
+    "controlUnavailable": {
+        "message": "This video can't be sent to Light Media Center yet"
+    },
+    "controlConnecting": {
+        "message": "Connecting to Light Media Center..."
+    },
+    "controlPlaying": {
+        "message": "Playing in Light Media Center"
+    },
+    "controlReturn": {
+        "message": "Watch here"
+    },
+    "messageNotPaired": {
+        "message": "Pair this browser with Light Media Center first."
+    },
+    "messagePairAction": {
+        "message": "Pair"
+    },
+    "messageUnreachable": {
+        "message": "Light Media Center isn't reachable. Check that it is running and that browser connections are allowed in its settings."
+    },
+    "messageUnauthorized": {
+        "message": "This video needs a sign-in that Light Media Center can't use."
+    },
+    "messageUnsupported": {
+        "message": "Light Media Center can't play this video."
+    },
+    "messageEncrypted": {
+        "message": "This video is protected and can't be played in Light Media Center."
+    },
+    "messageError": {
+        "message": "Light Media Center stopped playing this video."
+    },
+    "messageProtocol": {
+        "message": "This version of the extension doesn't match Light Media Center. Update both."
+    },
+    "messageDisconnected": {
+        "message": "The connection to Light Media Center was lost."
+    },
+    "statusChecking": {
+        "message": "Checking Light Media Center..."
+    },
+    "statusConnected": {
+        "message": "Connected to Light Media Center $VERSION$",
+        "placeholders": {
+            "version": {
+                "content": "$1",
+                "example": "2.1.3"
+            }
+        }
+    },
+    "statusNotPaired": {
+        "message": "Light Media Center is running, but this browser isn't paired."
+    },
+    "pairingStatePaired": {
+        "message": "This browser is paired with Light Media Center."
+    },
+    "pairingStateNone": {
+        "message": "This browser isn't paired with Light Media Center."
+    },
+    "pairingStateRevoked": {
+        "message": "Light Media Center no longer accepts this browser. Pair it again."
+    },
+    "optionsPairingHeader": {
+        "message": "Pairing"
+    },
+    "optionsPairButton": {
+        "message": "Pair"
+    },
+    "optionsPairAgainButton": {
+        "message": "Pair again"
+    },
+    "optionsCancelButton": {
+        "message": "Cancel"
+    },
+    "optionsForgetButton": {
+        "message": "Forget"
+    },
+    "optionsPairingCode": {
+        "message": "Check that Light Media Center shows this code, then accept the request there."
+    },
+    "optionsPairingSucceeded": {
+        "message": "Paired with Light Media Center."
+    },
+    "optionsPairingRejected": {
+        "message": "Light Media Center declined the pairing, or the request timed out."
+    },
+    "optionsPairingFailed": {
+        "message": "Pairing didn't complete. Try again."
+    },
+    "optionsForgetHint": {
+        "message": "To revoke access completely, also remove this browser from the paired browsers in Light Media Center's settings."
+    },
+    "optionsConnectionHeader": {
+        "message": "Connection"
+    },
+    "optionsPortLabel": {
+        "message": "Port"
+    },
+    "optionsPortHint": {
+        "message": "Use the port shown in Light Media Center's settings."
+    },
+    "optionsPortInvalid": {
+        "message": "Enter a port between 1 and 65535."
+    },
+    "optionsSiteAccessHeader": {
+        "message": "Website access"
+    },
+    "siteAccessMissing": {
+        "message": "The extension can't find videos until it's allowed to access websites."
+    },
+    "siteAccessGrant": {
+        "message": "Allow access"
+    },
+    "popupVideosHeader": {
+        "message": "Videos on this page"
+    },
+    "popupNoVideos": {
+        "message": "No videos found on this page."
+    },
+    "popupNoAccess": {
+        "message": "This page can't be accessed."
+    },
+    "popupSettings": {
+        "message": "Settings"
+    },
+    "videoRedirect": {
+        "message": "Play in app"
+    },
+    "videoProtected": {
+        "message": "Protected"
+    },
+    "videoUnsupported": {
+        "message": "Not supported"
+    },
+    "videoLive": {
+        "message": "Live"
+    },
+    "controlArm": {
+        "message": "Reload and play in Light Media Center"
+    },
+    "videoArm": {
+        "message": "Reload and play in app"
+    },
+    "placeholderWaiting": {
+        "message": "Another video on this page is playing in Light Media Center."
+    },
+    "placeholderClosed": {
+        "message": "This video was closed in Light Media Center."
+    },
+    "placeholderReplaced": {
+        "message": "Another video is playing in Light Media Center now."
+    },
+    "placeholderProtected": {
+        "message": "This video is protected. The page reloads to play it here."
+    },
+    "popupArmed": {
+        "message": "Videos in this tab play in Light Media Center."
+    },
+    "popupDisarm": {
+        "message": "Play in browser"
+    },
+    "startOffer": {
+        "message": "Light Media Center isn't reachable."
+    },
+    "startAction": {
+        "message": "Start Light Media Center"
+    },
+    "startWaiting": {
+        "message": "Starting Light Media Center... If the browser asks whether to open it, allow it."
+    },
+    "startNoAnswer": {
+        "message": "Light Media Center didn't answer on port $PORT$. If it opened, turn on \"Allow browser connections\" in its settings and check the port. If nothing opened, check that it is installed.",
+        "placeholders": {
+            "port": {
+                "content": "$1",
+                "example": "47833"
+            }
+        }
+    },
+    "startTryAgain": {
+        "message": "Try again"
+    },
+    "startOtherPort": {
+        "message": "Light Media Center answers on port $APP$, but the extension connects to port $EXTENSION$.",
+        "placeholders": {
+            "app": {
+                "content": "$1",
+                "example": "47833"
+            },
+            "extension": {
+                "content": "$2",
+                "example": "47911"
+            }
+        }
+    },
+    "startUsePort": {
+        "message": "Use port $PORT$",
+        "placeholders": {
+            "port": {
+                "content": "$1",
+                "example": "47833"
+            }
+        }
+    }
+}

@@ -18,6 +18,7 @@ using LightStudio.LightPlayer.Desktop.Apple;
 #endif
 using LightStudio.LightPlayer.Services.Playback;
 using LightStudio.LightPlayer.Desktop.Services;
+using LightStudio.LightPlayer.Desktop.Services.BrowserLink;
 using LightMediaRenderer.Contracts;
 using LightMediaRenderer.Avalonia.Rendering;
 using LightStudio.Logging;
@@ -35,7 +36,7 @@ sealed class Program
 {
 #if WINDOWS
     // The one instance Avalonia reads: the color mode is chosen at startup, the menu blur clip per menu.
-    private static readonly Win32PlatformOptions Win32Options = new();
+    private static readonly Win32PlatformOptions Win32Options = new Win32PlatformOptions { UseWinUICompositionSwapChain = true };
 #endif
 
     internal static void InitializeSqlite()
@@ -213,7 +214,9 @@ sealed class Program
             var settings = JsonAppSettingsStore.LoadSnapshot();
             Strings.LocalizedStrings.ApplyLanguage(settings.InterfaceLanguage);
             var path = Path.GetFullPath(standaloneTargets[0]);
-            App.StandaloneWindowFactory = () => new StandaloneFileWindow(path, settings);
+            var windowState = new JsonShellStateStore(Path.Combine(
+                PlatformServices.AppDataPath, "LightStudio.LightPlayer", "standalone-window-state.json"));
+            App.StandaloneWindowFactory = () => new StandaloneFileWindow(path, settings, windowState);
             StartDesktopLifetime(args, settings);
             AppLog.Shutdown();
             return;
@@ -233,6 +236,7 @@ sealed class Program
         MacMediaLibraryProvider? nativeLibrary = null;
 #endif
         RemoteApiServerController? remoteApi = null;
+        BrowserLinkController? browserLink = null;
         App.InitializeDesktopServices = targets =>
         {
             var singleInstance = CreateSingleInstanceService(usesPackagedStorage);
@@ -282,6 +286,11 @@ sealed class Program
             PlatformServices.SupportsRemoteApiSettings = true;
             PlatformServices.RemoteApiServerController = remoteApi;
             remoteApi.Apply(deviceSettings.RemoteApiSettings);
+            browserLink = new BrowserLinkController(
+                deviceSettings,
+                typeof(App).Assembly.GetName().Version?.ToString() ?? string.Empty);
+            PlatformServices.BrowserLink = browserLink;
+            browserLink.Apply(deviceSettings.BrowserLinkSettings);
             return true;
         };
 
@@ -291,6 +300,7 @@ sealed class Program
         }
         finally
         {
+            browserLink?.Dispose();
             remoteApi?.Dispose();
             remoteLibraries?.Dispose();
 #if MACOS

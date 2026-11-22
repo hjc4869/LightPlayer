@@ -752,7 +752,7 @@ public partial class PhotoViewerPageView : UserControl
         // Keep the rail widths linked to ShellViewModel.NavRailCompactWidth/NavPaneOpenWidth,
         // and the bar measurements linked to the content reservations in ShellView.axaml.
         double left = safe.Left + (shell.IsNarrow ? 0 : expandedInline ? 320d : 56d);
-        double top = safe.Top + (shell.IsNarrow ? shellView.FindControl<Grid>("NarrowTopBar")!.Height : 0);
+        double top = safe.Top + (shell.IsNarrow && !shell.UsesVerticalTabBar ? shellView.FindControl<Grid>("NarrowTopBar")!.Height : 0);
         double bottom = safe.Bottom;
         var available = new Size(Stage.Bounds.Width, double.PositiveInfinity);
         if (shell.IsNarrow && shellView.FindControl<Border>("BottomNavBar") is { Child: { } navigation } bottomNav)

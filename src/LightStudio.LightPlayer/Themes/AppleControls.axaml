@@ -1125,7 +1125,6 @@
         <Style Selector="^ TextBlock.settingName">
             <Setter Property="FontWeight" Value="Normal" />
             <Setter Property="Foreground" Value="{DynamicResource MacSettingsLabelBrush}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <Style Selector="^ TextBlock.settingDescription">
             <Setter Property="FontWeight" Value="Normal" />

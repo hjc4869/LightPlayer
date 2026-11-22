@@ -178,6 +178,22 @@ AndroidX  (Xamarin.AndroidX.Core.SplashScreen)
   https://github.com/androidx/androidx/blob/androidx-main/LICENSE.txt
 
 
+Browser extension
+-----------------
+hls.js 1.7.4
+  (HLS player library bundled with the browser extension)
+  License: Apache License 2.0
+  https://github.com/video-dev/hls.js/blob/v1.7.4/LICENSE
+
+dash.js 5.3.0
+  (DASH player library bundled with the browser extension, mediaplayer build;
+   it includes the Common Media Library (Apache License 2.0), codem-isoboxer
+   (MIT), imsc (BSD 2-Clause), the buffer module (MIT), ieee754 (BSD 3-Clause)
+   and String.fromCodePoint (MIT), as listed in its bundled license file)
+  License: BSD 3-Clause
+  https://github.com/Dash-Industry-Forum/dash.js/blob/v5.3.0/LICENSE.md
+
+
 Packaging
 ---------
 WiX Toolset 5.0.2

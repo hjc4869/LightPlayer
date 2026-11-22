@@ -28,7 +28,7 @@ public static class VideoDiscStructure
         ArgumentNullException.ThrowIfNull(platform);
         ArgumentException.ThrowIfNullOrEmpty(rootPath);
 
-        childFolders ??= await platform.ListFoldersFullNameInPathAsync(rootPath).ConfigureAwait(false);
+        childFolders ??= await platform.ListFoldersFullNameInPathAsync(rootPath, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
         string? bdmv = FindFolder(childFolders, "BDMV");
@@ -121,7 +121,7 @@ public static class VideoDiscStructure
         IReadOnlyList<string> signatures,
         CancellationToken cancellationToken)
     {
-        IFile? marker = (await platform.ListFilesFullNameInPathAsync(folder).ConfigureAwait(false))
+        IFile? marker = (await platform.ListFilesFullNameInPathAsync(folder, cancellationToken).ConfigureAwait(false))
             .FirstOrDefault(file => string.Equals(file.Name, markerName, StringComparison.OrdinalIgnoreCase));
         if (marker is null)
         {

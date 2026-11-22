@@ -89,6 +89,11 @@ public partial class SettingsPageViewModel : PageViewModelBase, IInPageBackHandl
             RemoteAccess = new RemoteApiSettingsSectionViewModel(settingsStore, controller);
         }
 
+        if (PlatformServices.BrowserLink is { } browserLink)
+        {
+            BrowserLink = new BrowserLinkSettingsSectionViewModel(settingsStore, browserLink);
+        }
+
         var libraryPages = new System.Collections.Generic.List<SettingsNavigationItemViewModel>
         {
             new(nameof(Strings.Resources.SettingsPage_LocalLibrary), Library, "IconFolderHome"),
@@ -121,6 +126,10 @@ public partial class SettingsPageViewModel : PageViewModelBase, IInPageBackHandl
         {
             playbackPages.Add(Embedded(nameof(Strings.Resources.SettingsPage_ServerStreaming), Playback.RemoteTranscode, "IconPlayCircle"));
         }
+        if (BrowserLink is not null)
+        {
+            playbackPages.Add(new(BrowserLink.Key, BrowserLink, "IconOpenInNewWindow"));
+        }
 
         Categories =
         [
@@ -152,6 +161,8 @@ public partial class SettingsPageViewModel : PageViewModelBase, IInPageBackHandl
     public PhotoIndexSettingsViewModel? PhotoIndex { get; }
 
     public RemoteApiSettingsSectionViewModel? RemoteAccess { get; }
+
+    public BrowserLinkSettingsSectionViewModel? BrowserLink { get; }
 
     /// <summary>Clears the selected section, returning to the section list on narrow layouts.</summary>
     public IRelayCommand BackCommand { get; }
@@ -197,6 +208,20 @@ public partial class SettingsPageViewModel : PageViewModelBase, IInPageBackHandl
         {
             newValue.IsSelected = true;
         }
+
+        UpdateTitle();
+    }
+
+    partial void OnIsCompactChanged(bool value) => UpdateTitle();
+
+    // A section open in the single-pane layout covers the section list, so the page takes its title.
+    private void UpdateTitle()
+    {
+        string key = CanHandleBack ? SelectedSection!.Key : nameof(Strings.Resources.Nav_Settings);
+        if (TitleKey != key)
+        {
+            TitleKey = key;
+        }
     }
 
     // A sidebar always has a section open, as the shell's sidebar always has a destination.
@@ -206,6 +231,8 @@ public partial class SettingsPageViewModel : PageViewModelBase, IInPageBackHandl
         {
             SelectedSection = Sections.FirstOrDefault(section => !section.IsCategory);
         }
+
+        UpdateTitle();
     }
 
     /// <summary>
@@ -242,5 +269,6 @@ public partial class SettingsPageViewModel : PageViewModelBase, IInPageBackHandl
         PhotoIndex?.Dispose();
         Playback.Dispose();
         RemoteLibraries?.Dispose();
+        BrowserLink?.Dispose();
     }
 }

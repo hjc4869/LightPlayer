@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
@@ -10,6 +11,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using LightMediaRenderer.Subtitles;
 using LightStudio.LightPlayer.Models;
 using LightStudio.LightPlayer.ViewModels.Dialogs;
@@ -225,7 +227,7 @@ public sealed class DesktopDialogService : IDialogService
         return await new LyricSearchDialog(viewModel).ShowDialog<LyricEditResult?>(owner);
     }
 
-    public async Task<bool> ConfirmAsync(string title, string message, string confirmLabel)
+    public async Task<bool> ConfirmAsync(string title, string message, string confirmLabel, CancellationToken cancellationToken = default)
     {
         if (Owner is not { } owner)
         {
@@ -254,6 +256,11 @@ public sealed class DesktopDialogService : IDialogService
         content.Children.Add(buttons);
         dialog.Content = content;
 
+        using CancellationTokenRegistration registration = cancellationToken.Register(() => Dispatcher.UIThread.Post(() =>
+        {
+            if (dialog.IsVisible)
+                dialog.Close(false);
+        }));
         return await dialog.ShowDialog<bool>(owner);
     }
 

@@ -94,6 +94,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
     /// </summary>
     private readonly int extraRotation;
     private readonly bool inMotion;
+    private readonly bool prepareOnly;
 
     // Taken from the lease on every draw: the window can move to a surface with a different color
     // format or display volume at any time, and nothing outside the lease has a frame-stable view.
@@ -126,10 +127,12 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
         Compositor? compositor = null,
         VideoSdrToneMappingOptions? toneMapping = null,
         Action<VideoHdrOutputMapping, VideoDisplayToneTarget, VideoSdrToneMappingOptions>? toneMappingOutputChanged = null,
-        bool inMotion = false)
+        bool inMotion = false,
+        bool prepareOnly = false)
     {
         this.frame = frame;
         this.inMotion = inMotion;
+        this.prepareOnly = prepareOnly;
         fencePollTarget = frame.HasSurface ? VideoSurfaceReadFence.GetPollTarget(compositor) : null;
         this.destination = destination;
         this.debanding = debanding;
@@ -178,6 +181,7 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
         panelBitDepth == operation.panelBitDepth &&
         extraRotation == operation.extraRotation &&
         inMotion == operation.inMotion &&
+        prepareOnly == operation.prepareOnly &&
         ReferenceEquals(captureRequest, operation.captureRequest) &&
         string.Equals(shaderPackageOverride, operation.shaderPackageOverride, StringComparison.Ordinal);
 
@@ -278,22 +282,26 @@ internal sealed class VideoDrawOperation : ICustomDrawOperation
             (float)Bounds.Left, (float)Bounds.Top, (float)Bounds.Right, (float)Bounds.Bottom));
         int savedCanvas = ApplyOrientation(canvas);
 
+        bool photoReady;
         if (frame.PhotoSurface is not null && imageCache is not null)
-            imageCache.RenderPlatformPhoto(Request(canvas, lease.GrContext, alpha), lease);
+            photoReady = imageCache.RenderPlatformPhoto(Request(canvas, lease.GrContext, alpha), lease, !prepareOnly);
         else
         {
             bool gainReady = imageCache?.PrepareGainMap(Request(canvas, lease.GrContext, alpha), lease) ?? true;
+            photoReady = gainReady;
             if (frame.PhotoTiles is not null && imageCache is not null)
-                imageCache.RenderPhotoTiles(Request(canvas, lease.GrContext, alpha), lease, gainReady);
-            else if (gainReady && external)
+                photoReady = imageCache.RenderPhotoTiles(Request(canvas, lease.GrContext, alpha), lease, gainReady && !prepareOnly) && gainReady;
+            else if (gainReady && !prepareOnly && external)
                 RenderExternal(canvas, lease.GrContext, alpha);
-            else if (gainReady && frame.HasSurface)
+            else if (gainReady && !prepareOnly && frame.HasSurface)
                 RenderSurface(lease, canvas, alpha);
-            else if (gainReady && !VideoPlanarLayout.IsPlanar(frame.Format))
+            else if (gainReady && !prepareOnly && !VideoPlanarLayout.IsPlanar(frame.Format))
                 RenderPacked(canvas, lease.GrContext, alpha);
-            else if (gainReady)
+            else if (gainReady && !prepareOnly)
                 RenderPlanar(canvas, lease.GrContext, alpha, imageCache);
         }
+        if (photoReady)
+            imageCache?.MarkPhotoReady();
 
         if (savedCanvas != 0)
             canvas.RestoreToCount(savedCanvas);

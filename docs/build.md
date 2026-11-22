@@ -300,13 +300,13 @@ make android-install   # build and `adb install` the signed APK
 
 ## iOS
 
-The iOS head requires macOS, Xcode with the matching iOS SDK, and the .NET 10 `ios` workload.
-Use .NET SDK and workload set `10.0.100` with Xcode `26.0.1`.
+The iOS head requires macOS, Xcode with the matching iOS SDK, and the .NET 11 `ios` workload.
+Use .NET SDK `11.0.100` and workload set `11.0.100.1` with Xcode `27.2`.
 With that SDK selected, select Xcode and install the matching workload:
 
 ```sh
-export DEVELOPER_DIR=/Applications/Xcode_26.0.1.app/Contents/Developer
-dotnet workload install ios --version 10.0.100
+export DEVELOPER_DIR=/Applications/Xcode_27.2.app/Contents/Developer
+dotnet workload install ios --version 11.0.100.1
 dotnet build src/LightStudio.LightPlayer.iOS/LightStudio.LightPlayer.iOS.csproj -c Debug -r iossimulator-arm64
 xcrun simctl install booted artifacts/bin/LightStudio.LightPlayer.iOS/debug_iossimulator-arm64_static/lmcios.app
 xcrun simctl launch booted im.hjc.LightPlayer
@@ -360,7 +360,9 @@ Vertical bars and reserved regions, such as the iPhone Duo's status bar rail and
 iOS 27.1 SDK (Xcode 27.1 with the matching `ios` workload); earlier SDKs build the app without them.
 
 `Info.plist` sets `CADisableMinimumFrameDurationOnPhone` so the Avalonia display link can run at
-ProMotion refresh rates on iPhone; iPad does not need the key.
+ProMotion refresh rates on iPhone; iPad does not need the key. Its `UIApplicationSceneManifest`
+declares a single-scene app without scene configurations: Avalonia's app delegate supplies the
+scene configuration and delegate when the scene connects.
 
 VideoToolbox hardware decoding is enabled by default for new iOS settings. CoreVideo surfaces
 can be imported directly into Metal, and iOS 16 or later also supports VideoToolbox resizing and
@@ -381,7 +383,7 @@ requires an installed compatible model.
 | Audio devices | CoreAudio endpoint selection and exclusive mode | Audio Queue playback with system-managed output routing |
 | Separate media windows | Desktop window hosts | Requires an iOS scene implementation |
 | Picture-in-picture | Always-on-top desktop window | AVKit system window, also opened by leaving the app during playback |
-| File reveal | Finder integration | Files access and native sharing; no containing-folder reveal implementation |
+| File reveal | Finder integration | Files app opens the containing folder through a `shareddocuments` URL; native sharing |
 | Application updates | Desktop release download | Signed iOS deployment |
 
 ## Docker image

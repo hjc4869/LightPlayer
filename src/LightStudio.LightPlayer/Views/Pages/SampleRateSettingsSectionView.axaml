@@ -12,10 +12,8 @@
              x:DataType="vm:SampleRateSettingsSectionViewModel">
     <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
         <StackPanel Spacing="4" Margin="0,0,0,4" IsVisible="{Binding ShowHeader}">
-            <TextBlock Text="{Binding SampleRateSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
-                       FontSize="22"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
+            <TextBlock Classes="settingsTitle" Text="{Binding SampleRateSettings_Title, Source={x:Static strings:LocalizedStrings.Instance}}"
+                       TextWrapping="Wrap" />
         </StackPanel>
 
         <Border Classes="settingsGroup"
@@ -31,15 +29,10 @@
 
         <controls:SettingRow Header="{Binding SampleRateSettings_PreferredRateHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                              IsGrouped="True"
-                             HasTopDivider="True">
-            <controls:SettingRow.Styles>
-                <Style Selector="TextBlock">
-                    <Setter Property="TextWrapping" Value="Wrap" />
-                </Style>
-            </controls:SettingRow.Styles>
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          ItemsSource="{Binding Options}"
+                <ComboBox ItemsSource="{Binding Options}"
                           SelectedItem="{Binding SelectedOption, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:SampleRateOption">
@@ -72,10 +65,8 @@
             </StackPanel>
         </Border>
 
-        <TextBlock Text="{Binding SampleRateSettings_NextTrackPrompt, Source={x:Static strings:LocalizedStrings.Instance}}"
+        <TextBlock Classes="settingsCaption nudged" Text="{Binding SampleRateSettings_NextTrackPrompt, Source={x:Static strings:LocalizedStrings.Instance}}"
                    IsVisible="{Binding NextTrackPromptVisible}"
-                   FontSize="12"
-                   Margin="2,-2,2,2"
-                   Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                   Margin="2,-2,2,2" />
     </StackPanel>
 </UserControl>

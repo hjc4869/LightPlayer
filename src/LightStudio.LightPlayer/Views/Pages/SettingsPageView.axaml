@@ -61,23 +61,60 @@
         <Style Selector="ListBox.sectionsList TextBlock.sectionTitle">
             <Setter Property="FontSize" Value="14" />
         </Style>
+        <Style Selector="ListBox.sectionsList TextBlock.sectionHeaderTitle">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="MaxWidth" Value="190" />
+            <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}" />
+        </Style>
         <Style Selector="ListBox.sectionsList Viewbox.sectionIcon">
             <Setter Property="Width" Value="16" />
             <Setter Property="Height" Value="16" />
         </Style>
+        <Style Selector="ListBox.sectionsList Border.sectionIconTile">
+            <Setter Property="Margin" Value="0,0,12,0" />
+        </Style>
+        <Style Selector="ListBox.sectionsList Path.sectionGlyph">
+            <Setter Property="Fill" Value="{DynamicResource AppPrimaryTextBrush}" />
+        </Style>
+        <Style Selector="ListBox.sectionsList Path.sectionChevronGlyph">
+            <Setter Property="Fill" Value="{DynamicResource AppSecondaryTextBrush}" />
+        </Style>
+        <Style Selector="ListBox.sectionsList Viewbox.sectionChevron">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
         <Style Selector="ListBox.sectionsList Border.sectionDivider">
             <Setter Property="Opacity" Value="0" />
+            <Setter Property="Margin" Value="48,0,16,0" />
         </Style>
+
+        <!--
+            Narrow layout: each category's rows form one panel shaped like the settings groups of the
+            sections they open, with a chevron marking rows that open a page.
+        -->
         <Style Selector="ListBox.sectionsList.narrow StackPanel.sectionItems">
             <Setter Property="Margin" Value="16,8,16,16" />
         </Style>
         <Style Selector="ListBox.sectionsList.narrow ListBoxItem">
             <Setter Property="Margin" Value="0" />
             <Setter Property="Background" Value="{DynamicResource AppPanelBackgroundBrush}" />
-            <Setter Property="CornerRadius" Value="{Binding GroupCornerRadius, DataType=vm:SettingsNavigationItemViewModel}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+            <Setter Property="BorderThickness" Value="1,0" />
+        </Style>
+        <Style Selector="ListBox.sectionsList.narrow ListBoxItem.first">
+            <Setter Property="BorderThickness" Value="1,1,1,0" />
+            <Setter Property="CornerRadius" Value="6,6,0,0" />
+        </Style>
+        <Style Selector="ListBox.sectionsList.narrow ListBoxItem.last">
+            <Setter Property="BorderThickness" Value="1,0,1,1" />
+            <Setter Property="CornerRadius" Value="0,0,6,6" />
+        </Style>
+        <Style Selector="ListBox.sectionsList.narrow ListBoxItem.first.last">
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
         </Style>
         <Style Selector="ListBox.sectionsList.narrow ListBoxItem:disabled">
             <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Margin" Value="0,12,0,4" />
         </Style>
         <Style Selector="ListBox.sectionsList.narrow Border.sectionRow">
@@ -91,8 +128,96 @@
             <Setter Property="Width" Value="20" />
             <Setter Property="Height" Value="20" />
         </Style>
+        <Style Selector="ListBox.sectionsList.narrow Viewbox.sectionChevron">
+            <Setter Property="IsVisible" Value="True" />
+        </Style>
         <Style Selector="ListBox.sectionsList.narrow Border.sectionDivider">
             <Setter Property="Opacity" Value="1" />
+        </Style>
+
+        <!-- Apple style: the panels take the shape of its settings groups, without an outline. -->
+        <Style Selector=":is(TopLevel).appleControls ListBox.sectionsList.narrow">
+            <Style Selector="^ ListBoxItem">
+                <Setter Property="BorderThickness" Value="0" />
+            </Style>
+            <Style Selector="^ ListBoxItem.first">
+                <Setter Property="CornerRadius" Value="12,12,0,0" />
+            </Style>
+            <Style Selector="^ ListBoxItem.last">
+                <Setter Property="CornerRadius" Value="0,0,12,12" />
+            </Style>
+            <Style Selector="^ ListBoxItem.first.last">
+                <Setter Property="CornerRadius" Value="12" />
+            </Style>
+            <Style Selector="^ Border.sectionHeaderRule">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+        </Style>
+        <!--
+            Touch metrics follow the iOS Settings list: 17-point labels, 52-DIP rows, 26-DIP corners, glyphs on
+            28-DIP colored tiles, and dividers from the label to the trailing inset.
+        -->
+        <Style Selector=":is(TopLevel).appleTouch controls|MasterDetailView">
+            <Setter Property="DetailBackground" Value="{DynamicResource AppGroupedBackgroundBrush}" />
+        </Style>
+        <Style Selector=":is(TopLevel).appleTouch ListBox.sectionsList.narrow">
+            <Style Selector="^ ListBoxItem">
+                <Setter Property="Background" Value="{DynamicResource AppGroupedCellBrush}" />
+            </Style>
+            <Style Selector="^ ListBoxItem:disabled">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Margin" Value="0,16,0,0" />
+            </Style>
+            <Style Selector="^ TextBlock.sectionHeaderTitle">
+                <Setter Property="FontSize" Value="17" />
+                <Setter Property="LetterSpacing" Value="1" />
+                <Setter Property="MaxWidth" Value="Infinity" />
+                <Setter Property="Foreground" Value="{DynamicResource IosSecondaryLabel}" />
+            </Style>
+            <Style Selector="^ Border.sectionIconTile">
+                <Setter Property="Width" Value="28" />
+                <Setter Property="Height" Value="28" />
+                <Setter Property="CornerRadius" Value="7" />
+                <Setter Property="Margin" Value="0,0,14,0" />
+                <Setter Property="Background" Value="{Binding IconKey, Converter={x:Static conv:SettingsIconTintConverter.Instance}, DataType=vm:SettingsNavigationItemViewModel}" />
+            </Style>
+            <Style Selector="^ Path.sectionGlyph">
+                <Setter Property="Fill" Value="White" />
+            </Style>
+            <Style Selector="^ Viewbox.sectionChevron">
+                <Setter Property="Width" Value="14" />
+                <Setter Property="Height" Value="14" />
+                <Setter Property="Margin" Value="8,0,-3,0" />
+            </Style>
+            <Style Selector="^ Path.sectionChevronGlyph">
+                <Setter Property="Fill" Value="{DynamicResource IosTertiaryLabel}" />
+            </Style>
+            <Style Selector="^ ListBoxItem.first">
+                <Setter Property="CornerRadius" Value="26,26,0,0" />
+            </Style>
+            <Style Selector="^ ListBoxItem.last">
+                <Setter Property="CornerRadius" Value="0,0,26,26" />
+            </Style>
+            <Style Selector="^ ListBoxItem.first.last">
+                <Setter Property="CornerRadius" Value="26" />
+            </Style>
+            <Style Selector="^ Grid.sectionHeader">
+                <Setter Property="Margin" Value="20,8" />
+            </Style>
+            <Style Selector="^ Border.sectionRow">
+                <Setter Property="MinHeight" Value="52" />
+                <Setter Property="Padding" Value="18,12,20,12" />
+            </Style>
+            <Style Selector="^ TextBlock.sectionTitle">
+                <Setter Property="FontSize" Value="17" />
+            </Style>
+            <Style Selector="^ Viewbox.sectionIcon">
+                <Setter Property="Width" Value="18" />
+                <Setter Property="Height" Value="18" />
+            </Style>
+            <Style Selector="^ Border.sectionDivider">
+                <Setter Property="Margin" Value="60,0,20,0" />
+            </Style>
         </Style>
         <!-- Selected section uses the theme's selection color rather than the Fluent accent. -->
         <Style Selector="ListBox.sectionsList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
@@ -114,7 +239,7 @@
         The detail pane has no padding of its own: each section view margins the content inside its
         scroll viewer so the scroll bar stays hard against the window edge.
     -->
-    <Panel>
+    <Panel controls:SettingRowPanel.IsNarrowLayout="{Binding IsNarrow}">
         <controls:MasterDetailView CompactThreshold="680"
                                    MasterLength="250"
                                    IsVisible="{Binding !IsSidebarLayout}"
@@ -132,6 +257,13 @@
                          Background="Transparent"
                          BorderThickness="0"
                          Padding="0">
+                    <ListBox.Styles>
+                        <!-- Class bindings need a selector without conditions, so they are scoped by this list. -->
+                        <Style Selector="ListBoxItem">
+                            <Setter Property="(Classes.first)" Value="{Binding IsFirstInGroup, DataType=vm:SettingsNavigationItemViewModel}" />
+                            <Setter Property="(Classes.last)" Value="{Binding IsLastInGroup, DataType=vm:SettingsNavigationItemViewModel}" />
+                        </Style>
+                    </ListBox.Styles>
                     <ListBox.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Classes="sectionItems" />
@@ -141,24 +273,25 @@
                         <DataTemplate x:DataType="vm:SettingsNavigationItemViewModel">
                             <Panel>
                                 <Grid Classes="sectionHeader" ColumnDefinitions="Auto,*" IsVisible="{Binding IsCategory}">
-                                    <TextBlock Text="{Binding Title}"
-                                               MaxWidth="190"
-                                               FontSize="14"
+                                    <TextBlock Classes="sectionHeaderTitle"
+                                               Text="{Binding Title}"
                                                FontWeight="SemiBold"
-                                               TextTrimming="CharacterEllipsis"
-                                               Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                               TextTrimming="CharacterEllipsis" />
                                     <Border Grid.Column="1"
+                                            Classes="sectionHeaderRule"
                                             Height="1"
                                             Margin="12,0,0,0"
                                             VerticalAlignment="Center"
                                             Background="{DynamicResource AppDividerBrush}" />
                                 </Grid>
                                 <Border Classes="sectionRow" IsVisible="{Binding !IsCategory}">
-                                    <Grid ColumnDefinitions="Auto,*">
-                                        <Viewbox Classes="sectionIcon" VerticalAlignment="Center" Margin="0,0,12,0">
-                                            <Path Data="{Binding IconKey, Converter={x:Static conv:IconKeyConverter.Instance}}"
-                                                  Fill="{DynamicResource AppPrimaryTextBrush}" />
-                                        </Viewbox>
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Border Classes="sectionIconTile" VerticalAlignment="Center">
+                                            <Viewbox Classes="sectionIcon" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Path Classes="sectionGlyph"
+                                                      Data="{Binding IconKey, Converter={x:Static conv:IconKeyConverter.Instance}}" />
+                                            </Viewbox>
+                                        </Border>
                                         <TextBlock Grid.Column="1"
                                                    Classes="sectionTitle"
                                                    Text="{Binding Title}"
@@ -166,11 +299,18 @@
                                                    VerticalAlignment="Center"
                                                    TextWrapping="Wrap"
                                                    Foreground="{DynamicResource AppPrimaryTextBrush}" />
+                                        <Viewbox Grid.Column="2"
+                                                 Classes="sectionChevron"
+                                                 Width="16"
+                                                 Height="16"
+                                                 Margin="8,0,-4,0"
+                                                 VerticalAlignment="Center">
+                                            <Path Classes="sectionChevronGlyph" Data="{StaticResource IconChevronRight}" />
+                                        </Viewbox>
                                     </Grid>
                                 </Border>
                                 <Border Classes="sectionDivider"
                                         Height="1"
-                                        Margin="48,0,16,0"
                                         VerticalAlignment="Bottom"
                                         IsVisible="{Binding !IsLastInGroup}"
                                         Background="{DynamicResource AppDividerBrush}" />

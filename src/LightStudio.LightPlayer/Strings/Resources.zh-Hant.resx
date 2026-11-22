@@ -140,7 +140,7 @@
   <data name="LibrarySettings_OnlyLocalFolders" xml:space="preserve"><value>只能將本機資料夾新增至媒體庫。</value></data>
   <data name="LibrarySettings_RemoveFolder" xml:space="preserve"><value>移除資料夾</value></data>
   <data name="LibrarySettings_RemoveNestedFirst" xml:space="preserve"><value>新增資料夾前，請先從媒體庫移除其子資料夾。</value></data>
-  <data name="LibrarySettings_ScanAtStartupDescription" xml:space="preserve"><value>應用程式啟動時自動掃描媒體庫資料夾。</value></data>
+  <data name="LibrarySettings_ScanAtStartupDescription" xml:space="preserve"><value>應用程式啟動時掃描資料夾。</value></data>
   <data name="LibrarySettings_ScanAtStartupHeader" xml:space="preserve"><value>啟動時掃描</value></data>
   <data name="LibrarySettings_ScanLibrary" xml:space="preserve"><value>掃描媒體庫</value></data>
   <data name="LibrarySettings_Subtitle" xml:space="preserve"><value>選擇 Light Media Center 掃描音樂和影片檔案的位置。</value></data>
@@ -331,14 +331,8 @@
   <data name="VideoSettings_HardwareDeviceAuto" xml:space="preserve"><value>自動</value></data>
   <data name="VideoSettings_HardwareOptionDefault" xml:space="preserve"><value>預設</value></data>
   <data name="SearchBox_Clear" xml:space="preserve"><value>清除搜尋</value></data>
-  <data name="SearchBox_Placeholder" xml:space="preserve"><value>搜尋...</value></data>
-  <data name="Search_AlbumsHeaderFormat" xml:space="preserve"><value>專輯 ({0})</value></data>
-  <data name="Search_ArtistsHeaderFormat" xml:space="preserve"><value>藝術家 ({0})</value></data>
   <data name="Search_NoResultsDescription" xml:space="preserve"><value>請嘗試搜尋其他內容。</value></data>
   <data name="Search_NoResultsHeader" xml:space="preserve"><value>沒有結果</value></data>
-  <data name="Search_ResultsForFormat" xml:space="preserve"><value>「{0}」的搜尋結果</value></data>
-  <data name="Search_SongsHeaderFormat" xml:space="preserve"><value>歌曲 ({0})</value></data>
-  <data name="Search_VideosHeaderFormat" xml:space="preserve"><value>影片 ({0})</value></data>
   <data name="SettingsSection_LibraryTitle" xml:space="preserve"><value>媒體庫</value></data>
   <data name="SettingsSection_PlaybackTitle" xml:space="preserve"><value>播放與顯示</value></data>
   <data name="SettingsSection_SampleRateListTitle" xml:space="preserve"><value>取樣率</value></data>
@@ -871,10 +865,17 @@
   <data name="Inference_PauseDownload" xml:space="preserve"><value>暫停下載</value></data>
   <data name="Inference_ResumeDownload" xml:space="preserve"><value>繼續下載</value></data>
   <data name="Search_PhotosHeader" xml:space="preserve"><value>相片</value></data>
-  <data name="Search_MorePhotos" xml:space="preserve"><value>更多相片結果</value></data>
-  <data name="Search_MoreAlbums" xml:space="preserve"><value>更多專輯結果</value></data>
-  <data name="Search_MoreArtists" xml:space="preserve"><value>更多藝術家結果</value></data>
-  <data name="Search_MoreSongs" xml:space="preserve"><value>更多歌曲結果</value></data>
+  <data name="Search_Placeholder" xml:space="preserve"><value>搜尋媒體庫</value></data>
+  <data name="Search_LandingDescription" xml:space="preserve"><value>在所有媒體庫中尋找音樂、專輯、藝術家、影片和相片。</value></data>
+  <data name="Search_ScopeAll" xml:space="preserve"><value>全部</value></data>
+  <data name="Search_VideosHeader" xml:space="preserve"><value>影片</value></data>
+  <data name="Search_AllLibraries" xml:space="preserve"><value>所有媒體庫</value></data>
+  <data name="Search_LibrariesHeader" xml:space="preserve"><value>要搜尋的媒體庫</value></data>
+  <data name="Search_RecentHeader" xml:space="preserve"><value>最近的搜尋</value></data>
+  <data name="Search_ClearRecent" xml:space="preserve"><value>清除</value></data>
+  <data name="Search_RemoveRecent" xml:space="preserve"><value>從最近的搜尋中移除</value></data>
+  <data name="Search_NoResultsFilteredDescription" xml:space="preserve"><value>請嘗試搜尋其他內容，或清除篩選條件。</value></data>
+  <data name="Search_ClearFilters" xml:space="preserve"><value>清除篩選條件</value></data>
   <data name="AudioSeparation_Title" xml:space="preserve"><value>音源分離</value></data>
   <data name="AudioSeparation_Subtitle" xml:space="preserve"><value>在音樂播放期間聆聽由 AI 模型分離的音軌。</value></data>
   <data name="AudioSeparation_Enable" xml:space="preserve"><value>啟用音源分離</value></data>
@@ -912,7 +913,7 @@
     <value>自動掃描</value>
   </data>
   <data name="LibrarySettings_AutoScanDescription" xml:space="preserve">
-    <value>自動保持本機媒體庫為最新狀態。</value>
+    <value>保持媒體庫為最新狀態。</value>
   </data>
   <data name="LibrarySettings_AutoScanIntervalHeader" xml:space="preserve">
     <value>掃描間隔（分鐘）</value>
@@ -929,8 +930,8 @@
   <data name="LibrarySettings_MusicLibraryHeader" xml:space="preserve"><value>音樂庫</value></data>
   <data name="LibrarySettings_MediaLibraryHeader" xml:space="preserve"><value>相片與影片</value></data>
   <data name="LibrarySettings_UseSystemLibrary" xml:space="preserve"><value>使用系統媒體庫</value></data>
-  <data name="LibrarySettings_SystemMusicDescription" xml:space="preserve"><value>顯示裝置媒體庫中的音樂。</value></data>
-  <data name="LibrarySettings_SystemMediaDescription" xml:space="preserve"><value>顯示裝置媒體庫中的相片和影片。</value></data>
+  <data name="LibrarySettings_SystemMusicDescription" xml:space="preserve"><value>顯示裝置中的音樂。</value></data>
+  <data name="LibrarySettings_SystemMediaDescription" xml:space="preserve"><value>顯示裝置中的相片和影片。</value></data>
   <data name="LibrarySettings_ScanFolders" xml:space="preserve"><value>掃描資料夾</value></data>
   <data name="LibrarySettings_ScanFoldersDescription" xml:space="preserve"><value>包含所選資料夾中的檔案。</value></data>
   <data name="LibrarySettings_ManageMediaAccess" xml:space="preserve"><value>管理媒體存取權限</value></data>
@@ -1062,4 +1063,23 @@
   <data name="Photo_SaveGamutPreserveHue" xml:space="preserve"><value>保持色相</value></data>
   <data name="Photo_SaveGamutClip" xml:space="preserve"><value>裁切</value></data>
   <data name="Photo_SaveWarnGamut" xml:space="preserve"><value>此相片可能包含所選色彩空間以外的色彩，這些色彩無法精確儲存。</value></data>
+  <data name="BrowserLink_PairTitle" xml:space="preserve"><value>配對瀏覽器擴充功能</value></data>
+  <data name="BrowserLink_PairMessageFormat" xml:space="preserve"><value>{0} ({1}) 想要將影片傳送到 Light Media Center。僅在擴充功能顯示代碼 {2} 時才進行配對。</value></data>
+  <data name="BrowserLink_PairConfirm" xml:space="preserve"><value>配對</value></data>
+  <data name="BrowserLinkSettings_Title" xml:space="preserve"><value>瀏覽器擴充功能</value></data>
+  <data name="BrowserLinkSettings_Subtitle" xml:space="preserve"><value>透過瀏覽器擴充功能在 Light Media Center 中播放網頁上的影片。</value></data>
+  <data name="BrowserLinkSettings_EnabledHeader" xml:space="preserve"><value>允許瀏覽器連線</value></data>
+  <data name="BrowserLinkSettings_EnabledDescription" xml:space="preserve"><value>此電腦上已配對的瀏覽器可以將影片傳送到這裡。其他裝置無法連線。</value></data>
+  <data name="BrowserLinkSettings_PortHeader" xml:space="preserve"><value>連接埠</value></data>
+  <data name="BrowserLinkSettings_PortDescription" xml:space="preserve"><value>請在擴充功能的選項中設定相同的連接埠。</value></data>
+  <data name="BrowserLinkSettings_ApplyButton" xml:space="preserve"><value>套用</value></data>
+  <data name="BrowserLinkSettings_InvalidPort" xml:space="preserve"><value>連接埠必須是 1 到 65535 之間的整數。</value></data>
+  <data name="BrowserLinkSettings_RunningFormat" xml:space="preserve"><value>正在連接埠 {0} 上等待瀏覽器連線。</value></data>
+  <data name="BrowserLinkSettings_Disabled" xml:space="preserve"><value>瀏覽器連線已關閉。</value></data>
+  <data name="BrowserLinkSettings_FailedFormat" xml:space="preserve"><value>無法使用連接埠 {0}：{1}</value></data>
+  <data name="BrowserLinkSettings_PairedHeader" xml:space="preserve"><value>已配對的瀏覽器</value></data>
+  <data name="BrowserLinkSettings_PairedDescription" xml:space="preserve"><value>配對需從擴充功能開始。移除的瀏覽器需要重新配對。</value></data>
+  <data name="BrowserLinkSettings_PairedEmpty" xml:space="preserve"><value>尚未配對任何瀏覽器。</value></data>
+  <data name="BrowserLinkSettings_PairedOnFormat" xml:space="preserve"><value>配對於 {0}</value></data>
+  <data name="BrowserLinkSettings_Remove" xml:space="preserve"><value>移除</value></data>
 </root>

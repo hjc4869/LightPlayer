@@ -12,19 +12,13 @@
              x:DataType="vm:RemoteTranscodeSettingsSectionViewModel">
     <StackPanel MaxWidth="680" HorizontalAlignment="Stretch" Spacing="10">
         <StackPanel Spacing="4" Margin="0,0,0,4">
-            <TextBlock Text="{Binding Title}"
-                       FontSize="22"
-                       FontWeight="SemiBold"
-                       Foreground="{DynamicResource AppPrimaryTextBrush}" />
-            <TextBlock Text="{Binding Description}"
-                       FontSize="13"
+            <TextBlock Classes="settingsTitle" Text="{Binding Title}"
+                       TextWrapping="Wrap" />
+            <TextBlock Classes="settingsSubtitle" Text="{Binding Description}"
+                       TextWrapping="Wrap" />
+            <TextBlock Classes="settingsCaption" Text="{Binding ServerNotice}"
                        TextWrapping="Wrap"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
-            <TextBlock Text="{Binding ServerNotice}"
-                       FontSize="12"
-                       TextWrapping="Wrap"
-                       IsVisible="{Binding HasServerNotice}"
-                       Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                       IsVisible="{Binding HasServerNotice}" />
         </StackPanel>
 
         <Border Classes="settingsGroup">
@@ -39,10 +33,10 @@
         <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoCodecHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                              IsVisible="{Binding HasVideoCodecs}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          ItemsSource="{Binding VideoCodecOptions}"
+                <ComboBox ItemsSource="{Binding VideoCodecOptions}"
                           SelectedItem="{Binding SelectedVideoCodec, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:VideoSettingsOption">
@@ -56,19 +50,20 @@
         <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoCodecsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                              Description="{Binding RemoteTranscodeSettings_VideoCodecsDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <TextBox Width="150" Text="{Binding VideoCodecs, Mode=TwoWay}" />
+                <TextBox Text="{Binding VideoCodecs, Mode=TwoWay}" />
             </controls:SettingRow.ActionContent>
         </controls:SettingRow>
 
         <controls:SettingRow Header="{Binding RemoteTranscodeSettings_FileBitrateThresholdHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                      Description="{Binding RemoteTranscodeSettings_FileBitrateThresholdDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                      IsGrouped="True"
-                     HasTopDivider="True">
+                     HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <controls:NumberEntry Width="150"
-                                      Minimum="0"
+                <controls:NumberEntry Minimum="0"
                                       Maximum="200"
                                       Increment="1"
                                       FormatString="0.#"
@@ -78,10 +73,10 @@
 
         <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoBitrateHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <controls:NumberEntry Width="150"
-                                      Minimum="0"
+                <controls:NumberEntry Minimum="0"
                                       Maximum="200"
                                       Increment="0.5"
                                       FormatString="0.#"
@@ -92,10 +87,10 @@
         <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoHeightThresholdHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                              Description="{Binding RemoteTranscodeSettings_VideoHeightThresholdDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <controls:NumberEntry Width="150"
-                                      Minimum="0"
+                <controls:NumberEntry Minimum="0"
                                       Maximum="8192"
                                       Increment="90"
                                       FormatString="0"
@@ -106,10 +101,10 @@
         <controls:SettingRow Header="{Binding RemoteTranscodeSettings_VideoHeightHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                              Description="{Binding RemoteTranscodeSettings_VideoHeightDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <controls:NumberEntry Width="150"
-                                      Minimum="0"
+                <controls:NumberEntry Minimum="0"
                                       Maximum="8192"
                                       Increment="90"
                                       FormatString="0"
@@ -130,19 +125,20 @@
 
         <controls:SettingRow Header="{Binding RemoteTranscodeSettings_AudioCodecsHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <TextBox Width="150" Text="{Binding AudioCodecsToTranscode, Mode=TwoWay}" />
+                <TextBox Text="{Binding AudioCodecsToTranscode, Mode=TwoWay}" />
             </controls:SettingRow.ActionContent>
         </controls:SettingRow>
 
         <controls:SettingRow Header="{Binding RemoteTranscodeSettings_AudioCodecHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                              IsVisible="{Binding HasAudioCodecs}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <ComboBox Width="150"
-                          ItemsSource="{Binding AudioCodecOptions}"
+                <ComboBox ItemsSource="{Binding AudioCodecOptions}"
                           SelectedItem="{Binding SelectedAudioCodec, Mode=TwoWay}">
                     <ComboBox.ItemTemplate>
                         <DataTemplate x:DataType="vm:VideoSettingsOption">
@@ -155,10 +151,10 @@
 
         <controls:SettingRow Header="{Binding RemoteTranscodeSettings_AudioBitrateHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
                              IsGrouped="True"
-                             HasTopDivider="True">
+                             HasTopDivider="True"
+                             ActionWidth="150">
             <controls:SettingRow.ActionContent>
-                <controls:NumberEntry Width="150"
-                                      Minimum="0"
+                <controls:NumberEntry Minimum="0"
                                       Maximum="4000"
                                       Increment="32"
                                       FormatString="0"

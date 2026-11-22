@@ -49,6 +49,8 @@ internal sealed class PhotoTileCache(VideoFrame frame, Action invalidate, Action
 
     private bool HasScaledOverview => source.HasScaledOverview && !preferThroughput;
 
+    public bool IsReady => overviewImage is not null && (!(samplesOnly || frame.HasAlpha) || sampleWindow is not null);
+
     private readonly record struct Work(int Index, int Reduction, bool Overview);
     private readonly record struct Decoded(Work Work, VideoFrame? Frame, Exception? Error = null);
 

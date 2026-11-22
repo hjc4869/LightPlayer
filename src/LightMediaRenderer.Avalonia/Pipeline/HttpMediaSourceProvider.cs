@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using LightMediaRenderer.Contracts;
 using LightStudio.FfmpegShim.Demuxing;
 using LightStudio.FfmpegShim.Subtitles;
@@ -14,7 +16,7 @@ namespace LightMediaRenderer.Avalonia.Pipeline;
 public sealed class HttpMediaSourceProvider : IMediaSourceProvider, IStreamingMediaSourceProvider
 {
     private readonly Uri[] sources;
-    private readonly HttpClient client = new() { Timeout = Timeout.InfiniteTimeSpan };
+    private readonly HttpClient client;
     private readonly CancellationTokenSource lifetime = new();
     private Uri[] additionalSources = [];
     private Uri? mainSource;
@@ -22,11 +24,21 @@ public sealed class HttpMediaSourceProvider : IMediaSourceProvider, IStreamingMe
     private StreamingLoadStage loadStage = StreamingLoadStage.Connecting;
     private bool disposed;
 
-    public HttpMediaSourceProvider(IReadOnlyList<Uri> sources)
+    /// <param name="requestHeaders">Sent with every request, such as the <c>Referer</c> of the page the media came from.</param>
+    public HttpMediaSourceProvider(
+        IReadOnlyList<Uri> sources,
+        IReadOnlyDictionary<string, string>? requestHeaders = null)
     {
         ArgumentNullException.ThrowIfNull(sources);
         if (sources.Count == 0)
             throw new ArgumentException("At least one HTTP media URL is required.", nameof(sources));
+
+        client = new HttpClient(new AccessObserver(this)) { Timeout = Timeout.InfiniteTimeSpan };
+        foreach ((string name, string value) in requestHeaders ?? new Dictionary<string, string>())
+        {
+            if (!client.DefaultRequestHeaders.TryAddWithoutValidation(name, value))
+                throw new ArgumentException($"'{name}' cannot be sent as a request header.", nameof(requestHeaders));
+        }
 
         this.sources = new Uri[sources.Count];
         for (var index = 0; index < sources.Count; index++)
@@ -49,6 +61,9 @@ public sealed class HttpMediaSourceProvider : IMediaSourceProvider, IStreamingMe
     public StreamingLoadStage LoadStage => loadStage;
 
     public event EventHandler? LoadStageChanged;
+
+    /// <summary>Raised on a request thread when a media server answers 401 or 403.</summary>
+    public event EventHandler<HttpStatusCode>? AccessDenied;
 
     public IPacketSource OpenMain()
     {
@@ -190,6 +205,20 @@ public sealed class HttpMediaSourceProvider : IMediaSourceProvider, IStreamingMe
             return;
         loadStage = value;
         LoadStageChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Reports refusals as they arrive, before the open path's retries give up on them.</summary>
+    private sealed class AccessObserver(HttpMediaSourceProvider owner) : DelegatingHandler(new HttpClientHandler())
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            HttpResponseMessage response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                owner.AccessDenied?.Invoke(owner, response.StatusCode);
+            return response;
+        }
     }
 
     private static bool IsHttp(Uri uri) =>

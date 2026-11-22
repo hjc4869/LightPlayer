@@ -41,8 +41,10 @@ public sealed record PhotoSearchMatch(
     string? DateTaken,
     double Score);
 
+/// <param name="TotalCount">The number of photos the search lists across all of its pages, where the source reports it.</param>
 public sealed record PhotoSearchPage(
     IReadOnlyList<PhotoSearchMatch> Items,
     string? NextCursor,
     bool IsAvailable,
-    bool RestartRequired = false);
+    bool RestartRequired = false,
+    int? TotalCount = null);

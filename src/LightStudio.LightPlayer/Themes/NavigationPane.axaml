@@ -29,7 +29,7 @@
 
     <!-- Apple layout sidebar: compact, accent-tinted entries with rounded hover and selection fills. -->
     <Style Selector="DockPanel.navPane.apple">
-        <Style Selector="^ Panel.railSearch, ^ Button.navMore, ^ Button.navQueue, ^ Border.navDivider">
+        <Style Selector="^ Button.railSearch, ^ Button.navMore, ^ Button.navQueue, ^ Border.navDivider">
             <Setter Property="IsVisible" Value="False" />
         </Style>
         <Style Selector="^ Button.nav">

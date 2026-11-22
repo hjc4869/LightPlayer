@@ -89,6 +89,7 @@ public abstract class OnnxInferenceProviderBase : IInferenceProvider
         public float[] EncodeText(string query, CancellationToken cancellationToken) => Run(current => current.EncodeText(query, cancellationToken), cancellationToken);
         public float[] EncodeImage(StillImageThumbnail image, CancellationToken cancellationToken) => Run(current => current.EncodeImage(image, cancellationToken), cancellationToken);
         public float[][] EncodeImages(IReadOnlyList<StillImageThumbnail> images, CancellationToken cancellationToken) => Run(current => current.EncodeImages(images, cancellationToken), cancellationToken);
+        public EmbeddingMatchCalibration? GetMatchCalibration(CancellationToken cancellationToken) => Run(current => current.GetMatchCalibration(cancellationToken), cancellationToken);
 
         private T Run<T>(Func<OnnxEmbeddingEncoder, T> action, CancellationToken cancellationToken)
         {

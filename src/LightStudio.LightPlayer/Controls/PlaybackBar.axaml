@@ -32,15 +32,16 @@
             <Setter Property="BorderThickness" Value="0,1,0,0" />
             <Setter Property="Height" Value="80" />
         </Style>
-        <!-- Hosted by a material of the shell's own; the shell supplies the surface. -->
+        <!-- Hosted by a material of the shell's own; the shell supplies the surface, and taps between
+             its capsules reach the page. -->
         <Style Selector="controls|PlaybackBar.floating Border#BarSurface">
-            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Background" Value="{x:Null}" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Height" Value="72" />
         </Style>
     </UserControl.Styles>
     <Border x:Name="BarSurface">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto" Margin="24,0" VerticalAlignment="Center">
+        <Grid x:Name="BarContent" ColumnDefinitions="Auto,*,Auto,0,Auto" Margin="24,0" VerticalAlignment="Center">
             <!-- Album art (left) -->
             <Button Grid.Column="0"
                     Classes="trackInfo"
@@ -104,10 +105,11 @@
                        Margin="0,0,8,0"
                        Foreground="{DynamicResource AppSecondaryTextBrush}" />
 
-            <!-- Controls (right) -->
-            <StackPanel Grid.Column="3"
+            <!-- Controls (right), after the division where a fold divides the bar -->
+            <StackPanel Grid.Column="4"
                         Orientation="Horizontal"
                         Spacing="4"
+                        HorizontalAlignment="Center"
                         VerticalAlignment="Center">
                     <Button x:Name="AudioSeparationButton" Classes="icon" IsVisible="{Binding CanSeparateAudio}"
                             IsEnabled="{Binding HasItem}"

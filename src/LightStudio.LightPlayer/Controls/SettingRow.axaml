@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:controls="using:LightStudio.LightPlayer.Controls"
              mc:Ignorable="d"
              d:DesignWidth="460"
              d:DesignHeight="64"
@@ -11,12 +12,52 @@
         <Style Selector="Border.row">
             <Setter Property="Margin" Value="0,0,0,8" />
         </Style>
+        <!-- Touch groups stand further apart, as the groups of an iOS list do. -->
+        <Style Selector=":is(TopLevel).appleTouch Border.row">
+            <Setter Property="Margin" Value="0,0,0,14" />
+        </Style>
         <Style Selector="Border.row.grouped">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="Margin" Value="0" />
         </Style>
+        <Style Selector="TextBlock.rowDescription.empty, TextBlock.rowFooter">
+            <Setter Property="IsVisible" Value="False" />
+        </Style>
+        <!-- A touch row that forms a group of its own states its description under the group, as an iOS list footer. -->
+        <Style Selector=":is(TopLevel).appleTouch controls|SettingRow:footed">
+            <Style Selector="^ Border.row">
+                <Setter Property="Margin" Value="0" />
+            </Style>
+            <Style Selector="^ TextBlock.rowDescription">
+                <Setter Property="IsVisible" Value="False" />
+            </Style>
+            <Style Selector="^ TextBlock.rowFooter">
+                <Setter Property="IsVisible" Value="True" />
+                <Setter Property="Margin" Value="0,8,0,14" />
+            </Style>
+        </Style>
+        <!--
+            Pickers fill the action slot, which has the declared width beside the header and the row
+            width below it. In the narrow layout they move below rather than trim the selected choice.
+        -->
+        <Style Selector="ContentControl.settingAction ComboBox">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="controls:SettingRowPanel.ActionSizing" Value="Fit" />
+        </Style>
+        <!--
+            Touch pop-up titles have no bezel: beside the header they take the width of their text,
+            and below it they start at its leading edge.
+        -->
+        <Style Selector=":is(TopLevel).appleTouch ContentControl.settingAction ComboBox">
+            <Setter Property="controls:SettingRowPanel.ActionSizing" Value="Hug" />
+        </Style>
+        <Style Selector=":is(TopLevel).appleTouch controls|SettingRowPanel.stacked ComboBox">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
     </UserControl.Styles>
 
+    <StackPanel>
     <Border Classes="row"
             Classes.settingsGroup="{Binding !#Root.IsGrouped}"
             Classes.grouped="{Binding #Root.IsGrouped}">
@@ -29,33 +70,35 @@
                     </MultiBinding>
                 </Border.IsVisible>
             </Border>
-            <Grid Grid.Row="1"
-                  ColumnDefinitions="*,Auto"
-                  Margin="{DynamicResource AppSettingRowPadding}"
-                  MinHeight="{DynamicResource AppSettingRowMinHeight}"
-                  IsVisible="{Binding #Root.IsHeaderVisible}"
-                  VerticalAlignment="Center">
-                <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding #Root.Header}"
-                               Classes="settingName"
-                               FontSize="{DynamicResource AppSettingNameFontSize}" />
+            <controls:SettingRowPanel Grid.Row="1"
+                                      Margin="{DynamicResource AppSettingRowPadding}"
+                                      MinHeight="{DynamicResource AppSettingRowMinHeight}"
+                                      ActionWidth="{Binding #Root.ActionWidth}"
+                                      ActionWidthScale="{DynamicResource AppSettingActionWidthScale}"
+                                      IsVisible="{Binding #Root.IsHeaderVisible}"
+                                      VerticalAlignment="Center">
+                <TextBlock Text="{Binding #Root.Header}"
+                           Classes="settingName"
+                           FontSize="{DynamicResource AppSettingNameFontSize}" />
+                <StackPanel Spacing="2">
                     <TextBlock Text="{Binding #Root.Description}"
-                               Classes="settingDescription"
+                               Classes="settingDescription rowDescription"
+                               Classes.empty="{Binding #Root.Description, Converter={x:Static StringConverters.IsNullOrEmpty}}"
                                FontSize="{DynamicResource AppSettingDescriptionFontSize}"
-                               IsVisible="{Binding #Root.Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                                TextWrapping="Wrap" />
                     <ContentControl Content="{Binding #Root.DescriptionContent}"
                                     IsVisible="{Binding #Root.DescriptionContent, Converter={x:Static ObjectConverters.IsNotNull}}" />
                 </StackPanel>
-                <ContentControl Grid.Column="1"
-                                Classes="settingAction"
-                                Margin="16,0,0,0"
-                                VerticalAlignment="Center"
+                <ContentControl Classes="settingAction"
                                 Content="{Binding #Root.ActionContent}" />
-            </Grid>
+            </controls:SettingRowPanel>
             <ContentControl Grid.Row="2"
                             Content="{Binding #Root.RowsContent}"
                             IsVisible="{Binding #Root.RowsContent, Converter={x:Static ObjectConverters.IsNotNull}}" />
         </Grid>
     </Border>
+    <TextBlock Text="{Binding #Root.Description}"
+               Classes="settingsNote rowFooter"
+               TextWrapping="Wrap" />
+    </StackPanel>
 </UserControl>

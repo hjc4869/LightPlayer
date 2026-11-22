@@ -10,8 +10,8 @@ using LightStudio.LightPlayer.Services;
 namespace LightStudio.RemoteServices;
 
 /// <summary>
-/// Cache for library images downloaded from a remote server: album art, video previews, and
-/// photo thumbnails.
+/// Cache for a remote library's images: album art, video previews, and photo thumbnails, downloaded
+/// from its server or generated on this device.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -70,6 +70,9 @@ public sealed class RemoteImageCache : IStorageCache, IStorageCacheLimit
         this.store = store ?? throw new ArgumentNullException(nameof(store));
     }
 
+    /// <summary>Raised after the cache has been emptied, for holders of in-memory copies of its images.</summary>
+    public event EventHandler? Cleared;
+
     public long MaxBytes => store?.MaxBytes ?? Interlocked.Read(ref maxBytes);
 
     public long MinimumBytes => store?.MinimumBytes ?? MinBytes;
@@ -88,7 +91,21 @@ public sealed class RemoteImageCache : IStorageCache, IStorageCacheLimit
     /// <paramref name="fetch"/> only when it is not cached yet.
     /// </summary>
     public Task<byte[]> GetVideoPreviewAsync(string mediaFilePath, Func<CancellationToken, Task<byte[]>> fetch) =>
-        GetAsync(NameFor($"preview-v{VideoPreviewRepresentationVersion}\u0000" + mediaFilePath), fetch);
+        GetAsync(PreviewName(mediaFilePath), fetch);
+
+    /// <summary>Returns the stored preview frame of <paramref name="mediaFilePath"/>, or null when there is none.</summary>
+    public Task<byte[]?> ReadVideoPreviewAsync(string mediaFilePath)
+    {
+        var name = PreviewName(mediaFilePath);
+        return store is null ? Task.Run(() => TryRead(name)) : store.ReadAsync(name);
+    }
+
+    /// <summary>Stores a preview frame produced on this device for <paramref name="mediaFilePath"/>.</summary>
+    public Task StoreVideoPreviewAsync(string mediaFilePath, byte[] preview)
+    {
+        var name = PreviewName(mediaFilePath);
+        return store is null ? Task.Run(() => Write(name, preview)) : store.WriteAsync(name, preview);
+    }
 
     private Task<byte[]> GetAsync(string name, Func<CancellationToken, Task<byte[]>> fetch)
     {
@@ -119,21 +136,25 @@ public sealed class RemoteImageCache : IStorageCache, IStorageCacheLimit
         }
     });
 
-    public Task ClearAsync() => store?.ClearAsync() ?? Task.Run(() =>
+    public async Task ClearAsync()
     {
-        lock (gate)
+        await (store?.ClearAsync() ?? Task.Run(() =>
         {
-            entries.Clear();
-            recency.Clear();
-            storedBytes = 0;
-            indexed = true;
-        }
+            lock (gate)
+            {
+                entries.Clear();
+                recency.Clear();
+                storedBytes = 0;
+                indexed = true;
+            }
 
-        foreach (var path in EnumerateFiles())
-        {
-            Delete(path);
-        }
-    });
+            foreach (var path in EnumerateFiles())
+            {
+                Delete(path);
+            }
+        })).ConfigureAwait(false);
+        Cleared?.Invoke(this, EventArgs.Empty);
+    }
 
     public Task SetMaxBytesAsync(long maxBytes) => store?.SetMaxBytesAsync(maxBytes) ?? Task.Run(() =>
     {
@@ -319,6 +340,9 @@ public sealed class RemoteImageCache : IStorageCache, IStorageCacheLimit
     /// Album art hashes the bare path, so entries written before previews shared this cache stay
     /// readable; every other kind of image prefixes its own name.
     /// </summary>
+    private static string PreviewName(string mediaFilePath) =>
+        NameFor($"preview-v{VideoPreviewRepresentationVersion}\u0000" + mediaFilePath);
+
     private static string NameFor(string key) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(key)))[..32];
 

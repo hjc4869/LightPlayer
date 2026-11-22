@@ -14,28 +14,16 @@
         <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:StorageCacheItemViewModel">
                 <StackPanel>
-                    <Border Classes="settingsDividedRow">
-                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Header}"
-                                           Classes="settingName"
-                                           FontSize="{DynamicResource AppSettingNameFontSize}"
-                                           TextWrapping="Wrap" />
-                                <TextBlock Text="{Binding Description}"
-                                           Classes="settingDescription"
-                                           FontSize="{DynamicResource AppSettingDescriptionFontSize}"
-                                           IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="1"
-                                        Orientation="Horizontal"
+                    <controls:SettingRow IsGrouped="True"
+                                         HasTopDivider="True"
+                                         Header="{Binding Header}"
+                                         Description="{Binding Description}">
+                        <controls:SettingRow.ActionContent>
+                            <StackPanel Orientation="Horizontal"
                                         Spacing="10"
-                                        Margin="16,0,0,0"
                                         VerticalAlignment="Center">
-                                <TextBlock Text="{Binding UsageText}"
-                                           FontSize="12"
-                                           VerticalAlignment="Center"
-                                           Foreground="{DynamicResource AppSecondaryTextBrush}" />
+                                <TextBlock Classes="settingsCaption" Text="{Binding UsageText}"
+                                           VerticalAlignment="Center" />
                                 <Button Classes="icon"
                                         ToolTip.Tip="{Binding StorageSettings_Clear, Source={x:Static strings:LocalizedStrings.Instance}}"
                                         Command="{Binding ClearCommand}">
@@ -45,31 +33,23 @@
                                     </Viewbox>
                                 </Button>
                             </StackPanel>
-                        </Grid>
-                    </Border>
+                        </controls:SettingRow.ActionContent>
+                    </controls:SettingRow>
 
-                    <Border Classes="settingsDividedRow"
-                            IsVisible="{Binding HasLimit}">
-                        <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding StorageSettings_LimitHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
-                                           Classes="settingName"
-                                           FontSize="{DynamicResource AppSettingNameFontSize}" />
-                                <TextBlock Text="{Binding StorageSettings_LimitDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
-                                           Classes="settingDescription"
-                                           FontSize="{DynamicResource AppSettingDescriptionFontSize}"
-                                           TextWrapping="Wrap" />
-                            </StackPanel>
-                            <controls:NumberEntry Width="150"
-                                                  Grid.Column="1"
-                                                  Margin="16,0,0,0"
-                                                  Minimum="{Binding MinimumLimitMebibytes}"
+                    <controls:SettingRow IsGrouped="True"
+                                         HasTopDivider="True"
+                                         IsVisible="{Binding HasLimit}"
+                                         Header="{Binding StorageSettings_LimitHeader, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                         Description="{Binding StorageSettings_LimitDescription, Source={x:Static strings:LocalizedStrings.Instance}}"
+                                         ActionWidth="150">
+                        <controls:SettingRow.ActionContent>
+                            <controls:NumberEntry Minimum="{Binding MinimumLimitMebibytes}"
                                                   Maximum="{Binding MaximumLimitMebibytes}"
                                                   Increment="64"
                                                   FormatString="0"
                                                   Number="{Binding LimitMebibytes, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" />
-                        </Grid>
-                    </Border>
+                        </controls:SettingRow.ActionContent>
+                    </controls:SettingRow>
                 </StackPanel>
             </DataTemplate>
         </ItemsControl.ItemTemplate>

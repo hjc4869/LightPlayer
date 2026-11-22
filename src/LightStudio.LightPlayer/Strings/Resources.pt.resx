@@ -522,7 +522,7 @@
     <value>Remova as pastas da biblioteca contidas nesta pasta antes de adicioná-la.</value>
   </data>
   <data name="LibrarySettings_ScanAtStartupDescription" xml:space="preserve">
-    <value>Verificar automaticamente as pastas da biblioteca quando o aplicativo for iniciado.</value>
+    <value>Verificar as pastas ao iniciar o aplicativo.</value>
   </data>
   <data name="LibrarySettings_ScanAtStartupHeader" xml:space="preserve">
     <value>Verificar ao iniciar</value>
@@ -1080,29 +1080,11 @@
   <data name="SearchBox_Clear" xml:space="preserve">
     <value>Limpar pesquisa</value>
   </data>
-  <data name="SearchBox_Placeholder" xml:space="preserve">
-    <value>Pesquisar...</value>
-  </data>
-  <data name="Search_AlbumsHeaderFormat" xml:space="preserve">
-    <value>Álbuns ({0})</value>
-  </data>
-  <data name="Search_ArtistsHeaderFormat" xml:space="preserve">
-    <value>Artistas ({0})</value>
-  </data>
   <data name="Search_NoResultsDescription" xml:space="preserve">
     <value>Tente outro termo de pesquisa.</value>
   </data>
   <data name="Search_NoResultsHeader" xml:space="preserve">
     <value>Nenhum resultado</value>
-  </data>
-  <data name="Search_ResultsForFormat" xml:space="preserve">
-    <value>Resultados para “{0}”</value>
-  </data>
-  <data name="Search_SongsHeaderFormat" xml:space="preserve">
-    <value>Músicas ({0})</value>
-  </data>
-  <data name="Search_VideosHeaderFormat" xml:space="preserve">
-    <value>Vídeos ({0})</value>
   </data>
   <data name="SettingsSection_LibraryTitle" xml:space="preserve">
     <value>Biblioteca</value>
@@ -2364,10 +2346,17 @@
   <data name="Inference_PauseDownload" xml:space="preserve"><value>Pausar download</value></data>
   <data name="Inference_ResumeDownload" xml:space="preserve"><value>Retomar download</value></data>
   <data name="Search_PhotosHeader" xml:space="preserve"><value>Fotos</value></data>
-  <data name="Search_MorePhotos" xml:space="preserve"><value>Mais resultados de fotos</value></data>
-  <data name="Search_MoreAlbums" xml:space="preserve"><value>Mais resultados de álbuns</value></data>
-  <data name="Search_MoreArtists" xml:space="preserve"><value>Mais resultados de artistas</value></data>
-  <data name="Search_MoreSongs" xml:space="preserve"><value>Mais resultados de músicas</value></data>
+  <data name="Search_Placeholder" xml:space="preserve"><value>Pesquisar na sua biblioteca</value></data>
+  <data name="Search_LandingDescription" xml:space="preserve"><value>Encontre músicas, álbuns, artistas, vídeos e fotos nas suas bibliotecas.</value></data>
+  <data name="Search_ScopeAll" xml:space="preserve"><value>Tudo</value></data>
+  <data name="Search_VideosHeader" xml:space="preserve"><value>Vídeos</value></data>
+  <data name="Search_AllLibraries" xml:space="preserve"><value>Todas as bibliotecas</value></data>
+  <data name="Search_LibrariesHeader" xml:space="preserve"><value>Bibliotecas a pesquisar</value></data>
+  <data name="Search_RecentHeader" xml:space="preserve"><value>Pesquisas recentes</value></data>
+  <data name="Search_ClearRecent" xml:space="preserve"><value>Limpar</value></data>
+  <data name="Search_RemoveRecent" xml:space="preserve"><value>Remover das pesquisas recentes</value></data>
+  <data name="Search_NoResultsFilteredDescription" xml:space="preserve"><value>Tente outro termo de pesquisa ou limpe os filtros.</value></data>
+  <data name="Search_ClearFilters" xml:space="preserve"><value>Limpar filtros</value></data>
   <data name="AudioSeparation_Title" xml:space="preserve"><value>Separação de áudio</value></data>
   <data name="AudioSeparation_Subtitle" xml:space="preserve"><value>Ouça stems isolados durante a reprodução de músicas com modelos de IA.</value></data>
   <data name="AudioSeparation_Enable" xml:space="preserve"><value>Ativar separação de áudio</value></data>
@@ -2415,7 +2404,7 @@
     <value>Verificar automaticamente</value>
   </data>
   <data name="LibrarySettings_AutoScanDescription" xml:space="preserve">
-    <value>Manter a biblioteca local atualizada automaticamente.</value>
+    <value>Manter a biblioteca atualizada.</value>
   </data>
   <data name="LibrarySettings_AutoScanIntervalHeader" xml:space="preserve">
     <value>Intervalo de verificação (minutos)</value>
@@ -2432,8 +2421,8 @@
   <data name="LibrarySettings_MusicLibraryHeader" xml:space="preserve"><value>Biblioteca de música</value></data>
   <data name="LibrarySettings_MediaLibraryHeader" xml:space="preserve"><value>Fotos e vídeos</value></data>
   <data name="LibrarySettings_UseSystemLibrary" xml:space="preserve"><value>Usar biblioteca do sistema</value></data>
-  <data name="LibrarySettings_SystemMusicDescription" xml:space="preserve"><value>Músicas da biblioteca de mídia do seu dispositivo.</value></data>
-  <data name="LibrarySettings_SystemMediaDescription" xml:space="preserve"><value>Fotos e vídeos da biblioteca de mídia do seu dispositivo.</value></data>
+  <data name="LibrarySettings_SystemMusicDescription" xml:space="preserve"><value>Músicas do seu dispositivo.</value></data>
+  <data name="LibrarySettings_SystemMediaDescription" xml:space="preserve"><value>Fotos e vídeos do seu dispositivo.</value></data>
   <data name="LibrarySettings_ScanFolders" xml:space="preserve"><value>Verificar pastas</value></data>
   <data name="LibrarySettings_ScanFoldersDescription" xml:space="preserve"><value>Incluir arquivos das pastas selecionadas.</value></data>
   <data name="LibrarySettings_ManageMediaAccess" xml:space="preserve"><value>Gerenciar acesso à mídia</value></data>
@@ -2565,4 +2554,23 @@
   <data name="Photo_SaveGamutPreserveHue" xml:space="preserve"><value>Manter matiz</value></data>
   <data name="Photo_SaveGamutClip" xml:space="preserve"><value>Cortar</value></data>
   <data name="Photo_SaveWarnGamut" xml:space="preserve"><value>Esta foto pode conter cores fora do espaço de cores escolhido, que não podem ser salvas com exatidão.</value></data>
+  <data name="BrowserLink_PairTitle" xml:space="preserve"><value>Emparelhar extensão do navegador</value></data>
+  <data name="BrowserLink_PairMessageFormat" xml:space="preserve"><value>{0} ({1}) quer enviar vídeos para o Light Media Center. Emparelhe somente se a extensão mostrar o código {2}.</value></data>
+  <data name="BrowserLink_PairConfirm" xml:space="preserve"><value>Emparelhar</value></data>
+  <data name="BrowserLinkSettings_Title" xml:space="preserve"><value>Extensão do navegador</value></data>
+  <data name="BrowserLinkSettings_Subtitle" xml:space="preserve"><value>Reproduza vídeos de páginas da web no Light Media Center com a extensão do navegador.</value></data>
+  <data name="BrowserLinkSettings_EnabledHeader" xml:space="preserve"><value>Permitir conexões do navegador</value></data>
+  <data name="BrowserLinkSettings_EnabledDescription" xml:space="preserve"><value>Navegadores emparelhados neste computador podem enviar vídeos para cá. Outros dispositivos não podem se conectar.</value></data>
+  <data name="BrowserLinkSettings_PortHeader" xml:space="preserve"><value>Porta</value></data>
+  <data name="BrowserLinkSettings_PortDescription" xml:space="preserve"><value>Defina a mesma porta nas opções da extensão.</value></data>
+  <data name="BrowserLinkSettings_ApplyButton" xml:space="preserve"><value>Aplicar</value></data>
+  <data name="BrowserLinkSettings_InvalidPort" xml:space="preserve"><value>A porta deve ser um número inteiro entre 1 e 65535.</value></data>
+  <data name="BrowserLinkSettings_RunningFormat" xml:space="preserve"><value>Aguardando navegadores na porta {0}.</value></data>
+  <data name="BrowserLinkSettings_Disabled" xml:space="preserve"><value>As conexões do navegador estão desativadas.</value></data>
+  <data name="BrowserLinkSettings_FailedFormat" xml:space="preserve"><value>Não foi possível usar a porta {0}: {1}</value></data>
+  <data name="BrowserLinkSettings_PairedHeader" xml:space="preserve"><value>Navegadores emparelhados</value></data>
+  <data name="BrowserLinkSettings_PairedDescription" xml:space="preserve"><value>O emparelhamento começa pela extensão. Um navegador removido precisa ser emparelhado novamente.</value></data>
+  <data name="BrowserLinkSettings_PairedEmpty" xml:space="preserve"><value>Nenhum navegador emparelhado ainda.</value></data>
+  <data name="BrowserLinkSettings_PairedOnFormat" xml:space="preserve"><value>Emparelhado em {0}</value></data>
+  <data name="BrowserLinkSettings_Remove" xml:space="preserve"><value>Remover</value></data>
 </root>

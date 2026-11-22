@@ -27,6 +27,8 @@ internal sealed class EmbeddingPreprocessor
     internal int Width { get; }
     internal int Height { get; }
     internal int DefaultSequenceLength => siglip2 ? 64 : 77;
+    /// <summary>SigLIP2 scores each image-text pair independently through a sigmoid; CLIP only ranks candidates against each other.</summary>
+    internal bool HasMatchProbability => siglip2;
     internal long PaddingToken { get; }
     internal long[] ImageTokens { get; }
     internal string ModelName => $"{(siglip2 ? "SigLIP2" : "CLIP")} {Width}x{Height}";

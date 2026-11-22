@@ -54,6 +54,9 @@ public sealed partial class ThemeModeOption : ViewModelBase
 
     public bool ShowDarkPreview { get; }
 
+    /// <summary>Whether the option follows the system appearance, which previews show as half of each.</summary>
+    public bool IsSystem => Preference == AppThemePreference.Default;
+
     partial void OnIsSelectedChanged(bool value)
     {
         if (value)

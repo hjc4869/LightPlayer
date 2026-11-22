@@ -104,7 +104,7 @@ internal sealed class PhotoPageTransition : ConnectedPageTransition
         }
 
         if (previous is PhotoViewerPageViewModel leaving && next is IScrollPositionPageViewModel returning &&
-            next is MediaPageViewModel or SearchPageViewModel or PhotoSearchPageViewModel &&
+            next is MediaPageViewModel or SearchPageViewModel &&
             FindPhoto(host, leaving) is { } view && view.FindControl<PhotoView>("Photo") is { HasDisplayImage: true } picture &&
             CapturePhoto(host, picture, leaving.Rotation) is { } geometry)
         {
@@ -173,8 +173,7 @@ internal sealed class PhotoPageTransition : ConnectedPageTransition
             if (ReferenceEquals(photo.OriginPage, browser) &&
                 FindBrowser(To, browser) is { } browserView &&
                 (browserView.FindControl<ScrollViewer>("MediaScrollViewer") ??
-                 browserView.FindControl<ScrollViewer>("ResultsScrollViewer") ??
-                 browserView.FindControl<ScrollViewer>("PhotosScrollViewer")) is { } scroll)
+                 browserView.FindControl<ScrollViewer>("ResultsScrollViewer")) is { } scroll)
             {
                 var clock = Stopwatch.StartNew();
                 do
@@ -366,7 +365,7 @@ internal sealed class PhotoPageTransition : ConnectedPageTransition
             .FirstOrDefault(view => IsBrowserView(view) && ReferenceEquals(view.DataContext, model) && view.IsEffectivelyVisible);
 
     private static bool IsBrowserView(UserControl view) =>
-        view is MediaPageView or SearchPageView or PhotoSearchPageView;
+        view is MediaPageView or SearchPageView;
 
     private static PhotoViewerPageView? FindPhoto(Visual? root, PhotoViewerPageViewModel model) =>
         root is PhotoViewerPageView page && ReferenceEquals(page.DataContext, model) ? page :

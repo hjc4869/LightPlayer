@@ -1,0 +1,42 @@
+<Project>
+  <!--
+    Multithreaded runtime glue fix: the runtime's thread pool hands a new thread only to a worker marked as
+    loaded, and a worker that is still loading has no handler for the start command. The patched
+    dotnet.native.js marks a worker when it reports loaded and holds a thread's start command until then.
+  -->
+  <UsingTask TaskName="PatchThreadStart" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <GluePath ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+var start = new Regex(@"worker\.postMessage\(msg,\s*threadParams\.transferList\)");
+var loaded = new Regex(@"onFinishedLoading\(worker\)");
+string text = File.ReadAllText(GluePath);
+if (!text.Contains("worker.pendingStart"))
+{
+    if (start.Matches(text).Count != 1 || loaded.Matches(text).Count != 1)
+    {
+        Log.LogError("The thread start command or the worker loaded notification was not found in {0}.", GluePath);
+        return false;
+    }
+
+    // Both replacements stay single expressions, so they fit wherever the glue places the originals.
+    text = start.Replace(text, "worker.loaded ? worker.postMessage(msg, threadParams.transferList) : (worker.pendingStart = [msg, threadParams.transferList])");
+    text = loaded.Replace(text, "onFinishedLoading((worker.loaded = true, " +
+        "worker.pendingStart && worker.pendingStart[0].pthread_ptr == worker.pthread_ptr && worker.postMessage(worker.pendingStart[0], worker.pendingStart[1]), " +
+        "worker.pendingStart = null, worker))");
+    File.WriteAllText(GluePath, text);
+}
+]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="PatchThreadStart" AfterTargets="WasmLinkDotNet"
+          Condition="'$(WasmBuildNative)' == 'true' and '$(WasmEnableThreads)' == 'true'">
+    <PatchThreadStart GluePath="$(_WasmIntermediateOutputPath)dotnet.native.js" />
+  </Target>
+</Project>

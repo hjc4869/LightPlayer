@@ -11,6 +11,12 @@ namespace LightStudio.LightPlayer.Services;
 /// </summary>
 public static class FileActivation
 {
+    /// <summary>
+    /// The URL scheme the packages register so a browser can start or bring forward the
+    /// application. Its URLs carry nothing to open.
+    /// </summary>
+    public const string WakeScheme = "lightplayer";
+
     /// <summary>Extracts playable local files and HTTP(S) stream URLs from launch arguments.</summary>
     public static IReadOnlyList<string> ExtractTargets(IEnumerable<string> args)
     {
@@ -65,12 +71,13 @@ public static class FileActivation
 
     /// <summary>
     /// Converts a single argument (a local path or a <c>file://</c> URI) to a
-    /// local path. Returns <c>null</c> for option flags (leading <c>-</c>) and for
-    /// non-file URI schemes (e.g. <c>http</c>), which are not playable locally.
+    /// local path. Returns <c>null</c> for option flags (leading <c>-</c>), for
+    /// <c>lightplayer:</c> URLs and for non-file URI schemes (e.g. <c>http</c>), which are
+    /// not playable locally.
     /// </summary>
     public static string? ToLocalPath(string? arg)
     {
-        if (string.IsNullOrWhiteSpace(arg) || arg.StartsWith('-'))
+        if (string.IsNullOrWhiteSpace(arg) || arg.StartsWith('-') || IsWakeUrl(arg))
         {
             return null;
         }
@@ -108,4 +115,9 @@ public static class FileActivation
 
     /// <summary>Converts a local path to an absolute <c>file://</c> URI for D-Bus forwarding.</summary>
     public static string ToFileUri(string path) => new Uri(Path.GetFullPath(path)).AbsoluteUri;
+
+    private static bool IsWakeUrl(string arg) =>
+        arg.Length > WakeScheme.Length &&
+        arg[WakeScheme.Length] == ':' &&
+        arg.StartsWith(WakeScheme, StringComparison.OrdinalIgnoreCase);
 }

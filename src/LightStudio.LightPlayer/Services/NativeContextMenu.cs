@@ -170,11 +170,13 @@ public static class NativeContextMenu
     private static void OnNativeSelectionChanged(ComboBox comboBox, AvaloniaPropertyChangedEventArgs e)
     {
         comboBox.RemoveHandler(InputElement.PointerPressedEvent, OnSelectionPointerPressed);
+        comboBox.RemoveHandler(InputElement.PointerReleasedEvent, OnSelectionPointerReleased);
         comboBox.RemoveHandler(InputElement.KeyDownEvent, OnSelectionKeyDown);
 
         if (e.NewValue is true)
         {
             comboBox.AddHandler(InputElement.PointerPressedEvent, OnSelectionPointerPressed, RoutingStrategies.Tunnel);
+            comboBox.AddHandler(InputElement.PointerReleasedEvent, OnSelectionPointerReleased, RoutingStrategies.Tunnel);
             comboBox.AddHandler(InputElement.KeyDownEvent, OnSelectionKeyDown, RoutingStrategies.Tunnel);
         }
     }
@@ -182,9 +184,21 @@ public static class NativeContextMenu
     // Pop-up buttons open on mouse down so the choice can be made by dragging to it and releasing.
     private static void OnSelectionPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is ComboBox comboBox && !e.Handled && !comboBox.IsDropDownOpen &&
-            e.GetCurrentPoint(comboBox).Properties.IsLeftButtonPressed &&
+        if (sender is ComboBox comboBox && e.Pointer.Type != PointerType.Touch && !e.Handled &&
+            !comboBox.IsDropDownOpen && e.GetCurrentPoint(comboBox).Properties.IsLeftButtonPressed &&
             TryShowSelection(comboBox, e.Pointer))
+        {
+            e.Handled = true;
+        }
+    }
+
+    // A touch opens on release, so a drag that starts on the box still scrolls what holds it. The box
+    // stays :pressed only while the touch is a tap; a scroll gesture taking the touch clears it.
+    private static void OnSelectionPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (sender is ComboBox comboBox && e.Pointer.Type == PointerType.Touch && !e.Handled &&
+            !comboBox.IsDropDownOpen && comboBox.Classes.Contains(":pressed") &&
+            TryShowSelection(comboBox, null))
         {
             e.Handled = true;
         }

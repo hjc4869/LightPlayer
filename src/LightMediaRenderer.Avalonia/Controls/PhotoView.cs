@@ -603,11 +603,12 @@ public partial class PhotoView : Control
             Matrix.CreateRotation(TransitionRotation * Math.PI / 180) *
             Matrix.CreateTranslation(destination.Center.X, destination.Center.Y)))
         {
-            if (current.Frame?.HasAlpha != true &&
+            bool prepareOnly = current.Frame?.HasAlpha == true && current.Cache?.IsPhotoReady == false && PreviewSource is not null;
+            if ((current.Frame?.HasAlpha != true || prepareOnly) &&
                 (current.Frame?.PhotoSurface is not null || current.Frame?.PhotoTiles is not null || current.Frame?.GainMap?.Samples is not null) && PreviewSource is { } thumbnail)
                 hasHdrContent |= DrawPreview(context, thumbnail, destination, Rotation, ref contentMetadata);
             if (current.Frame is not null)
-                hasHdrContent |= Draw(context, current, bounds, destination, Rotation, ref contentMetadata);
+                hasHdrContent |= Draw(context, current, bounds, destination, Rotation, ref contentMetadata, prepareOnly);
             else if (PreviewSource is { } preview)
                 hasHdrContent |= DrawPreview(context, preview, destination, Rotation, ref contentMetadata);
         }
@@ -684,23 +685,24 @@ public partial class PhotoView : Control
         Rect destination = viewport.Destination(viewport.MinimumZoom, default)
             .Translate(new Vector(swipe + (direction * (Bounds.Width + NeighborGap)), 0));
         bool hasHdrContent = false;
-        if (slot.Frame?.HasAlpha != true &&
-            (slot.Frame?.PhotoSurface is not null || slot.Frame?.PhotoTiles is not null) && preview is not null)
+        bool prepareOnly = slot.Frame?.HasAlpha == true && slot.Cache?.IsPhotoReady == false && preview is not null;
+        if ((slot.Frame?.HasAlpha != true || prepareOnly) &&
+            (slot.Frame?.PhotoSurface is not null || slot.Frame?.PhotoTiles is not null || slot.Frame?.GainMap?.Samples is not null) && preview is not null)
             hasHdrContent |= DrawPreview(context, preview, destination, 0, ref contentMetadata);
         if (slot.Frame is not null)
-            hasHdrContent |= Draw(context, slot, bounds, destination, 0, ref contentMetadata);
+            hasHdrContent |= Draw(context, slot, bounds, destination, 0, ref contentMetadata, prepareOnly);
         else if (preview is not null)
             hasHdrContent |= DrawPreview(context, preview, destination, 0, ref contentMetadata);
         return hasHdrContent;
     }
 
     private bool Draw(DrawingContext context, FrameSlot slot, Rect bounds, Rect destination, int rotation,
-        ref HdrContentHint.Metadata? contentMetadata) =>
+        ref HdrContentHint.Metadata? contentMetadata, bool prepareOnly = false) =>
         slot.Frame is { } frame && slot.Cache is { } cache &&
-        Draw(context, frame, cache, bounds, destination, rotation, ref contentMetadata);
+        Draw(context, frame, cache, bounds, destination, rotation, ref contentMetadata, prepareOnly);
 
     private bool Draw(DrawingContext context, VideoFrame frame, VideoFrameImageCache cache, Rect bounds, Rect destination, int rotation,
-        ref HdrContentHint.Metadata? contentMetadata)
+        ref HdrContentHint.Metadata? contentMetadata, bool prepareOnly = false)
     {
         // A picture the swipe has carried off the side still costs a shader pass if it is handed
         // over, so one with nothing left inside the control is not drawn at all.
@@ -733,7 +735,8 @@ public partial class PhotoView : Control
             toneMapping: frame is { GainMap: null, ColorTransfer: VideoColorTransfer.Pq } ? ToneMapping : null,
             toneMappingOutputChanged: ReferenceEquals(frame, current.Frame) &&
                 frame is { GainMap: null, ColorTransfer: VideoColorTransfer.Pq } ? ReportAutomaticToneMapping : null,
-            inMotion: IsInMotion));
+            inMotion: IsInMotion,
+            prepareOnly: prepareOnly));
         bool hasHdrContent = hdrPassthrough && HdrContentHint.IsHdr(frame);
         if (hasHdrContent)
             contentMetadata = HdrContentHint.Combine(contentMetadata, HdrContentHint.Describe(frame,
@@ -1457,6 +1460,9 @@ public partial class PhotoView : Control
     protected override void OnSizeChanged(SizeChangedEventArgs e)
     {
         base.OnSizeChanged(e);
+
+        // A picture whose size was known before the control had a viewport opens once it is laid out.
+        ApplyInitialZoomIfReady();
 
         // The clamp is measured against the viewport, so a resize can leave the picture off center.
         SetOffset(offset);
